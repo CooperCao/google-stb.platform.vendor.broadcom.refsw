@@ -74,6 +74,7 @@ typedef enum BSAGElib_BinFileDrmTypes_e
     BSAGElib_BinFileDrmType_eGeneric,
     BSAGElib_BinFileDrmType_eEdrm,
     BSAGElib_BinFileDrmType_eEcc,
+    BSAGElib_BinFileDrmType_ePlayready30,
     BSAGElib_BinFileDrmType_eMax
 } BSAGElib_BinFileDrmTypes_e;
 
