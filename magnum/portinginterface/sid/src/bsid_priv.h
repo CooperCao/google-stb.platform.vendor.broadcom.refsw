@@ -1,44 +1,41 @@
 /******************************************************************************
-* (c) 2004-2015 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ ******************************************************************************/
 
 #ifndef BSID_PRIV_H__
 #define BSID_PRIV_H__
@@ -70,9 +67,17 @@ extern "C" {
 /*********************************************************************************
 /////////////////////// Defines, Typedef, Structs ////////////////////////////////
 *********************************************************************************/
+#define BSID_SET_CH_STATE(handle, state)  \
+        BKNI_EnterCriticalSection(); \
+        (handle)->e_ChannelState = BSID_ChannelState_e ## state; \
+        BKNI_LeaveCriticalSection()
+
 #define BSID_P_MAX_OUTPUT_BUFFERS                                             10
 
 #define BSID_P_ARC_UART_BAUDRATE                                          115200  /* sid arc uart baud rate */
+
+/* valid metadata indexes are 0 .. OpenChannelSettings->ui32_QueueDepth */
+#define BSID_P_INVALID_METADATA_INDEX                                (uint32_t)-1
 
 /* FIXME: a lot of these definitions should be provided by the FW (as part of an API include) */
 
@@ -128,13 +133,6 @@ typedef struct BSID_LinearBuffer {
 } BSID_LinearBuffer;
 
 /********************************************************************************/
-typedef enum BSID_ResourceStatus {
-    BSID_ResourceStatus_eIdle,
-    BSID_ResourceStatus_eBusy,
-    BSID_ResourceStatus_eLast
-} BSID_ResourceStatus;
-
-/********************************************************************************/
 typedef struct BSID_FwHwConfig {
     bool                bSelfTest;
     uint16_t            ui16_JPEGHorizAndVerFilt;
@@ -149,8 +147,6 @@ typedef struct BSID_FwHwConfig {
     } sMbxMemory;
     BSID_LinearBuffer   sInpDmaMemory;
     BSID_LinearBuffer   sDataMemory;
-    /* FIXME: remove this?  Or use it for tracking Arc power management status? */
-    BSID_ResourceStatus eSidArcStatus;
 } BSID_FwHwConfig;
 
 typedef struct BSID_MailboxInfo {
@@ -213,6 +209,7 @@ typedef struct BSID_P_Context {
 /********************************************************************************/
 
 typedef struct BSID_DataQueueEntry {
+   /* NOTE: currently, this is only used for storing the decoded stream info header */
    uint32_t     entry[BSID_DATA_QUEUE_NUM_ELEM];
 } BSID_DataQueueEntry;
 
@@ -266,6 +263,18 @@ typedef struct BSID_PlaybackQueue {
     uint32_t                 ui32_DisplayQueueFullnessCount;
 } BSID_PlaybackQueue;
 
+/* metadata entry to store the virtual addresses associated with
+   the locations stream info is written by the firmware */
+typedef struct BSID_P_MetadataEntry
+{
+   void *pvStreamInfoFWAddr;  /* where the fw writes the stream info
+                                 (virtual address corresponding to the physical
+                                 address sent in the GetStreamInfo command)
+                                 => this will be a location in the DataQueue */
+   void *pStreamInfoDestAddr; /* where the application wants the stream info to go */
+   bool bInUse;               /* indicates whether this entry is in use or free */
+} BSID_P_MetadataEntry;
+
 /********************************************************************************/
 typedef struct BSID_P_Channel {
     /* generic */
@@ -281,7 +290,7 @@ typedef struct BSID_P_Channel {
     BSID_OpenChannelSettings sChSettings;
     BSID_ChannelQueue    sReqQueue;  /* operations from mips to arc */
     BSID_ChannelQueue    sRelQueue;  /* results from arc to mips */
-    BSID_ChannelQueue    sDataQueue; /* large data exchange between mips and arc */
+    BSID_ChannelQueue    sDataQueue; /* large data exchange between mips and arc (stream info, decoded image) */
     bool                 b_FlushPending;
     bool                 bAbortInitiated;
     BKNI_EventHandle     hSyncEvent;
@@ -302,6 +311,7 @@ typedef struct BSID_P_Channel {
     BXDM_Picture         a_DisplayBuffer[BSID_P_MAX_OUTPUT_BUFFERS];
     unsigned int         last_ITB_Read;
     BSID_ChannelChangeOutputMode e_ChannelChangeOutputMode;
+    BSID_P_MetadataEntry *pMetadata;    /* This has ui32_QueueTrueDepth entries in the array */
 #ifdef BSID_P_DEBUG_SAVE_BUFFER
     BSID_P_DebugSaveData stDebugSaveData;
 #endif
@@ -310,22 +320,17 @@ typedef struct BSID_P_Channel {
 #endif
 } BSID_P_Channel;
 
-/********************************************************************************/
-typedef enum BSID_ChannelQueueStatus {
-    BSID_ChannelQueueStatus_NotFull,
-    BSID_ChannelQueueStatus_Full
-} BSID_ChannelQueueStatus;
-
 /*********************************************************************************
 ////////////////////// Function prototypes declaration ///////////////////////////
 *********************************************************************************/
+BERR_Code BSID_P_ResetChannel(BSID_ChannelHandle hSidCh);
 void BSID_P_ResetDmaInfo(BSID_Handle hSid);
 BERR_Code BSID_P_SetFwHwDefault(BSID_Handle hSid, BSID_Settings ps_DefSettings);
 void  BSID_P_ResetFwHwDefault(BSID_Handle hSid);
 BERR_Code BSID_P_CreateChannelMemory(BSID_ChannelHandle hSidCh);
+BERR_Code BSID_P_ResetChannelMemory(BSID_ChannelHandle hSidCh);
 void BSID_P_DestroyChannelMemory(BSID_ChannelHandle hSidCh);
 void BSID_P_DestroyChannel(BSID_ChannelHandle hSidCh);
-BSID_ChannelQueueStatus BSID_P_GetChannelQueueStatus(BSID_ChannelHandle hSidCh);
 BERR_Code BSID_P_MotionDecode(BSID_ChannelHandle hSidCh, const BSID_DecodeMotion *ps_MotionSettings);
 BERR_Code BSID_P_SuspendChannels(BSID_Handle hSid);
 BERR_Code BSID_P_ResumeChannel(BSID_ChannelHandle hSidCh);
@@ -336,6 +341,7 @@ bool BSID_P_IsMotionOperationAllowed(BSID_Handle hSid);
 bool BSID_P_AllChannelAvailable(BSID_Handle hSid);
 bool BSID_P_AnyChannelAvailable(BSID_Handle hSid, uint32_t *idleChannel);
 void BSID_P_Watchdog_isr(void *pContext, int iParam);
+bool BSID_P_IsChannelQueueFull(BSID_ChannelHandle hSidCh);
 
 /*********************************************************************************
 //////////////////////////////////////////////////////////////////////////////////

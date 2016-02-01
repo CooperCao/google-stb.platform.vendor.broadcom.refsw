@@ -1,43 +1,41 @@
 /******************************************************************************
-* (c) 2004-2015 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ ******************************************************************************/
 
 #include "bstd.h"
 #include "berr.h"
@@ -163,7 +161,6 @@ BERR_Code  BSID_P_SetFwHwDefault(
 
     BDBG_ENTER(BSID_P_SetFwHwDefault);
 
-    hSid->sFwHwConfig.eSidArcStatus            = BSID_ResourceStatus_eIdle;
     hSid->sFwHwConfig.ui16_JPEGHorizAndVerFilt = ps_DefSettings.ui16_JPEGHorizAndVerFilt;
     hSid->sFwHwConfig.ui8_AlphaValue           = ps_DefSettings.ui8_AlphaValue;
     hSid->sFwHwConfig.b_EndianessSwap          = ps_DefSettings.b_EndianessSwap;
@@ -292,7 +289,7 @@ void BSID_P_Watchdog_isr(void *pContext, int iParam)
 }
 
 /******************************************************************************
-* Function name: BSID_P_CreateChannelQueue
+* Function name: BSID_P_CreateChannelMemory
 *
 * Comments:
 *
@@ -302,9 +299,6 @@ BERR_Code BSID_P_CreateChannelMemory(BSID_ChannelHandle hSidCh)
     BERR_Code retCode = BERR_SUCCESS;
     BSID_Handle hSid = hSidCh->hSid;
     BSID_LinearBuffer *sMemory = NULL;
-    BSID_CommandQueueHeader *psQueueHeader = NULL;
-    unsigned int buffer_index;
-
     uint32_t ui32_Size;
 
     /* allocate channel request queue */
@@ -318,10 +312,6 @@ BERR_Code BSID_P_CreateChannelMemory(BSID_ChannelHandle hSidCh)
         return BERR_TRACE(retCode);
     }
 
-    psQueueHeader = (BSID_CommandQueueHeader *)sMemory->pv_CachedAddr;
-    psQueueHeader->ui32_ReadIndex = psQueueHeader->ui32_WriteIndex = 0;
-    BMMA_FlushCache(sMemory->hBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
-
     /* allocate channel release queue */
     sMemory = &hSidCh->sRelQueue.sBuf;
     ui32_Size = sizeof(BSID_CommandQueueHeader) + (hSidCh->ui32_QueueTrueDepth * sizeof(BSID_RelQueueEntry));
@@ -332,10 +322,6 @@ BERR_Code BSID_P_CreateChannelMemory(BSID_ChannelHandle hSidCh)
         BSID_P_DestroyChannelMemory(hSidCh);
         return BERR_TRACE(retCode);
     }
-
-    psQueueHeader = (BSID_CommandQueueHeader *)sMemory->pv_CachedAddr;
-    psQueueHeader->ui32_ReadIndex = psQueueHeader->ui32_WriteIndex = 0;
-    BMMA_FlushCache(sMemory->hBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
 
     /* allocate channel data queue */
     sMemory = &hSidCh->sDataQueue.sBuf;
@@ -348,22 +334,21 @@ BERR_Code BSID_P_CreateChannelMemory(BSID_ChannelHandle hSidCh)
         return BERR_TRACE(retCode);
     }
 
-    psQueueHeader = (BSID_CommandQueueHeader *)sMemory->pv_CachedAddr;
-    psQueueHeader->ui32_ReadIndex = psQueueHeader->ui32_WriteIndex = 0;
-    BMMA_FlushCache(sMemory->hBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
+    /* allocate metadata array */
+    hSidCh->pMetadata = (BSID_P_MetadataEntry *)BKNI_Malloc(hSidCh->ui32_QueueTrueDepth * sizeof(BSID_P_MetadataEntry));
+    if (NULL == hSidCh->pMetadata)
+    {
+        BDBG_ERR(("Metadata array allocation failed"));
+        BSID_P_DestroyChannelMemory(hSidCh);
+        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+    }
 
     /* check if we are dealing with a motion channel */
     if (hSidCh->e_ChannelType == BSID_ChannelType_eMotion)
     {
-        BSID_RaveStatusReport *pMemoryReport;
-        BSID_PlaybackWriteQueueHeader *psPbWriteQueueHeader;
-        BSID_PlaybackWriteQueueEntry *psPbWriteQueueEntry;
-        BSID_PlaybackReadQueueHeader *psPbReadQueueHeader;
-        BSID_PlaybackQueueState *psPbStateQueue;
-        BSID_PlaybackQueueState *psPbStateQueueEntry;
         unsigned int pbQueueSize;
-        BXDM_Picture *pUniPicture;
         char str[10] = "";
+        unsigned int buffer_index;
         /*
          * allocate rave report memory and playback buffer queue.
          */
@@ -377,10 +362,6 @@ BERR_Code BSID_P_CreateChannelMemory(BSID_ChannelHandle hSidCh)
             BSID_P_DestroyChannelMemory(hSidCh);
             return BERR_TRACE(retCode);
         }
-
-        pMemoryReport = (BSID_RaveStatusReport *)sMemory->pv_CachedAddr;
-        BKNI_Memset((void *)pMemoryReport, 0x0, sizeof(BSID_RaveStatusReport));
-        BMMA_FlushCache(sMemory->hBlock, (void *)pMemoryReport, sizeof(BSID_RaveStatusReport));
 
         for (buffer_index = 0x0; buffer_index < hSidCh->sChSettings.u_ChannelSpecific.motion.ui32_OutputBuffersNumber; buffer_index++)
         {
@@ -405,14 +386,6 @@ BERR_Code BSID_P_CreateChannelMemory(BSID_ChannelHandle hSidCh)
 
         pbQueueSize = hSidCh->sChSettings.u_ChannelSpecific.motion.ui32_OutputBuffersNumber;
 
-        /*
-         * following are playbackQueue related
-         */
-        hSidCh->sPlaybackQueue.ui32_DisplayReadIndex = 0;
-        hSidCh->sPlaybackQueue.ui32_HostDecodeReadIndex = 0;
-        hSidCh->sPlaybackQueue.ui32_DecodeQueueFullnessCount = 0;
-        hSidCh->sPlaybackQueue.ui32_DisplayQueueFullnessCount = 0;
-
         /* playback write queue */
         sMemory = &hSidCh->sPlaybackQueue.sWriteBuf;
         ui32_Size = sizeof(BSID_PlaybackWriteQueueHeader) + (pbQueueSize * sizeof(BSID_PlaybackWriteQueueEntry));
@@ -424,6 +397,141 @@ BERR_Code BSID_P_CreateChannelMemory(BSID_ChannelHandle hSidCh)
             return BERR_TRACE(retCode);
         }
 
+        /* playback read queue */
+        sMemory = &hSidCh->sPlaybackQueue.sReadBuf;
+        ui32_Size = sizeof(BSID_PlaybackReadQueueHeader) + (pbQueueSize * sizeof(BSID_PlaybackReadQueueEntry));
+        retCode = BSID_P_AllocLock(hSid->hMma, sMemory, ui32_Size, BSID_QUEUE_ALIGNMENT_BYTES, "PbRdQ");
+        if (retCode != BERR_SUCCESS)
+        {
+            BDBG_ERR(("PbRdQ memory alloc failed"));
+            BSID_P_DestroyChannelMemory(hSidCh);
+            return BERR_TRACE(retCode);
+        }
+
+        /* playback state queue */
+        sMemory = &hSidCh->sPlaybackQueue.sStateBuf;
+        ui32_Size = pbQueueSize * sizeof(BSID_PlaybackQueueState);
+        retCode = BSID_P_AllocLock(hSid->hMma, sMemory, ui32_Size, BSID_QUEUE_ALIGNMENT_BYTES, "PbStateQ");
+        if (retCode != BERR_SUCCESS)
+        {
+            BDBG_ERR(("PbStateQ memory alloc failed"));
+            BSID_P_DestroyChannelMemory(hSidCh);
+            return BERR_TRACE(retCode);
+        }
+    } /* end: if motion channel */
+
+    return BERR_TRACE(retCode);
+}
+
+/******************************************************************************
+* Function name: BSID_P_DestroyChannelMemory
+*
+* Comments:
+*
+******************************************************************************/
+void BSID_P_DestroyChannelMemory(BSID_ChannelHandle hSidCh)
+{
+    /* free channel request queue */
+    BSID_P_FreeUnlock(&hSidCh->sReqQueue.sBuf);
+
+    /* free channel request queue */
+    BSID_P_FreeUnlock(&hSidCh->sRelQueue.sBuf);
+
+    /* free channel data queue */
+    BSID_P_FreeUnlock(&hSidCh->sDataQueue.sBuf);
+
+    if (NULL != hSidCh->pMetadata)
+    {
+        BKNI_Free(hSidCh->pMetadata);
+        hSidCh->pMetadata = NULL;
+    }
+
+    /* check if we are dealing with a motion channel */
+    if (hSidCh->e_ChannelType == BSID_ChannelType_eMotion)
+    {
+        /* free output buffer */
+        unsigned int buffer_index = 0x0;
+
+        /* free output buffer */
+        for (buffer_index = 0x0; buffer_index < hSidCh->sChSettings.u_ChannelSpecific.motion.ui32_OutputBuffersNumber; buffer_index++)
+        {
+            BSID_P_FreeUnlock(&hSidCh->a_OutputBuffer[buffer_index]);
+        }
+
+        /* free rave report */
+        BSID_P_FreeUnlock(&hSidCh->sRaveReport);
+
+        /* free playback read queue */
+        BSID_P_FreeUnlock(&hSidCh->sPlaybackQueue.sReadBuf);
+
+        /* free playback write queue */
+        BSID_P_FreeUnlock(&hSidCh->sPlaybackQueue.sWriteBuf);
+
+        /* free playback state buffer */
+        BSID_P_FreeUnlock(&hSidCh->sPlaybackQueue.sStateBuf);
+    }
+}
+
+/******************************************************************************
+* Function name: BSID_P_CreateChannelMemory
+*
+* Comments:
+*
+******************************************************************************/
+BERR_Code BSID_P_ResetChannelMemory(BSID_ChannelHandle hSidCh)
+{
+    BERR_Code retCode = BERR_SUCCESS;
+    BSID_LinearBuffer *sMemory = NULL;
+    BSID_CommandQueueHeader *psQueueHeader = NULL;
+    unsigned int buffer_index;
+
+    /* reset request queue */
+    sMemory = &hSidCh->sReqQueue.sBuf;
+    psQueueHeader = (BSID_CommandQueueHeader *)sMemory->pv_CachedAddr;
+    psQueueHeader->ui32_ReadIndex = psQueueHeader->ui32_WriteIndex = 0;
+    BMMA_FlushCache(sMemory->hBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
+
+    /* reset release queue */
+    sMemory = &hSidCh->sRelQueue.sBuf;
+    psQueueHeader = (BSID_CommandQueueHeader *)sMemory->pv_CachedAddr;
+    psQueueHeader->ui32_ReadIndex = psQueueHeader->ui32_WriteIndex = 0;
+    BMMA_FlushCache(sMemory->hBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
+
+    /* reset data queue */
+    sMemory = &hSidCh->sDataQueue.sBuf;
+    psQueueHeader = (BSID_CommandQueueHeader *)sMemory->pv_CachedAddr;
+    psQueueHeader->ui32_ReadIndex = psQueueHeader->ui32_WriteIndex = 0;
+    BMMA_FlushCache(sMemory->hBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
+
+    /* reset the metadata queue */
+    BKNI_Memset((void *)hSidCh->pMetadata, 0, hSidCh->ui32_QueueTrueDepth * sizeof(BSID_P_MetadataEntry));
+
+    /* check if we are dealing with a motion channel */
+    if (hSidCh->e_ChannelType == BSID_ChannelType_eMotion)
+    {
+        BSID_RaveStatusReport *pMemoryReport;
+        BSID_PlaybackWriteQueueHeader *psPbWriteQueueHeader;
+        BSID_PlaybackWriteQueueEntry *psPbWriteQueueEntry;
+        BSID_PlaybackReadQueueHeader *psPbReadQueueHeader;
+        BSID_PlaybackQueueState *psPbStateQueue;
+        BSID_PlaybackQueueState *psPbStateQueueEntry;
+        unsigned int pbQueueSize = hSidCh->sChSettings.u_ChannelSpecific.motion.ui32_OutputBuffersNumber;
+        BXDM_Picture *pUniPicture;
+
+        sMemory = &hSidCh->sRaveReport;
+        pMemoryReport = (BSID_RaveStatusReport *)sMemory->pv_CachedAddr;
+        BKNI_Memset((void *)pMemoryReport, 0x0, sizeof(BSID_RaveStatusReport));
+        BMMA_FlushCache(sMemory->hBlock, (void *)pMemoryReport, sizeof(BSID_RaveStatusReport));
+        /*
+         * following are playbackQueue related
+         */
+        hSidCh->sPlaybackQueue.ui32_DisplayReadIndex = 0;
+        hSidCh->sPlaybackQueue.ui32_HostDecodeReadIndex = 0;
+        hSidCh->sPlaybackQueue.ui32_DecodeQueueFullnessCount = 0;
+        hSidCh->sPlaybackQueue.ui32_DisplayQueueFullnessCount = 0;
+
+        /* playback write queue */
+        sMemory = &hSidCh->sPlaybackQueue.sWriteBuf;
         psPbWriteQueueHeader = (BSID_PlaybackWriteQueueHeader *)sMemory->pv_CachedAddr;
         psPbWriteQueueHeader->ui32_NewPictWriteIndex = 0;
         psPbWriteQueueHeader->ui32_ChannelState = BSID_ChannelState_eReady;
@@ -459,30 +567,12 @@ BERR_Code BSID_P_CreateChannelMemory(BSID_ChannelHandle hSidCh)
 
         /* playback read queue */
         sMemory = &hSidCh->sPlaybackQueue.sReadBuf;
-        ui32_Size = sizeof(BSID_PlaybackReadQueueHeader) + (pbQueueSize * sizeof(BSID_PlaybackReadQueueEntry));
-        retCode = BSID_P_AllocLock(hSid->hMma, sMemory, ui32_Size, BSID_QUEUE_ALIGNMENT_BYTES, "PbRdQ");
-        if (retCode != BERR_SUCCESS)
-        {
-            BDBG_ERR(("PbRdQ memory alloc failed"));
-            BSID_P_DestroyChannelMemory(hSidCh);
-            return BERR_TRACE(retCode);
-        }
-
         psPbReadQueueHeader = (BSID_PlaybackReadQueueHeader *)sMemory->pv_CachedAddr;
         psPbReadQueueHeader->ui32_DecodedReadIndex = 0x0;
         BMMA_FlushCache(sMemory->hBlock, (void *)psPbReadQueueHeader, sizeof(BSID_PlaybackReadQueueHeader));
 
         /* playback state queue */
         sMemory = &hSidCh->sPlaybackQueue.sStateBuf;
-        ui32_Size = pbQueueSize * sizeof(BSID_PlaybackQueueState);
-        retCode = BSID_P_AllocLock(hSid->hMma, sMemory, ui32_Size, BSID_QUEUE_ALIGNMENT_BYTES, "PbStateQ");
-        if (retCode != BERR_SUCCESS)
-        {
-            BDBG_ERR(("PbStateQ memory alloc failed"));
-            BSID_P_DestroyChannelMemory(hSidCh);
-            return BERR_TRACE(retCode);
-        }
-
         psPbStateQueue = (BSID_PlaybackQueueState *)sMemory->pv_CachedAddr;
         BMMA_FlushCache(sMemory->hBlock, (void *)psPbStateQueue, sizeof(BSID_PlaybackQueueState));
 
@@ -500,48 +590,6 @@ BERR_Code BSID_P_CreateChannelMemory(BSID_ChannelHandle hSidCh)
     return BERR_TRACE(retCode);
 }
 
-/******************************************************************************
-* Function name: BSID_P_DestroyChannelQueue
-*
-* Comments:
-*
-******************************************************************************/
-void BSID_P_DestroyChannelMemory(BSID_ChannelHandle hSidCh)
-{
-    /* free channel request queue */
-    BSID_P_FreeUnlock(&hSidCh->sReqQueue.sBuf);
-
-    /* free channel request queue */
-    BSID_P_FreeUnlock(&hSidCh->sRelQueue.sBuf);
-
-    /* free channel data queue */
-    BSID_P_FreeUnlock(&hSidCh->sDataQueue.sBuf);
-
-    /* check if we are dealing with a motion channel */
-    if (hSidCh->e_ChannelType == BSID_ChannelType_eMotion)
-    {
-        /* free output buffer */
-        unsigned int buffer_index = 0x0;
-
-        /* free output buffer */
-        for (buffer_index = 0x0; buffer_index < hSidCh->sChSettings.u_ChannelSpecific.motion.ui32_OutputBuffersNumber; buffer_index++)
-        {
-            BSID_P_FreeUnlock(&hSidCh->a_OutputBuffer[buffer_index]);
-        }
-
-        /* free rave report */
-        BSID_P_FreeUnlock(&hSidCh->sRaveReport);
-
-        /* free playback read queue */
-        BSID_P_FreeUnlock(&hSidCh->sPlaybackQueue.sReadBuf);
-
-        /* free playback write queue */
-        BSID_P_FreeUnlock(&hSidCh->sPlaybackQueue.sWriteBuf);
-
-        /* free playback state buffer */
-        BSID_P_FreeUnlock(&hSidCh->sPlaybackQueue.sStateBuf);
-    }
-}
 
 
 void BSID_P_DestroyChannel(BSID_ChannelHandle hSidCh)
@@ -551,9 +599,7 @@ void BSID_P_DestroyChannel(BSID_ChannelHandle hSidCh)
     /* destroy device channel queue */
     BSID_P_DestroyChannelMemory(hSidCh);
 
-    BKNI_EnterCriticalSection();
-    hSidCh->e_ChannelState = BSID_ChannelState_eClose;
-    BKNI_LeaveCriticalSection();
+    BSID_SET_CH_STATE(hSidCh, Close);
 
     /* destroy sync event */
     if (NULL != hSidCh->hSyncEvent)
@@ -578,27 +624,17 @@ void BSID_P_DestroyChannel(BSID_ChannelHandle hSidCh)
 }
 
 /******************************************************************************
-* Function name: BSID_P_GetChannelQueueStatus
+* Function name: BSID_P_IsChannelQueueFull
 *
 * Comments:
 *
 ******************************************************************************/
-/* FIXME: This should return bool and the status enum eliminated
-   Rename to IsChannelQueueFull() */
-BSID_ChannelQueueStatus BSID_P_GetChannelQueueStatus(
-    BSID_ChannelHandle hSidCh)
+bool BSID_P_IsChannelQueueFull(BSID_ChannelHandle hSidCh)
 {
     BSID_CommandQueueHeader *psQueueHeader = (BSID_CommandQueueHeader *)hSidCh->sReqQueue.sBuf.pv_CachedAddr;
     BMMA_FlushCache(hSidCh->sReqQueue.sBuf.hBlock, (void *)psQueueHeader, sizeof(BSID_CommandQueueHeader));
 
-    if (((psQueueHeader->ui32_WriteIndex + 1) % hSidCh->ui32_QueueTrueDepth) == psQueueHeader->ui32_ReadIndex)
-    {
-        return BSID_ChannelQueueStatus_Full;
-    }
-    else
-    {
-        return BSID_ChannelQueueStatus_NotFull;
-    }
+    return (((psQueueHeader->ui32_WriteIndex + 1) % hSidCh->ui32_QueueTrueDepth) == psQueueHeader->ui32_ReadIndex);
 }
 
 /******************************************************************************
@@ -665,7 +701,7 @@ void BSID_P_AbortDecode(BSID_ChannelHandle hSidCh)
         err = BKNI_WaitForEvent(hSidCh->hAbortedEvent, 100/*ms*/);
         if (BERR_TIMEOUT == err)
         {
-           BDBG_WRN(("AbortDecode:: waiting for channel %d (%p) to respond [%u]", hSidCh->ui32_ChannelNum, hSidCh, iAbortAttempts));
+           BDBG_WRN(("AbortDecode:: waiting for channel %d (%p) to respond [%u]", hSidCh->ui32_ChannelNum, (void *)hSidCh, iAbortAttempts));
            iAbortAttempts++;
         }
     }
@@ -706,6 +742,7 @@ BERR_Code BSID_P_SuspendChannels(BSID_Handle hSid)
     unsigned numTriggeredEvents;
     unsigned int channel_index = 0;
     bool bAllChannelClosed = true;
+    BSID_ChannelHandle hSidCh;
 
     retCode = BKNI_CreateEventGroup(&hEventGroup);
     if (retCode != BERR_SUCCESS)
@@ -719,20 +756,18 @@ BERR_Code BSID_P_SuspendChannels(BSID_Handle hSid)
     {
         BDBG_ERR(("BKNI_Malloc failed"));
         BKNI_DestroyEventGroup(hEventGroup);
-        return BERR_TRACE(retCode);
+        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
 
     for (channel_index = 0; channel_index < BSID_MAX_CHANNELS; channel_index++)
     {
-        if (hSid->ahChannel[channel_index] != NULL)
+        hSidCh = hSid->ahChannel[channel_index];
+        if (hSidCh != NULL)
         {
             bAllChannelClosed = false;
+            BSID_SET_CH_STATE(hSidCh, Suspend);
 
-            BKNI_EnterCriticalSection();
-            hSid->ahChannel[channel_index]->e_ChannelState = BSID_ChannelState_eSuspend;
-            BKNI_LeaveCriticalSection();
-
-            retCode = BKNI_AddEventGroup(hEventGroup, hSid->ahChannel[channel_index]->hSyncEvent);
+            retCode = BKNI_AddEventGroup(hEventGroup, hSidCh->hSyncEvent);
             if (retCode != BERR_SUCCESS)
             {
                 BDBG_ERR(("BKNI_AddEventGroup failed with error 0x%x", retCode));
@@ -741,7 +776,7 @@ BERR_Code BSID_P_SuspendChannels(BSID_Handle hSid)
                 return BERR_TRACE(retCode);
             }
 
-            retCode = BSID_P_SendCmdSyncChannel(hSid->ahChannel[channel_index]);
+            retCode = BSID_P_SendCmdSyncChannel(hSidCh);
             if (retCode != BERR_SUCCESS)
             {
                 BDBG_ERR(("BSID_P_SendSyncChannel failed with error 0x%x", retCode));
@@ -756,19 +791,21 @@ BERR_Code BSID_P_SuspendChannels(BSID_Handle hSid)
     {
       /* wait for the required channel(s) to sync before close */
        retCode = BKNI_WaitForGroup(hEventGroup, BSID_SYNC_MAX_WAITING_TIME, pTriggeredEvents, BSID_MAX_CHANNELS, &numTriggeredEvents);
+       /* NOTE: if this wait fails, it will attempt to proceed anyway.
+          The subsequent send command may fail, but then we can clean up after that failed attempt */
        if (retCode != BERR_SUCCESS)
        {
-           BDBG_ERR(("BKNI_WaitForGroup failed with error 0x%x", retCode));
-           BKNI_DestroyEventGroup(hEventGroup);
-           BKNI_Free(pTriggeredEvents);
-           return BERR_TRACE(retCode);
+           BDBG_ERR(("BKNI_WaitForGroup failed with error 0x%x ... attempting to close channels", retCode));
        }
+       BDBG_MSG(("BKNI_WaitForGroup waited on %d events", numTriggeredEvents));
 
        for (channel_index = 0; channel_index < BSID_MAX_CHANNELS; channel_index++)
        {
            if (hSid->ahChannel[channel_index] != NULL)
            {
                retCode = BSID_P_SendCmdCloseChannel(hSid->ahChannel[channel_index]);
+               /* NOTE: This assumes that if any CloseChannel Command fails, then
+                  all subsequent close channel requests will also fail */
                if (retCode != BERR_SUCCESS)
                {
                    BDBG_ERR(("BSID_P_SendCmdCloseChannel failed with error 0x%x", retCode));
@@ -778,8 +815,6 @@ BERR_Code BSID_P_SuspendChannels(BSID_Handle hSid)
                }
            }
        }
-
-       BDBG_MSG(("BKNI_WaitForGroup waited on %d events", numTriggeredEvents));
     }
     BKNI_DestroyEventGroup(hEventGroup);
     BKNI_Free(pTriggeredEvents);
@@ -792,11 +827,30 @@ BERR_Code BSID_P_SuspendChannels(BSID_Handle hSid)
 *
 * Comments:
 *
+* Reset the channel settings that can change
+******************************************************************************/
+
+BERR_Code BSID_P_ResetChannel(BSID_ChannelHandle hSidCh)
+{
+    hSidCh->ui32_SequenceNumber = 0x0;
+    hSidCh->b_FlushPending      = false;
+    BSID_SET_CH_STATE(hSidCh, Close);
+    return BERR_SUCCESS;
+}
+
+
+/******************************************************************************
+* Function name: BSID_P_ResumeChannel
+*
+* Comments:
+*
 ******************************************************************************/
 BERR_Code BSID_P_ResumeChannel(BSID_ChannelHandle hSidCh)
 {
     BERR_Code retCode = BERR_SUCCESS;
 
+    BSID_P_ResetChannel(hSidCh);
+    BSID_P_ResetChannelMemory(hSidCh);
     BKNI_ResetEvent(hSidCh->hSyncEvent);
 
     /* send open channel command to sid arc */
@@ -808,9 +862,7 @@ BERR_Code BSID_P_ResumeChannel(BSID_ChannelHandle hSidCh)
     }
 
     /* channel is in open state */
-    BKNI_EnterCriticalSection();
-    hSidCh->e_ChannelState = BSID_ChannelState_eReady;
-    BKNI_LeaveCriticalSection();
+    BSID_SET_CH_STATE(hSidCh, Ready);
 
     return retCode;
 }

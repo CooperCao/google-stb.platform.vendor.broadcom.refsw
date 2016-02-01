@@ -1,5 +1,5 @@
 /******************************************************************************
-* (c) 2004-2015 Broadcom Corporation
+* (c) 2004-2016 Broadcom Corporation
 *
 * This program is the proprietary software of Broadcom Corporation and/or its
 * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -144,7 +144,8 @@ typedef struct BSID_RevisionInfo {
     uint32_t                      ui32_RleHdDvdRleMaxWidth;
     uint32_t                      ui32_RleBdMaxWidth;
     uint32_t                      ui32_JpegMaxWidth;
-    /* FIXME: PNG max widths seem to depend on available memory in SID Core */
+    /* FIXME: PNG max widths seem to depend on available memory in SID Core
+       => therefore this information needs to come from the init response */
     uint32_t                      ui32_PngPaletteMaxWidth;
     uint32_t                      ui32_PngRgbaMaxWidth;
     uint32_t                      ui32_Png16BppMaxWidth;
