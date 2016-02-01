@@ -1,0 +1,165 @@
+Submitted By:            Steve Rae <srae@broadcom.com>
+Date:                    2014-12-26
+Initial Package Version: 1.0.1j
+Upstream Status:         Unknown
+Origin:                  Unknown
+Description:             fix "jobserver" warning messages
+diff -rNup openssl-1.0.1p.orig/crypto/Makefile openssl-1.0.1p/crypto/Makefile
+diff -rNup openssl-1.0.1p.orig/Makefile.org openssl-1.0.1p/Makefile.org
+--- openssl-1.0.1p.orig/Makefile.org	2015-07-09 05:21:24.000000000 -0700
++++ openssl-1.0.1p/Makefile.org	2015-10-01 15:54:53.306713320 -0700
+@@ -411,7 +411,7 @@ libclean:
+ 
+ clean:	libclean
+ 	rm -f shlib/*.o *.o core a.out fluff rehash.time testlog make.log cctest cctest.c
+-	@set -e; target=clean; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=clean; $(RECURSIVE_BUILD_CMD)
+ 	rm -f $(LIBS)
+ 	rm -f openssl.pc libssl.pc libcrypto.pc
+ 	rm -f speed.* .pure
+@@ -427,12 +427,12 @@ makefile.one: files
+ 
+ files:
+ 	$(PERL) $(TOP)/util/files.pl Makefile > $(TOP)/MINFO
+-	@set -e; target=files; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=files; $(RECURSIVE_BUILD_CMD)
+ 
+ links:
+ 	@$(PERL) $(TOP)/util/mkdir-p.pl include/openssl
+ 	@$(PERL) $(TOP)/util/mklink.pl include/openssl $(EXHEADER)
+-	@set -e; target=links; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=links; $(RECURSIVE_BUILD_CMD)
+ 
+ gentests:
+ 	@(cd test && echo "generating dummy tests (if needed)..." && \
+@@ -440,7 +440,7 @@ gentests:
+ 
+ dclean:
+ 	rm -rf *.bak include/openssl certs/.0
+-	@set -e; target=dclean; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=dclean; $(RECURSIVE_BUILD_CMD)
+ 
+ rehash: rehash.time
+ rehash.time: certs apps
+@@ -467,10 +467,10 @@ update: errors stacks util/libeay.num ut
+ 	@set -e; target=update; $(RECURSIVE_BUILD_CMD)
+ 
+ depend:
+-	@set -e; target=depend; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=depend; $(RECURSIVE_BUILD_CMD)
+ 
+ lint:
+-	@set -e; target=lint; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=lint; $(RECURSIVE_BUILD_CMD)
+ 
+ tags:
+ 	rm -f TAGS
+--- openssl-1.0.1p.orig/crypto/Makefile	2015-07-09 05:22:09.000000000 -0700
++++ openssl-1.0.1p/crypto/Makefile	2015-10-01 15:48:09.183285515 -0700
+@@ -95,7 +95,7 @@ links:
+ 	@$(PERL) $(TOP)/util/mklink.pl ../include/openssl $(EXHEADER)
+ 	@$(PERL) $(TOP)/util/mklink.pl ../test $(TEST)
+ 	@$(PERL) $(TOP)/util/mklink.pl ../apps $(APPS)
+-	@target=links; $(RECURSIVE_MAKE)
++	+@target=links; $(RECURSIVE_MAKE)
+ 
+ # lib: $(LIB): are splitted to avoid end-less loop
+ lib:	$(LIB)
+@@ -123,14 +123,14 @@ install:
+ 	@target=install; $(RECURSIVE_MAKE)
+ 
+ lint:
+-	@target=lint; $(RECURSIVE_MAKE)
++	+@target=lint; $(RECURSIVE_MAKE)
+ 
+ update: local_depend
+-	@[ -z "$(THIS)" ] || (set -e; target=update; $(RECURSIVE_MAKE) )
++	+@[ -z "$(THIS)" ] || (set -e; target=update; $(RECURSIVE_MAKE) )
+ 	@if [ -z "$(THIS)" ]; then $(MAKE) -f $(TOP)/Makefile reflect THIS=$@; fi
+ 
+ depend: local_depend
+-	@[ -z "$(THIS)" ] || (set -e; target=depend; $(RECURSIVE_MAKE) )
++	+@[ -z "$(THIS)" ] || (set -e; target=depend; $(RECURSIVE_MAKE) )
+ 	@if [ -z "$(THIS)" ]; then $(MAKE) -f $(TOP)/Makefile reflect THIS=$@; fi
+ local_depend:
+ 	@[ -z "$(THIS)" -o -f buildinf.h ] || touch buildinf.h # fake buildinf.h if it does not exist
+@@ -139,13 +139,13 @@ local_depend:
+ 
+ clean:
+ 	rm -f buildinf.h *.s *.o */*.o *.obj lib tags core .pure .nfs* *.old *.bak fluff
+-	@target=clean; $(RECURSIVE_MAKE)
++	+@target=clean; $(RECURSIVE_MAKE)
+ 
+ dclean:
+ 	$(PERL) -pe 'if (/^# DO NOT DELETE THIS LINE/) {print; exit(0);}' $(MAKEFILE) >Makefile.new
+ 	mv -f Makefile.new $(MAKEFILE)
+ 	rm -f opensslconf.h
+-	@target=dclean; $(RECURSIVE_MAKE)
++	+@target=dclean; $(RECURSIVE_MAKE)
+ 
+ # DO NOT DELETE THIS LINE -- make depend depends on it.
+ 
+diff -rNup openssl-1.0.1p.orig/engines/Makefile openssl-1.0.1p/engines/Makefile
+--- openssl-1.0.1p.orig/engines/Makefile	2015-07-09 05:22:21.000000000 -0700
++++ openssl-1.0.1p/engines/Makefile	2015-10-01 15:48:39.671342603 -0700
+@@ -93,10 +93,10 @@ subdirs:
+ 
+ files:
+ 	$(PERL) $(TOP)/util/files.pl Makefile >> $(TOP)/MINFO
+-	@target=files; $(RECURSIVE_MAKE)
++	+@target=files; $(RECURSIVE_MAKE)
+ 
+ links:
+-	@target=links; $(RECURSIVE_MAKE)
++	+@target=links; $(RECURSIVE_MAKE)
+ 
+ # XXXXX This currently only works on systems that use .so as suffix
+ # for shared libraries as well as for Cygwin which uses the
+@@ -144,26 +144,26 @@ tests:
+ 
+ lint:
+ 	lint -DLINT $(INCLUDES) $(SRC)>fluff
+-	@target=lint; $(RECURSIVE_MAKE)
++	+@target=lint; $(RECURSIVE_MAKE)
+ 
+ update: local_depend
+ 	@if [ -z "$(THIS)" ]; then $(MAKE) -f $(TOP)/Makefile reflect THIS=$@; fi
+-	@[ -z "$(THIS)" ] || (set -e; target=update; $(RECURSIVE_MAKE) )
++	+@[ -z "$(THIS)" ] || (set -e; target=update; $(RECURSIVE_MAKE) )
+ 
+ depend: local_depend
+ 	@if [ -z "$(THIS)" ]; then $(MAKE) -f $(TOP)/Makefile reflect THIS=$@; fi
+-	@[ -z "$(THIS)" ] || (set -e; target=depend; $(RECURSIVE_MAKE) )
++	+@[ -z "$(THIS)" ] || (set -e; target=depend; $(RECURSIVE_MAKE) )
+ local_depend:
+ 	@[ -z "$(THIS)" ] || $(MAKEDEPEND) -- $(CFLAG) $(INCLUDES) $(DEPFLAG) -- $(PROGS) $(LIBSRC)
+ 
+ dclean:
+ 	$(PERL) -pe 'if (/^# DO NOT DELETE THIS LINE/) {print; exit(0);}' $(MAKEFILE) >Makefile.new
+ 	mv -f Makefile.new $(MAKEFILE)
+-	@target=dclean; $(RECURSIVE_MAKE)
++	+@target=dclean; $(RECURSIVE_MAKE)
+ 
+ clean:
+ 	rm -f *.o *.obj lib tags core .pure .nfs* *.old *.bak fluff
+-	@target=clean; $(RECURSIVE_MAKE)
++	+@target=clean; $(RECURSIVE_MAKE)
+ 
+ # DO NOT DELETE THIS LINE -- make depend depends on it.
+ 
+diff -rNup openssl-1.0.1p.orig/test/Makefile openssl-1.0.1p/test/Makefile
+--- openssl-1.0.1p.orig/test/Makefile	2015-07-09 05:22:23.000000000 -0700
++++ openssl-1.0.1p/test/Makefile	2015-10-01 15:52:15.721277255 -0700
+@@ -502,10 +502,10 @@ $(SRPTEST)$(EXE_EXT): $(SRPTEST).o $(DLI
+ 	@target=$(SRPTEST); $(BUILD_CMD)
+ 
+ $(HEARTBEATTEST)$(EXE_EXT): $(HEARTBEATTEST).o $(DLIBCRYPTO)
+-	@target=$(HEARTBEATTEST); $(BUILD_CMD_STATIC)
++	+@target=$(HEARTBEATTEST); $(BUILD_CMD_STATIC)
+ 
+ $(CONSTTIMETEST)$(EXE_EXT): $(CONSTTIMETEST).o
+-	@target=$(CONSTTIMETEST) $(BUILD_CMD)
++	+@target=$(CONSTTIMETEST) $(BUILD_CMD)
+ 
+ $(VERIFYEXTRATEST)$(EXE_EXT): $(VERIFYEXTRATEST).o
+ 	@target=$(VERIFYEXTRATEST) $(BUILD_CMD)

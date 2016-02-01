@@ -1,0 +1,46 @@
+APP = rtp_play
+BSEAV = $(shell cd ../../..; pwd)
+STATICLIB ?= no
+
+include ${BSEAV}/api/build/tools.mak
+.PHONY:	settop settop-clean api-clean
+
+all: check_environment settop application
+
+include ${BSEAV}/api/include/api.mak
+
+CFLAGS += -Wall -W -g
+CFLAGS += ${BSETTOP_CFLAGS} -I${BSETTOP}/utils/common
+CFLAGS += ${B_REFSW_GENERIC_MAGNUM_DEFINES}
+CFLAGS += ${B_REFSW_MAGNUM_INCLUDE_DIRS}
+CFLAGS += -I.. 
+CFLAGS += -I${BSETTOP}/src/pvr
+LDFLAGS += ${BSETTOP_LDFLAGS}
+
+LIBS = ${BSETTOP_LIBS}
+LDFLAGS += ${BSETTOP_LIB} 
+
+settop:
+	@$(MAKE) -C ${BSETTOP}/build SHAREDLIB=$(SHAREDLIB) STATICLIB=$(STATICLIB)
+
+OTHER_CLEANS +=  settop-clean
+settop-clean:
+	@$(MAKE) -C ${BSETTOP}/build clean
+
+.NOTPARALLEL : application settop
+
+
+include Makefile.rtp
+
+SRCS += rtp_play.c bsettop_playback_rtsp.c  
+
+include $(BSEAV)/build/refsw_inc.mak
+ODIR = $(B_REFSW_ARCH).$(DEBUG_SUFFIX)
+include Makefile.livemedia
+
+DESTDIR ?= ${BSEAV}/bin
+.PHONY: install
+install: settop application
+	${CP} ${BSETTOP_LIBS} ${ODIR}/${APP} ${DESTDIR}
+
+include ${BSETTOP}/build/rules.mak

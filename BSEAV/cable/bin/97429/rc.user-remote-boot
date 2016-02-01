@@ -1,0 +1,11 @@
+# enable memory overcommit
+echo 0 > /proc/sys/vm/overcommit_memory
+mknod /dev/pod c 38 0
+ipcfg eth0:0 static 192.168.17.10 255.255.255.0
+ifup eth0:0
+insmod pod97429.ko
+
+ln -sf bcm93383ecm_rgmii_iprnvol_dualeth_b2b_rgmii_ip_rnvol_fat.bin ecram_sto.bin.3383
+
+./rnonvolhost eth0 192.168.17.10 192.168.17.1 ./permnonvol.3383 ./dynnonvol.3383 &
+./tftpd &

@@ -1,0 +1,141 @@
+# entries copied (as 'select' -> copy -> 'paste into this file') from the bcm7366-scb_clients.xls
+#Client Name	7439		Comments
+#	DDR0 Client#	DDR1 Client#
+XPT_WR_RS	0	0	XMEM IF write
+XPT_WR_XC	1	1	XMEM IF write
+XPT_WR_CDB	2	2	XMEM IF write
+XPT_WR_ITB_MSG	3	3	XMEM IF write
+XPT_RD_RS	4	4	XMEM IF read
+XPT_RD_XC_RMX_MSG	5	5	XMEM IF read
+XPT_RD_XC_RAVE	6	6	XMEM IF read
+XPT_RD_PB	7	7	XMEM IF read
+XPT_WR_MEMDMA	8	8	M2M DMA write
+XPT_RD_MEMDMA	9	9	M2M DMA read
+GENET0_WR	10	10	Internal 10/100/1000 GPHY
+GENET0_RD	11	11	Internal 10/100/1000 GPHY
+GENET1_WR	12	12	Internal MoCA
+GENET1_RD	13	13	Internal MoCA
+GENET2_WR	14	14	Internal MoCA
+GENET2_RD	15	15	Internal MoCA
+MOCA_MIPS	16	16	This client is MOCA DMA which is used to load IMEM during boot time and during Host-MoCA message echange
+SATA	17	17	SATA - First controller/port
+SATA_1	18	18	SATA - Second controller/port
+PCIE1	19	19	PCIe - 2nd instance
+
+LEAP	21	21	Satellite Front-End Processor
+BSP	22	22	Broadcom Security Processor - Must be 22
+SCPU	23	23	Sage CPU - Must be 23 - SCB1 access added for 7445A0
+FLASH_DMA	24	24	FLASH_DMA replaces EDU
+PCIE	25	25	PCIe - single instance
+SDIO_EMMC	26	26	SDIO eMMC - client is for boot code storage/retrieval
+SDIO_CARD	27	27	SDIO  Card - client is for WIFI and video/audio  storage/playback
+TPCAP	28		Test Port Capture
+MCIF0_RD	29		M-Card instance 0 (cablecard)
+MCIF0_WR	30		M-Card instance 0 (cablecard)
+UART_DMA_RD	31		UART_DMA (for Bluetooth interaction)
+UARD_DMA_WR	32		UART_DMA (for Bluetooth interaction)
+USB_HI_0	33	33	Also called "USB_20", carries EHCI traffic for first USB controller. Controller drives 2 ports.
+USB_LO_0	34	34	Also called "USB_11", carries OHCI traffic for first USB controller. Controller drives 2 portss.
+USB_X_WRITE_0	35	35	(USB 3.0) carries XHCI Write traffic for first USB controller. Controller drives 2 ports.
+USB_X_READ_0	36	36	(USB 3.0) carries XHCI Read traffic for first USB controller. Controller drives 2 ports.
+USB_X_CTRL_0	37	37	(USB 3.0) carries XHCI Control traffic for first USB controller. Controller drives 2 ports.
+USB_HI_1	38	38	Second USB controller (USB 2.0/1.1 only)
+USB_LO_1	39	39	Second USB controller (USB 2.0/1.1 only)
+MCIF1_RD	40		M-Card instance 1 (cablecard)
+MCIF1_WR	41		M-Card instance 1 (cablecard)
+RAAGA	42	42	RAAGA audio engine
+RAAGA_1	43	43	RAAGA audio engine / selective RTS
+AUD_AIO	44	44	Audio Analog IO
+VICE_CME0	45	45	ViCE instance 0 - read only. Input and reference picture luma
+VICE_CME1	46	46	ViCE instance 0 - write only. CMV, SAD, Confidence values
+VICE_FME0	47	47	ViCE instance 0 - read only. CMV, SAD, Confidence values
+VICE_FME1	48	48	ViCE instance 0 - read only. CMB luma
+VICE_FME2	49	49	ViCE instance 0 - read only. CMB chroma
+VICE_SG	50		ViCE instance 0 - write only. Coded bits / bins
+VICE_DBLK	51	51	ViCE instance 0 - write only. Deblocked, reconstructed MBs
+VICE_CABAC0	52		ViCE instance 0 - write only. CABAC0 writes final bitstream to SCB0. (All clear compressed data must be on SCB0)
+VICE_CABAC1	53		ViCE instance 0 - read only. Bits / bins from SG
+VICE_ARCSS0	54	54	ViCE instance 0 - read/write. Firmware code and data
+VICE_VIP0_INST0	55	55	ViCE instance 0 - First VIP instance for dual transcode. write only. Luma and 420 chroma
+VICE_VIP1_INST0	56	56	ViCE instance 0 - First VIP instance for dual transcode.  read/write. Write: 2h2v_luma, 2h1v_luma. Read: pcc_luma, hist_luma
+VICE_VIP0_INST1	57	57	ViCE instance 0 - Second VIP instance for dual transcode. write only. Luma and 420 chroma
+VICE_VIP1_INST1	58	58	ViCE instance 0 - Second VIP instance for dual transcode. read/write. Write: 2h2v_luma, 2h1v_luma. Read: pcc_luma, hist_luma
+
+HVD0_DBLK	73	73	HVD Deblock Writes
+HVD0_DBLK1	74	74	HVD Deblock Writes / alternate blockout
+HVD0_ILCPU	75		HVD Inner Loop ARC
+HVD0_OLCPU	76		HVD Outer Loop ARC
+HVD0_CAB	77		HVD CABAC
+HVD0_ILSI	78		HVD IL Symbol read
+HVD0_ILCPU_p2	79		HVD CABAC
+HVD0_ILSI_p2	80		HVD IL Symbol read
+
+SID	87	87	Still Image decoder
+
+BVN_MAD_PIX_FD	94	94	MAD_R pixel feed (read) (instance 0)
+BVN_MAD_QUANT	95	95	MAD_R quant motion history (R/W) (instance 0)
+BVN_MAD_PIX_CAP	96	96	MAD_R pixel capture (write) (instance 0)
+BVN_MAD1_PIX_FD	97	97	MAD_R pixel feed (read) (instance 1)
+BVN_MAD1_QUANT	98	98	MAD_R quant motion history (R/W) (instance 1)
+BVN_MAD1_PIX_CAP	99	99	MAD_R pixel capture (write) (instance 1)
+
+BVN_MFD0	106	106	MPEG feeders have access to all DRAMs (instance 0)
+BVN_MFD0_1	107	107	MFD Alternate blockout (instance 0)
+BVN_MFD1	108	108	MPEG feeders have access to all DRAMs (instance 1)
+BVN_MFD1_1	109	109	MFD Alternate blockout (instance 1)
+BVN_MFD2	110	110	MPEG feeders have access to all DRAMs (instance 2)
+BVN_MFD2_1	111	111	MFD Alternate blockout (instance 2)
+
+BVN_VFD0	118	118	Video feeder (instance 0)
+BVN_VFD1	119	119	Video feeder (instance 1)
+BVN_VFD2	120	120	Video feeder (instance 2)
+BVN_VFD3	121	121	Video feeder (instance 3)
+
+BVN_CAP0	126	126	Video capture (instance 0)
+BVN_CAP1	127	127	Video capture (instance 1)
+BVN_CAP2	128	128	Video capture (instance 2)
+BVN_CAP3	129	129	Video capture (instance 3)
+
+BVN_GFD0	134	134	Graphic feeder (instance 0)
+BVN_GFD1	135	135	Graphic feeder (instance 1)
+BVN_GFD2	136	136	Graphic feeder (instance 2)
+BVN_GFD0_1	139	139	Additional BluRay Graphic feeder (instance 0)
+BVN_GFD1_1	140	140	Additional BluRay Graphic feeder (instance 1)
+
+BVN_MCVP0	141	141	MCVP client 0
+BVN_MCVP1	142	142	MCVP client 1
+BVN_MCVP2	143	143	MCVP client 2
+BVN_RDC	144	144	RDC
+VEC_VBI_ENC0	145		TTX0 -- assigned to VBI path 0 (typically IT_0, HD/component display) and arbitrated with ITU656 path 0
+M2MC_0	147	147
+M2MC_1	148	148
+M2MC_2	149	149
+
+HVD0_DBLK_p2	155	155	HVD0 Deblock Writes, 2nd pipeline
+HVD0_DBLK1_p2	156	156	HVD0 Deblock Writes / alternate blockout, 2nd pipeline
+
+M2MC1_0	160	160
+M2MC1_1	161	161
+M2MC1_2	162	162
+
+HOST_CPU_MCP_R_HI	200	200	MCP read client - high priority
+HOST_CPU_MCP_R_LO	201	201	MCP read client - low priority
+HOST_CPU_MCP_W_HI	202	202	MCP write client - high priority
+HOST_CPU_MCP_W_LO	203	203	MCP write client - low priority
+V3D_MCP_R_HI	204	204	V3D (VC4 graphics core) MCP read client - high priority
+V3D_MCP_R_LO	205	205	V3D (VC4 graphics core) MCP read client - low priority
+V3D_MCP_W_HI	206	206	V3D (VC4 graphics core) MCP write client (tile buffer writes) - high priority
+V3D_MCP_W_LO	207	207	V3D (VC4 graphics core) MCP write client (tile buffer writes) - low priority
+	208-215	208-215	Unused UBUS clients
+HVD0_MOCOMP	216	216	HVD PFRI / MOCOMP
+VICE_PFRI	217	217	VICE2v2 instance 0 PFRI (required + optional)
+	218-231	218-231	Unused PFRI clients
+	232-247	232-247	Unused LMB clients
+TRACELOG	248	248	TraceLog
+MEMC_RESERVED_0	249	249	Reserved for MEMC use
+ZCQS_ENGINE	250	250	DRAM ZQ Calibration Short client
+MSA	251	251	MSA (Memory Soft Access)
+DIS0	252	252	DIS (DRAM Interface Stress) #0
+DIS1	253	253	DIS (DRAM Interface Stress) #1
+DRAM_INIT_ZQCS	254	254	DRAM Init (Being updated to ZQCS)
+REFRESH	255	255	Refresh

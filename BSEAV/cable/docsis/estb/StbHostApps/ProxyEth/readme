@@ -1,0 +1,63 @@
+Overview:
+--------------
+Broadcom have some cost down STB + Docsis 2.0 reference design like BCM97584SFF which don't have CPE ethernet interface
+on CM side, but Docsis 2.0 ATP test have some cases which require to perform SNMP operatons on this interface.
+To support this kind of board to pass Docsis 2.0 ATP, we can bridge STB ethernet interface with CM MII, and treat STB
+ethernet as the CPE interface. proxy_eth is the STB side app to implement this idea.
+
+Setup Guide:
+--------------
+1. Check with your PM/FAE to get correct CM source code which support D20 ATP for boards without CM CPE ethernet interface.
+2. Below is the set up instructions for configuration that MII is the only connection between CM and STB
+    1) CM build options:
+
+    ./makeapp bcm93349dcmvendor reverse_rmagnum miibypassephy noslim proxy_eth
+
+    2) Configure Reverse RMagnum to be run over MII
+
+    CM>cd /non/hal
+    ip_transport_hal eth
+    write
+
+    3) On STB linux console, make below configuration.(Take BCM97584SFF as example)
+
+	brctl addbr br0
+	brctl addif br0 eth1
+	brctl addif br0 eth0
+	ifup br0
+	sleep 5
+	ifconfig br0:1 192.168.17.10
+	sleep 1
+	cd /your_binary_folder
+	.proxy_eth &
+	./nexus tune_qam
+
+	a)  Here, eth0 is STB ethernet interface, eth1 is MII. You might need to change it as per your board.
+	b) tune_qam here is an nexus example to have 7584 frontend working, since CM rely on 7584 frontend on BCM97584SFF design.
+
+3. Below is the set up instructions for configuration that both USB and MII are connected between CM and STB, and run RPC over USB.
+    1) CM build options:
+
+    ./makeapp bcm93349dcmvendor reverse_rmagnum miibypassephy noslim proxy_eth usb_rpc
+
+    2) Configure Reverse RMagnum to be run over USB
+
+    CM>cd /non/hal
+    ip_transport_hal usb
+    write
+
+4. On STB linux console, make below configuration.(Take BCM97584SFF as example)
+
+	brctl addbr br0
+	brctl addif br0 eth1
+	brctl addif br0 eth0
+	ifup br0
+	sleep 5
+	ifconfig eth2:1 192.168.17.10
+	sleep 1
+	cd /your_binary_folder
+	.proxy_eth &
+	./nexus tune_qam
+
+	a) Here, eth0 is STB ethernet interface, eth1 is MII, eth2 is USB. You might need to change it as per your board.
+	b) tune_qam here is an nexus example to have 7584 frontend working, since CM rely on 7584 frontend on BCM97584SFF design.

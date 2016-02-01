@@ -1,0 +1,48 @@
+SubFolderName bgrec
+StreamPathIndex 0
+Forward
+PlayScaleSpeed 1
+TrickModeFULL
+SeekByteOffset 0
+#StreamingToUDP
+StreamingToFile
+TargetFileName targetfilename
+#DestpIP 10.22.65.128
+#LocalIFName eth3
+#PortNum 5000
+DRMDisable
+ProgramName dvrtest_hn
+#######################################
+#   
+# Input parameters usage
+#
+#######################################
+#SubFolderName ssss
+#ProgramName ssss
+#StreamPathIndex dddd
+#Forward
+#Reverse
+#PlayScaleSpeed dddd (1 ~128,default 1)
+#TrickModeFULL
+#TrickModeI
+#TrickModeIP
+#SeekByteOffset dddd
+#SeekTimeStamp  dddd
+#StreamingToFile
+#TargetFileName ssss
+#StreamingToUDP
+#DestpIP ssss
+#LocalIFName ssss
+#PortNum ssss
+#DRMEnable
+#DRMDisable
+########################################
+# Usage of UDP streaming mode
+# There're two ways to work with UDP mode
+# 1) Put App utility on Harddisk to run it
+# 2) If the APP need to be running from NFS, 
+#     please keep in mind that NFS and output
+#     port of streamer have independent 
+#     ethernet I/F otherwise causing lots 
+#     of Net timeout.
+########################################

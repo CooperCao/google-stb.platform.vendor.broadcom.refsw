@@ -1,0 +1,140 @@
+# entries copied (as 'select' -> copy -> 'paste into this file') from the Chip_Architecture/Bussing/Released/BCM7425/scb_clients.xls
+# removed 'DOCIS_X'
+XPT_WR_RS	0		
+XPT_WR_XC	1		
+XPT_WR_CDB	2		
+XPT_WR_ITB_MSG	3		
+XPT_RD_RS	4		
+XPT_RD_XC_RMX_MSG	5		
+XPT_RD_XC_RAVE	6		
+XPT_RD_PB	7		
+AVD_DBLK	8	8	AVD Deblock Writes
+AVD_ILCPU	9		AVD Inner Loop ARC 
+AVD_OLCPU	10		AVD Outer Loop ARC
+AVD_CAB	11		AVD CABAC 
+AVD_ILSI	12		AVD IL Symbol read
+SVD_DBLK	13	13	SVD Deblock Writes
+SVD_ILCPU	14		SVD Inner Loop ARC 
+SVD_OLCPU	15		SVD Outer Loop ARC
+SVD_CAB	16		SVD CABAC 
+SVD_ILSI	17		SVD IL Symbol read
+SVD_BLCPU	18	 	SVD base layer CPU
+SVD_BLSI	19	 	SVD BL Symbol Interpreter
+SVD_MVSCL	20	 	SVD base layer MV scaler
+SVD_SPIXSTR	21	21	SVD base layer SPIXSTORE / DBLK
+BSP	22	22	"BSP (AEGIS) must remain at client 22
+BSP requires special MEMC hardware.
+A common MEMC is used for all chips."
+AVD_DBLK_1	23	23	AVD Deblock Writes, alternate blockout
+SVD_DBLK_1	24	24	SVD Deblock Writes, alternate blockout
+			
+SATA	26	26	 
+TPCAP	27		Test Port Capture - New in 7420. 
+CPU	28	28	"EC Bridge (MISB bridge for BCM7400), 
+7420 does not have RAC or MISB bridge. 
+7420 will have 1 SCB and 1 LMB client per MEMC. (This is the SCB client)"
+EDU	29	29	EBI DMA Unit (Was FGT in older chips
+"PCI/
+HIF_PCI"	X		No PCI on BCM7422/25
+PCIE	31	31	PCI Express
+IEEE_1394	32	32	Removed for BCM7422/25 B0
+MCIF_RD	33		Smart Card.  Removed in 7335
+MCIF_WR	34		Smart Card.  Removed in 7335
+SDIO_EMMC	35	35	New for BCM7422/25
+SDIO_CARD	36	36	New for BCM7422/25
+GENET0_WR	37	37	Internal 10/100 EPHY, external 10/100/1000 GPHY, HPNA, HomePlug or similar.
+GENET0_RD	38	38	"Internal 10/100 EPHY, external 10/100/1000 GPHY, HPNA,
+ HomePlug or similar."
+			
+GENET1_WR	40	40	Internal MoCA, external 10/100/1000 GPHY, HPNA, HomePlug or similar.
+GENET1_RD	41	41	Internal MoCA, external 10/100/1000 GPHY, HPNA, HomePlug or similar.
+MOCA_MIPS	42	42	This client is MOCA DMA which is used to load IMEM during boot time only
+USB_HI_0	43	43	Also called "USB_20"
+USB_LO_0	44	44	Also called "USB_11"
+USB_HI_1	45	45	BCM7422/25 added a second USB
+USB_LO_1	46	46	BCM7422/25 added a second USB
+			
+			
+RAAGA	49	49	RAAGA is the new audio engine -- For BCM7425B0, RAAGA has access to SCB0.
+AUD_AIO	50	[50]	"""AIO"" is the new name for ""FMM"" -- Due to a miscommunication, AIO may not have an SCB1 port for B0 tapeout.
+This will be fixed on future chips."
+RAAGA_1	51	51	RAAGA_1 is a "selective RTS" client for video apps. It is disabled by default for BCM7425B0
+BVN_MAD2_PIX_CAP	52	52	MAD_R pixel capture (write) --BCM7425B0 adds a second MAD_R for dual transcode
+BVN_RDC	53	53	Register DMA controller
+BVN_MAD2_PIX_FD	54	54	MAD_R pixel feed (read) -- BCM7425B0 adds a second MAD_R for dual transcode
+BVN_MAD2_QUANT	55	55	MAD_R quant motion history (R/W)  -- BCM7425B0 adds a second MAD_R for dual transcode
+BVN_MFD2	56	56	VICE BVN -- new for BCM7422/25 -- removed for BCM7422
+BVN_MFD2_1	57	57	VICE BVN -- new for BCM7422/25 -- removed for BCM7422
+BVN_MFD1	58	58	MPEG feeders have access to all DRAMs
+BVN_MFD1_1	59	59	MFD Alternate blockout
+BVN_MFD0	60	60	MPEG feeders have access to all DRAMs
+BVN_MFD0_1	61	61	MFD Alternate blockout
+BVN_CAP4	62	62	VICE BVN -- new for BCM7422/25 -- removed for BCM7422
+BVN_CAP3	63	63	
+BVN_CAP2	64	64	
+BVN_CAP1	65	65	
+BVN_CAP0	66	66	
+BVN_VFD4	67	67	VICE BVN -- new for BCM7422/25 -- removed for BCM7422
+BVN_VFD3	68	68	
+BVN_VFD2	69	69	
+BVN_VFD1	70	70	
+BVN_VFD0	71	71	
+BVN_MCVP0	72	72	AKA "client 0" and "rwc0" -- 16JW R/W (MCVP contains MCDI)
+BVN_MCVP1	73	73	AKA "client 1" and "rrc1" -- 16JW R
+BVN_MAD_PIX_CAP	74	74	MAD_R pixel capture (write) -- new for BCM7422/25 -- removed for BCM7422
+BVN_MAD_PIX_FD	75	75	MAD_R pixel feed (read) -- new for BCM7422/25 -- removed for BCM7422
+BVN_MAD_QUANT	76	76	MAD_R quant motion history (R/W)  -- new for BCM7422/25 -- removed for BCM7422
+BVN_GFD3	77	77	VICE BVN -- new for BCM7422/25 -- removed for BCM7422
+BVN_GFD2	78	78	Third output "Echostar" GFD
+BVN_GFD1	79	79	
+BVN_GFD0	80	80	
+VEC_VBI_ENC2	X	X	"BCM7420 used this SCB client for an analog tertiary VEC output.
+BCM7422/25 uses ITU656 for the tertiary VEC output.
+VBI for ITU656 outputs is arbitrated with analog outputs (see below)"
+VEC_VBI_ENC1	82		TTX1 -- assigned to VBI path 1 (typically IT_1, SD/CVBS display) and arbitrated with ITU656 path 1
+VEC_VBI_ENC0	83		TTX0 -- assigned to VBI path 0 (typically IT_0, HD/component display) and arbitrated with ITU656 path 0
+BVN_MCVP2	84	84	AKA "client 2" and "rwc2" -- New QM client
+			
+M2M_DMA1	X	X	Only one instance of M2M DMA at 2x data rate
+M2M_DMA0	87	87	Note that M2M DMA has simultaneous access to all SCBs
+V3D_0	88	88	VC4 3D graphics core (replaces Pix3D/pirhana)
+V3D_1	89	89	VC4 3D graphics core -- Tile Buffer writes
+M2MC0 (GFX)	90	90	M2MC has access to all SCBs (Called "GFX" for BCM7038)
+M2MC1	X	X	M2MC has access to all SCBs. (Not used on BCM7400B). After 7400a0, M2MC performance is increased and removed one complete instance.
+			
+			
+SID	94	94	Still Image decoder -- new for BCM7422/25
+VICE_VIP0_INST0	95	95	"VIDE Clients exist on BCM7425. ViCE clients are disabled on BCM7422.
+For BCM7425B0, all VICE clients have access to SCB0.
+(module: o_scb_420_req. vice2: o_vip0_scb1_req) write only. Luma and 420 chroma"
+VICE_VIP1_INST0	96	96	(module: o_scb_dec_y_req. vice2: o_vip1_scb1_req) read/write. Write: 2h2v_luma, 2h1v_luma. Read: pcc_luma, hist_luma
+VICE_VIP2_INST0	97	97	(module: o_scb_shift_c_req. vice2: o_vip2_scb1_req) write only. Shift_chroma
+VICE_CME0	98	98	(module: o_scb_xmb_req. vice2: o_cme0_scb1_req) read only. Input and reference picture luma
+VICE_CME1	99	99	(module: o_scb_csc_req. vice2: o_cme1_scb1_req) write only. CMV, SAD, Confidence values
+VICE_FME0	100	100	(module: o_scb_csc_req. vice2: o_fme0_scb1_req) read only. CMV, SAD, Confidence values
+VICE_FME1	101	101	(module: o_scb_cmb_y_req. vice2: o_fme1_scb1_req) read only. CMB luma
+VICE_FME2	102	102	(module: o_scb_cmb_c_req. vice2: o_fme2_scb1_req) read only. CMB chroma
+VICE_SG	103		(module: o_scb_sg_req. vice2: o_sg_scb0_req) write only. Coded bits / bins
+VICE_DBLK	104	104	(module: o_scb_dblk_req. vice2: o_dblk_scb1_req) write only. Deblocked, reconstructed MBs
+VICE_CABAC0	105		"(module: o_scb_cabac0_req. vice2: o_cabac0_scb0_req) write only. 
+CABAC0 writes final bitstream to SCB0.
+(All clear compressed data must be on SCB0)"
+VICE_CABAC1	106		(module: o_scb_cabac1_req. vice2: o_cabac1_scb0_req) read only. Bits / bins from SG
+VICE_ARCSS0	107	107	(module: o_arcss_scb0_req. vice2: o_arcss0_scb1_req) read/write. Firmware code and data
+VICE_VIP0_INST1	108	108	Second VIP instance for dual transcode. write only. Luma and 420 chroma
+VICE_VIP1_INST1	109	109	Second VIP instance for dual transcode. write only. read/write. Write: 2h2v_luma, 2h1v_luma. Read: pcc_luma, hist_luma
+VICE_VIP2_INST1	110	110	Second VIP instance for dual transcode. write only. write only. Shift_chroma
+			
+VICE_OPT	116	116	VICE optional PFRI fetches -- Removed for BCM7422 *** Changed from A0
+DIS 1	117	117	Internal data stress client (test) (second instance)
+MSA	118	118	MSA soft access ==> client ID changed for 7420 on 08/07/08 after email from Gowda
+DIS 0	119	119	Internal data stress client (test) (first instance)
+AVD_MOCOMP	120	120	AVD MOCOMP/DBLK PFRI *** Changed from A0
+SVD_MOCOMP	121	121	SVD MOCOMP/DBLK PFRI *** Changed from A0
+SVD_SPIXSCALE	122	122	SVD SpixScale PFRI *** Changed from A0
+VICE_REQ	123	123	"VICE required PFRI fetches -- Removed for BCM7422
+For BCM7425B0, all VICE clients have access to SCB0. *** Changed from A0"
+CPU_LMB_HI	124	124	High priority LMB client 
+CPU_LMB_LO	125	125	1-LMB bus fans into 2 SCB clients inside MEMC.
+DRAM_INIT	126	126	MEMC internal client, new for 7420.
+REF	127	127	Internal Refresh

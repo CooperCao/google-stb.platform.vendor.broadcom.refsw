@@ -1,0 +1,29 @@
+#
+# This table contains the base data for the sampler types in GLSL.
+#
+name                 scalar_type dim array shadow brcm cube gl_type
+sampler1D            float       1   N     N      Y    N    GL_SAMPLER_1D_BRCM
+sampler1DArray       float       1   Y     N      Y    N    GL_SAMPLER_1D_ARRAY_BRCM
+sampler2D            float       2   N     N      N    N    GL_SAMPLER_2D
+sampler2DMS          float       2   N     N      N    N    GL_SAMPLER_2D_MULTISAMPLE
+sampler2DArray       float       2   Y     N      N    N    GL_SAMPLER_2D_ARRAY
+sampler3D            float       3   N     N      N    N    GL_SAMPLER_3D
+samplerCube          float       3   N     N      N    Y    GL_SAMPLER_CUBE
+sampler2DArrayShadow float       2   Y     Y      N    N    GL_SAMPLER_2D_ARRAY_SHADOW
+sampler2DShadow      float       2   N     Y      N    N    GL_SAMPLER_2D_SHADOW
+samplerCubeShadow    float       3   N     Y      N    Y    GL_SAMPLER_CUBE_SHADOW
+isampler1D           int         1   N     N      Y    N    GL_INT_SAMPLER_1D_BRCM
+isampler1DArray      int         1   Y     N      Y    N    GL_INT_SAMPLER_1D_ARRAY_BRCM
+isampler2D           int         2   N     N      N    N    GL_INT_SAMPLER_2D
+isampler2DMS         int         2   N     N      N    N    GL_INT_SAMPLER_2D_MULTISAMPLE
+isampler2DArray      int         2   Y     N      N    N    GL_INT_SAMPLER_2D_ARRAY
+isampler3D           int         3   N     N      N    N    GL_INT_SAMPLER_3D
+isamplerCube         int         3   N     N      N    Y    GL_INT_SAMPLER_CUBE
+usampler1D           uint        1   N     N      Y    N    GL_UNSIGNED_INT_SAMPLER_1D_BRCM
+usampler1DArray      uint        1   Y     N      Y    N    GL_UNSIGNED_INT_SAMPLER_1D_ARRAY_BRCM
+usampler2D           uint        2   N     N      N    N    GL_UNSIGNED_INT_SAMPLER_2D
+usampler2DMS         uint        2   N     N      N    N    GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE
+usampler2DArray      uint        2   Y     N      N    N    GL_UNSIGNED_INT_SAMPLER_2D_ARRAY
+usampler3D           uint        3   N     N      N    N    GL_UNSIGNED_INT_SAMPLER_3D
+usamplerCube         uint        3   N     N      N    Y    GL_UNSIGNED_INT_SAMPLER_CUBE
+samplerExternalOES   float       2   N     N      N    N    GL_SAMPLER_EXTERNAL_OES

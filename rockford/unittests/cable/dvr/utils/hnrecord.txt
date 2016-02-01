@@ -1,0 +1,14 @@
+StreamPathIndex 0
+ProgramName brcmseg0
+ProgramSubDir bgrec
+NFSSourceFileName dvrtest_hn.mpg
+#######################################
+#   
+# Input parameters usage
+#
+#######################################
+#StreamPathIndex dddd
+#ProgramName     ssss
+#ProgramSubDir   ssss
+#NFSSourceFileName ssss
+#######################################

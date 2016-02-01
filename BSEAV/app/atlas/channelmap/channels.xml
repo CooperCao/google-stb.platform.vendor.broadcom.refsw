@@ -1,0 +1,7 @@
+<!-- XML Grammer for this file can be found in the Atlas Users Guide -->
+<atlas version="3.0">
+    <channellist name="default">
+        <channel type="streamer" >
+        </channel>
+    </channellist>
+</atlas>

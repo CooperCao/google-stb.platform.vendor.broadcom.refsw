@@ -1,0 +1,10 @@
+Sepia tone,video_tex_sepia.bfx
+Color filtering,video_tex_filter.bfx
+Full de-saturation,video_tex_gray.bfx
+None,video_tex_none.bfx
+Over saturation,video_tex_saturate.bfx
+Color negative,video_tex_negative.bfx
+Sobel edge detection,video_tex_sobel.bfx
+3x3 gaussian blur,video_tex_blur.bfx
+Beer goggles,video_tex_beer_goggles.bfx
+Glass tiles,video_tex_glass_tiles.bfx

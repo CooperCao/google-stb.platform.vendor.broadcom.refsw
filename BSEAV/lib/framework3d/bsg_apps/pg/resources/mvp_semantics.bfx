@@ -1,0 +1,6 @@
+
+//u_mvp       = MATRIX4_MODEL_VIEW_PROJECTION;
+u_mv        = MATRIX4_MODEL_VIEW;
+//u_m         = MATRIX4_MODEL;
+//u_v         = MATRIX4_VIEW;
+u_proj      = MATRIX4_PROJECTION;

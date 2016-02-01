@@ -1,0 +1,67 @@
+# format:
+# path, type, field len, label, default value
+# the label is defined in b_estb_cfg_labels.h
+
+/
+[B_ESTB_CFG_LABEL_PERM, /perm, B_ESTB_CFG_DEFAULT_PERM_CFG]
+/perm
+/perm/estb
+/perm/estb/vendor_id, uint32, 4, B_ESTB_CFG_LABEL_PERM_ESTB_VENDOR_ID, 0x0
+/perm/estb/mac_addr, bin, 6, B_ESTB_CFG_LABEL_PERM_ESTB_MAC_ADDR, "0x00 0x01 0x18 0xaa 0xbb 0xcc"
+/perm/estb/root_ca_cert, bin, 4096, B_ESTB_CFG_LABEL_PERM_ESTB_ROOT_CA_CERT, "0x00 0x00 0x00 0x00"
+/perm/estb/device_ca_cert, bin, 4096, B_ESTB_CFG_LABEL_PERM_ESTB_DEVICE_CA_CERT, "0x00 0x00 0x00 0x00"
+/perm/estb/device_cert, bin, 4096, B_ESTB_CFG_LABEL_PERM_ESTB_DEVICE_CERT, "0x00 0x00 0x00 0x00"
+/perm/estb/cv_root_ca_cert, bin, 4096, B_ESTB_CFG_LABEL_PERM_ESTB_CV_ROOT_CA_CERT, "0x00 0x00 0x00 0x00"
+/perm/estb/cv_ca_cert, bin, 4096, B_ESTB_CFG_LABEL_PERM_ESTB_CV_CA_CERT, "0x00 0x00 0x00 0x00"
+/perm/estb/app_cv_ca_cert, bin, 4096, B_ESTB_CFG_LABEL_PERM_ESTB_APP_CV_CA_CERT, "0x00 0x00 0x00 0x00"
+/perm/estb/dev_cert_pub_key, bin, 4096, B_ESTB_CFG_LABEL_PERM_ESTB_DEV_CERT_PUB_KEY, "0x00 0x00 0x00 0x00"
+/perm/estb/dev_cert_priv_key, bin, 4096, B_ESTB_CFG_LABEL_PERM_ESTB_DEV_CERT_PRIV_KEY, "0x00 0x00 0x00 0x00"
+/perm/estb/dh_prime, bin, 4096, B_ESTB_CFG_LABEL_PERM_ESTB_DH_PRIME, "0x00 0x00 0x00 0x00"
+/perm/estb/dh_base, bin, 4096, B_ESTB_CFG_LABEL_PERM_ESTB_DH_BASE, "0x00 0x00 0x00 0x00"
+/perm/estb/hw_version_id, uint32, 4, B_ESTB_CFG_LABEL_PERM_ESTB_HW_VERSION_ID, 0x7459
+/perm/estb/model_name, txt, 128, B_ESTB_CFG_LABEL_PERM_ESTB_MODEL_NAME, "OCAP-STB"
+/perm/estb/vendor_name, txt, 128, B_ESTB_CFG_LABEL_PERM_ESTB_VENDOR_NAME, "BROADCOM"
+
+# /dyn, file_id, B_ESTB_CFG_LABEL_DYN, B_ESTB_CFG_DEFAULT_DYN_CFG
+[B_ESTB_CFG_LABEL_DYN, /dyn, B_ESTB_CFG_DEFAULT_DYN_CFG]
+/dyn
+/dyn/estb
+/dyn/estb/manu_cvc, bin, 4096, B_ESTB_CFG_LABEL_DYN_ESTB_MANU_CVC, "0x00 0x00 0x00 0x00"
+/dyn/estb/cosigner_cvc, bin, 4096, B_ESTB_CFG_LABEL_DYN_ESTB_COSIGNER_CVC, "0x00 0x00 0x00 0x00"
+/dyn/estb/app_manu_cvc, bin, 4096, B_ESTB_CFG_LABEL_DYN_ESTB_APP_MANU_CVC, "0x00 0x00 0x00 0x00"
+/dyn/estb/app_cosigner_cvc, bin, 4096, B_ESTB_CFG_LABEL_DYN_ESTB_APP_COSIGNER_CVC, "0x00 0x00 0x00 0x00"
+/dyn/estb/dh_key, bin, 4096, B_ESTB_CFG_LABEL_DYN_ESTB_DH_KEY, "0x00 0x00 0x00 0x00"
+/dyn/estb/auth_key, bin, 4096, B_ESTB_CFG_LABEL_DYN_ESTB_AUTH_KEY, "0x00 0x00 0x00 0x00"
+/dyn/estb/card_id, bin, 8, B_ESTB_CFG_LABEL_DYN_ESTB_CARD_ID, "0x00 0x00 0x00 0x00"
+/dyn/estb/host_id, bin, 5, B_ESTB_CFG_LABEL_DYN_ESTB_HOST_ID, "0x00 0x00 0x00 0x00 0x00"
+/dyn/estb/fw_name, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_FW_NAME, "obj"
+/dyn/estb/fw_name_1, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_FW_NAME_1, "obj1"
+/dyn/estb/fw_name_2, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_FW_NAME_2, "obj2"
+/dyn/estb/fw_name_3, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_FW_NAME_3, "obj3"
+/dyn/estb/fw_name_4, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_FW_NAME_4, "obj4"
+/dyn/estb/fw_name_5, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_FW_NAME_5, "obj5"
+/dyn/estb/fw_name_6, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_FW_NAME_6, "obj6"
+/dyn/estb/fw_name_7, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_FW_NAME_7, "obj7"
+/dyn/estb/new_fw_name, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_NEW_FW_NAME, "tmp"
+/dyn/estb/new_fw_name_1, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_NEW_FW_NAME_1, "tmp1"
+/dyn/estb/new_fw_name_2, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_NEW_FW_NAME_2, "tmp2"
+/dyn/estb/new_fw_name_3, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_NEW_FW_NAME_3, "tmp3"
+/dyn/estb/new_fw_name_4, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_NEW_FW_NAME_4, "tmp4"
+/dyn/estb/new_fw_name_5, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_NEW_FW_NAME_5, "tmp5"
+/dyn/estb/new_fw_name_6, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_NEW_FW_NAME_6, "tmp6"
+/dyn/estb/new_fw_name_7, txt, 128, B_ESTB_CFG_LABEL_DYN_ESTB_NEW_FW_NAME_7, "tmp7"
+/dyn/estb/group_id, uint32, 4, B_ESTB_CFG_LABEL_DYN_ESTB_GROUP_ID, 0
+/dyn/estb/lang_code, bin, 3, B_ESTB_CFG_LABEL_DYN_ESTB_LANG_CODE, "0x65 0x6e 0x67"
+/dyn/estb/image_status, uint32, 4, B_ESTB_CFG_LABEL_DYN_ESTB_IMAGE_STATUS, 1
+/dyn/estb/download_count, uint32, 4, B_ESTB_CFG_LABEL_DYN_ESTB_DOWNLOAD_COUNT, 0
+/dyn/estb/download_failed_status, uint32, 4, B_ESTB_CFG_LABEL_DYN_ESTB_DOWNLOAD_FAILED_STATUS, 1
+/dyn/estb/code_download_status, uint32, 4, B_ESTB_CFG_LABEL_DYN_ESTB_CODE_DOWNLOAD_STATUS, 2
+
+[B_ESTB_CFG_LABEL_SYS, /sys, B_ESTB_CFG_DEFAULT_SYS_CFG]
+/sys
+/sys/cfe/
+/sys/cfe/version, txt, 128, B_ESTB_CFG_LABEL_SYS_CFE_VER, "CFE version"
+/sys/cfe/cur_bank, uint32, 4, B_ESTB_CFG_LABEL_SYS_CFE_CUR_BANK, 0
+/sys/estb
+/sys/estb/reboot_type, uint32, 4, B_ESTB_CFG_LABEL_SYS_ESTB_REBOOT_TYPE, 0
+

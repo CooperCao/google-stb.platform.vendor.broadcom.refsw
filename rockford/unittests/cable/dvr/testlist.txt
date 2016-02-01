@@ -1,0 +1,84 @@
+# comment out following line to disable  dry run
+#Enable_DryRun
+# uncomment following line to enable all tests
+#All_DvrTest
+
+# uncomment following line to enable groups of tests
+# All_DvrTestMediaStorage
+# All_DvrTestTsb
+# All_DvrTestUtility
+# All_DvrTestRecord
+# All_DvrTestPlayback
+# All_DvrTestHn
+# All_DvrTestDRM
+
+# DvrTestMediaStorageFormatVolume
+# DvrTestMediaStorageMountVolume
+ DvrTestUtilityRemoveAllRecordings
+# DvrTestTsbServiceTest
+# DvrTestTsbServiceDataInjection
+# DvrTestTsbServiceBack2BackConvert 
+# DvrTestTsbServiceLongevity
+# DvrTestRecordServiceRecordStartSimulStandalone
+# DvrTestRecordServiceRecordStopSimulStandalone
+# DvrTestRecordServiceRecordStartSimulStandaloneWithDualPlayback
+# DvrTestRecordServiceRecordStopSimulStandaloneWithDualPlayback
+# DvrTestRecordServiceRecordWithTimer
+# DvrTestRecordServiceRecordWithPIDRemapping
+# DvrTestRecordServiceRecordWithDataInjection
+# DvrTestRecordServiceRecordWith6TSB2PBPlusContentListing
+# DvrTestRecordServiceRecordWith8TSBWithTSBPBPlusContentListingPlusTSBInjection
+# DvrTestPlaybackServiceWithTimer
+# DvrTestPlaybackServiceWithMediaInfo
+# DvrTestPlaybackVerificationOfLongRecording
+# DvrTestPlaybackInProgressRecording
+# DvrTestTsbChannelChange
+# DvrTest8TSBConvTilOutOfSpace
+# DvrTestDualPlaybackServiceWithTimer
+# DvrTestPlaybackServiceMultiLoops
+# DvrTestPlaybackServiceSingleLoop
+# DvrTestPlaybackServiceSetAlarmTimer
+# DvrTestPlaybackServiceWithTrickMode
+# DvrTestFileToFileTranscode
+# DvrTestPlaybackInProgressTranscode
+# hnStreamingTest
+# hnRecordTest
+# hnMediaPlayTest
+# hnMediaPlayTestMultiplePlay
+# hn8TSBTo8StreamFile2PBInjectionTest
+# hn8TSBTo8StreamNet2PBInjectionTest
+# hn1PFTo1StreamNetTest
+# hnMulPFToMulStreamNetTest
+# CPS rec & M2M dec ( clearkey )
+#DvrTestRecordServiceClearKeyCpsEncWithTimer
+#DvrTestPlaybackServiceClearKeyM2mDecWithTimer
+
+# CPS rec & M2M dec ( keyladder )
+#DvrTestRecordServiceKeyladderCpsEncWithTimer
+#DvrTestPlaybackServiceKeyladderM2mDecWithTimer
+
+# M2M rec & M2M dec ( clearkey )
+#DvrTestRecordServiceClearKeyM2mEncWithTimer
+#DvrTestPlaybackServiceClearKeyM2mDecWithTimerForM2mEnc
+
+# M2M rec & M2M dec ( keyladder )
+#DvrTestRecordServiceKeyladderM2mEncWithTimer
+#DvrTestPlaybackServiceKeyladderM2mDecWithTimerForM2mEnc
+
+# [TSB] CPS enc & M2M dec ( clearkey )
+#DvrTestTsbServiceCpsEncM2mDecClearKeyPlaybackTest
+
+# [TSB] CPS enc & M2M dec ( keyladder )
+#DvrTestTsbServiceCpsEncM2mDecKeyladderPlaybackTest
+
+# [TSB] M2M enc & M2M dec ( clearkey )
+#DvrTestTsbServiceM2mEncM2mDecClearKeyPlaybackTest
+
+# [TSB] M2M enc & M2M dec ( keyladder )
+#DvrTestTsbServiceM2mEncM2mDecKeyladderPlaybackTest
+
+# [TSB] CPS enc & CA dec ( clearkey , one key , scPolarity : odd )
+#DvrTestTsbServiceCpsEncCaDecClearKeyPlaybackTest
+
+# DvrTestUtilityContentList
+# DvrTestUtilityNavRegenerator

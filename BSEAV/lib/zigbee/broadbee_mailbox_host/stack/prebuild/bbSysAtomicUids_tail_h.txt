@@ -1,0 +1,5 @@
+
+} SysAtomicSectionUid_t;
+
+
+#endif /* _BB_SYS_ATOMIC_UIDS_H */

@@ -1,0 +1,543 @@
+diff -BNru falcon_rel_5_99_188_9_org/src/dhd/sys/dhd_common.c falcon_rel_5_99_188_9/src/dhd/sys/dhd_common.c
+--- falcon_rel_5_99_188_9_org/src/dhd/sys/dhd_common.c	2014-11-26 19:09:34.000000000 -0500
++++ falcon_rel_5_99_188_9/src/dhd/sys/dhd_common.c	2015-06-19 11:41:35.839334027 -0400
+@@ -1056,6 +1056,12 @@
+ 		/* These are what external supplicant/authenticator wants */
+ 		/* fall through */
+ 	case WLC_E_LINK:
++		if (flags & WLC_EVENT_MSG_LINK) {
++			dhd_link_up(dhd_pub->info, ifidx);
++		} else {
++			dhd_link_down(dhd_pub->info, ifidx);
++		}
++
+ 	case WLC_E_DEAUTH:
+ 	case WLC_E_DEAUTH_IND:
+ 	case WLC_E_DISASSOC:
+diff -BNru falcon_rel_5_99_188_9_org/src/dhd/sys/dhd.h falcon_rel_5_99_188_9/src/dhd/sys/dhd.h
+--- falcon_rel_5_99_188_9_org/src/dhd/sys/dhd.h	2014-11-26 19:09:34.000000000 -0500
++++ falcon_rel_5_99_188_9/src/dhd/sys/dhd.h	2015-06-19 11:41:35.839334027 -0400
+@@ -380,6 +380,10 @@
+ extern void dhd_detach(dhd_pub_t *dhdp);
+ extern void dhd_free(dhd_pub_t *dhdp);
+ 
++/* Indication of link state */
++extern void dhd_link_down(struct dhd_info *dhd_info, int *ifidx);
++extern void dhd_link_up(struct dhd_info *dhd_info, int *ifidx);
++
+ /* Indication from bus module to change flow-control state */
+ extern void dhd_txflowcontrol(dhd_pub_t *dhdp, int ifidx, bool on);
+ 
+diff -BNru falcon_rel_5_99_188_9_org/src/dhd/sys/dhd_linux.c falcon_rel_5_99_188_9/src/dhd/sys/dhd_linux.c
+--- falcon_rel_5_99_188_9_org/src/dhd/sys/dhd_linux.c	2014-11-26 19:09:34.000000000 -0500
++++ falcon_rel_5_99_188_9/src/dhd/sys/dhd_linux.c	2015-06-19 11:41:35.843334006 -0400
+@@ -454,6 +454,25 @@
+ static int dhd_wl_host_event(dhd_info_t *dhd, int *ifidx, void *pktdata,
+                              wl_event_msg_t *event_ptr, void **data_ptr);
+ 
++void dhd_link_down(struct dhd_info *dhd_info, int *ifidx)
++{
++
++	if (!netif_dormant(dhd_info->iflist[*ifidx]->net)) {
++		netif_dormant_on(dhd_info->iflist[*ifidx]->net);
++	}
++	return;
++}
++
++void dhd_link_up(struct dhd_info *dhd_info, int *ifidx)
++{
++	if (netif_dormant(dhd_info->iflist[*ifidx]->net)) {
++		netif_dormant_off(dhd_info->iflist[*ifidx]->net);
++	} else {
++		netif_carrier_on(dhd_info->iflist[*ifidx]->net);
++	}
++	return;
++}
++
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && defined(CONFIG_PM_SLEEP)
+ static int dhd_sleep_pm_callback(struct notifier_block *nfb, unsigned long action, void *ignored)
+ {
+@@ -2649,6 +2668,10 @@
+ 		return -1;
+ 	}
+ 
++	if (!netif_dormant(net)) {
++		netif_dormant_on(net);
++	}
++
+ 	if (ifidx == 0) {
+ 		atomic_set(&dhd->pend_8021x_cnt, 0);
+ #if defined(WL_CFG80211) && defined(OEM_ANDROID)
+diff -BNru falcon_rel_5_99_188_9_org/src/usbdev/usbdl/Makefile falcon_rel_5_99_188_9/src/usbdev/usbdl/Makefile
+--- falcon_rel_5_99_188_9_org/src/usbdev/usbdl/Makefile	2014-11-26 19:09:30.000000000 -0500
++++ falcon_rel_5_99_188_9/src/usbdev/usbdl/Makefile	2015-06-19 11:43:25.086764432 -0400
+@@ -46,20 +46,19 @@
+ ifeq ($(TARGETENV), linuxmips_be) 
+ 	OBJECTS += $(OBJDIR)usb_linux.o
+ 	COMPILE = mips-linux-gcc 
+-	LIBS := -L$(LIBUSB_PATH)/.libs $(LIBUSB_PATH)/.libs/libusb.a
+-	CFLAGS += -I$(LIBUSB_PATH) -DIL_BIGENDIAN
++    LIBS := -L$(LIBUSB_PATH)/lib $(LIBUSB_PATH)/lib/libusb.a
++	CFLAGS += -I$(LIBUSB_PATH)/include -DIL_BIGENDIAN
+ endif
+ 
+ ifeq ($(TARGETENV), linuxmips)
+ 	TARGET_PREFIX := mipsel-linux-
+ 	OBJECTS += $(OBJDIR)usb_linux.o
+-	CFLAGS += -I ../libusb
+ 	COMPILE = mipsel-linux-gcc 
+ 	CLEAN = clean_linux
+-	LDFLAGS += -L$(LIBUSB_PATH)/.libs
+-	LIBS= ../libusb/.libs/libusb.a
+-	LIBS := -L$(LIBUSB_PATH)/.libs $(LIBUSB_PATH)/.libs/libusb.a
+-	CFLAGS += -I$(LIBUSB_PATH)
++	LDFLAGS += -L$(LIBUSB_PATH)/lib
++	LIBS := -L$(LIBUSB_PATH)/lib $(LIBUSB_PATH)/lib/libusb.a
++	CFLAGS += -I$(LIBUSB_PATH)/include
++
+ install: 
+ 	cp bcmdl $(SRCBASE)/router/mipsel-linux/target/bin
+ endif
+diff -BNru falcon_rel_5_99_188_9_org/src/wps/common/enrollee/enr_api.c falcon_rel_5_99_188_9/src/wps/common/enrollee/enr_api.c
+--- falcon_rel_5_99_188_9_org/src/wps/common/enrollee/enr_api.c	2014-11-26 19:09:37.000000000 -0500
++++ falcon_rel_5_99_188_9/src/wps/common/enrollee/enr_api.c	2015-06-19 11:41:35.843334006 -0400
+@@ -38,6 +38,7 @@
+ #include <wps_enrapi.h>
+ #include <wps_sta.h>
+ #include <wlioctl.h>
++#include <syslog.h>
+ 
+ #define WPS_IE_BUF_LEN	VNDR_IE_MAX_LEN * 8	/* 2048 */
+ 
+@@ -1858,6 +1859,36 @@
+ 	return wps_apcount;
+ }
+ 
++static bool
++wps_get_probrsp_uuid(uint8* cp, uint len, uint8 *uuid)
++{
++        bool ret = FALSE;
++        uint8 *wps_iebuf;
++        uint wps_iebuf_len = 0;
++        CTlvUuid tlv_uuid;
++        BufferObj *bufObj;
++
++        if (cp == NULL || len == 0 || uuid == NULL)
++                return FALSE;
++
++        wps_iebuf = wps_get_wps_iebuf(cp, len, &wps_iebuf_len);
++        if (wps_iebuf == NULL)
++                return FALSE;
++
++        if ((bufObj = buffobj_new()) == NULL)
++                return FALSE;
++
++        buffobj_dserial(bufObj, wps_iebuf, wps_iebuf_len);
++
++        if (tlv_find_dserialize(&tlv_uuid, WPS_ID_UUID_E, bufObj, SIZE_UUID, 0) == 0) {
++                memcpy(uuid, tlv_uuid.m_data, tlv_uuid.tlvbase.m_len);
++                ret = TRUE;
++        }
++
++        buffobj_del(bufObj);
++        return ret;
++}
++
+ int
+ wps_get_pbc_ap(wps_ap_list_info_t *list_in, char *bssid, char *ssid, uint8 *wep,
+ 	unsigned long time, char start)
+@@ -1866,6 +1897,10 @@
+ 	int pbc_found = 0;
+ 	int i = 0;
+ 	int band_2G = 0, band_5G = 0;
++	uint8 uuid_2G[SIZE_UUID] = {0}, uuid_5G[SIZE_UUID] = {0};
++#ifdef WPS_OVERLAP_CHECKS_UUID_BSSID
++	uint8 bssid_2G[6] = {0}, bssid_5G[6] = {0};
++#endif
+ 	static unsigned long start_time;
+ 
+ 	if (start)
+@@ -1875,15 +1910,47 @@
+ 
+ 	while (ap_in->used == TRUE && i < WPS_MAX_AP_SCAN_LIST_LEN) {
+ 		if (true == is_SelectReg_PBC(ap_in->ie_buf, ap_in->ie_buflen)) {
+-			if (ap_in->band == WL_CHANSPEC_BAND_5G)
++			syslog(LOG_USER|LOG_CRIT, "[FALCON]: Identified SSID {%s}, band code {%d}, BSSID {%02x:%02x:%02x:%02x:%02x:%02x}",
++				ap_in->ssid, ap_in->band,
++				ap_in->BSSID[0], ap_in->BSSID[1], ap_in->BSSID[2], ap_in->BSSID[3], ap_in->BSSID[4], ap_in->BSSID[5]);
++			if (ap_in->band == WPS_RFBAND_50GHZ) {
++#ifdef WPS_OVERLAP_CHECKS_UUID_BSSID
++				memcpy(bssid_5G, ap_in->BSSID, 6);
++#endif
++				wps_get_probrsp_uuid(ap_in->ie_buf, ap_in->ie_buflen, uuid_5G);
+ 				band_5G++;
+-			else if (ap_in->band == WL_CHANSPEC_BAND_2G)
++				syslog(LOG_USER|LOG_CRIT, "[FALCON]: 5G, UUID {%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x}",
++					uuid_5G[0], uuid_5G[1], uuid_5G[2], uuid_5G[3], uuid_5G[4], uuid_5G[5], uuid_5G[6], uuid_5G[7],
++					uuid_5G[8], uuid_5G[9], uuid_5G[10], uuid_5G[11], uuid_5G[12], uuid_5G[13], uuid_5G[14], uuid_5G[15]);
++			}
++			else if (ap_in->band == WPS_RFBAND_24GHZ) {
++#ifdef WPS_OVERLAP_CHECKS_UUID_BSSID
++				memcpy(bssid_2G, ap_in->BSSID, 6);
++#endif
++				wps_get_probrsp_uuid(ap_in->ie_buf, ap_in->ie_buflen, uuid_2G);
+ 				band_2G++;
++				syslog(LOG_USER|LOG_CRIT, "[FALCON]: 2.4G, UUID {%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x}",
++					uuid_2G[0], uuid_2G[1], uuid_2G[2], uuid_2G[3], uuid_2G[4], uuid_2G[5], uuid_2G[6], uuid_2G[7],
++					uuid_2G[8], uuid_2G[9], uuid_2G[10], uuid_2G[11], uuid_2G[12], uuid_2G[13], uuid_2G[14], uuid_2G[15]);
++			}
+ 			TUTRACE((TUTRACE_INFO, "2.4G = %d, 5G = %d, band = 0x%x\n",
+ 				band_2G, band_5G, ap_in->band));
+ 			if (pbc_found) {
+ 				if ((band_5G > 1) || (band_2G > 1))
+ 					return PBC_OVERLAP;
++				else if (band_5G == 1 && band_2G == 1 && memcmp(uuid_2G, uuid_5G, SIZE_UUID))
++#ifdef WPS_OVERLAP_CHECKS_UUID_BSSID
++				/*
++				For the most part, if the UUIDs differ, this should be flagged as an overlap error.
++				However, at least one AP out there has different UUIDs on its two bands!
++				Although such rogue routers are violating the spec, we can try to minimize confusion for the end-user.
++
++				So, as an additional heuristic, we will also compare the first _five_ bytes of the two BSSIDs.
++				If the UUIDs differ but the first five BSSID bytes match, we will still treat it as one 'single' router.
++				*/
++				if (memcmp(bssid_2G, bssid_5G, 5))
++#endif
++					return PBC_OVERLAP;
+ 			}
+ 			pbc_found++;
+ 			memcpy(bssid, ap_in->BSSID, 6);
+diff -BNru falcon_rel_5_99_188_9_org/src/wps/linux/enr/wl_wps.c falcon_rel_5_99_188_9/src/wps/linux/enr/wl_wps.c
+--- falcon_rel_5_99_188_9_org/src/wps/linux/enr/wl_wps.c	2014-11-26 19:09:37.000000000 -0500
++++ falcon_rel_5_99_188_9/src/wps/linux/enr/wl_wps.c	2015-06-19 11:41:35.843334006 -0400
+@@ -262,6 +262,9 @@
+ 	strncpy(ifr.ifr_name, if_name, (IFNAMSIZ - 1));
+ 
+ 	memset(event_inds_mask, '\0', WL_EVENTING_MASK_LEN);
++	/* Read the event mask from driver and unmask the event WLC_E_ESCAN_RESULT */
++	if ((err = wl_iovar_get("event_msgs", &event_inds_mask, WL_EVENTING_MASK_LEN)))
++		goto exit2;
+ 	event_inds_mask[WLC_E_ESCAN_RESULT / 8] |= 1 << (WLC_E_ESCAN_RESULT % 8);
+ 	if ((err = wps_iovar_set("event_msgs", &event_inds_mask, WL_EVENTING_MASK_LEN)))
+ 		goto exit2;
+@@ -426,6 +429,11 @@
+ 
+ exit2:
+ 	free(params);
++	/* Read the event mask from driver and mask the event WLC_E_ESCAN_RESULT */
++	if (!(err = wl_iovar_get("event_msgs", &event_inds_mask, WL_EVENTING_MASK_LEN))) {
++		event_inds_mask[WLC_E_ESCAN_RESULT / 8] &= (~(1 << (WLC_E_ESCAN_RESULT % 8)));
++		err = wps_iovar_set( "event_msgs", &event_inds_mask, WL_EVENTING_MASK_LEN)
++	}
+ 	if (err < 0)
+ 		return NULL;
+ 	return scan_result;
+diff -BNru falcon_rel_5_99_188_9_org/src/wps/wpsapi/common/include/wps_api_osl.h falcon_rel_5_99_188_9/src/wps/wpsapi/common/include/wps_api_osl.h
+--- falcon_rel_5_99_188_9_org/src/wps/wpsapi/common/include/wps_api_osl.h	2014-11-26 19:09:36.000000000 -0500
++++ falcon_rel_5_99_188_9/src/wps/wpsapi/common/include/wps_api_osl.h	2015-06-19 11:41:35.843334006 -0400
+@@ -62,7 +62,7 @@
+ extern char *wps_osl_get_short_adapter_name();
+ extern int wps_osl_get_mac(uint8 *mac);
+ extern char *wps_osl_get_ssid();
+-extern uint32 wps_osl_init(void *cb_ctx, void *cb, const char *adapter_id);
++extern uint32 wps_osl_init(void *cb_ctx, void *cb, const char *adapter_id, const char* bridge_id);
+ extern void wps_osl_deinit();
+ extern void wps_osl_abort();
+ extern uint32 wps_osl_setup_802_1x(uint8 *bssid);
+diff -BNru falcon_rel_5_99_188_9_org/src/wps/wpsapi/common/include/wps_sdk.h falcon_rel_5_99_188_9/src/wps/wpsapi/common/include/wps_sdk.h
+--- falcon_rel_5_99_188_9_org/src/wps/wpsapi/common/include/wps_sdk.h	2014-11-26 19:09:36.000000000 -0500
++++ falcon_rel_5_99_188_9/src/wps/wpsapi/common/include/wps_sdk.h	2015-06-19 11:41:35.843334006 -0400
+@@ -277,6 +277,8 @@
+  * Function : wps_api_open
+  * Parameters :
+  *		adapter_id - Adapter identifier
++ *		bridge_id Bridge adaptor name that the interface is connected too (the interface to
++ *		listen for events on)
+  *		cb_ctx  - Optional. If provided, the WPS status callback
+  *			will be called with this context.
+  *		callback - WPS status callback.
+@@ -303,10 +305,10 @@
+  *			serial Number = "5678"
+  */
+ #ifdef WFA_WPS_20_TESTBED
+-BCM_WPSAPI bool wps_api_open(const char *adapter_id, void *cb_ctx, fnWpsProcessCB callback,
++BCM_WPSAPI bool wps_api_open(const char *adapter_id, const char* bridge_id, void *cb_ctx, fnWpsProcessCB callback,
+ 	wps_devinf *devinf, wps20_testbed_inf *wps20_tbinf, bool ap_pin, bool version2);
+ #else
+-BCM_WPSAPI bool wps_api_open(const char *adapter_id, void *cb_ctx, fnWpsProcessCB callback,
++BCM_WPSAPI bool wps_api_open(const char *adapter_id, const char* bridge_id, void *cb_ctx, fnWpsProcessCB callback,
+ 	wps_devinf *devinf, bool ap_pin, bool version2);
+ #endif
+ 
+diff -BNru falcon_rel_5_99_188_9_org/src/wps/wpsapi/common/wps_api.c falcon_rel_5_99_188_9/src/wps/wpsapi/common/wps_api.c
+--- falcon_rel_5_99_188_9_org/src/wps/wpsapi/common/wps_api.c	2014-11-26 19:09:36.000000000 -0500
++++ falcon_rel_5_99_188_9/src/wps/wpsapi/common/wps_api.c	2015-06-19 11:41:35.843334006 -0400
+@@ -734,10 +734,10 @@
+ /* wps_api_open function must be called first, before any other wps api call */
+ BCM_WPSAPI bool
+ #ifdef WFA_WPS_20_TESTBED
+-wps_api_open(const char *adapter_id, void *cb_ctx, fnWpsProcessCB callback, wps_devinf *devinf,
++wps_api_open(const char *adapter_id, const char* bridge_id, void *cb_ctx, fnWpsProcessCB callback, wps_devinf *devinf,
+ 	wps20_testbed_inf *wps20_tbinf, bool ap_pin, bool b_v2)
+ #else
+-wps_api_open(const char *adapter_id, void *cb_ctx, fnWpsProcessCB callback, wps_devinf *devinf,
++wps_api_open(const char *adapter_id, const char* bridge_id, void *cb_ctx, fnWpsProcessCB callback, wps_devinf *devinf,
+ 	bool ap_pin, bool b_v2)
+ #endif /* WFA_WPS_20_TESTBED */
+ {
+@@ -796,7 +796,7 @@
+ 	wps_api_status_cb(&wps_api_wksp->cb, wps_api_wksp->cb_ctx, WPS_STATUS_INIT, NULL);
+ 
+ 	/* WPS hook init for adapter and led (HW) */
+-	if (wps_hook_init(cb_ctx, callback, adapter_id) == false) {
++	if (wps_hook_init(cb_ctx, callback, adapter_id, bridge_id) == false) {
+ 		TUTRACE((TUTRACE_ERR, "wps_api_open : Failed to initial wireless adapter.\n"));
+ 		return false;
+ 	}
+diff -BNru falcon_rel_5_99_188_9_org/src/wps/wpsapi/common/wps_api_priv.h falcon_rel_5_99_188_9/src/wps/wpsapi/common/wps_api_priv.h
+--- falcon_rel_5_99_188_9_org/src/wps/wpsapi/common/wps_api_priv.h	2014-11-26 19:09:37.000000000 -0500
++++ falcon_rel_5_99_188_9/src/wps/wpsapi/common/wps_api_priv.h	2015-06-19 11:41:35.843334006 -0400
+@@ -35,7 +35,7 @@
+ 
+ extern bool wps_hook_create_profile(const struct _wps_credentials *credentials);
+ extern int wps_hook_get_mac(uint8 *mac);
+-extern bool wps_hook_init(void *cb_ctx, void *cb, const char *adapter_id);
++extern bool wps_hook_init(void *cb_ctx, void *cb, const char *adapter_id, const char* bridge_id);
+ extern void wps_hook_deinit();
+ extern void wps_hook_abort();
+ extern uint32 wps_hook_setup_802_1x(char *bssid);
+diff -BNru falcon_rel_5_99_188_9_org/src/wps/wpsapi/common/wps_hooks.c falcon_rel_5_99_188_9/src/wps/wpsapi/common/wps_hooks.c
+--- falcon_rel_5_99_188_9_org/src/wps/wpsapi/common/wps_hooks.c	2014-11-26 19:09:36.000000000 -0500
++++ falcon_rel_5_99_188_9/src/wps/wpsapi/common/wps_hooks.c	2015-06-19 11:41:35.847333984 -0400
+@@ -61,9 +61,9 @@
+ 
+ /* Initial HW related */
+ bool
+-wps_hook_init(void *cb_ctx, void *cb, const char *adapter_id)
++wps_hook_init(void *cb_ctx, void *cb, const char *adapter_id, const char * bridge_id)
+ {
+-	uint32 retVal = wps_osl_init(cb_ctx, cb, adapter_id);
++	uint32 retVal = wps_osl_init(cb_ctx, cb, adapter_id, bridge_id);
+ 	return ((retVal == WPS_OSL_SUCCESS) ? true : false);
+ }
+ 
+diff -BNru falcon_rel_5_99_188_9_org/src/wps/wpsapi/common/wps_wl.c falcon_rel_5_99_188_9/src/wps/wpsapi/common/wps_wl.c
+--- falcon_rel_5_99_188_9_org/src/wps/wpsapi/common/wps_wl.c	2014-11-26 19:09:36.000000000 -0500
++++ falcon_rel_5_99_188_9/src/wps/wpsapi/common/wps_wl.c	2015-06-19 11:41:35.847333984 -0400
+@@ -559,6 +559,12 @@
+ /* ########## */
+ /* EXPORTED APIS */
+ /* ########## */
++int
++get_event_mask( void* event_inds_mask)
++{
++	return wl_iovar_get("event_msgs", event_inds_mask, WL_EVENTING_MASK_LEN);
++}
++
+ wps_ap_list_info_t *
+ wps_get_ap_list()
+ {
+diff -BNru falcon_rel_5_99_188_9_org/src/wps/wpsapi/linux/wps_api_tester.c falcon_rel_5_99_188_9/src/wps/wpsapi/linux/wps_api_tester.c
+--- falcon_rel_5_99_188_9_org/src/wps/wpsapi/linux/wps_api_tester.c	2014-11-26 19:09:37.000000000 -0500
++++ falcon_rel_5_99_188_9/src/wps/wpsapi/linux/wps_api_tester.c	2015-06-19 11:41:35.847333984 -0400
+@@ -343,11 +343,11 @@
+ 
+ 	/* 2. Open WPS */
+ #ifdef WFA_WPS_20_TESTBED
+-	bRet = wps_api_open(STRP(wps->ifname), NULL, _wps_join_callback,
++	bRet = wps_api_open(STRP(wps->ifname), STRP(wps->brname), NULL, _wps_join_callback,
+ 		_wps_my_devinf(&my_devinf, wps->transport_uuid), &wps->wps20_tbinf, wps->b_appin,
+ 		wps->b_v2);
+ #else
+-	bRet = wps_api_open(STRP(wps->ifname), NULL, _wps_join_callback,
++	bRet = wps_api_open(STRP(wps->ifname), STRP(wps->brname), NULL, _wps_join_callback,
+ 		_wps_my_devinf(&my_devinf, wps->transport_uuid), wps->b_appin, wps->b_v2);
+ #endif
+ 	if (bRet == FALSE) {
+diff -BNru falcon_rel_5_99_188_9_org/src/wps/wpsapi/linux/wps_api_tester.h falcon_rel_5_99_188_9/src/wps/wpsapi/linux/wps_api_tester.h
+--- falcon_rel_5_99_188_9_org/src/wps/wpsapi/linux/wps_api_tester.h	2014-11-26 19:09:37.000000000 -0500
++++ falcon_rel_5_99_188_9/src/wps/wpsapi/linux/wps_api_tester.h	2015-06-19 11:41:35.847333984 -0400
+@@ -29,7 +29,8 @@
+ 
+ 	char bssid[6];
+ 	char ssid[33];
+-	char ifname[16];
++    char ifname[16];
++    char brname[16];
+ 	char def_dhclient_pf[256];
+ 	char ip_addr[16];
+ 	char dhcp_cmd[256];
+diff -BNru falcon_rel_5_99_188_9_org/src/wps/wpsapi/linux/wps_api_ui.c falcon_rel_5_99_188_9/src/wps/wpsapi/linux/wps_api_ui.c
+--- falcon_rel_5_99_188_9_org/src/wps/wpsapi/linux/wps_api_ui.c	2014-11-26 19:09:37.000000000 -0500
++++ falcon_rel_5_99_188_9/src/wps/wpsapi/linux/wps_api_ui.c	2015-06-19 11:41:35.847333984 -0400
+@@ -968,11 +968,16 @@
+ 			wps->b_ssid = TRUE;
+ 			WPS_PRINT(("SSID : %s", wps->ssid));
+ 		}
+-		else if (!strcmp(cmd, "-if")) {
+-			WPS_ARGC_CHECK();
+-			val = argv[index++]; argc--;
+-			wps_strncpy(wps->ifname, val, sizeof(wps->ifname));
+-		}
++        else if (!strcmp(cmd, "-if")) {
++            WPS_ARGC_CHECK();
++            val = argv[index++]; argc--;
++            wps_strncpy(wps->ifname, val, sizeof(wps->ifname));
++        }
++        else if (!strcmp(cmd, "-br")) {
++            WPS_ARGC_CHECK();
++            val = argv[index++]; argc--;
++            wps_strncpy(wps->brname, val, sizeof(wps->brname));
++        }
+ 		else if (!strcmp(cmd, "-bssid")) {
+ 			WPS_ARGC_CHECK();
+ 			/* 
+diff -BNru falcon_rel_5_99_188_9_org/src/wps/wpsapi/linux/wps_linux_osl.c falcon_rel_5_99_188_9/src/wps/wpsapi/linux/wps_linux_osl.c
+--- falcon_rel_5_99_188_9_org/src/wps/wpsapi/linux/wps_linux_osl.c	2014-11-26 19:09:37.000000000 -0500
++++ falcon_rel_5_99_188_9/src/wps/wpsapi/linux/wps_linux_osl.c	2015-06-19 11:41:35.847333984 -0400
+@@ -40,6 +40,7 @@
+ #include <wpscommon.h>
+ 
+ extern void RAND_linux_init();
++extern int get_event_mask( void * event_inds_mask);
+ 
+ #define WPS_SCAN_MAX_WAIT_SEC 10
+ 
+@@ -89,6 +90,8 @@
+ WPS_OSL_T *wps_osl_wksp = NULL;
+ 
+ static char ifname_lx[IFNAMSIZ] = "";
++static char ifname_br[IFNAMSIZ] = "";
++
+ static uint8 peer_mac[6] = {0};
+ static int eap_fd = -1; /* descriptor to raw socket  */
+ static int ifindex = -1; /* interface index */
+@@ -154,6 +157,12 @@
+ 
+ 	ifr.ifr_name[0] = '\0';
+ 
++	if (ifname_br[0] != '\0')
++    {
++	    strncpy(ifname, ifname_br, ifname_len);
++	    return 0;
++    }
++
+ 	if (!(fp = fopen(proc_net_dev, "r")))
+ 		return ret;
+ 
+@@ -647,7 +656,7 @@
+ 		memcpy(peer_mac, bssid, 6);
+ 
+ 	memset(&ifr, 0, sizeof(ifr));
+-	wps_strncpy(ifr.ifr_name, ifname_lx, sizeof(ifr.ifr_name));
++	wps_strncpy(ifr.ifr_name, ifname_br[0] ? ifname_br : ifname_lx, sizeof(ifr.ifr_name));
+ 
+ 	err = ioctl(eap_fd, SIOCGIFINDEX, &ifr);
+ 	if (err < 0) {
+@@ -661,7 +670,6 @@
+ 
+ 	ll.sll_family = PF_PACKET;
+ 	ll.sll_ifindex = ifr.ifr_ifindex;
+-	ifindex  = ifr.ifr_ifindex;
+ 	ll.sll_protocol = htons(ETH_8021X_PROT);
+ 	if (bind(eap_fd, (struct sockaddr *) &ll, sizeof(ll)) < 0) {
+ 		WPS_DEBUG(("Bind interface failed\n"));
+@@ -670,6 +678,16 @@
+ 		return WPS_OSL_ERROR;
+ 	}
+ 
++	wps_strncpy(ifr.ifr_name, ifname_lx, sizeof(ifr.ifr_name));
++	err = ioctl(eap_fd, SIOCGIFINDEX, &ifr);
++	if (err < 0) {
++		WPS_DEBUG(( "Get interface index failed\n"));
++		close(eap_fd);
++		eap_fd = -1;
++		return WPS_OSL_ERROR;
++	}
++	ifindex  = ifr.ifr_ifindex;
++
+ 	return WPS_OSL_SUCCESS;
+ }
+ 
+@@ -857,7 +875,7 @@
+ }
+ 
+ uint32
+-wps_osl_init(void *cb_ctx, void *cb, const char *adapter_id)
++wps_osl_init(void *cb_ctx, void *cb, const char *adapter_id, const char* bridge_id)
+ {
+ 	char *ifname = (char*) adapter_id;
+ 	char dyn_name[IFNAMSIZ];
+@@ -886,6 +904,11 @@
+ 		ifname = dyn_name;
+ 	}
+ 
++	if (bridge_id != NULL)
++	{
++	    wps_strncpy(ifname_br, bridge_id, sizeof(ifname_br));
++	}
++
+ 	/* Save this specific interface for further use */
+ 	wps_strncpy(ifname_lx, ifname, sizeof(ifname_lx));
+ 
+@@ -942,6 +965,8 @@
+ 		free(wps_osl_wksp);
+ 		wps_osl_wksp = NULL;
+ 	}
++    memset(ifname_br, 0, sizeof(ifname_br));
++    memset(ifname_lx, 0, sizeof(ifname_lx));
+ }
+ 
+ void
+@@ -1004,6 +1029,10 @@
+ 	strncpy(ifr.ifr_name, if_name, (IFNAMSIZ - 1));
+ 
+ 	memset(event_inds_mask, '\0', WL_EVENTING_MASK_LEN);
++	/* Read the event mask from driver and unmask the event WLC_E_ESCAN_RESULT */
++	if ((err = get_event_mask(&event_inds_mask)))
++		goto exit2;
++
+ 	event_inds_mask[WLC_E_ESCAN_RESULT / 8] |= 1 << (WLC_E_ESCAN_RESULT % 8);
+ 	if ((err = _wps_osl_iovar_set("event_msgs", &event_inds_mask, WL_EVENTING_MASK_LEN)))
+ 		goto exit2;
+@@ -1168,6 +1197,12 @@
+ 
+ exit2:
+ 	free(params);
++	/* Read the event mask from driver and mask the event WLC_E_ESCAN_RESULT */
++	if (!(err = get_event_mask(&event_inds_mask))) {
++		event_inds_mask[WLC_E_ESCAN_RESULT / 8] &= (~(1 << (WLC_E_ESCAN_RESULT % 8)));
++		err = _wps_osl_iovar_set( "event_msgs", &event_inds_mask, WL_EVENTING_MASK_LEN);
++	}
++
+ 	if (err < 0)
+ 		return NULL;
+ 	return scan_result;
+diff -BNru falcon_rel_5_99_188_9_org/src/wps/wpscli/linux/wpscli_wlan.c falcon_rel_5_99_188_9/src/wps/wpscli/linux/wpscli_wlan.c
+--- falcon_rel_5_99_188_9_org/src/wps/wpscli/linux/wpscli_wlan.c	2014-11-26 19:09:36.000000000 -0500
++++ falcon_rel_5_99_188_9/src/wps/wpscli/linux/wpscli_wlan.c	2015-06-19 11:44:28.106464504 -0400
+@@ -181,6 +181,11 @@
+ 	strncpy(ifr.ifr_name, wpscli_get_interface_name(), (IFNAMSIZ - 1));
+ 
+ 	memset(event_inds_mask, '\0', WL_EVENTING_MASK_LEN);
++	/* Read the event mask from driver and unmask the event WLC_E_ESCAN_RESULT */
++	if ((err = wpscli_iovar_get("event_msgs", &event_inds_mask, WL_EVENTING_MASK_LEN))){
++		err = -1;
++		goto exit2;
++	}
+ 	event_inds_mask[WLC_E_ESCAN_RESULT / 8] |= 1 << (WLC_E_ESCAN_RESULT % 8);
+ 	if (!(err = wpscli_iovar_set("event_msgs", &event_inds_mask, WL_EVENTING_MASK_LEN))) {
+ 		err = -1;
+@@ -348,6 +353,12 @@
+ 
+ exit2:
+  	free(params);
++	/* Read the event mask from driver and mask the event WLC_E_ESCAN_RESULT */
++	if (!(err = wpscli_iovar_get("event_msgs", &event_inds_mask, WL_EVENTING_MASK_LEN))) {
++		event_inds_mask[WLC_E_ESCAN_RESULT / 8] &= (~(1 << (WLC_E_ESCAN_RESULT % 8)));
++		if ( wpscli_iovar_set( "event_msgs", &event_inds_mask, WL_EVENTING_MASK_LEN) ==FALSE )
++			err = -1;
++	}
+ 	
+ 	wpscli_status = (err < 0) ? wpscli_status : WPS_STATUS_SUCCESS;
+  

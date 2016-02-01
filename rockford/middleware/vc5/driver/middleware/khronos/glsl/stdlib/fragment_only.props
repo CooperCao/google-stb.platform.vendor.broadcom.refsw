@@ -1,0 +1,26 @@
+fragment-only:
+  vec4 texture2D    (sampler2D sampler, vec2 coord, float bias);
+  vec4 texture2DProj(sampler2D sampler, vec3 coord, float bias);
+  vec4 texture2DProj(sampler2D sampler, vec4 coord, float bias);
+  vec4 textureCube(samplerCube sampler, vec3 coord, float bias);
+  float dFdx(float p);
+  vec2 dFdx(vec2 p);
+  vec3 dFdx(vec3 p);
+  vec4 dFdx(vec4 p);
+  float dFdy(float p);
+  vec2 dFdy(vec2 p);
+  vec3 dFdy(vec3 p);
+  vec4 dFdy(vec4 p);
+  float fwidth(float p);
+  vec2 fwidth(vec2 p);
+  vec3 fwidth(vec3 p);
+  vec4 fwidth(vec4 p);
+  out mediump vec4  gl_FragColor;
+  out mediump vec4  gl_FragData[gl_MaxDrawBuffers];
+  out highp   float gl_FragDepth;
+  in  mediump vec4  gl_FragCoord;
+  in  highp   vec4  gl_FragCoord;
+  in          bool  gl_FrontFacing;
+  in  mediump vec2  gl_PointCoord;
+  in          bool  gl_HelperInvocation;
+  in  mediump float __brcm_LineCoord;

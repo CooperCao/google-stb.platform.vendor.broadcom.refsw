@@ -1,0 +1,18 @@
+echo " "
+echo "Generating dsgcc RPC code ......"
+rm -f dsgccClientRegistration_rpc_xdr.c dsgccClientRegistration_rpc.h
+echo "Removed old Common RPC code ......"
+
+rpcgen -h -o dsgccClientRegistration_rpc.h dsgccClientRegistration_rpc.x
+rpcgen -c -o dsgccClientRegistration_rpc_xdr.c dsgccClientRegistration_rpc.x
+sed 's/register //' dsgccClientRegistration_rpc_xdr.c >dsgccClientRegistration_rpc_xdr.tmp
+sed 's/int i;//' dsgccClientRegistration_rpc_xdr.tmp >dsgccClientRegistration_rpc_xdr.c
+rm -f dsgccClientRegistration_rpc_xdr.tmp
+
+rpcgen -h -o dsgccClientCallback_rpc.h dsgccClientCallback_rpc.x
+rpcgen -c -o dsgccClientCallback_rpc_xdr.c dsgccClientCallback_rpc.x
+
+echo " "
+echo "Generated new Common RPC code ......"
+echo " "
+ls -sla *

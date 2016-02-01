@@ -1,0 +1,13 @@
+################################################################################
+#                       txPower Coefficients
+#
+# the following file contains the measured txPower at 1m distance from the STB
+# in the open air. The values will vary from STB to STB if the antennas are not
+# placed the same, as well as other environment interference.
+# NOTE: The value stored is the 2's complement of the value (int8_t)
+################################################################################
+#97250USFF: -32db
+BCM97250USFF=E0
+
+#BCM972520SFF: -34db
+BCM972520SFF=DE

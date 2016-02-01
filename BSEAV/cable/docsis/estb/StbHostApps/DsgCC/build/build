@@ -1,0 +1,94 @@
+#!/bin/bash
+
+if [ $ARM_PLATFORM == "yes" ]; then
+	echo "  yes ARM_PLATFORM = $ARM_PLATFORM"
+CROSS_ROOT=`which arm-linux-gcc`
+export CROSSDEV_ROOT=${CROSS_ROOT%/bin/arm-linux-gcc}
+export CROSS_COMPILE=$CROSSDEV_ROOT/bin/arm-linux
+else
+	echo "  no ARM_PLATFORM = $ARM_PLATFORM"
+CROSS_ROOT=`which mipsel-linux-gcc`
+export CROSSDEV_ROOT=${CROSS_ROOT%/bin/mipsel-linux-gcc}
+export CROSS_COMPILE=$CROSSDEV_ROOT/bin/mipsel-linux
+fi
+
+curr_dir=`pwd`
+B_REFSW_OBJ_DIR=obj.${NEXUS_PLATFORM}
+cd ../../../../../../..
+REFSW_TOP=`pwd`
+cd $curr_dir
+if [[ ! -z $B_REFSW_OBJ_ROOT ]]; then
+B_REFSW_OBJ_ROOT=$B_REFSW_OBJ_ROOT
+echo "B_REFSW_OBJ_ROOT exists"
+else
+B_REFSW_OBJ_ROOT=$REFSW_TOP/$B_REFSW_OBJ_DIR
+fi
+
+case $1 in
+	dsgcc )
+		builddir=../StbApp_DsgCC/linux
+		objdir=BSEAV/cable/docsis/estb/StbHostApps/DsgCC/StbApp_DsgCC/linux/bcm
+		outputdir=${B_REFSW_OBJ_ROOT}/${objdir}
+                if [ "$2" == "slim" ]; then
+                  outputdir=${B_REFSW_OBJ_ROOT}/${objdir}\_$2
+                fi
+		outputfilename=Linux
+		outputfile=$outputdir/$outputfilename
+		targetdir=`pwd`
+		targetfilename=dsgcc
+
+		echo "  Outputfile= $outputfile Outputdir= $outputdir"
+		echo "  Building DSGCC using TOOLCHAIN: '$CROSSDEV_ROOT/bin/$ARCH' "
+
+		cd $builddir
+		sh makeapp $2 $3 $4 $5 $6
+		cd $targetdir
+		if [ -e $outputfile ]; then
+   		    cp -u $outputfile $targetdir/$targetfilename
+		else
+   		    rm -f $targetdir/$targetfilename
+		fi
+
+		#outputfile=$outputdir/dsgcclib.a
+		#targetfilename=dsgcclib.a
+		#if [ -e $outputfile ]; then
+		#    cp -u $outputfile $targetdir/$targetfilename
+		#fi
+		;;
+
+	dsgtestclient )
+		# - Linux defaults
+		export TARGET_OS=Linux
+		export CPU=RC32364
+		export LINUX_VERSION=18
+		builddir=../DsgCC/ClientInterface/SampleApp/Linux
+		outputdir=../DsgCC/ClientInterface/SampleApp/Linux
+		outputfilename=Linux
+		outputfile=$outputdir/$outputfilename
+		targetdir=.
+		targetfilename=dsgtestclient
+
+		cd $builddir
+		make -f ./Makefile Linux $2
+		if [ -e $outputfile ]; then
+   		    cp -u $outputfile $targetdir/$targetfilename
+		else
+   		    rm -f $targetdir/$targetfilename
+		fi
+		echo "  Building DSG test client"
+		echo "  Using '$CROSSDEV_ROOT/bin/$ARCH' toolchain"
+		;;
+
+	* )
+		echo "This batch file is used to build various components of Docsis for Bcm$PLATFORM."
+		echo
+		echo "Usage: build type [clean]"
+		echo
+		echo "Parameters:"
+		echo "   type            = bsp, cmapp, dsgcc, estbsnmp or dsgtestclient"
+ 		echo "   clean           = clean all binaries for build type specified"
+		echo "Examples:"
+		echo "    build dsgcc    - Builds DSG Client Controller"
+		echo "    build dsgtestclient    - Builds a sample DSG Client to test the dsgcc application"
+		;;
+esac

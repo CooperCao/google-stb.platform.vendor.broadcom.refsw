@@ -1,0 +1,7 @@
+# These are the fundamental datatypes, from which all value types can be derived
+
+name  operations                    gl_type      vector_prefix max_vector vector_operations  matrix_prefix max_matrix matrix_operations
+bool  logical,                      bool         bvec          4          ,                  -             -          -
+int   arithmetic,bitwise,relational int          ivec          4          arithmetic,bitwise -             -          -
+uint  arithmetic,bitwise,relational unsigned_int uvec          4          arithmetic,bitwise -             -          -
+float arithmetic,relational         float        vec           4          arithmetic,        mat           4          arithmetic,

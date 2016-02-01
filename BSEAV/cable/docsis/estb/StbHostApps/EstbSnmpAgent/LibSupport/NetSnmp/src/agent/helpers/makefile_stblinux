@@ -1,0 +1,138 @@
+#############################################################################
+# (c) 2003-2015 Broadcom Corporation
+#
+# This program is the proprietary software of Broadcom Corporation and/or its
+# licensors, and may only be used, duplicated, modified or distributed pursuant
+# to the terms and conditions of a separate, written license agreement executed
+# between you and Broadcom (an "Authorized License").  Except as set forth in
+# an Authorized License, Broadcom grants no license (express or implied), right
+# to use, or waiver of any kind with respect to the Software, and Broadcom
+# expressly reserves all rights in and to the Software and all intellectual
+# property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#
+# Except as expressly set forth in the Authorized License,
+#
+# 1. This program, including its structure, sequence and organization,
+#    constitutes the valuable trade secrets of Broadcom, and you shall use all
+#    reasonable efforts to protect the confidentiality thereof, and to use
+#    this information only in connection with your use of Broadcom integrated
+#    circuit products.
+#
+# 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+#    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+#    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+#    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+#    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+#    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+#
+# 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+#    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+#    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+#    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+#    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+#    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+#    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+#
+#############################################################################
+
+#****************************************************************************
+#
+#  Filename:       makefile_stblinux
+#  Author:         T. Clack
+#  Creation Date:  11/10/03
+#  Modified:       Maurice Turcotte (for mips little endian Linux)
+#
+#****************************************************************************
+#  Description:
+#      The makefile for the eSTB libnetsnmphelpers_linux.a library.
+#
+#****************************************************************************
+
+#####################################################################
+
+TOP_DIR   = ../../../../..
+LIB_SUPPORT_DIR = $(TOP_DIR)/LibSupport
+NETSNMP_INC_DIR = $(LIB_SUPPORT_DIR)/NetSnmp/include
+NETSNMP_LIB_DIR = $(LIB_SUPPORT_DIR)/NetSnmp
+
+CROSSDEV_ROOT ?= /opt/toolchains/settop
+
+
+#####################################################################
+# Linux build
+#####################################################################
+
+DEFS_FILE =  $TOP_DIR/cm_bsp_v2/bsp_common/os/stb_linux/makeinc/defs.bsp
+
+#include $(DEFS_FILE)
+
+
+EXTRA_INCLUDE += -I.
+EXTRA_INCLUDE += -I$(CROSSDEV_ROOT)/include
+
+HLP_LIB  = libnetsnmphelpers_linux.a.gcc$(GCC_VERSION).$(GCC_MINOR_VERSION)
+ 
+ifeq ($(B_REFSW_ARCH), arm-linux)
+ARCH=arm
+else
+ARCH=mipsel
+endif
+
+SED             = sed
+RANLIB          = $(CROSSDEV_ROOT)/bin/$(ARCH)-linux-ranlib
+LN_S            = ln -s
+MY_AR = $(AR)
+CFLAGS  +=  -DTARGETOS_stblinux -Dlinux
+CC              = $(CROSSDEV_ROOT)/bin/$(ARCH)-linux-gcc
+
+## end of Linux specific stuff #######################################
+
+
+
+#HLP_OBJS = $(subst .c,.o, $(wildcard *.c))
+
+HLP_OBJS  = all_helpers.o multiplexer.o read_only.o 
+HLP_OBJS += bulk_to_next.o instance.o scalar.o 
+HLP_OBJS += watcher.o null.o debug_handler.o  
+HLP_OBJS += old_api.o serialize.o table_array.o 
+HLP_OBJS += table_iterator.o table_data.o table_dataset.o 
+HLP_OBJS += table.o mode_end_call.o 
+
+
+
+
+
+EXTRA_INCLUDE += -I$(NETSNMP_INC_DIR)
+EXTRA_INCLUDE += -I../..
+
+
+$(HLP_LIB) : $(HLP_OBJS)
+#	echo objs $(HLP_OBJS)
+#	echo lib  $(HLP_LIB)
+	$(MY_AR) cru $(HLP_LIB) $?
+	$(RANLIB) $(HLP_LIB)
+        
+	cp $(HLP_LIB) $(NETSNMP_LIB_DIR)/$(HLP_LIB)
+
+
+%.o : %.s
+	@ $(RM) $@
+	$(CC) $(CFLAGS_AS) -c -o $@ $< 
+
+%.o : %.c 
+	@ $(RM) $@
+	$(CC) $(CFLAGS) $(EXTRA_INCLUDE) -c -o $@ $<
+
+clean:
+	- $(RM) $(HLP_LIB)
+	- $(RM) *.o
+	- $(RM) $(NETSNMP_LIB_DIR)/$(HLP_LIB)
+
+
+
+

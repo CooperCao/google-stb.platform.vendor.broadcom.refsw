@@ -1,0 +1,93 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+          "http://www.w3.org/TR/html4/loose.dtd">
+
+<head>
+   <meta http-equiv="content-type" content="text/html; charset=utf-8">
+   <title>VC5 Release Notes</title>
+</head>
+
+<body>
+   <h1>VC5 Driver & Tools - Release Notes</h1>
+
+   <h2>16.1</h2>
+
+   <h3>New features</h3>
+   <ul>
+      <li>Added support for EGL 1.5</li>
+      <li>Various performance improvements in a number of areas</li>
+      <li>Reduced the system memory consumption used by OpenGL ES 2 &amp; 3 contexts by around 5MB each</li>
+      <li>GPUMonitor : object state viewing has now mostly been integrated into a single 'State' dialog</li>
+      <li>GPUMonitor : extra program interface data is available in the program object display</li>
+      <li>GPUMonitor : state for vertex array objects, buffer objects, query objects, sync objects and transform feedback objects is now displayable</li>
+      <li>GPUMonitor : now uses a circular buffer to record event data allowing longer run times without massive data overhead</li>
+   </ul>
+
+   <h3>Bug fixes</h3>
+   <ul>
+      <li>GL sampler objects are now shareable</li>
+      <li>Fix for buffer creation status using non-generated names</li>
+      <li>Fixed a cache flushing issue that could rarely result in a partial buffer update</li>
+      <li>eglquerysurface and eglsurfaceattrib weren't supporting all attributes correctly</li>
+      <li>Fixed an issue with scissored multisample-FBO framebuffer blits</li>
+      <li>Removed GL_OES_depth32 from the extension list as we don't, and never have, supported it</li>
+      <li>A resize after eglCreateWindowSurface(), but before any other EGL or GL calls, failed to take effect</li>
+      <li>Various shader compiler fixes for large shaders</li>
+   </ul>
+
+   <h2>15.4</h2>
+
+   <h3>New features</h3>
+   <ul>
+      <li>Significant performance improvements from various kernel scheduler optimizations</li>
+      <li>Performance increased slightly due to better handling of memory alignment</li>
+      <li>Added full support for Android fences</li>
+      <li>Added support for YUV422 EGLimage textures</li>
+      <li>Added support for YV12 EGLimage textures</li>
+      <li>Added support for EGL_EXT_client_extensions</li>
+      <li>Added support for EGL_EXT_platform_base extension</li>
+      <li>Added support for EGL_KHR_platform_android extension</li>
+      <li>Added support for EGL_KHR_get_all_proc_addresses extension</li>
+      <li>Added support for EGL_KHR_client_get_all_proc_addresses extension</li>
+      <li>Added support for GL_KHR_debug extension</li>
+      <li>Added support for GL_EXT_robustness extension</li>
+      <li>Added support for OES_surfaceless_context and KHR_surfaceless_context extensions</li>
+      <li>Added RGBA 4444 configs</li>
+      <li>GPUMonitor now supports BGRA textures</li>
+      <li>GPUMonitor now supports ASTC textures</li>
+   </ul>
+
+   <h3>Bug fixes</h3>
+   <ul>
+      <li>Fixed a problem where large buffers (>2Kx2K) could fail to render due to insufficient bin memory</li>
+      <li>The GLSL compiler now better schedules control flow constructs</li>
+      <li>Fixed a race condition during power off which could very occasionally cause a lockup</li>
+      <li>Fixed occasional issue with egl/glClientWaitSync for texture dependencies</li>
+      <li>Worked around GLSL issue where ldunif sometimes returned incorrect data following a branch uniform instruction</li>
+      <li>GLSL compiler now correctly allows multiple function declarations where the specification permits</li>
+      <li>Fixed an issue where repeated running of ogl nxclient apps caused loss of output</li>
+      <li>Fixed a problem running GPUMonitor with kernel mode application builds</li>
+      <li>GPUMonitor's performance counters are more accurately sampled for long running jobs</li>
+      <li>Fixed a potential race condition which could cause a stall during program termination</li>
+      <li>Fixed a problem with scissored framebuffer blits</li>
+      <li>Fixed a display issue in the Nexus platform layer which could occasionally cause tearing even in vsync mode</li>
+   </ul>
+
+   <h2>15.3</h2>
+
+   <h3>New features</h3>
+   <ul>
+      <li>Re-engineered the kernel job scheduler for up to 20% better performance in some cases</li>
+      <li>Added many new fast paths for texture upload and conversion</li>
+   </ul>
+
+   <h3>Bug fixes</h3>
+   <ul>
+      <li>Workaround for h/w issue causing some errant triangles in BaseMark ES3 Duel Demo</li>
+      <li>Workaround a number of occlusion query h/w issues</li>
+      <li>Workaround for corner-case h/w issue with instanced primitives</li>
+      <li>eglCreateWindowSurface now returns EGL_BAD_ALLOC if native window has already been used</li>
+   </ul>
+
+</body>
+
+</html>

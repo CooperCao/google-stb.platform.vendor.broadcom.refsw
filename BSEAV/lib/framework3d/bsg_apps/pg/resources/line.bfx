@@ -1,0 +1,47 @@
+OPTIONS
+{
+   SortOrder = NONE;
+}
+
+PASS 0
+{
+   SEMANTICS
+   {
+      a_position = VATTR_POSITION;
+      u_color = VECTOR4_USER;
+
+      #include mvp_semantics.bfx
+   }
+
+   STATE
+   {
+      EnableBlend       = false;
+      EnableDepthTest   = false;
+      EnableStencilTest = true;
+      StencilFunc       = EQUAL, 2, 255;
+   }
+
+   VERTEX_SHADER
+   {
+      attribute vec4 a_position;
+
+      #include mvp.bfx
+
+      void main()
+      {
+         gl_Position = calc_mvp() * a_position;
+      }
+   }
+
+   FRAGMENT_SHADER
+   {
+      precision mediump float;
+
+      uniform vec4 u_color;
+
+      void main()
+      {
+         gl_FragColor = u_color;
+      }
+   }
+}

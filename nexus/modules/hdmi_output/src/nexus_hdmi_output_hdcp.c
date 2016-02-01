@@ -1,0 +1,1755 @@
+/***************************************************************************
+ *     (c)2007-2013 Broadcom Corporation
+ *
+ *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ * $brcm_Workfile: $
+ * $brcm_Revision: $
+ * $brcm_Date: $
+ *
+ * Module Description:
+ *                      HdmiOutput: Specific interfaces for an HDMI/DVI output.
+ *
+ * Revision History:
+ *
+ * $brcm_Log: $
+ *
+ **************************************************************************/
+#include "nexus_hdmi_output_module.h"
+#include "priv/nexus_core.h"
+#include "nexus_hdmi_types.h"
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+#include "nexus_sage.h"
+#include "bsagelib.h"
+#include "bsagelib_client.h"
+#include "priv/nexus_sage_priv.h" /* get access to NEXUS_Sage_GetSageLib_priv() */
+
+#if NEXUS_HAS_HDMI_INPUT
+#include "priv/nexus_hdmi_input_priv.h"
+#endif
+
+#endif
+
+BDBG_MODULE(nexus_hdmi_output_hdcp);
+
+
+#if NEXUS_HAS_SECURITY
+#include "priv/nexus_security_priv.h"
+
+static void NEXUS_HdmiOutput_P_RiCallback(void *pContext);
+static void NEXUS_HdmiOutput_P_PjCallback(void *pContext);
+static void NEXUS_HdmiOutput_P_HdcpTimerCallback(void *pContext);
+static void NEXUS_HdmiOutput_P_UpdateHdcpState(NEXUS_HdmiOutputHandle handle);
+static NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp1x(NEXUS_HdmiOutputHandle output);
+
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+/* Hdcp 2.2 related Private APIs */
+static void NEXUS_HdmiOutput_P_Hdcp2xEncryptionEnableCallback(void *pContext);
+static void NEXUS_HdmiOutput_P_Hdcp2xReAuthRequestCallback(void *pContext);
+static void NEXUS_HdmiOutput_P_Hdcp2xAuthenticationStatusUpdate(void *pContext);
+static void NEXUS_HdmiOutput_P_SageWatchdogEventhandler(void *pContext);
+static void NEXUS_HdmiOutput_P_SageIndicationEventHandler(void *pContext);
+static void NEXUS_HdmiOutput_P_SageIndicationCallback_isr(
+    BSAGElib_RpcRemoteHandle sageRpcHandle,
+    void *async_argument,
+    uint32_t indication_id,
+    uint32_t value
+);
+static void NEXUS_HdmiOutput_P_SageResponseCallback_isr(
+    BSAGElib_RpcRemoteHandle sageRpcHandle,
+    void *async_argument
+);
+
+#endif
+
+
+#define LOCK_SECURITY() NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.security)
+#define UNLOCK_SECURITY() NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.security)
+
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+static NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp2x(NEXUS_HdmiOutputHandle output)
+{
+    BHDCPlib_Dependencies hdcpDependencies;
+    NEXUS_Error errCode = NEXUS_SUCCESS;
+    BKNI_EventHandle hdmEvent;
+    BKNI_EventHandle hdcplibEvent;
+    NEXUS_SageStatus sageStatus;
+
+    BSAGElib_Handle sagelibHandle;
+    BSAGElib_ClientSettings sagelibClientSettings;
+    BERR_Code rc = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
+
+    /* get status so we block until Sage is running */
+    rc = NEXUS_Sage_GetStatus(&sageStatus);
+    if (rc) return BERR_TRACE(rc);
+
+    /* retrieve Sagelib Handle */
+    NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.sage);
+    NEXUS_Sage_GetSageLib_priv(&sagelibHandle);
+    NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.sage);
+
+    /*****
+         Create event to handle watchdog from SAGE
+        *****/
+    rc = BKNI_CreateEvent(&g_NEXUS_hdmiOutputSageData.eventWatchdogRecv);
+    if (rc != BERR_SUCCESS) {
+        BDBG_ERR(( "Error creating sage eventWatchdogRecv" ));
+        rc = BERR_TRACE(rc);
+        goto err_hdcp;
+    }
+
+    /* register event */
+    g_NEXUS_hdmiOutputSageData.eventWatchdogRecvCallback =
+        NEXUS_RegisterEvent(g_NEXUS_hdmiOutputSageData.eventWatchdogRecv,
+            NEXUS_HdmiOutput_P_SageWatchdogEventhandler, output);
+    if (g_NEXUS_hdmiOutputSageData.eventWatchdogRecvCallback == NULL)
+    {
+        BDBG_ERR(( "NEXUS_RegisterEvent(eventWatchdogRecv) failed!" ));
+        errCode = BERR_TRACE(NEXUS_OS_ERROR);
+        goto err_hdcp;
+    }
+
+    NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.sage);
+    NEXUS_Sage_AddWatchdogEvent_priv(g_NEXUS_hdmiOutputSageData.eventWatchdogRecv);
+    NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.sage);
+
+    /* Initialize all SAGE related handles/Data if not yet initialized */
+    if (g_NEXUS_hdmiOutputSageData.sagelibClientHandle == NULL)
+    {
+    /****
+        * create event to call BSAGElib_Client_DispatchResponseCallbacks
+                when responseRecv_isr callback fire */
+        rc = BKNI_CreateEvent(&g_NEXUS_hdmiOutputSageData.eventResponseRecv);
+        if (rc != BERR_SUCCESS) {
+            BDBG_ERR(( "Error creating sage eventResponseRecv" ));
+            rc = BERR_TRACE(rc);
+            goto err_hdcp;
+        }
+
+
+        /******
+        * create event for IndicationRecv_isr callback */
+        rc = BKNI_CreateEvent(&g_NEXUS_hdmiOutputSageData.eventIndicationRecv);
+        if (rc != BERR_SUCCESS) {
+            BDBG_ERR(( "Error creating sage eventIndicationRecv" ));
+            rc = BERR_TRACE(rc);
+            goto err_hdcp;
+        }
+
+        /* register event */
+        g_NEXUS_hdmiOutputSageData.eventIndicationRecvCallback=
+            NEXUS_RegisterEvent(g_NEXUS_hdmiOutputSageData.eventIndicationRecv,
+                NEXUS_HdmiOutput_P_SageIndicationEventHandler, &g_NEXUS_hdmiOutputSageData);
+
+        if (g_NEXUS_hdmiOutputSageData.eventIndicationRecvCallback == NULL)
+        {
+            BDBG_ERR(( "NEXUS_RegisterEvent(eventIndicationRecv) failed!" ));
+            errCode = BERR_TRACE(NEXUS_OS_ERROR);
+            goto err_hdcp;
+        }
+
+        /* Open sagelib client */
+        BSAGElib_GetDefaultClientSettings(sagelibHandle, &sagelibClientSettings);
+        sagelibClientSettings.i_rpc.indicationRecv_isr = NEXUS_HdmiOutput_P_SageIndicationCallback_isr;
+        sagelibClientSettings.i_rpc.responseRecv_isr = NEXUS_HdmiOutput_P_SageResponseCallback_isr;
+        rc = BSAGElib_OpenClient(sagelibHandle, &g_NEXUS_hdmiOutputSageData.sagelibClientHandle,
+                                    &sagelibClientSettings);
+        if (rc != BERR_SUCCESS)
+        {
+            BERR_TRACE(rc);
+            goto err_hdcp;
+        }
+    }
+
+
+    /* Open HDCPlib */
+    BHDCPlib_GetDefaultDependencies(&hdcpDependencies);
+    hdcpDependencies.hHdm = output->hdmHandle;
+    hdcpDependencies.eVersion = BHDM_HDCP_Version_e2_2;
+    hdcpDependencies.hTmr = g_pCoreHandles->tmr;
+    hdcpDependencies.hSagelibClientHandle = g_NEXUS_hdmiOutputSageData.sagelibClientHandle;
+    hdcpDependencies.sageResponseReceivedEvent = g_NEXUS_hdmiOutputSageData.eventResponseRecv;
+
+    rc = BHDCPlib_Open(&output->hdcpHandle, &hdcpDependencies);
+	BDBG_MSG(("BHDCPlib_Open (for HDCP2.2) <<< TX(%x)", output->hdcpHandle));
+    if (rc != BERR_SUCCESS)
+    {
+        errCode = BERR_TRACE(rc);
+        goto err_hdcp;
+    }
+
+    /* get HDCP2x_AuthenticationStatus Event Handle */
+    rc = BHDCPlib_Hdcp2x_GetEventHandle(output->hdcpHandle, BHDCPLIB_Hdcp2x_EventIndication, &hdcplibEvent);
+    if (rc != BERR_SUCCESS) {
+        errCode = BERR_TRACE(rc);
+        goto err_hdcp;
+    }
+    output->hdcp2xAuthenticationStatusCallback = NEXUS_RegisterEvent(hdcplibEvent,
+                                NEXUS_HdmiOutput_P_Hdcp2xAuthenticationStatusUpdate, output);
+    if (output->hdcp2xAuthenticationStatusCallback == NULL) {
+        errCode = BERR_OS_ERROR;
+        BERR_TRACE(errCode);
+        goto err_hdcp;
+    }
+
+    /* get HDCP2x_EncryptionEnable Event Handle */
+    errCode = BHDM_GetEventHandle(output->hdmHandle, BHDM_EventHDCP22EncryptionEnable, &hdmEvent);
+    if (errCode != BERR_SUCCESS) {
+        BERR_TRACE(errCode);
+        goto err_hdcp;
+    }
+    output->hdcp2xEncryptionEnableCallback = NEXUS_RegisterEvent(hdmEvent,
+                                NEXUS_HdmiOutput_P_Hdcp2xEncryptionEnableCallback, output);
+    if (output->hdcp2xEncryptionEnableCallback == NULL) {
+        errCode = BERR_OS_ERROR;
+        BERR_TRACE(errCode);
+        goto err_hdcp;
+    }
+
+    /* get HDCP2x_ReAuthRequest Event Handle */
+    errCode = BHDM_GetEventHandle(output->hdmHandle, BHDM_EventHDCP22ReAuthRequest, &hdmEvent);
+    if (errCode != BERR_SUCCESS) {
+        BERR_TRACE(errCode);
+        goto err_hdcp;
+    }
+    output->hdcp2xReAuthRequestCallback = NEXUS_RegisterEvent(hdmEvent,
+                                NEXUS_HdmiOutput_P_Hdcp2xReAuthRequestCallback, output);
+    if (output->hdcp2xReAuthRequestCallback == NULL) {
+        errCode = BERR_OS_ERROR;
+        BERR_TRACE(errCode);
+        goto err_hdcp;
+    }
+
+    return BERR_SUCCESS;
+
+
+err_hdcp:
+    if (g_NEXUS_hdmiOutputSageData.eventWatchdogRecvCallback) {
+        NEXUS_UnregisterEvent(g_NEXUS_hdmiOutputSageData.eventWatchdogRecvCallback);
+        g_NEXUS_hdmiOutputSageData.eventWatchdogRecvCallback = NULL;
+    }
+
+    if (g_NEXUS_hdmiOutputSageData.eventWatchdogRecv) {
+        NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.sage);
+        NEXUS_Sage_RemoveWatchdogEvent_priv(g_NEXUS_hdmiOutputSageData.eventWatchdogRecv);
+        NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.sage);
+        BKNI_DestroyEvent(g_NEXUS_hdmiOutputSageData.eventWatchdogRecv);
+        g_NEXUS_hdmiOutputSageData.eventWatchdogRecv = NULL;
+    }
+
+    if (g_NEXUS_hdmiOutputSageData.eventResponseRecv) {
+        BKNI_DestroyEvent(g_NEXUS_hdmiOutputSageData.eventResponseRecv);
+        g_NEXUS_hdmiOutputSageData.eventResponseRecv = NULL;
+    }
+
+    if (g_NEXUS_hdmiOutputSageData.eventIndicationRecvCallback) {
+        NEXUS_UnregisterEvent(g_NEXUS_hdmiOutputSageData.eventIndicationRecvCallback);
+        g_NEXUS_hdmiOutputSageData.eventIndicationRecvCallback = NULL;
+    }
+
+    if (g_NEXUS_hdmiOutputSageData.eventIndicationRecv) {
+        BKNI_DestroyEvent(g_NEXUS_hdmiOutputSageData.eventIndicationRecv);
+        g_NEXUS_hdmiOutputSageData.eventIndicationRecv = NULL;
+    }
+
+    if (g_NEXUS_hdmiOutputSageData.sagelibClientHandle) {
+        BSAGElib_CloseClient(g_NEXUS_hdmiOutputSageData.sagelibClientHandle);
+        g_NEXUS_hdmiOutputSageData.sagelibClientHandle = NULL;
+    }
+
+    if (output->hdcp2xAuthenticationStatusCallback != NULL) {
+        NEXUS_UnregisterEvent(output->hdcp2xAuthenticationStatusCallback);
+        output->hdcp2xAuthenticationStatusCallback = NULL;
+    }
+
+    if (output->hdcp2xEncryptionEnableCallback != NULL) {
+        NEXUS_UnregisterEvent(output->hdcp2xEncryptionEnableCallback);
+        output->hdcp2xEncryptionEnableCallback = NULL;
+    }
+
+    if (output->hdcp2xReAuthRequestCallback != NULL) {
+        NEXUS_UnregisterEvent(output->hdcp2xReAuthRequestCallback);
+        output->hdcp2xReAuthRequestCallback = NULL;
+    }
+
+    return BERR_NOT_SUPPORTED;
+
+
+}
+#endif	/* NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT) */
+
+
+static NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp1x(NEXUS_HdmiOutputHandle output)
+{
+    BHDCPlib_Dependencies hdcpDependencies;
+    BHDCPlib_Configuration *pHdcpConfig = NULL;
+    BKNI_EventHandle hdmEvent;
+    NEXUS_Error errCode;
+    int i;
+
+    BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
+
+    pHdcpConfig = BKNI_Malloc(sizeof(BHDCPlib_Configuration));
+    if ( NULL == pHdcpConfig )
+    {
+        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+    }
+
+    /* Open HDCPlib */
+    LOCK_SECURITY();
+    BHDCPlib_GetDefaultConfiguration(pHdcpConfig);
+    BHDCPlib_GetDefaultDependencies(&hdcpDependencies);
+    hdcpDependencies.hHdm = output->hdmHandle;
+    NEXUS_Security_GetHsm_priv(&hdcpDependencies.hHsm);
+    hdcpDependencies.hTmr = g_pCoreHandles->tmr;
+
+    errCode = BHDCPlib_Open(&output->hdcpHandle, &hdcpDependencies);
+    UNLOCK_SECURITY();
+    if ( errCode )
+    {
+        errCode = BERR_TRACE(errCode);
+        goto err_hdcp;
+    }
+
+    /* Set default HDCP settings (rest are initialized to zero) */
+    output->hdcpSettings.anValue = NEXUS_HdmiOutputHdcpAnValue_eRandom;
+    output->hdcpSettings.transmitEncrypted = true;
+    output->hdcpSettings.waitForValidVideo = pHdcpConfig->msWaitForValidVideo;
+    output->hdcpSettings.waitForRxR0Margin = pHdcpConfig->msWaitForRxR0Margin;
+    output->hdcpSettings.waitForKsvFifoMargin = pHdcpConfig->msWaitForKsvFifoMargin;
+    output->hdcpSettings.maxDeviceCountSupported = pHdcpConfig->uiMaxDeviceCount;
+    output->hdcpSettings.maxDepthSupported = pHdcpConfig->uiMaxDepth;
+
+
+    /* Retrieve HDCP keys and set HDCP configuration */
+    errCode = BHDCPlib_GetKeySet(pHdcpConfig->TxKeySet.TxAksv, pHdcpConfig->TxKeySet.TxKeyStructure);
+    if (errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("Error retrieving HDCP key set"));
+		errCode = BERR_TRACE(errCode);
+        goto err_hdcp;
+    }
+
+    BKNI_Memcpy(output->hdcpSettings.aksv.data, pHdcpConfig->TxKeySet.TxAksv, BAVC_HDMI_HDCP_KSV_LENGTH);
+    for ( i = 0; i < BAVC_HDMI_HDCP_N_PRIVATE_KEYS; i++ )
+    {
+        BKNI_Memcpy(&output->hdcpSettings.encryptedKeySet[i], &pHdcpConfig->TxKeySet.TxKeyStructure[i], sizeof(NEXUS_HdmiOutputHdcpKey));
+    }
+
+    /* get HDCP Ri Event Handle */
+    errCode = BHDM_GetEventHandle(output->hdmHandle, BHDM_EventHDCPRiValue, &hdmEvent);
+    if ( errCode ) {
+        errCode = BERR_TRACE(errCode);
+        goto err_ri;
+    }
+    output->riCallback = NEXUS_RegisterEvent(hdmEvent, NEXUS_HdmiOutput_P_RiCallback, output);
+    if ( NULL == output->riCallback ) {
+        errCode = BERR_OS_ERROR;
+        BERR_TRACE(errCode);
+        goto err_ri;
+    }
+
+    /* get HDCP Pj Event Handle */
+    errCode = BHDM_GetEventHandle(output->hdmHandle, BHDM_EventHDCPPjValue, &hdmEvent);
+    if ( errCode ) {
+        errCode = BERR_TRACE(errCode);
+        goto err_pj;
+    }
+    output->pjCallback = NEXUS_RegisterEvent(hdmEvent, NEXUS_HdmiOutput_P_PjCallback, output);
+    if ( NULL == output->pjCallback ) {
+        errCode = BERR_OS_ERROR;
+        BERR_TRACE(errCode);
+        goto err_pj;
+    }
+
+    BKNI_Free(pHdcpConfig);
+    return BERR_SUCCESS;
+
+err_pj:
+    NEXUS_UnregisterEvent(output->riCallback);
+err_ri:
+    LOCK_SECURITY();
+    BHDCPlib_Close(output->hdcpHandle);
+    UNLOCK_SECURITY();
+
+err_hdcp:
+    if (pHdcpConfig) {
+        BKNI_Free(pHdcpConfig);
+    }
+
+    return BERR_NOT_SUPPORTED;
+
+}
+
+
+NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp(NEXUS_HdmiOutputHandle output)
+{
+
+    BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+    if (output->eHdcpVersion == BHDM_HDCP_Version_e2_2) {
+        return NEXUS_HdmiOutput_P_InitHdcp2x(output);
+    }
+    else
+#endif
+    {
+        return NEXUS_HdmiOutput_P_InitHdcp1x(output);
+    }
+}
+
+NEXUS_Error NEXUS_HdmiOutput_P_UninitHdcp(NEXUS_HdmiOutputHandle output)
+{
+    BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
+
+    if (output->eHdcpVersion == BHDM_HDCP_Version_e2_2) {
+        (void)NEXUS_HdmiOutput_DisableHdcpEncryption(output);
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+        if (g_NEXUS_hdmiOutputSageData.eventWatchdogRecvCallback) {
+            NEXUS_UnregisterEvent(g_NEXUS_hdmiOutputSageData.eventWatchdogRecvCallback);
+            g_NEXUS_hdmiOutputSageData.eventWatchdogRecvCallback = NULL;
+        }
+
+        if (g_NEXUS_hdmiOutputSageData.eventWatchdogRecv) {
+            NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.sage);
+            NEXUS_Sage_RemoveWatchdogEvent_priv(g_NEXUS_hdmiOutputSageData.eventWatchdogRecv);
+            NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.sage);
+            BKNI_DestroyEvent(g_NEXUS_hdmiOutputSageData.eventWatchdogRecv);
+            g_NEXUS_hdmiOutputSageData.eventWatchdogRecv = NULL;
+        }
+
+        if (output->hdcp2xAuthenticationStatusCallback != NULL) {
+            NEXUS_UnregisterEvent(output->hdcp2xAuthenticationStatusCallback);
+            output->hdcp2xAuthenticationStatusCallback = NULL;
+        }
+
+        if (output->hdcp2xEncryptionEnableCallback != NULL) {
+            NEXUS_UnregisterEvent(output->hdcp2xEncryptionEnableCallback);
+            output->hdcp2xEncryptionEnableCallback = NULL;
+        }
+
+        if (output->hdcp2xReAuthRequestCallback != NULL) {
+            NEXUS_UnregisterEvent(output->hdcp2xReAuthRequestCallback);
+            output->hdcp2xReAuthRequestCallback = NULL;
+        }
+#endif
+    }
+    else {
+       (void)NEXUS_HdmiOutput_DisableHdcpAuthentication(output);
+    }
+
+    if (output->pjCallback != NULL) {
+        NEXUS_UnregisterEvent(output->pjCallback);
+        output->pjCallback = NULL;
+    }
+
+    if (output->riCallback != NULL) {
+        NEXUS_UnregisterEvent(output->riCallback);
+        output->riCallback = NULL;
+    }
+
+    LOCK_SECURITY();
+    BHDCPlib_Close(output->hdcpHandle);
+    UNLOCK_SECURITY();
+
+	/* Close sagelibClientHandle */
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+
+    if (g_NEXUS_hdmiOutputSageData.eventResponseRecv) {
+        BKNI_DestroyEvent(g_NEXUS_hdmiOutputSageData.eventResponseRecv);
+        g_NEXUS_hdmiOutputSageData.eventResponseRecv = NULL;
+    }
+
+    if (g_NEXUS_hdmiOutputSageData.eventIndicationRecvCallback) {
+        NEXUS_UnregisterEvent(g_NEXUS_hdmiOutputSageData.eventIndicationRecvCallback);
+        g_NEXUS_hdmiOutputSageData.eventIndicationRecvCallback = NULL;
+    }
+
+    if (g_NEXUS_hdmiOutputSageData.eventIndicationRecv) {
+        BKNI_DestroyEvent(g_NEXUS_hdmiOutputSageData.eventIndicationRecv);
+        g_NEXUS_hdmiOutputSageData.eventIndicationRecv = NULL;
+    }
+
+    if (g_NEXUS_hdmiOutputSageData.sagelibClientHandle) {
+        BSAGElib_CloseClient(g_NEXUS_hdmiOutputSageData.sagelibClientHandle);
+        g_NEXUS_hdmiOutputSageData.sagelibClientHandle = NULL;
+    }
+
+    BKNI_Memset(&g_NEXUS_hdmiOutputSageData, 0, sizeof(g_NEXUS_hdmiOutputSageData));
+#endif
+
+    if (output->pRevokedKsvs) {
+        BKNI_Free(output->pRevokedKsvs);
+        output->pRevokedKsvs = NULL;
+    }
+
+    return BERR_SUCCESS;
+}
+
+void NEXUS_HdmiOutput_P_HdcpNotifyHotplug(NEXUS_HdmiOutputHandle output)
+{
+    BHDCPlib_Event event = {BHDM_EventHotPlug};
+
+    BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
+
+    /* Any hotplug event should stop the state machine */
+    if ( output->hdcpTimer )
+    {
+        NEXUS_CancelTimer(output->hdcpTimer);
+        output->hdcpTimer = NULL;
+    }
+
+    LOCK_SECURITY();
+    BHDCPlib_ProcessEvent(output->hdcpHandle, &event);
+    UNLOCK_SECURITY();
+
+    if (output->eHdcpVersion == BHDM_HDCP_Version_e2_2) {
+        output->hdcpState = BHDCPlib_State_eUnauthenticated;
+    }
+    else {
+       NEXUS_HdmiOutput_P_UpdateHdcpState(output);
+    }
+}
+
+static void NEXUS_HdmiOutput_P_RiCallback(void *pContext)
+{
+    NEXUS_HdmiOutputHandle output = (NEXUS_HdmiOutputHandle)pContext;
+    BHDCPlib_Event event = {BHDM_EventHDCPRiValue};
+
+    BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
+
+    LOCK_SECURITY();
+    BHDCPlib_ProcessEvent(output->hdcpHandle, &event);
+    UNLOCK_SECURITY();
+
+    NEXUS_HdmiOutput_P_UpdateHdcpState(output);
+}
+
+static void NEXUS_HdmiOutput_P_PjCallback(void *pContext)
+{
+    NEXUS_HdmiOutputHandle output = (NEXUS_HdmiOutputHandle)pContext;
+    BHDCPlib_Event event = {BHDM_EventHDCPPjValue};
+
+    BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
+
+    LOCK_SECURITY();
+    BHDCPlib_ProcessEvent(output->hdcpHandle, &event);
+    UNLOCK_SECURITY();
+
+    NEXUS_HdmiOutput_P_UpdateHdcpState(output);
+}
+
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+static void NEXUS_HdmiOutput_P_Hdcp2xEncryptionEnableCallback(void *pContext)
+{
+    NEXUS_HdmiOutputHandle output = pContext;
+    BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
+
+    BDBG_MSG(("Ready to enable HDCP2.x encryption", __FUNCTION__));
+
+    /* Enable encryption */
+    NEXUS_HdmiOutput_EnableHdcpEncryption(output);
+
+    /* fire success call back */
+    NEXUS_TaskCallback_Fire(output->hdcpSuccessCallback);
+
+    return;
+}
+
+static void NEXUS_HdmiOutput_P_Hdcp2xReAuthRequestCallback(void *pContext)
+{
+    NEXUS_HdmiOutputHandle output = pContext;
+    BERR_Code rc = BERR_SUCCESS;
+    BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
+
+    BDBG_MSG(("Received ReAuth Request from downstream HDCP2.x receiver", __FUNCTION__));
+    output->hdcpState = BHDCPlib_State_eUnauthenticated;
+
+    /* Restart HDCP 2.x authentication */
+    rc = NEXUS_HdmiOutput_StartHdcpAuthentication(output);
+    if (rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("Error restarting HDCP 2.x authentication process"));
+        BERR_TRACE(rc);
+    }
+
+    return;
+}
+
+
+static void NEXUS_HdmiOutput_P_Hdcp2xAuthenticationStatusUpdate(void *pContext)
+{
+    NEXUS_HdmiOutputHandle output = pContext;
+    BERR_Code rc = BERR_SUCCESS;
+    BHDCPlib_Hdcp2x_AuthenticationStatus stAuthenticationStatus;
+    BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
+
+    rc = BHDCPlib_Hdcp2x_GetAuthenticationStatus(output->hdcpHandle, &stAuthenticationStatus);
+    if (rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("Error retrieving HDCP2.x authentication status"));
+        rc = BERR_TRACE(rc);
+    }
+
+    BDBG_MSG(("Hdcp2x Authentication status: %s",
+        stAuthenticationStatus.linkAuthenticated?"AUTHENTICATED":"NOT AUTHENTICATED"));
+
+    if (stAuthenticationStatus.linkAuthenticated) {
+        output->hdcpState = BHDCPlib_State_eLinkAuthenticated;
+        output->hdcpError = BHDCPlib_HdcpError_eSuccess;
+    }
+    else {
+        output->hdcpState = BHDCPlib_State_eUnauthenticated;
+        output->hdcpError = BHDCPlib_HdcpError_eReceiverAuthenticationError;
+
+        /* Disable encryption */
+        NEXUS_HdmiOutput_DisableHdcpEncryption(output);
+
+        /* fire failure callback */
+        NEXUS_TaskCallback_Fire(output->hdcpFailureCallback);
+    }
+}
+
+
+/* This event handler is called whenever watchdogEvent registered event is set.
+ * The watchdogEvent is set inside NEXUS_HdmiOutput_P_SageWatchdogIntHandler_isr() */
+static void NEXUS_HdmiOutput_P_SageWatchdogEventhandler(void *pContext)
+{
+    NEXUS_HdmiOutputHandle output = pContext;
+    NEXUS_Error errCode = NEXUS_SUCCESS;
+    BERR_Code rc = BERR_SUCCESS;
+
+    BDBG_ERR(("%s: SAGE Reset - Reopen/initialize HDCPlib and sage rpc handles", __FUNCTION__));
+
+    /* Disable encryption and reset system state */
+    (void)NEXUS_HdmiOutput_DisableHdcpEncryption(output);
+
+    /* Reinitialized SAGE RPC handles (now invalid) */
+    rc = BHDCPlib_Hdcp2x_ProcessWatchDog(output->hdcpHandle);
+    if (rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("%s: Error process watchdog in HDCPlib", __FUNCTION__));
+        rc = BERR_TRACE(rc);
+        goto done;
+
+    }
+
+    /* Wait for system to be ready before kick start hdcp authentication again. */
+    if (output->hdcpStarted) {
+        errCode = NEXUS_HdmiOutput_StartHdcpAuthentication(output);
+        if (errCode != NEXUS_SUCCESS)
+        {
+            BDBG_ERR(("%s: Error restarting HDCP authentication after SAGE watchdog", __FUNCTION__));
+            errCode = BERR_TRACE(errCode);
+            goto done;
+        }
+    }
+
+done:
+
+    return;
+}
+
+
+static void NEXUS_HdmiOutput_P_SageIndicationEventHandler(void *pContext)
+{
+    NEXUS_HdmiOutput_SageData *sageData = (NEXUS_HdmiOutput_SageData *) pContext;
+    BHDCPlib_SageIndicationData stSageIndicationData;
+    BERR_Code rc = BERR_SUCCESS;
+
+    stSageIndicationData.rpcRemoteHandle = sageData->indicationData.sageRpcHandle;
+    stSageIndicationData.indication_id = sageData->indicationData.indication_id;
+    stSageIndicationData.value = sageData->indicationData.value;
+
+    /* Now pass the callback information to HDCPlib */
+    rc = BHDCPlib_Hdcp2x_ReceiveSageIndication(
+                    sageData->indicationData.hHDCPlib, &stSageIndicationData);
+    return;
+}
+
+
+static void NEXUS_HdmiOutput_P_SageIndicationCallback_isr(
+    BSAGElib_RpcRemoteHandle sageRpcHandle,
+    void *async_argument,
+    uint32_t indication_id,
+    uint32_t value
+)
+{
+    /* Save information for later use */
+    g_NEXUS_hdmiOutputSageData.indicationData.sageRpcHandle = sageRpcHandle;
+    g_NEXUS_hdmiOutputSageData.indicationData.hHDCPlib =
+                                    (BHDCPlib_Handle) async_argument;
+    g_NEXUS_hdmiOutputSageData.indicationData.indication_id = indication_id;
+    g_NEXUS_hdmiOutputSageData.indicationData.value = value;
+
+    BKNI_SetEvent_isr(g_NEXUS_hdmiOutputSageData.eventIndicationRecv);
+    return;
+}
+
+static void NEXUS_HdmiOutput_P_SageResponseCallback_isr(
+    BSAGElib_RpcRemoteHandle sageRpcHandle,
+    void *async_argument
+)
+{
+
+    BSTD_UNUSED(async_argument);
+    BSTD_UNUSED(sageRpcHandle);
+
+    BKNI_SetEvent_isr(g_NEXUS_hdmiOutputSageData.eventResponseRecv);
+    return;
+}
+
+NEXUS_Error NEXUS_HdmiOutput_SetHdcp2xBinKeys(
+    NEXUS_HdmiOutputHandle handle,
+    const uint8_t *pBinFileBuffer,  /* attr{nelem=length} pointer to encrypted key buffer */
+    uint32_t length                 /* size of data in pBinFileBuffer in bytes */
+)
+{
+    NEXUS_Error errCode = NEXUS_SUCCESS;
+    NEXUS_HdmiOutputStatus hdmiOutputStatus;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle))
+    {
+        errCode = NEXUS_NOT_SUPPORTED ;
+        goto done ;
+    }
+
+    if (length == 0)
+    {
+        BDBG_ERR(("Invalid size provided")) ;
+        errCode = NEXUS_INVALID_PARAMETER ;
+        goto done ;
+    }
+
+    NEXUS_HdmiOutput_GetStatus(handle, &hdmiOutputStatus);
+    if (!hdmiOutputStatus.connected || !hdmiOutputStatus.rxPowered)
+    {
+        BDBG_ERR(("No Rx Device attached or attached Rx is powered off..."));
+        errCode = NEXUS_NOT_AVAILABLE;
+        goto done;
+    }
+
+    if (handle->eHdcpVersion != BHDM_HDCP_Version_e2_2)
+    {
+        BDBG_WRN(("Ignore request. Connected Rx does not support HDCP 2.2"));
+        goto done;
+    }
+
+    errCode = BHDCPlib_Hdcp2x_SetBinKeys(handle->hdcpHandle, pBinFileBuffer, length);
+
+done :
+
+    if ( errCode ) {
+        errCode = BERR_TRACE(errCode);
+    }
+
+    return errCode;
+}
+
+
+NEXUS_Error NEXUS_HdmiOutput_SetRepeaterInput(
+    NEXUS_HdmiOutputHandle handle,
+    NEXUS_HdmiInputHandle input
+)
+{
+    NEXUS_Error errCode = NEXUS_SUCCESS;
+    NEXUS_Hdcp2xReceiverIdListData stReceiverIdListData;
+    BHDCPlib_ReceiverIdListData hdcp2xReceiverIdListData;
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+
+#if NEXUS_HAS_HDMI_INPUT
+    if (input)
+    {
+        if (handle->hdmiInput || !g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput) {
+            errCode = NEXUS_NOT_SUPPORTED;
+            BERR_TRACE(errCode);
+            goto done;
+        }
+        NEXUS_OBJECT_ACQUIRE(handle, NEXUS_HdmiInput, input);
+    }
+    else
+    {
+        if (!handle->hdmiInput) {
+            errCode = NEXUS_SUCCESS;
+            goto done;
+        }
+        NEXUS_OBJECT_RELEASE(handle, NEXUS_HdmiInput, handle->hdmiInput);
+    }
+
+    handle->hdmiInput = input;
+
+    /* ready to do the work */
+    if (handle->hdmiInput)
+    {
+        /* First, get downstream info from hdcplib */
+        errCode = BHDCPlib_Hdcp2x_Tx_GetReceiverIdList(handle->hdcpHandle, &hdcp2xReceiverIdListData);
+        if (errCode != BERR_SUCCESS)
+        {
+            errCode = BERR_TRACE(errCode);
+            goto done;
+        }
+
+        /* save all data */
+        stReceiverIdListData.deviceCount = (unsigned) hdcp2xReceiverIdListData.deviceCount;
+        stReceiverIdListData.depth = (unsigned) hdcp2xReceiverIdListData.depth;
+        stReceiverIdListData.maxDevsExceeded = (bool) hdcp2xReceiverIdListData.maxDevsExceeded;
+        stReceiverIdListData.maxCascadeExceeded = (bool) hdcp2xReceiverIdListData.maxCascadeExceeded;
+        stReceiverIdListData.hdcp2xLegacyDeviceDownstream = (bool) hdcp2xReceiverIdListData.hdcp2LegacyDeviceDownstream;
+        stReceiverIdListData.hdcp1DeviceDownstream = (bool) hdcp2xReceiverIdListData.hdcp1DeviceDownstream;
+        BKNI_Memcpy(stReceiverIdListData.rxIdList, &hdcp2xReceiverIdListData.rxIdList,
+                    hdcp2xReceiverIdListData.deviceCount*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+
+
+        /* Now upload it to the upstream transmitter */
+        NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
+        errCode = NEXUS_HdmiInput_LoadHdcp2xReceiverIdList_priv(input, &stReceiverIdListData);
+        NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
+        if (errCode != NEXUS_SUCCESS)
+        {
+            errCode = BERR_TRACE(errCode);
+            goto done;
+        }
+    }
+
+#else
+    BSTD_UNUSED(input);
+    BSTD_UNUSED(hdcp2xReceiverIdListData);
+    BSTD_UNUSED(stReceiverIdListData);
+    errCode = NEXUS_NOT_SUPPORTED;
+    BERR_TRACE(errCode);
+    goto done;
+#endif
+
+done:
+    return errCode;
+}
+
+
+NEXUS_Error NEXUS_HdmiOutput_GetHdcp2xReceiverIdListData(
+	NEXUS_HdmiOutputHandle handle,
+	NEXUS_Hdcp2xReceiverIdListData *pReceiverIdListData
+)
+{
+    BERR_Code errCode = NEXUS_SUCCESS ;
+	BHDCPlib_ReceiverIdListData hdcp2xReceiverIdListData;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    RESOLVE_ALIAS(handle);
+
+	errCode = BHDCPlib_Hdcp2x_Tx_GetReceiverIdList(handle->hdcpHandle, &hdcp2xReceiverIdListData);
+	if (errCode != BERR_SUCCESS)
+	{
+		errCode = BERR_TRACE(errCode);
+		goto done;
+	}
+
+	pReceiverIdListData->deviceCount = (unsigned) hdcp2xReceiverIdListData.deviceCount;
+	pReceiverIdListData->depth = (unsigned) hdcp2xReceiverIdListData.depth;
+	pReceiverIdListData->maxDevsExceeded = (bool) hdcp2xReceiverIdListData.maxDevsExceeded;
+	pReceiverIdListData->maxCascadeExceeded = (bool) hdcp2xReceiverIdListData.maxCascadeExceeded;
+	pReceiverIdListData->hdcp2xLegacyDeviceDownstream = (bool) hdcp2xReceiverIdListData.hdcp2LegacyDeviceDownstream;
+	pReceiverIdListData->hdcp1DeviceDownstream = (bool) hdcp2xReceiverIdListData.hdcp1DeviceDownstream;
+
+	BKNI_Memcpy(pReceiverIdListData->rxIdList, &hdcp2xReceiverIdListData.rxIdList,
+				hdcp2xReceiverIdListData.deviceCount*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+
+done:
+	return errCode;
+}
+#endif  /* NEXUS_HAS_SAGE */
+
+/**
+Summary:
+Get HDCP Settings
+**/
+void NEXUS_HdmiOutput_GetHdcpSettings(
+    NEXUS_HdmiOutputHandle handle,
+    NEXUS_HdmiOutputHdcpSettings *pSettings /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    BDBG_ASSERT(NULL != pSettings);
+
+    *pSettings = handle->hdcpSettings;
+}
+
+/**
+Summary:
+Set HDCP Settings
+**/
+NEXUS_Error NEXUS_HdmiOutput_SetHdcpSettings(
+    NEXUS_HdmiOutputHandle handle,
+    const NEXUS_HdmiOutputHdcpSettings *pSettings
+    )
+{
+    BHDCPlib_Configuration *pHdcpConfig;
+    BHDM_HDCP_OPTIONS hdcpOptions;
+    NEXUS_Error errCode;
+    int i;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    BDBG_ASSERT(NULL != pSettings);
+
+    /* Install callback */
+    NEXUS_TaskCallback_Set(handle->hdcpStateChangedCallback, &pSettings->stateChangedCallback);
+    NEXUS_TaskCallback_Set(handle->hdcpSuccessCallback, &pSettings->successCallback);
+    NEXUS_TaskCallback_Set(handle->hdcpFailureCallback, &pSettings->failureCallback);
+
+    pHdcpConfig = BKNI_Malloc(sizeof(*pHdcpConfig));
+    if ( NULL == pHdcpConfig )
+    {
+        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+    }
+
+    BDBG_CASSERT(BAVC_HDMI_HDCP_KSV_LENGTH == NEXUS_HDMI_OUTPUT_HDCP_KSV_LENGTH);
+    BDBG_CASSERT(BAVC_HDMI_HDCP_N_PRIVATE_KEYS == NEXUS_HDMI_OUTPUT_HDCP_NUM_KEYS);
+    BDBG_CASSERT(sizeof(BHDCPlib_EncryptedHdcpKeyStruct) == sizeof(NEXUS_HdmiOutputHdcpKey));
+
+    /* Update HDCP Configuration */
+
+    LOCK_SECURITY();
+    BHDCPlib_GetConfiguration(handle->hdcpHandle, pHdcpConfig);
+    UNLOCK_SECURITY();
+
+    BKNI_Memcpy(pHdcpConfig->TxKeySet.TxAksv, pSettings->aksv.data, BAVC_HDMI_HDCP_KSV_LENGTH);
+    for ( i = 0; i < BAVC_HDMI_HDCP_N_PRIVATE_KEYS; i++ )
+    {
+        BKNI_Memcpy(&pHdcpConfig->TxKeySet.TxKeyStructure[i], &pSettings->encryptedKeySet[i], sizeof(NEXUS_HdmiOutputHdcpKey));
+    }
+
+    pHdcpConfig->msWaitForValidVideo = pSettings->waitForValidVideo;
+    pHdcpConfig->msWaitForRxR0Margin = pSettings->waitForRxR0Margin;
+    pHdcpConfig->msWaitForKsvFifoMargin = pSettings->waitForKsvFifoMargin;
+
+    pHdcpConfig->uiMaxDeviceCount = pSettings->maxDeviceCountSupported;
+    pHdcpConfig->uiMaxDepth = pSettings->maxDepthSupported;
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+    pHdcpConfig->eHdcp2xContentStreamControl =
+        (BHDCPlib_Hdcp2xContentStreamType) pSettings->hdcp2xContentStreamControl;
+#endif
+
+
+    LOCK_SECURITY();
+    errCode = BHDCPlib_SetConfiguration(handle->hdcpHandle, pHdcpConfig);
+    UNLOCK_SECURITY();
+
+    BKNI_Free(pHdcpConfig);
+
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+
+    /* Set Pj Checking option */
+    BHDM_HDCP_GetOptions(handle->hdmHandle, &hdcpOptions);
+    hdcpOptions.PjChecking = pSettings->pjCheckEnabled;
+    errCode = BHDM_HDCP_SetOptions(handle->hdmHandle, &hdcpOptions);
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+
+    /* Store Settings */
+    handle->hdcpSettings = *pSettings;
+
+    /* May need to enable encryption if the setting changed.  Check now */
+    if ( pSettings->transmitEncrypted )
+    {
+        /* Check if encryption needs to be enabled and fire callback */
+        NEXUS_HdmiOutput_P_UpdateHdcpState(handle);
+    }
+
+    return BERR_SUCCESS;
+}
+
+/**
+Summary:
+Establish list of Revoked KSV's
+**/
+NEXUS_Error NEXUS_HdmiOutput_SetHdcpRevokedKsvs(
+    NEXUS_HdmiOutputHandle handle,
+    const NEXUS_HdmiOutputHdcpKsv *pRevokedKsvs,    /* attr{nelem=numKsvs;nelem_convert=NEXUS_P_HDMI_OUTPUT_HDCP_KSV_SIZE} array of revoked ksv's */
+    uint16_t numKsvs                                /* Number of ksvs in the array provided */
+    )
+{
+    NEXUS_Error errCode;
+    BHDCPlib_RevokedKsvList ksvList;
+    uint16_t sizeKsvList ;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle))
+    {
+        errCode = NEXUS_NOT_SUPPORTED ;
+        BERR_TRACE(errCode) ;
+        goto done ;
+    }
+
+    /* Free old list */
+    if ( NULL != handle->pRevokedKsvs )
+    {
+        BKNI_Free(handle->pRevokedKsvs);
+        handle->pRevokedKsvs = NULL;
+        handle->numRevokedKsvs = 0;
+    }
+
+    /* if no KSVs have been passed; set RevokedKsvs to NULL and set count to 0 */
+    if (pRevokedKsvs == NULL)
+    {
+        handle->pRevokedKsvs = NULL ;
+        handle->numRevokedKsvs = 0 ;
+        errCode = NEXUS_SUCCESS ;
+        goto done ;
+    }
+
+
+    /* Allocate/Create new list */
+    if (numKsvs == 0)
+    {
+        /* Any attempt to authenticate should error out
+        since the revoked key list can not be determined
+        and potentially revoked ksvs are not checked */
+        BDBG_ERR(("Number of KSVs is 0; Unknown number of KSVs")) ;
+        errCode = NEXUS_INVALID_PARAMETER ;
+        goto done ;
+    }
+
+    sizeKsvList = numKsvs * sizeof(NEXUS_HdmiOutputHdcpKsv);
+
+    handle->pRevokedKsvs = BKNI_Malloc(sizeKsvList);
+    if ( NULL == handle->pRevokedKsvs )
+    {
+        errCode = BERR_OUT_OF_SYSTEM_MEMORY ;
+        BERR_TRACE(errCode);
+        goto done ;
+    }
+    handle->numRevokedKsvs = numKsvs;
+    BKNI_Memcpy(handle->pRevokedKsvs, pRevokedKsvs, sizeKsvList);
+
+    ksvList.Ksvs = (void *)handle->pRevokedKsvs;
+    ksvList.uiNumRevokedKsvs = handle->numRevokedKsvs;
+
+    LOCK_SECURITY();
+    errCode = BHDCPlib_SetRevokedKSVs(handle->hdcpHandle, &ksvList);
+    UNLOCK_SECURITY();
+
+    if ( errCode )
+    {
+        errCode = BERR_TRACE(errCode);
+        BKNI_Free(handle->pRevokedKsvs);
+        handle->pRevokedKsvs = NULL;
+        handle->numRevokedKsvs = 0;
+    }
+
+done :
+    return errCode;
+}
+
+/**
+Summary:
+Initiate HDCP authentication
+
+Description:
+Calls to NEXUS_HdmiOutput_SetHdcpSettings() and NEXUS_HdmiOutput_SetHdcpRevokedKsvs()
+should be made prior to starting authentication.
+
+See Also:
+NEXUS_HdmiOutput_SetHdcpSettings
+NEXUS_HdmiOutput_SetHdcpRevokedKsvs
+**/
+NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
+    NEXUS_HdmiOutputHandle handle
+    )
+{
+    NEXUS_Error errCode;
+	BERR_Code rc = BERR_SUCCESS;
+    NEXUS_HdmiOutputState state;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+
+    /* Check for device */
+    state = NEXUS_HdmiOutput_P_GetState(handle);
+    if ( state != NEXUS_HdmiOutputState_ePoweredOn)
+    {
+        BDBG_ERR(("Can not start authentication; Output State: %d", state));
+        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+    }
+
+    /* Wait for system to be ready. Timeout after 2seconds */
+    if (handle->eHdcpVersion == BHDM_HDCP_Version_e2_2) {
+        rc = NEXUS_HdmiOutput_DisableHdcpEncryption(handle);
+        if (rc != BERR_SUCCESS) {
+            BDBG_ERR(("Error disabling HDCP 2.x encryption"));
+            return BERR_TRACE(rc);
+        }
+    }
+    else {
+        /* Clean up any pending state */
+        NEXUS_HdmiOutput_DisableHdcpAuthentication(handle);
+    }
+
+    BDBG_MSG(("Starting HDCP"));
+    handle->hdcpStarted = true;
+
+
+    /* Reset Auth State */
+    LOCK_SECURITY();
+    errCode = BHDCPlib_StartAuthentication(handle->hdcpHandle);
+    UNLOCK_SECURITY();
+
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+
+    /* NEXUS have to drive the state machine in HDCP 1.x authentication process */
+    if (handle->eHdcpVersion != BHDM_HDCP_Version_e2_2)
+    {
+        /* State Changed */
+        NEXUS_HdmiOutput_P_UpdateHdcpState(handle);
+
+        /* Kickstart state machine by faking timer callback */
+        NEXUS_HdmiOutput_P_HdcpTimerCallback(handle);
+    }
+
+    return BERR_SUCCESS;
+}
+
+/**
+Summary:
+Terminate HDCP authentication
+**/
+NEXUS_Error NEXUS_HdmiOutput_DisableHdcpAuthentication(
+    NEXUS_HdmiOutputHandle handle
+    )
+{
+    NEXUS_Error errCode;
+    NEXUS_HdmiOutputState state;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+
+    handle->hdcpStarted = false;
+    handle->hdcpError = NEXUS_HdmiOutputHdcpError_eSuccess;
+
+    /* Clean up any pending timers */
+    if ( NULL != handle->hdcpTimer )
+    {
+        NEXUS_CancelTimer(handle->hdcpTimer);
+        handle->hdcpTimer = NULL;
+    }
+
+    /* Check for device */
+    state = NEXUS_HdmiOutput_P_GetState(handle);
+    if ( state != NEXUS_HdmiOutputState_ePoweredOn )
+        goto done;
+
+    BDBG_MSG(("Disabling HDCP"));
+
+    LOCK_SECURITY();
+    errCode = BHDCPlib_DisableAuthentication(handle->hdcpHandle);
+    UNLOCK_SECURITY();
+
+    if ( errCode )
+    {
+        return BERR_TRACE(errCode);
+    }
+
+    if (handle->eHdcpVersion != BHDM_HDCP_Version_e2_2) {
+        NEXUS_HdmiOutput_P_UpdateHdcpState(handle);
+    }
+
+done:
+
+    return BERR_SUCCESS;
+}
+
+
+
+NEXUS_Error NEXUS_HdmiOutput_EnableHdcpEncryption(
+    NEXUS_HdmiOutputHandle handle
+    )
+{
+    NEXUS_HdmiOutputState state;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+
+    /* Check for device */
+    state = NEXUS_HdmiOutput_P_GetState(handle);
+    if ( state != NEXUS_HdmiOutputState_ePoweredOn)
+    {
+        BDBG_ERR(("Can not enable encryption; Output State: %d", state));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
+    if ((handle->eHdcpVersion == BHDM_HDCP_Version_e1_1)
+    || (handle->eHdcpVersion == BHDM_HDCP_Version_e1_1_Optional_Features))
+    {
+        return NEXUS_HdmiOutput_StartHdcpAuthentication(handle);
+    }
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+    BDBG_WRN(("Enabling HDCP2.2 encryption"));
+    BHDCPlib_Hdcp2x_EnableEncryption(handle->hdcpHandle, true);
+
+    /* Update auth state */
+    handle->hdcpState = BHDCPlib_State_eEncryptionEnabled;
+
+#endif
+
+    return BERR_SUCCESS;
+}
+
+
+NEXUS_Error NEXUS_HdmiOutput_DisableHdcpEncryption(
+    NEXUS_HdmiOutputHandle handle
+    )
+{
+    NEXUS_HdmiOutputState state;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+
+    /* Check for device */
+    state = NEXUS_HdmiOutput_P_GetState(handle);
+    if ( state != NEXUS_HdmiOutputState_ePoweredOn )
+        goto done;
+
+    if ((handle->eHdcpVersion == BHDM_HDCP_Version_e1_1)
+    || (handle->eHdcpVersion == BHDM_HDCP_Version_e1_1_Optional_Features))
+    {
+        return NEXUS_HdmiOutput_DisableHdcpAuthentication(handle);
+    }
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+    BDBG_MSG(("Disabling HDCP2.2 encryption"));
+    BHDCPlib_Hdcp2x_EnableEncryption(handle->hdcpHandle, false);
+
+    /* Update auth state */
+    if (handle->hdcpState == BHDCPlib_State_eEncryptionEnabled) {
+        handle->hdcpState = BHDCPlib_State_eLinkAuthenticated;
+    }
+#endif
+
+done:
+
+    return BERR_SUCCESS;
+}
+
+
+static void NEXUS_HdmiOutput_P_HdcpTimerCallback(void *pContext)
+{
+    NEXUS_HdmiOutputHandle output = (NEXUS_HdmiOutputHandle)pContext;
+    BHDCPlib_Status hdcpStatus;
+    NEXUS_Error errCode;
+
+    BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
+
+    BDBG_MSG(("HDCP State Machine Timer"));
+
+    /* Mark timer as expired */
+    output->hdcpTimer = NULL;
+
+    LOCK_SECURITY();
+    errCode = BHDCPlib_ProcessAuthentication(output->hdcpHandle, &hdcpStatus);
+    UNLOCK_SECURITY();
+
+    if ( errCode )
+    {
+        /* All failures will eventually wind up here */
+        errCode = BERR_TRACE(errCode);
+        BDBG_ERR(("HDCP error occurred, aborting authentication"));
+        NEXUS_HdmiOutput_P_UpdateHdcpState(output);
+        NEXUS_TaskCallback_Fire(output->hdcpFailureCallback);
+        return;
+    }
+
+    NEXUS_HdmiOutput_P_UpdateHdcpState(output);
+
+    if ( hdcpStatus.msRecommendedWaitTime > 0 )
+    {
+        BDBG_MSG(("Arming HDCP State Machine Timer for %u ms", hdcpStatus.msRecommendedWaitTime));
+        output->hdcpTimer = NEXUS_ScheduleTimer(hdcpStatus.msRecommendedWaitTime,
+                                                NEXUS_HdmiOutput_P_HdcpTimerCallback,
+                                                pContext);
+        /* This is basically impossible to recover from */
+        BDBG_ASSERT(NULL != output->hdcpTimer);
+    }
+    else
+    {
+        BDBG_WRN(("HDCP recommended no wait time.  HDCP state machine will stop now."));
+    }
+}
+
+static void NEXUS_HdmiOutput_P_UpdateHdcpState(NEXUS_HdmiOutputHandle handle)
+{
+    bool ready;
+    BHDCPlib_Status hdcpStatus;
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+
+    LOCK_SECURITY();
+    BHDCPlib_GetHdcpStatus(handle->hdcpHandle, &hdcpStatus);
+    ready = BHDCPlib_LinkReadyForEncryption(handle->hdcpHandle);
+    UNLOCK_SECURITY();
+
+    /* Save last HDCP error */
+    handle->hdcpError = hdcpStatus.eHdcpError;
+
+    BDBG_MSG(("Updating HDCP State from %d -> %d", handle->hdcpState, hdcpStatus.eAuthenticationState));
+
+    if ( hdcpStatus.eAuthenticationState != handle->hdcpState )
+    {
+        handle->hdcpState = hdcpStatus.eAuthenticationState;
+        NEXUS_TaskCallback_Fire(handle->hdcpStateChangedCallback);
+    }
+
+    if ( ready )
+    {
+        BDBG_MSG(("Authentication complete"));
+
+        if ( handle->hdcpSettings.transmitEncrypted )
+        {
+            NEXUS_Error errCode;
+
+            BDBG_MSG(("Enabling Encryption"));
+
+            LOCK_SECURITY();
+            errCode = BHDCPlib_TransmitEncrypted(handle->hdcpHandle);
+            UNLOCK_SECURITY();
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+            }
+        }
+
+        NEXUS_TaskCallback_Fire(handle->hdcpSuccessCallback);
+    }
+}
+
+
+NEXUS_Error NEXUS_HdmiOutput_HdcpGetDownstreamInfo(
+    NEXUS_HdmiOutputHandle handle,
+    NEXUS_HdmiHdcpDownStreamInfo *pDownstream
+    )
+{
+    BERR_Code rc = BERR_SUCCESS ;
+    NEXUS_Error errCode = NEXUS_SUCCESS;
+    NEXUS_HdmiOutputHdcpStatus hdmiAttachedRxStatus ;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    RESOLVE_ALIAS(handle);
+    NEXUS_HdmiOutput_GetHdcpStatus(handle, &hdmiAttachedRxStatus) ;
+    BKNI_Memset(pDownstream, 0, sizeof(NEXUS_HdmiHdcpDownStreamInfo));
+
+    if (handle->eHdcpVersion == BHDM_HDCP_Version_e2_2) {
+        BDBG_ERR(("This API %s is not applicable for HDCP2.x", __FUNCTION__));
+        errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        goto done;
+    }
+
+    /* if only one device is downstream, return with its KSV */
+    if (!hdmiAttachedRxStatus.isHdcpRepeater)
+    {
+
+        /* only 1 rx device is attached */
+        pDownstream->devices = 1 ;
+        pDownstream->depth = 1 ;
+
+        goto done ;
+    }
+
+    if (hdmiAttachedRxStatus.hdcpState == NEXUS_HdmiOutputHdcpState_eRepeaterAuthenticationFailure)
+    {
+        pDownstream->maxDepthExceeded=
+            (hdmiAttachedRxStatus.hdcpError == NEXUS_HdmiOutputHdcpError_eRepeaterDepthExceeded);
+
+        pDownstream->maxDevicesExceeded=
+            (hdmiAttachedRxStatus.hdcpError == NEXUS_HdmiOutputHdcpError_eRxDevicesExceeded);
+    }
+
+    pDownstream->isRepeater = hdmiAttachedRxStatus.isHdcpRepeater;
+    BKNI_Memcpy(&pDownstream->repeaterKsv, &hdmiAttachedRxStatus.bksv, sizeof(NEXUS_HdmiHdcpKsv));
+
+    /* multiple devices are downstream  */
+    /* determine downstream depth levels and device count */
+    rc = BHDM_HDCP_GetRepeaterDepth(handle->hdmHandle, &pDownstream->depth) ;
+    rc = BERR_TRACE(rc) ;
+
+    rc = BHDM_HDCP_GetRepeaterDeviceCount(handle->hdmHandle, &pDownstream->devices) ;
+    rc = BERR_TRACE(rc) ;
+
+
+done:
+    return errCode ;
+}
+
+
+NEXUS_Error NEXUS_HdmiOutput_HdcpGetDownstreamKsvs(
+    NEXUS_HdmiOutputHandle handle,
+    NEXUS_HdmiHdcpKsv *pKsvs, /* attr{nelem=numDevices;nelem_out=pNumRead} */
+    unsigned numDevices,
+    unsigned *pNumRead
+    )
+{
+    BERR_Code rc = BERR_SUCCESS ;
+    NEXUS_Error errCode = NEXUS_SUCCESS;
+    NEXUS_HdmiOutputHdcpStatus hdmiAttachedRxStatus ;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    RESOLVE_ALIAS(handle);
+    /* Coverity: 32292  */
+    if( pKsvs == NULL || (numDevices ==0))
+    {
+        errCode = BERR_TRACE(NEXUS_NOT_INITIALIZED);
+        goto done;
+    }
+
+    if (handle->eHdcpVersion == BHDM_HDCP_Version_e2_2) {
+        BDBG_ERR(("This API %s is not applicable for HDCP2.x", __FUNCTION__));
+        errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        goto done;
+    }
+
+    NEXUS_HdmiOutput_GetHdcpStatus(handle, &hdmiAttachedRxStatus) ;
+
+
+    /* if only one device is downstream, return with its KSV */
+    if (!hdmiAttachedRxStatus.isHdcpRepeater)
+    {
+        /* only 1 rx device is attached */
+        *pNumRead = 1 ;
+        BKNI_Memcpy(&pKsvs->data, &hdmiAttachedRxStatus.bksv, sizeof(NEXUS_HdmiHdcpKsv)) ;
+
+        goto done ;
+    }
+    else {
+        *pNumRead = numDevices;
+    }
+
+    /* retrieve KSVs for each downtream device */
+    rc = BHDM_HDCP_GetRepeaterKsvFifo(handle->hdmHandle,
+        (uint8_t *) pKsvs, (uint16_t) ((uint8_t) numDevices * sizeof(NEXUS_HdmiHdcpKsv))) ;
+    rc = BERR_TRACE(rc) ;
+
+
+done:
+
+    return errCode ;
+}
+
+
+
+/**
+Summary:
+Get HDCP Status
+**/
+NEXUS_Error NEXUS_HdmiOutput_GetHdcpStatus(
+    NEXUS_HdmiOutputHandle handle,
+    NEXUS_HdmiOutputHdcpStatus *pStatus /* [out] */
+    )
+{
+    NEXUS_Error errCode = NEXUS_SUCCESS;
+    BHDCPlib_RxInfo rxInfo;
+    NEXUS_HdmiOutputState state;
+    BHDM_HDCP_Version eHdcpVersion;
+
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    RESOLVE_ALIAS(handle);
+    BDBG_ASSERT(NULL != pStatus);
+
+    BDBG_CASSERT(NEXUS_HdmiOutputHdcpState_eMax == (BHDCPlib_State_ePjLinkIntegrityFailure+1));
+    BDBG_CASSERT(NEXUS_HdmiOutputHdcpError_eMax == (NEXUS_HdmiOutputHdcpError)BHDCPlib_HdcpError_eCount);
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+
+    state = NEXUS_HdmiOutput_P_GetState(handle);
+    if ( state != NEXUS_HdmiOutputState_ePoweredOn )
+        goto done;
+
+    pStatus->hdcpState = handle->hdcpState;
+    pStatus->hdcpError = handle->hdcpError;
+
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+    {
+        BHDCPlib_Hdcp2x_AuthenticationStatus stAuthenticationStatus;
+
+        errCode = BHDM_HDCP_GetHdcpVersion(handle->hdmHandle, &eHdcpVersion);
+        /* default to HDCP 1.x if cannot read HDCP Version */
+        if (errCode != BERR_SUCCESS) {
+            goto done;
+        }
+
+        if (eHdcpVersion == BHDM_HDCP_Version_e2_2) {
+            errCode = BHDCPlib_Hdcp2x_GetAuthenticationStatus(handle->hdcpHandle, &stAuthenticationStatus);
+            if (errCode != BERR_SUCCESS)
+            {
+                BDBG_ERR(("Error retrieving HDCP2.x authentication status"));
+                errCode = BERR_TRACE(errCode);
+                goto done;
+            }
+
+            pStatus->linkReadyForEncryption = (handle->hdcpState == BHDCPlib_State_eEncryptionEnabled);
+            pStatus->transmittingEncrypted = (handle->hdcpState == BHDCPlib_State_eEncryptionEnabled);
+            pStatus->hdcp2_2Features = true ;
+            pStatus->hdcp2_2RxInfo.hdcp1_xDeviceDownstream = stAuthenticationStatus.hdcp1DeviceDownstream;
+            goto done;
+        }
+    }
+#else
+    BSTD_UNUSED(eHdcpVersion) ;
+#endif
+
+    /* HDCP 1.x */
+    LOCK_SECURITY();
+    pStatus->linkReadyForEncryption = BHDCPlib_LinkReadyForEncryption(handle->hdcpHandle);
+    pStatus->transmittingEncrypted = (handle->hdcpState == BHDCPlib_State_eEncryptionEnabled);
+    errCode = BHDCPlib_GetReceiverInfo(handle->hdcpHandle, &rxInfo);
+    UNLOCK_SECURITY();
+
+    if ( BERR_SUCCESS == errCode )
+    {
+        pStatus->isHdcpRepeater = rxInfo.bIsHdcpRepeater;
+        pStatus->ksvFifoReady = (rxInfo.uiRxBCaps & BHDM_HDCP_RxCaps_eKsvFifoReady)?true:false;
+        pStatus->i2c400Support = (rxInfo.uiRxBCaps & BHDM_HDCP_RxCaps_eI2c400KhzSupport)?true:false;
+        pStatus->hdcp1_1Features = (rxInfo.uiRxBCaps & BHDM_HDCP_RxCaps_eHDCP_1_1_Features)?true:false;
+        pStatus->fastReauthentication = (rxInfo.uiRxBCaps & BHDM_HDCP_RxCaps_eFastReauth)?true:false;
+        BKNI_Memcpy(&pStatus->bksv.data, &rxInfo.RxBksv[0], sizeof(rxInfo.RxBksv));
+    }
+    else
+    {
+        errCode = BERR_TRACE(errCode);
+    }
+
+done:
+
+    return errCode;
+}
+
+#else	/* NEXUS_HAS_SECURITY */
+/* No security - use stubs for HDCP */
+NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp(NEXUS_HdmiOutputHandle output)
+{
+    BSTD_UNUSED(output);
+    return BERR_SUCCESS;
+}
+
+NEXUS_Error NEXUS_HdmiOutput_P_UninitHdcp(NEXUS_HdmiOutputHandle output)
+{
+    BSTD_UNUSED(output);
+    return BERR_SUCCESS;
+}
+
+void NEXUS_HdmiOutput_P_HdcpNotifyHotplug(NEXUS_HdmiOutputHandle output)
+{
+    BSTD_UNUSED(output);
+    return;
+}
+
+void NEXUS_HdmiOutput_GetHdcpSettings(
+    NEXUS_HdmiOutputHandle handle,
+    NEXUS_HdmiOutputHdcpSettings *pSettings /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    RESOLVE_ALIAS(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+NEXUS_Error NEXUS_HdmiOutput_SetHdcpSettings(
+    NEXUS_HdmiOutputHandle handle,
+    const NEXUS_HdmiOutputHdcpSettings *pSettings
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    NEXUS_TaskCallback_Set(handle->hdcpFailureCallback, &pSettings->failureCallback);
+    NEXUS_TaskCallback_Set(handle->hdcpStateChangedCallback, &pSettings->stateChangedCallback);
+    NEXUS_TaskCallback_Set(handle->hdcpSuccessCallback, &pSettings->successCallback);
+
+    return NEXUS_SUCCESS ;
+}
+
+NEXUS_Error NEXUS_HdmiOutput_SetHdcpRevokedKsvs(
+    NEXUS_HdmiOutputHandle handle,
+    const NEXUS_HdmiOutputHdcpKsv *pRevokedKsvs,    /* attr{nelem=numKsvs;nelem_convert=NEXUS_P_HDMI_OUTPUT_HDCP_KSV_SIZE} array of revoked ksv's */
+    uint16_t numKsvs                                /* Number of keys in the array provided */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    BSTD_UNUSED(pRevokedKsvs);
+    BSTD_UNUSED(numKsvs);
+
+    return NEXUS_SUCCESS ;
+}
+
+NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
+    NEXUS_HdmiOutputHandle handle
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+
+    BERR_TRACE(BERR_NOT_SUPPORTED);
+    return NEXUS_SUCCESS ;
+}
+
+NEXUS_Error NEXUS_HdmiOutput_DisableHdcpAuthentication(
+    NEXUS_HdmiOutputHandle handle
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+
+    BERR_TRACE(BERR_NOT_SUPPORTED);
+    return NEXUS_SUCCESS ;
+}
+
+NEXUS_Error NEXUS_HdmiOutput_EnableHdcpEncryption(
+    NEXUS_HdmiOutputHandle handle
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+
+    BERR_TRACE(BERR_NOT_SUPPORTED);
+    return NEXUS_SUCCESS ;
+}
+
+NEXUS_Error NEXUS_HdmiOutput_DisableHdcpEncryption(
+    NEXUS_HdmiOutputHandle handle
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+
+    BERR_TRACE(BERR_NOT_SUPPORTED);
+    return NEXUS_SUCCESS ;
+}
+
+NEXUS_Error NEXUS_HdmiOutput_GetHdcpStatus(
+    NEXUS_HdmiOutputHandle handle,
+    NEXUS_HdmiOutputHdcpStatus *pStatus /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    RESOLVE_ALIAS(handle);
+    BSTD_UNUSED(pStatus);
+
+    BERR_TRACE(BERR_NOT_SUPPORTED);
+    return NEXUS_SUCCESS ;
+}
+
+NEXUS_Error NEXUS_HdmiOutput_HdcpGetDownstreamInfo(
+    NEXUS_HdmiOutputHandle handle,
+    NEXUS_HdmiHdcpDownStreamInfo *pDownstream
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    RESOLVE_ALIAS(handle);
+    BSTD_UNUSED(pDownstream);
+
+    BERR_TRACE(BERR_NOT_SUPPORTED);
+    return NEXUS_SUCCESS ;
+}
+
+NEXUS_Error NEXUS_HdmiOutput_HdcpGetDownstreamKsvs(
+    NEXUS_HdmiOutputHandle handle,
+    NEXUS_HdmiHdcpKsv *pKsvs, /* attr{nelem=numDevices;nelem_out=pNumRead} */
+    unsigned numDevices,
+    unsigned *pNumRead
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    RESOLVE_ALIAS(handle);
+    BSTD_UNUSED(pKsvs);
+    BSTD_UNUSED(numDevices);
+    BSTD_UNUSED(pNumRead);
+
+    BERR_TRACE(BERR_NOT_SUPPORTED);
+    return NEXUS_SUCCESS ;
+}
+
+#endif		/* NEXUS_HAS_SECURITY */
+
+
+#if !NEXUS_HAS_SECURITY || !NEXUS_HAS_SAGE || !defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+NEXUS_Error NEXUS_HdmiOutput_SetHdcp2xBinKeys(
+    NEXUS_HdmiOutputHandle handle,
+    const uint8_t *pBinFileBuffer,  /* attr{nelem=length} pointer to encrypted key buffer */
+    uint32_t length                 /* size of data in pBinFileBuffer in bytes */
+)
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    BSTD_UNUSED(pBinFileBuffer);
+    BSTD_UNUSED(length);
+
+    return NEXUS_SUCCESS ;
+}
+
+NEXUS_Error NEXUS_HdmiOutput_SetRepeaterInput(
+    NEXUS_HdmiOutputHandle handle,
+    NEXUS_HdmiInputHandle input
+)
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    BSTD_UNUSED(input);
+    return NEXUS_SUCCESS ;
+}
+
+NEXUS_Error NEXUS_HdmiOutput_GetHdcp2xReceiverIdListData(
+    NEXUS_HdmiOutputHandle handle,
+    NEXUS_Hdcp2xReceiverIdListData *pReceiverIdListData
+)
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    BSTD_UNUSED(pReceiverIdListData);
+    return NEXUS_SUCCESS ;
+}
+#endif

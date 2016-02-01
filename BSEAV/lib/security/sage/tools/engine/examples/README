@@ -1,0 +1,175 @@
+How to build and use the OpenSSL SAGE RSA Engine example application
+
+0. Pre requisites
+
+  1 - This application requires a DRM Binfile loaded with SSL certificates (public/private keys).
+    This Binfile MUST be bounded to the chipset it is running on.
+    Please contact a SAGE representative if you do not have one.
+  2 - This test application requires some PKI knowledge and certificates manipulation.
+    Among others it requires to have:
+    - A CA certificate containing CA public key in order to verify a peer certificate signed with CA private key
+    - A peer (using OpenSSL s_client or s_server depending on the use case) loaded with its own set of public certificate and private key.
+      This public certificate shall be signed with a CA private key so that our application will be capable of verifying it using CA public certificate.
+    - A public certificate that includes the same public key as the ones in the DRM BinFile and signed with a CA private key so that our remote peer could verify our certificate
+
+  3 - generate OpenSSL-side certificate/keys
+
+Generating certificate is out of the scope of this README file and is well covered over internet.
+The following is given as an example/reminder
+
+    #2048 rsa private key, without pass
+    openssl genrsa -out privkey_openssl.key 2048
+
+    #self-signed certificate
+    openssl req -new -x509 -key privkey_openssl.key -out cert_openssl.pem -days 10950
+
+I. Build
+
+  On the build server:
+
+  1 - define URSR_TOP to point at the root folder of your URSR sources, for example:
+    export URSR_TOP=/projects/stbdev/$USER/repos/URSR_baseline
+    cd $URSR_TOP
+  2 - Prepare environment
+    #export your regular nexus build exports, for 97252 D0, SV board
+    . ${URSR_TOP}/BSEAV/tools/build/plat 97252 D0 SV
+    export NEXUS_BIN_DIR=/projects/stbdev/$USER/bin
+    mkdir -m 777 -p $NEXUS_BIN_DIR
+    export SAGE_SUPPORT=y
+    export NEXUS_COMMON_CRYPTO_SUPPORT=y
+  3 - Build nexus
+    make -C nexus/build clean
+    make -C nexus/build
+  4 - Build OpenSSL RSA Sage Engine, utility, srai
+    make -C BSEAV/lib/security/sage/srai re
+    make -C BSEAV/lib/security/sage/utility re
+    make -C BSEAV/lib/security/sage/tools/engine/ re
+  5 - Build OpenSSL RSA Sage Engine Example application
+    make -C BSEAV/lib/security/sage/tools/engine/examples re
+
+II. Run as a client
+
+  In this example, STB IP=192.168.0.53, linux server IP=192.168.0.54
+
+  On a server accessible from the Set Top Box
+
+  1 - Get the IP address
+
+  2 - Run OpenSSL server as follow
+openssl s_server -accept 4447 -cert cert_openssl.pem -key privkey_openssl.key -tls1_2 -verify 10 -Verify cacert.pem -cipher AES128-SHA -msg
+
+    with:
+      s_server : use the server-side application
+      -accept 4447 : the port to listen to
+      -cert cert_openssl.pem : the public certificate of the server
+      -key privkey_openssl.key : the private key of the server
+      -tls1_2 : use TLS v1.2 version
+      -Verify cacert.pem : the certificate of the CA used to signed remote(stb) peer
+      -cipher AES128-SHA : will force to use RSA as the cipher suite
+
+     see https://www.openssl.org/docs/apps/s_server.html
+
+  On the Set Top Box:
+
+  3 - Mount the binaries from $NEXUS_BIN_DIR in the build server to /mnt/nfs on the set top box:
+    mount -t nfs -o nolock <hostname>:<PATH TO NEXUS_BIN_DIR> /mnt/nfs
+
+  4 - Request an NTP server to update the STB clock
+
+    # !!! This is an important Step otherwize certificates won't be valid !
+    ntpd -d -p ntp.ubuntu.com ; sleep 5
+
+
+  5 - Launch the application 'rsa_sage_engine_example' in client mode
+./nexus rsa_sage_engine_example client -hostname 192.168.0.54 -port 4447 -tls1_2 -cert ./cert_stb.pem -binfile ./drm.bin -CAcert ./cert_openssl.pem -debug -debug
+
+    with:
+      client : to run in client mode
+      -hostname 192.168.0.54 : connect to the server 192.168.0.54
+      -port 4447 : connect to the server on port 4447
+      -tls1_2 : use TLS v1.2 version
+      -cert ./cert_stb.pem : use the given argument as the public certificate
+                           which matches the public key present in the binfile
+      -binfile ./drm.bin : the binfile loaded with the SSL Certificate
+      -CAcert ./cert_openssl.pem : use the given argument as the certificate containing the public key
+                                   to verify remote peer is signed by a known CA
+                                   (for the test you can use OpenSSL's self-signed certificate)
+
+III. Run as a server
+
+  In this example, STB IP=192.168.0.53, linux client IP=192.168.0.54
+
+  On the Set Top Box:
+
+  1 - Get the IP address of the STB
+
+  2 - Mount the binaries from $NEXUS_BIN_DIR in the build server to /mnt/nfs on the set top box:
+    mount -t nfs -o nolock <hostname>:<PATH TO NEXUS_BIN_DIR> /mnt/nfs
+  3 - Launch the application 'rsa_sage_engine_example' in server mode
+./nexus rsa_sage_engine_example server -port 4447 -tls1_2 -cert ./cert_stb.pem -binfile ./drm.bin -CAcert ./cert_openssl.pem -debug -debug
+
+    with:
+      server : to run in server mode
+      -port 4447 : connect to the server on port 4447
+      -tls1_2 : use TLS v1.2 version
+      -cert ./cert_stb.pem : use the given argument as the public certificate
+                             which matches the public key present in the binfile
+      -binfile ./drm.bin : the binfile loaded with the SSL Certificate
+      -CAcert ./cert_openssl.pem : use the given argument as the certificate containing the public key
+                                   to verify remote peer is signed by a known CA
+                                   (for the test you can use OpenSSL's self-signed certificate)
+
+  On a server that is capable to access to the Set Top Box
+
+  4 - Request an NTP server to update the STB clock
+    ntpd -d -p ntp.ubuntu.com ; sleep 5
+
+  5 - Run OpenSSL client as follow
+openssl s_client -connect 192.168.0.53:4447 -cert cert_openssl.pem -key priv_openssl.pem -debug -msg -state -tls1_2 -CAfile cacert.pem -cipher AES128-SHA
+
+    With:
+      s_client : use the client-side application
+      -connect 192.168.0.53:4447 : connect to the STB IP=192.168.0.53 on port 4447
+      -cert cert_openssl.pem : the public certificate of the server
+      -key private_openssl.pem : the private key of the server
+      -tls1_2 : use TLS v1.2 version
+      -cipher AES128-SHA : will force to use RSA as the cipher suite
+      -CAfile cacert.pem : A file containing trusted certificates to use during server authentication
+                           and to use when attempting to build the client certificate chain.
+
+    See https://www.openssl.org/docs/apps/s_client.html
+
+IV. Additional notes for multiple instances
+
+    The application can be compiled for multiple instances support by using the NxClient/NxServer layer.
+    In such mode, multiple OpenSSL SAGE RSA Engine application can run concurrently.
+
+  1 - Build
+
+In addition to any environment already set for either client or server mode
+   #for nexus
+   export NEXUS_MODE=proxy
+   #for the application
+   export USE_NXCLIENT=y
+
+Nexus shall be compiled as follow:
+    make -C nexus/nxclient/ clean
+    make -C nexus/nxclient/
+
+The application shall be compiled as for regular client/server mode
+
+  2 - Run
+
+The idea is to run a Nexus server onto which clients are connecting.
+First boot the STB, then at the linux prompt note the IP
+Now start the NxServer:
+    ./nexus nxserver
+
+Open telnet sessions from which an OpenSSL SAGE RSA Engine example application can be executed
+Telnet the STB, then at linux prompt:
+    cd /mnt/nfs
+    export LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH}
+    export PATH=.:${PATH}
+
+From here execute the application with the same arguments as formerly, but without the ./nexus script, for example:
+    ./rsa_sage_engine_example server -port 4447 -tls1_2 -cert ./cert_stb.pem -binfile ./drm.bin -CAcert ./cert_openssl.pem -debug -debug

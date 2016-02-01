@@ -1,0 +1,168 @@
+#############################################################################
+# (c) 2003-2015 Broadcom Corporation
+#
+# This program is the proprietary software of Broadcom Corporation and/or its
+# licensors, and may only be used, duplicated, modified or distributed pursuant
+# to the terms and conditions of a separate, written license agreement executed
+# between you and Broadcom (an "Authorized License").  Except as set forth in
+# an Authorized License, Broadcom grants no license (express or implied), right
+# to use, or waiver of any kind with respect to the Software, and Broadcom
+# expressly reserves all rights in and to the Software and all intellectual
+# property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#
+# Except as expressly set forth in the Authorized License,
+#
+# 1. This program, including its structure, sequence and organization,
+#    constitutes the valuable trade secrets of Broadcom, and you shall use all
+#    reasonable efforts to protect the confidentiality thereof, and to use
+#    this information only in connection with your use of Broadcom integrated
+#    circuit products.
+#
+# 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+#    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+#    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+#    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+#    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+#    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+#
+# 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+#    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+#    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+#    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+#    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+#    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+#    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+#
+#############################################################################
+
+clean   :
+	- $(RM) *.o
+	- $(RM) *.rpo
+	- $(RM) Linux*
+	- $(RM) bootrom*
+	- $(RM) ctdt.c
+	- $(RM) symTbl.c
+	- $(RM) depend.$(TARGET_DIR)
+	- $(RM) *.map
+	- $(RM) *.a
+	- $(RM) vxram.*
+
+ifeq ($(BCM_VERBOSE),1)
+   ECHO=
+else
+   ECHO=@
+endif
+
+
+ifeq ($(IMPLICIT_RULE_S_O),)
+$(TARGETDIR)/%.o : %.s
+	@ $(RM) $@
+	@ echo ==== Making from $(subst \,/,$<)
+	$(ECHO) $(CC) $(CFLAGS_AS) -c -o $@ $<
+endif
+
+ifeq ($(IMPLICIT_RULE_C_O),)
+$(TARGETDIR)/%.o : %.c
+	@ $(RM) $@
+	@ echo ==== Compiling  $(notdir $<) \(in $(subst ../,,$(<D))\)
+	$(ECHO) $(CC) $(CFLAGS) -c $<
+endif
+
+$(TARGETDIR)/%.s : %.c
+	@ $(RM) $@
+	@ echo ==== Compiling  $(notdir $<) \(in $(subst ../,,$(<D))\)
+	$(ECHO) $(CC) $(CFLAGS) -S $<
+
+$(TARGETDIR)/%.s : %.cpp
+	@ $(RM) $@
+	@ echo ==== Compiling  $(notdir $<) \(in $(subst ../,,$(<D))\)
+	$(ECHO) $(CXX) $(C++FLAGS) -S $<
+
+ifeq ($(IMPLICIT_RULE_CXX_O),)
+
+# If we're building a slim image, zap MessageLog references.
+ifeq ($(BCM_REDUCED_IMAGE_SIZE),1)
+$(TARGETDIR)/%.o : %.cpp
+	@ $(RM) $@
+	@ echo ==== Compiling   $(notdir $<) \(in $(subst ../,,$(<D))\)
+	MessageLogZapper $<
+	$(ECHO) $(CXX) $(C++FLAGS) -c $<.bak.cpp -o $@
+	@ $(RM) $<.bak.cpp
+else
+$(TARGETDIR)/%.o : %.cpp
+	@ $(RM) $@
+	@ echo ==== Compiling  $(notdir $<) \(in $(subst ../,,$(<D))\)
+	$(ECHO) $(CXX) $(C++FLAGS) -c $<
+endif
+
+$(TARGETDIR)/%.o : %.cxx
+	@ $(RM) $@
+	@ echo ==== Compiling  $(subst \,/,$<)
+	$(ECHO) $(CXX) $(C++FLAGS) -c $<
+
+$(TARGETDIR)/%.o : %.cc
+	@ $(RM) $@
+	@ echo ==== Compiling   $(notdir $<) \(in $(subst ../,,$(<D))\)
+	$(ECHO) $(CXX) $(C++FLAGS) -c $<
+
+# C++ compile and munch
+$(TARGETDIR)/%.out : %.cpp
+	@ $(RM) $@
+	$(CXX) $(C++FLAGS) -c $<
+	@ $(RM) $@ ctdt.c
+	$(NM) $*.o | $(MUNCH) > ctdt.c
+	$(MAKE) CC_COMPILER="-fdollars-in-identifiers" ctdt.o
+	$(LD_PARTIAL) -o $@ $*.o ctdt.o
+	@ $(RM) ctdt.c ctdt.o
+
+$(TARGETDIR)/%.out : %.cxx
+	@ $(RM) $@
+	$(CXX) $(C++FLAGS) -c $<
+	@ $(RM) $@ ctdt.c
+	$(NM) $*.o | $(MUNCH) > ctdt.c
+	$(MAKE) CC_COMPILER="-fdollars-in-identifiers" ctdt.o
+	$(LD_PARTIAL) -o $@ $*.o ctdt.o
+	@ $(RM) ctdt.c ctdt.o
+
+$(TARGETDIR)/%.out : %.cc
+	@ $(RM) $@
+	$(CXX) $(C++FLAGS) -c $<
+	@ $(RM) $@ ctdt.c
+	$(NM) $*.o | $(MUNCH) > ctdt.c
+	$(MAKE) CC_COMPILER="-fdollars-in-identifiers" ctdt.o
+	$(LD_PARTIAL) -o $@ $*.o ctdt.o
+	@ $(RM) ctdt.c ctdt.o
+endif
+
+
+################################## Linux #####################################
+#
+# Linux     - normal Linux system
+# Linux.sym - symbol table of Linux
+
+# One disadvantage of doing a partial link is that link errors often show
+# up with the wrong filenames and function names.  It's best to do a single
+# link.  The time saved is negligible, but debugging is easier.
+
+# To avoid having to do a partial link, we need to run "nm" and "munch" on the
+# list of object files.  Unfortunately, the list is so large that the command
+# line exceeds the DOS limit.  The alternative is to put the file names into
+# a list file and reference that.  The filename variable (MACH_DEP) must be
+# split so the sublists can be written individually.
+
+# Pull out the first few files in the list.  These must remain first or the
+# application will return to the bootloader early in initialization.
+firstfiles  = $(foreach t, 1 2 3 4 5 6 7 8 9 10, $(word $(t), $(MACH_DEP)))
+
+
+Linux Linux.sym : $(sort $(MACH_DEP)) # $(LDDEPS) # $(LIBS)
+	- @ $(RM) Linux Linux.sym
+	- @ $(RM) version.o
+	@ echo ==== Full link -o Linux
+	$(CXX) $(LDFLAGS) \
+	    -o Linux $(MACH_DEP) $(LIBS) 2>&1

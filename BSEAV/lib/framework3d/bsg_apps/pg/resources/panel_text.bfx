@@ -1,0 +1,65 @@
+OPTIONS
+{
+   SortOrder = NONE;
+}
+
+PASS 0
+{
+   SEMANTICS
+   {
+      a_position = VATTR_POSITION;
+      a_tc = VATTR_TEXCOORD1;
+      u_textColor = VECTOR4_USER;
+
+      #include mvp_semantics.bfx
+   }
+
+   STATE
+   {
+      EnableBlend       = true;
+      BlendFunc         = SRC_ALPHA, ONE_MINUS_SRC_ALPHA;
+      EnableDepthTest   = false;
+      EnableStencilTest = true;
+      StencilFunc       = EQUAL, 1, 255;
+   }
+
+   SAMPLER_2D u_textSampler
+   {
+      Unit = 0;
+      Wrap = CLAMP, CLAMP;
+      Filter = LINEAR_MIPMAP_LINEAR, LINEAR;
+   }
+
+   VERTEX_SHADER
+   {
+      attribute vec4 a_position;
+      attribute vec2 a_tc;
+      varying vec2 v_tc;
+
+      #include mvp.bfx
+
+      void main()
+      {
+         gl_Position = calc_mvp() * a_position;
+         v_tc = a_tc;
+      }
+   }
+
+   FRAGMENT_SHADER
+   {
+      precision mediump float;
+
+      uniform sampler2D u_textSampler;
+      uniform vec4 u_textColor;
+      varying vec2 v_tc;
+
+      void main()
+      {
+         float alpha = texture2D(u_textSampler, v_tc).r;
+         if (alpha < 0.01)
+            discard;
+         alpha *= u_textColor.a;
+         gl_FragColor = vec4(u_textColor.rgb, alpha);
+      }
+   }
+}

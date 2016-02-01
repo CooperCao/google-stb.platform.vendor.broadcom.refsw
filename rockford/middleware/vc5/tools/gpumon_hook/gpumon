@@ -1,0 +1,27 @@
+#!/bin/sh
+
+LIB_PATH=
+
+if [ -d "../lib" ]; then
+  LIB_PATH=../lib
+else
+   if [ -d "../../lib" ]; then
+      LIB_PATH=../../lib
+   else
+      LIB_PATH=./
+   fi
+fi
+
+LD_PRELOAD=`echo $(cd $(dirname "$LIB_PATH/libgpumon_hook.so") && pwd -P)/$(basename "$LIB_PATH/libgpumon_hook.so")`
+export LD_PRELOAD
+
+GPUMonitorDriverDLL=`echo $(cd $(dirname "$LIB_PATH/libkhronos.so") && pwd -P)/$(basename "$LIB_PATH/libkhronos.so")`
+export GPUMonitorDriverDLL
+
+[ -z "$GPUMonitorIP" ] && echo "You must set GPUMonitorIP to the IP of the machine running GPUMonitor" && exit 1;
+
+echo $LD_PRELOAD
+# Start whatever application is requested
+target=$1;
+shift
+exec ${target} "$@"

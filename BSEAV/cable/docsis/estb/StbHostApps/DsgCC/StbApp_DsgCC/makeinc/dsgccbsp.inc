@@ -1,0 +1,1 @@
+include $(BSP_BASE)/dsgccbsp_$(board).inc

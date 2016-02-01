@@ -1,0 +1,97 @@
+Name
+
+    BRCM_platform_nexus
+
+Name Strings
+
+    EGL_BRCM_platform_nexus
+
+Contributors
+
+    Gary Sweet
+    Tomek Bury
+
+Contacts
+
+    Gary Sweet, Broadcom (gsweet 'at' broadcom.com)
+
+Status
+
+    TBD
+
+Version
+
+    Version 1 - September 17th, 2015
+
+Number
+
+    EGL Extension #???
+
+Extension Type
+
+    EGL client extension
+
+Dependencies
+
+    Requires EGL_EXT_client_extensions to query its existence without
+    a display.
+
+    Requires EGL_EXT_platform_base.
+
+    This extension is written against the wording of version 7 of the
+    EGL_EXT_platform_base specification.
+
+Overview
+
+    This extension defines how to create EGL resources from native Nexus
+    resources using the functions defined by EGL_EXT_platform_base.
+
+New Types
+
+    None
+
+New Procedures and Functions
+
+    None
+
+New Tokens
+
+    Accepted as the <platform> argument of eglGetPlatformDisplayEXT:
+
+        EGL_PLATFORM_NEXUS_BRCM                 0x32F0
+
+Additions to the EGL Specification
+
+    None.
+
+New Behavior
+
+    To determine if the EGL implementation supports this extension, clients
+    should query the EGL_EXTENSIONS string of EGL_NO_DISPLAY.
+    To obtain an EGLDisplay backed by a Nexus display, call
+    eglGetPlatformDisplayEXT with <platform> set to EGL_PLATFORM_NEXUS_BRCM.
+    The <native_display> parameter specifies the Nexus display to use and must
+    either be obtained by calling NEXUS_Display_Open() or be EGL_DEFAULT_DISPLAY.
+
+    To obtain an on-screen rendering surface from a Nexus Window, call
+    eglCreatePlatformWindowSurfaceEXT with a <dpy> that belongs to Nexus and
+    a <native_window> that points to an Nexus Window obtained by calling the
+    NXPL_CreateNativeWindow() function.
+
+    To obtain an offscreen rendering surface from a Nexus Pixmap, call
+    eglCreatePlatformPixmapSurfaceEXT with a <dpy> that belongs to Nexus and
+    a <native_pixmap> that points to an Nexus Pixmap obtained by calling the
+    NXPL_CreateCompatiblePixmap() function.
+
+Issues
+
+    1. TBD
+
+       RESOLUTION: TBD
+
+Revision History
+
+    Version 1, 2015-09-17 (Tomek Bury)
+        - Initial draft
+
+# vim:ai:et:sw=4:ts=4:

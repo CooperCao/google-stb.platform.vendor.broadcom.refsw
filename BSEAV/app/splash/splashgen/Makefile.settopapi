@@ -1,0 +1,108 @@
+############################################################
+#     Copyright (c) 2003-2008, Broadcom Corporation
+#     All Rights Reserved
+#     Confidential Property of Broadcom Corporation
+#
+#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
+#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
+#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+#
+# $brcm_Workfile: $
+# $brcm_Revision: $
+# $brcm_Date: $
+#
+# Module Description:
+#   The SplashGen VDC script generator Utility Makefile.
+#
+# Revision History:
+#
+# Created
+#
+# $brcm_Log: $
+# 
+##################################################################################################
+
+# The splashgen makefile generates the BVN configuration scripts 
+
+# Must define BSEAV before doing any Settop API includes
+# 
+# Feel free to copy this file (and this file only, *DO*NOT*COPY* bsp_top.mak and bsp_bottom.mak files)
+# you might also want to copy&paste content of that file to some other location. 
+
+# BSEAV shall point to the root of BSEAV VOB
+
+BVSB_CHIP=3510
+BSEAV=$(shell cd ../../../../BSEAV; pwd)
+ROCKFORD=$(BSEAV)/../rockford
+MAGNUM=$(BSEAV)/../magnum
+
+include ${BSEAV}/api/tests/magnum/bsp_top.mak
+
+# to compile  and add inclide path for module foo uncomment line  below
+include ${ROCKFORD}/modules/vdc.inc
+include ${ROCKFORD}/modules/vdc_nomacrovision.inc
+include ${ROCKFORD}/modules/rdc.inc
+
+
+# include ${BSEAV}/api/build/magnum/Makefile.inc
+CFLAGS += -IBSYSLIB_INCLUDES -I$(BSEAV)/api/src/magnum
+
+# Create single list of included paths
+MAGNUM_INCLUDES := $(foreach module, $(MAGNUM_MODULES), $($(module)_INCLUDES))
+# Create single list of included definitions
+MAGNUM_DEFINES := $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINES))
+
+# Convert includes and defines into CFLAGS
+CFLAGS += $(addprefix -I,$(MAGNUM_INCLUDES))
+CFLAGS += $(addprefix -D,$(MAGNUM_DEFINES))
+
+ifeq ($(SPLASH_NOHDM),y)
+CFLAGS += -DSPLASH_NOHDM
+else
+include ${ROCKFORD}/modules/hdm.inc
+endif
+
+ifeq ($(SPLASH_PAL),y)
+CFLAGS += -DCFG_SPLASH_PAL
+endif
+
+ifeq ($(SPLASH_MSIPTV_PACE),y)
+CFLAGS += -DSPLASH_MSIPTV_PACE
+endif
+
+
+# Common Utilities
+include ${ROCKFORD}/modules/sur.inc
+include ${ROCKFORD}/modules/pxl.inc
+
+#include ${ROCKFORD}/modules/ifd.inc
+
+#include ${ROCKFORD}/modules/i2c.inc
+
+-include $(ROCKFORD)/modules/transition.inc
+
+APP = splashgen
+
+CFLAGS += -I../common -I$(PLATFORM) -I../os/usermode -I. -DBRDC_DISABLE_TRACK_EXECUTION -DBREG_CAPTURE
+
+VPATH += ./$(PLATFORM) ../common
+
+SRCS += \
+	splash_main.c \
+	splash_vdc_rulgen.c \
+	splash_setup_vdc.c \
+	platformconfig.c \
+	splash_surf_update.c \
+	splash_bmp.c
+
+include ${BSEAV}/api/tests/magnum/bsp_bottom.mak
+
+install : build_date $(APP_IMAGE)
+	cp $(ODIR)/$(APP) $(BSEAV)/bin
+
+#
+# always build splash_vdc_rulgen.c because it contains __DATE__
+#
+build_date:
+	$(Q_)$(RM) -f $(ODIR)/splash_vdc_rulgen.o
+

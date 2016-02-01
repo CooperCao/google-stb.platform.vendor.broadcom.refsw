@@ -1,0 +1,8 @@
+atlas.showPip(true)
+atlas.sleep(3000)
+atlas.swapPip()
+atlas.sleep(3000)
+atlas.swapPip()
+atlas.sleep(3000)
+atlas.showPip(false)
+atlas.sleep(3000)

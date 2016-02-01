@@ -1,0 +1,19 @@
+#PROFILE_FLAGS = -pg 
+#CFLAGS += -DPROFILE=1 
+CFLAGS += -W -Wall -O0 ${PROFILE_FLAGS}
+CFLAGS += -I.. -I ../../utils -I ../../bfile -I ../../asf
+
+SRCS = bfile_io.c bfile_stdio.c
+SRCS += biovec.c biobits.c
+SRCS += bbase64.c
+
+SRCS += brtp.c brtp_parser.c brtp_parser_h264.c brtp_parser_mpeg4.c brtp_parser_aacloas.c
+SRCS += btimestamp.c brtp_util.c brtp_play.c brtp_delay.c
+
+vpath %.c ../../utils
+vpath %.c ../../bfile
+vpath %.c ../../asf
+
+vpath %.c ..
+vpath %.cpp ..
+

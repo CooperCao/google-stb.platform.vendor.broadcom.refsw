@@ -1,0 +1,78 @@
+OPTIONS
+{
+   SortOrder = FRONT_TO_BACK;
+}
+
+PASS 0
+{
+   SEMANTICS
+   {
+      a_pos   = VATTR_POSITION;
+      a_tc    = VATTR_TEXCOORD1;
+      u_mvp   = MATRIX4_MODEL_VIEW_PROJECTION;
+
+      u_phase = SCALAR_USER;
+      u_freq  = SCALAR_USER;
+      u_amp   = SCALAR_USER;
+
+      u_sPhase  = SCALAR_USER;
+      u_sFreq   = SCALAR_USER;
+      u_sAmp    = SCALAR_USER;
+      u_sOffset = SCALAR_USER;
+   }
+
+   STATE
+   {
+      EnableBlend = true;
+      BlendFunc = SRC_ALPHA, ONE_MINUS_SRC_ALPHA;
+      EnableDepthTest = false;
+   }
+
+   VERTEX_SHADER
+   {
+      uniform    mat4  u_mvp;
+      uniform    float u_phase;
+      uniform    float u_freq;
+      uniform    float u_amp;
+      uniform    float u_bulgePhase;
+      uniform    float u_bulgeFreq;
+      uniform    float u_bulgeAmp;
+      uniform    float u_bulgeOffset;
+      uniform    mediump float u_alpha;
+      attribute  vec4  a_pos;
+      attribute  vec2  a_tc;
+      varying    vec2  v_tc;
+      varying    vec2  v_pos;
+
+      void main()
+      {
+         float twoPi  = 2.0 * 3.1415;
+         float height = a_pos.y;
+         
+         height *= u_bulgeOffset + u_bulgeAmp * abs(sin(u_bulgeFreq * a_tc.x * twoPi + u_bulgePhase));
+         height += u_amp * sin(u_freq * a_tc.x * twoPi + u_phase);
+
+         gl_Position  = u_mvp * vec4(a_pos.x, height, a_pos.z, 1.0);
+         v_tc         = a_tc;
+      }
+   }
+
+   FRAGMENT_SHADER
+   {
+      precision mediump float;
+
+      varying vec2    v_tc;
+      uniform float   u_alpha;
+      uniform vec3    u_color;
+
+      void main()
+      {
+         float alpha = 1.0 - 2.0 * abs(v_tc.y - 0.5);
+
+         alpha = smoothstep(0.0, 1.0, alpha);
+         alpha *= (1.0 - abs(v_tc.x * 2.0 - 1.0));
+
+         gl_FragColor = vec4(u_color, alpha * u_alpha);
+      }
+   }
+}

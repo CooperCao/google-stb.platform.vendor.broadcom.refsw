@@ -1,0 +1,33 @@
+Iolaus design docs
+
+Repaint events
+--------------------------
+
+requesting repaint:
+1. call bwin_window_repaint (either internally or externally)
+2. add to queue and set win->reprocess_queue
+
+getting an event:
+1. on the next bwin_get/peek_event call, check win->reprocess_queue
+2. if true, then reprocess, then return the top event
+3. if not true, return the top event
+
+reprocessing:
+
+goal: pack all repaint events together and come up with the minimal number of
+events need to correctly repaint the screen.
+
+don't reprocess until it's time to start consuming. that way we can generate lots of
+repaint events during non-draw processing and only process them once. If a paint
+event causes another repaint to occur, it's going to require another reprocessing,
+but this won't happen very often.
+
+1. convert all window-relative repaint events into framebuffer-relative events
+2. for each framebuffer, unionize the rects for all events. you'll get a single rectangle
+that needs to be repainted for this framebuffer. This is a poor-mans repaint algorithm.
+3. starting from the top level, search all siblings in zorder and see if they intersect the window.
+4. if any do, check if they have children which opaquely cover the region. if they do
+not, this window needs a repaint event. add it to the queue.
+5. repeat for all children for windows that intersect.
+
+at the end, you'll have a queue of window-relative repaint events in correct zorder.

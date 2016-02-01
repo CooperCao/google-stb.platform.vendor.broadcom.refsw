@@ -1,0 +1,74 @@
+// Broadcom BSG effect file
+
+OPTIONS
+{
+	SortOrder = BACK_TO_FRONT;
+}
+
+PASS 0
+{
+	SEMANTICS
+	{
+		a_position		= VATTR_POSITION;
+		a_character		= VATTR_USER;
+		u_size			= SCALAR_USER;
+		u_tlut			= VECTOR4_USER;
+		u_color			= VECTOR4_USER;
+	}
+
+	STATE
+	{
+		EnableBlend = true;
+		BlendFunc = SRC_ALPHA, ONE_MINUS_SRC_ALPHA;
+		EnableDepthTest = false;
+	}
+
+	SAMPLER_2D u_tex
+	{
+		Unit = 0;
+		Wrap = CLAMP, CLAMP;
+		Filter = LINEAR, LINEAR;
+	}
+
+	VERTEX_SHADER
+	{
+		attribute	vec4	a_position;
+		attribute	float	a_character;
+		uniform		float	u_size[128];
+		uniform		vec4	u_tlut[128];
+		varying		vec2	start_position;
+		varying		vec2	scale;
+
+		void main()
+		{
+		  int i = int(max(0.0, min(a_character, 128.0)));
+		  gl_PointSize = u_size[i];
+		  gl_Position = (a_position - 0.5) * 2.0;
+
+		  vec4 lut = u_tlut[i];
+		  start_position = lut.xy;
+		  scale = lut.zw;
+		}
+	}
+
+	FRAGMENT_SHADER
+	{
+		precision mediump float;
+
+		uniform sampler2D	u_tex;
+		uniform	vec4		u_color;
+		varying vec2		start_position;
+		varying vec2		scale;
+
+		void main()
+		{
+			vec2 tc = (gl_PointCoord * scale) + start_position;
+			vec4 col = texture2D(u_tex, tc);
+			if (col.r < 0.01)
+				discard;
+			col.a = col.r * u_color.a;
+			col.rgb = u_color.rgb;
+			gl_FragColor = col;
+		}
+	}
+}

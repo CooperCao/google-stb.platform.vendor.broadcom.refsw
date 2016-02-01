@@ -1,0 +1,81 @@
+// Broadcom BSG effect file
+
+OPTIONS
+{
+    SortOrder = NONE;
+}
+
+PASS 0
+{
+    SEMANTICS
+    {
+        u_mvpMatrix  = MATRIX4_MODEL_VIEW_PROJECTION;
+        u_mvitMatrix = MATRIX3_INVT_MODEL_VIEW;
+        u_mvMatrix   = MATRIX4_MODEL_VIEW;
+        u_color      = VECTOR4_USER;
+        a_position   = VATTR_POSITION;
+        a_normal     = VATTR_NORMAL;
+        a_colorTC    = VATTR_TEXCOORD1;
+    }
+
+    STATE
+    {
+        EnableBlend     = false;
+        EnableDepthTest = true;
+    }
+
+    SAMPLER_2D u_lightingTex
+    {
+        Unit   = 0;
+        Wrap   = CLAMP, CLAMP;
+        Filter = LINEAR_MIPMAP_LINEAR, LINEAR;
+    }
+
+    SAMPLER_2D u_colorTex
+    {
+        Unit   = 1;
+        Wrap   = CLAMP, CLAMP;
+        Filter = LINEAR_MIPMAP_LINEAR, LINEAR;
+    }
+
+    VERTEX_SHADER
+    {
+        uniform        mat4    u_mvpMatrix;
+        uniform        mat4    u_mvMatrix;
+        uniform        mat3    u_mvitMatrix;
+        attribute      vec4    a_position;
+        attribute      vec3    a_normal;
+        attribute      vec2    a_colorTC;
+        varying        vec2    v_reflect;
+        varying        vec2    v_colorTC;
+
+        void main()
+        {
+            // Fake reflection calculation
+            vec3 N      = u_mvitMatrix * a_normal;
+            v_reflect   = N.xy;
+            v_colorTC   = a_colorTC;
+            
+            gl_Position = u_mvpMatrix * a_position;
+        }
+    }
+
+    FRAGMENT_SHADER
+    {
+        precision mediump float;
+
+        uniform sampler2D  u_lightingTex;
+        uniform sampler2D  u_colorTex;
+        uniform vec4       u_color;
+        varying vec2       v_reflect;
+        varying vec2       v_colorTC;
+
+        void main()
+        {
+            vec2 lightingTC = (v_reflect + vec2(1.0)) * vec2(0.5);
+
+            gl_FragColor = u_color * 1.25 * (0.5 * texture2D(u_colorTex, v_colorTC) + 0.5 * texture2D(u_lightingTex, lightingTC));
+        }
+    }
+}
+

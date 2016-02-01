@@ -1,0 +1,43 @@
+/***************************************************************************
+ *     Copyright (c) 1999-2013, Broadcom Corporation
+ *     All Rights Reserved
+ *     Confidential Property of Broadcom Corporation
+ *
+ *
+ * THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
+ * AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
+ * EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *
+ * $brcm_Workfile: $
+ * $brcm_Revision: $
+ * $brcm_Date: $
+ *
+ * Module Description:
+ *
+ * Revision History:
+ *
+ * $brcm_Log: $
+ *
+ ***************************************************************************/
+
+#ifndef BMXT_RDB_DCBG__
+#define BMXT_RDB_DCBG__
+
+const unsigned BMXT_NUMELEM_DCBG_45308[]  = {32, 32, 28, 32, 32, 32,  8, 32, 32,  8, 32, };
+const unsigned BMXT_STEPSIZE_DCBG_45308[] = {16, 28,  8,  8, 12, 36, 32,  8,  8,  8,  8, };
+
+const uint32_t BMXT_REGOFFSETS_DCBG_45308[] = { \
+0x00000000, 0x00000050, 0x000000d0, 0x000000d4, 0x000000e0, 0x000000e4, 0x000000e8, 0x000000ec, \
+0x000002e0, 0x000002e4, 0x000002e8, 0x000002ec, 0x000002f0, 0x000002f4, 0x000002f8, 0x00000660, \
+0x00000664, 0x00000668, 0x0000066c, 0x00000670, 0x00000750, 0x00000754, 0x00000758, 0x0000075c, \
+0x00000760, 0x00000764, 0x00000768, 0x0000076c, 0x00000770, 0x00000774, 0x00000778, 0x0000077c, \
+0x00000780, 0x00000784, 0x00000788, 0x0000078c, 0x00000790, 0x00000810, 0x00000890, 0x00000910, \
+0x00000990, 0x00000a10, 0x00000a90, 0x00000a94, 0x00000b90, 0x00000b94, 0x00000b98, 0x00000d10, \
+0x00000d14, 0x00000d18, 0x00000d1c, 0x00000d20, 0x00000d24, 0x00000d28, 0x00000d2c, 0x00000d30, \
+0x00001190, 0x00001194, 0x00001198, 0x0000119c, 0x000011a0, 0x000011a4, 0x000011a8, 0x000011ac, \
+0x00001290, 0x00001294, 0x00001390, 0x00001394, 0x00001490, 0x00001494, 0x00001650, 0x00001654, \
+};
+
+const uint32_t BMXT_REGBASE_DCBG_45308 = 0x071008b0;
+
+#endif

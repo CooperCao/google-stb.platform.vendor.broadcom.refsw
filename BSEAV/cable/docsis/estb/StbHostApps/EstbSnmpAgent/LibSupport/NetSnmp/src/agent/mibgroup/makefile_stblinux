@@ -1,0 +1,160 @@
+#############################################################################
+# (c) 2003-2015 Broadcom Corporation
+#
+# This program is the proprietary software of Broadcom Corporation and/or its
+# licensors, and may only be used, duplicated, modified or distributed pursuant
+# to the terms and conditions of a separate, written license agreement executed
+# between you and Broadcom (an "Authorized License").  Except as set forth in
+# an Authorized License, Broadcom grants no license (express or implied), right
+# to use, or waiver of any kind with respect to the Software, and Broadcom
+# expressly reserves all rights in and to the Software and all intellectual
+# property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#
+# Except as expressly set forth in the Authorized License,
+#
+# 1. This program, including its structure, sequence and organization,
+#    constitutes the valuable trade secrets of Broadcom, and you shall use all
+#    reasonable efforts to protect the confidentiality thereof, and to use
+#    this information only in connection with your use of Broadcom integrated
+#    circuit products.
+#
+# 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+#    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+#    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+#    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+#    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+#    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+#
+# 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+#    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+#    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+#    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+#    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+#    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+#    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+#
+#############################################################################
+
+#****************************************************************************
+#
+#  Filename:       makefile_stblinux
+#  Author:         T. Clack
+#  Creation Date:  11/10/03
+#  Modified:       Maurice Turcotte (for mips little endian Linux)
+#
+#****************************************************************************
+#  Description:
+#      The makefile for the eSTB libnetsnmpmibs_linux.a library.
+#
+#****************************************************************************
+
+#####################################################################
+
+TOP_DIR   = ../../../../..
+LIB_SUPPORT_DIR = $(TOP_DIR)/LibSupport
+NETSNMP_INC_DIR = $(LIB_SUPPORT_DIR)/NetSnmp/include
+NETSNMP_LIB_DIR = $(LIB_SUPPORT_DIR)/NetSnmp
+
+CROSSDEV_ROOT ?= /opt/toolchains/settop
+
+#####################################################################
+# Linux build
+#####################################################################
+DEFS_FILE =  $(TOP_DIR)/cm_bsp_v2/bsp_common/os/stb_linux/makeinc/defs.bsp
+
+#include $(DEFS_FILE)
+
+
+EXTRA_INCLUDE += -I.
+EXTRA_INCLUDE += -I$(CROSSDEV_ROOT)/include
+
+MIB_LIB  = libnetsnmpmibs_linux.a.gcc$(GCC_VERSION).$(GCC_MINOR_VERSION)
+
+ifeq ($(B_REFSW_ARCH), arm-linux)
+ARCH=arm
+else
+ARCH=mipsel
+endif
+
+SED             = sed
+RANLIB          = $(CROSSDEV_ROOT)/bin/$(ARCH)-linux-ranlib
+LN_S            = ln -s
+MY_AR = $(AR)
+CFLAGS  +=  -DTARGETOS_stblinux -Dlinux
+CC              = $(CROSSDEV_ROOT)/bin/$(ARCH)-linux-gcc
+
+## end of Linux specific stuff #######################################
+
+
+
+#MIB_OBJS = $(subst .c,.o, $(wildcard *.c))
+
+MIB_OBJS  = header_complex.o util_funcs.o
+MIB_OBJS += mibII/vacm_context.o mibII/vacm_vars.o mibII/snmp_mib.o
+MIB_OBJS += notification/snmpNotifyFilterProfileTable.o notification/snmpNotifyFilterTable.o notification/snmpNotifyTable.o
+MIB_OBJS += snmpv3/snmpEngine.o snmpv3/snmpMPDStats.o snmpv3/usmStats.o snmpv3/usmUser.o  
+MIB_OBJS += target/snmpTargetAddrEntry.o target/snmpTargetParamsEntry.o target/target.o target/target_counters.o
+
+#MIB_OBJS += dot1d/dot1dBase.o dot1d/dot1dBasePortTable.o dot1d/dot1dTp.o 
+#MIB_OBJS += dot1d/dot1dTpFdbTable.o dot1d/dot1dTpPortTable.o 
+#MIB_OBJS += docsis/docsDevBase.o docsis/docsDevNmAccessTable.o docsis/docsDevSoftware.o
+#MIB_OBJS += docsis/docsDevServer.o docsis/docsDevEvent.o docsis/docsDevEvControlTable.o 
+#MIB_OBJS += docsis/docsDevEventTable.o docsis/docsDevFilter.o docsis/docsDevFilterLLCTable.o 
+#MIB_OBJS += docsis/docsDevFilterIpTable.o docsis/docsDevFilterPolicyTable.o docsis/docsDevFilterTosTable.o 
+#MIB_OBJS += docsis/docsDevCpe.o docsis/docsDevCpeTable.o docsis/docsIfDownstreamChannelTable.o 
+#MIB_OBJS += docsis/docsIfUpstreamChannelTable.o docsis/docsIfQosProfileTable.o 
+#MIB_OBJS += docsis/docsIfSignalQualityTable.o docsis/docsIfCmMacTable.o 
+#MIB_OBJS += docsis/docsIfCmStatusTable.o docsis/docsIfCmServiceTable.o docsis/docsBpiCmBaseTable.o 
+#MIB_OBJS += docsis/docsBpiCmTEKTable.o 
+
+#MIB_OBJS += mibII/system.o 
+#MIB_OBJS += mibII/at.o mibII/icmp.o mibII/interfaces.o mibII/ip.o mibII/ipAddr.o
+#MIB_OBJS += mibII/ipv6.o mibII/kernel_linux.o mibII/route_write.o mibII/setSerialNo.o
+#MIB_OBJS += mibII/tcp.o mibII/tcpTable.o mibII/udp.o mibII/udpTable.o
+#MIB_OBJS += mibII/sysORTable.o mibII/var_route.o
+ 
+
+
+
+		   	  		   
+EXTRA_INCLUDE += -I$(NETSNMP_INC_DIR)
+EXTRA_INCLUDE += -Imibgroup
+
+
+CFLAGS  += -DUSE_OPENSSL=1
+
+
+$(MIB_LIB) : $(MIB_OBJS)
+#	echo objs $(MIB_OBJS)
+#	echo lib  $(MIB_LIB)
+	$(MY_AR) cru $(MIB_LIB) $?
+	$(RANLIB) $(MIB_LIB) 
+        
+	cp $(MIB_LIB) $(NETSNMP_LIB_DIR)/$(MIB_LIB)
+
+
+%.o : %.s
+	@ $(RM) $@
+	$(CC) $(CFLAGS_AS) -c -o $@ $< 
+
+%.o : %.c 
+	@ $(RM) $@
+	$(CC) $(CFLAGS) $(EXTRA_INCLUDE) -c -o $@ $<
+
+clean:
+	- $(RM) $(MIB_LIB)
+	- $(RM) *.o
+	- $(RM) mibII/*.o
+	- $(RM) notification/*.o
+	- $(RM) snmpv3/*.o
+	- $(RM) target/*.o
+	- $(RM) $(NETSNMP_LIB_DIR)/$(MIB_LIB)
+
+
+
+

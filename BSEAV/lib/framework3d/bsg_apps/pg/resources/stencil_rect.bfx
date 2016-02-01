@@ -1,0 +1,49 @@
+// Broadcom BSG effect file
+
+OPTIONS
+{
+    SortOrder = FRONT_TO_BACK;
+}
+
+PASS 0
+{
+    SEMANTICS
+    {
+        u_mv        = MATRIX4_MODEL_VIEW;
+        u_proj      = MATRIX4_PROJECTION;
+        a_position  = VATTR_POSITION;
+    }
+
+    STATE
+    {
+        EnableDepthTest    = false;
+        EnableBlend        = false;
+        DepthMask          = false;
+        ColorMask          = false, false, false, false;
+        EnableStencilTest  = true;
+        StencilOp          = REPLACE, REPLACE, REPLACE;
+        StencilFunc        = ALWAYS, 0, 255;
+    }
+
+    VERTEX_SHADER
+    {
+        uniform     mat4    u_mv;
+        uniform     mat4    u_proj;
+        attribute   vec4    a_position;
+
+        void main()
+        {
+            gl_Position = u_proj * u_mv * a_position;
+        }
+    }
+
+    FRAGMENT_SHADER
+    {
+        precision mediump float;
+
+        void main()
+        {
+            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        }
+    }
+}

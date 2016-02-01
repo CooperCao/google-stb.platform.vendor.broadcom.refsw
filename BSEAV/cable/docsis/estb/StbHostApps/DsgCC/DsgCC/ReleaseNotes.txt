@@ -1,0 +1,157 @@
+//**************************************************************************
+//
+//    Copyright 2000-2004 Broadcom Corporation
+//    All Rights Reserved
+//    No portions of this material may be reproduced in any form without the
+//    written permission of:
+//             Broadcom Corporation
+//             16251 Laguna Canyon Road
+//             Irvine, California  92618
+//    All information contained in this document is Broadcom Corporation
+//    company private, proprietary, and trade secret.
+//
+//**************************************************************************
+//    Filename:      ReleaseNotes.txt
+//    Author:        Pinar Taskiran
+//    Creation Date: December 27, 2004
+//
+//**************************************************************************
+//    Description:
+//        Release notes for the files in the "DsgCC" bproject.
+//		
+//**************************************************************************
+
+Changed the implementation of wait_for_ecm_response(..) function to 
+support vxWorks builds. Now using recvfrom with a timeout using select() 
+instead of using recvfrom with a timeout using the SO_RCVTIMEO socket option. 
+	Stb\StbDocsisApi\Dsg\EstbRemoteInterfaceStub.c 1.56
+	\StbApp_DsgCC\makeinc\dsgccbsp.inc	1.3
+
+Fixed bugs that occurred as a result of the recent changes to the Client 
+Manager multimap container. Please note that the second element type of the 
+multimap container has changed from BcmDsgClient object to a pointer to 
+BcmDsgClient object. DsgClientRegistrar thread object stores the client 
+information in its list. If client settings are stored in nonvol and read 
+from nonvol upon initialization DsgClientRegistrar object's list must be 
+populated after DsgClientRegistrar object is created.
+
+	DsgCC/DsgClientCtlThread.cpp v1.129
+	DsgCC/EstbTestNonVolSettings.cpp 1.4
+	DsgCC\ClientInterface\DsgClientRegistrar.cpp 1.10
+	DsgCC\ClientInterface\DsgClientRegistrar.h 1.6
+
+Added DCD error check for subset rules back.
+	DsgCC/DcdMsg.cpp 1.18
+
+Fixed IsSubsetOrDefected() method which is used to find 
+the DSG rules that are subsets of other DSG rules when validating a DCD.
+	DsgCC/DsgEstbTunnelSettingsList.cpp 1.3
+
+Fixed bugs that occurred as a result of the recent changes 
+to the Client Manager multimap container. Please note that the 
+second elemnet type of the multimap has changed from BcmDsgClient 
+object to a pointer to BcmDsgClient object. DsgClientRegistrar 
+thread object stores the client information in its list.
+Client Manager's multimap contains pointers to the BcmDsgClient 
+objects in DsgClientRegistrar's list. DsgClientRegistrar Thread object
+is responsible for creating and deleting memory  for BcmDsgClient 
+objects. USE BcmDsgClientRegistrarThread::GetSingletonInstance()->addDsgClient() 
+to add clients. All add/delete must go through BcmDsgClientRegistrarThread object.
+
+	DsgCC/DsgClientCtlThread.cpp v1.128
+	DsgCC/DsgClientManager.cpp	 v1.26
+	DsgCC/DsgCommandTable.cpp	 v1.37
+
+Fixed DSG-CC build error caused by PR9192 fix.
+
+	Stb/EstbNonVolDefaults.h				1.17
+	Stb/EstbNonVolSettings.cpp				1.38
+
+Fixed eCM-eSTB DSG BASIC mode synchronization problem for 
+Dual Process design. The same problem was fixed for 
+Dual Processor design in version 1.123 of this file.
+
+	DsgCC/DsgClientCtlThread.cpp v1.117
+
+====== Version 1.1.1p ===================================================================
+
+
+====== Version 1.1.1n ===================================================================
+
+PR9105: There are certain cases when eCM does not realize
+it needs to reset its tunnel list. DSG-CC must use API call to close eCM's tunnels.
+
+	DsgCC/DsgClientCtlThread.cpp v1.112
+	DsgCC/DsgClientCtlThread.cpp v1.50
+
+PR9023: Implemented the  request to make DSG tunnels persistant across reboots.
+
+	Added new files;
+
+	EstbTestNonVolSettingsCommandTable.cpp
+	EstbTestNonVolSettingsCommandTable.h
+	EstbTestNonVolSettings.cpp
+	EstbTestNonVolSettings.h
+
+	Files changed:
+	DsgCC/DsgClientCtlThread.cpp v1.111
+	DsgCC/DsgClientCtlThread.cpp v1.49
+
+	DsgCC/DsgCommandTable.cpp v1.35
+	DsgDownloadCtlThread.cpp 1.24
+	DsgCC/ClientInterface/DsgClient.cpp v1.35
+	DsgCC/ClientInterface/DsgClient.cpp v1.18
+
+	\StbApp_DsgCC\CmAppCompositeNonVolCommandTable.cpp 1.2
+	\StbApp_DsgCC\CmAppCompositeNonVolCommandTable.h   1.2
+	\StbApp_DsgCC\CmAppCompositeNonVolSettings.cpp     1.3
+	\StbApp_DsgCC\CmApplication.cpp 1.23
+
+	StbApp_DsgCC\makeinc\dsgcc.inc 1.43
+
+
+PR9091: Close tunnels whenever mode is changed.
+	DsgCC/DsgClientCtlThread.cpp v1.110
+
+Updated ipaddress_show command to display etho and eth1 IP addresses.
+
+	DsgCC/DsgCommandTable.cpp v1.32
+
+====== Version 1.1.1m ===================================================================
+
+PR8929: Updated to properly detect eCM reset. When dsg-cc detects that the link is
+down, it will speed up its recovery method by cutting the polling timeout value in half
+until link is up.
+ 
+	DsgCC/DsgClientCtlThread.cpp v1.106
+
+
+====== Version 1.1.1l ===================================================================
+
+PR8929: Added code to detect CM reset in DOCSIS-only mode.
+ 
+	DsgCC/DsgClientCtlThread.cpp v1.102
+
+PR9041: When full scan fails do not switch mode until all 
+retries are exhausted.
+
+	DsgCC/DsgClientCtlThread.cpp v1.103
+	DsgCC/DsgClientCtlThread.h   1.47
+
+====== Version 1.1.1k ===================================================================
+
+PR 8605: DSG-N-05.205 expands the definition 
+of the Broadcast Tunnel Client ID TLV.
+
+Added capability to the DCD parser to read DSG Broadcast ID TLV of length 2 and of length 0.
+Added new client id value for SCTE-65 tunnel search.
+  
+	DsgCC/DsgClientId.cpp v1.14
+	DsgCC/DsgClientId.h   v1.7
+	DsgCC/DsgCommandTable.cpp v1.28
+	DsgCC/ClientInterface/DsgClient.cpp v1.32
+	DsgCC/DsgEstbTunnelSettings.cpp v1.7
+	DsgCC/ClientInterface/SampleApp/Linux/dsgClient.c v1.10
+
+
+

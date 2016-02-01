@@ -1,0 +1,15 @@
+echo " "
+echo "Generating dsgTestClient RPC code ...Execute Common/genCommonRpcCode if you have not already done so..."
+
+echo " "
+rm dsgccClientRegistration_rpcClient_Stub.c dsgccClientCallback_rpcServer_Stub.c 
+echo " "
+echo "Removed old dsg client RPC code ......"
+echo " "
+rpcgen -l -o dsgccClientRegistration_rpcClient_Stub.c ../Common/dsgccClientRegistration_rpc.x
+rpcgen -m -o dsgccClientCallback_rpcServer_Stub.c ../Common/dsgccClientCallback_rpc.x
+
+echo "Generated new dsgcc RPC code ......"
+ls -sla 
+
+echo " "

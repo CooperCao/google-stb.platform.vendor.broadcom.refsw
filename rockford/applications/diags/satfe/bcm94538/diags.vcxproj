@@ -1,0 +1,228 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <SccProjectName>
+    </SccProjectName>
+    <SccLocalPath>
+    </SccLocalPath>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>.\Release\</OutDir>
+    <IntDir>.\Release\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>.\Debug\</OutDir>
+    <IntDir>.\Debug\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <Optimization>MaxSpeed</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <WarningLevel>Level3</WarningLevel>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>..\..\..\..\..;..\..\..\..\..\magnum\commonutils\mth\include;..\..\..\..\..\magnum\commonutils\fec\include;..\..\..\..\..\magnum\basemodules\std;..\..\..\..\..\magnum\basemodules\std\types\generic;..\..\..\..\..\magnum\basemodules\std\config;..\..\..\..\..\magnum\basemodules\err;..\..\..\..\..\magnum\basemodules\dbg;..\..\..\..\..\magnum\basemodules\kni\generic;..\..\..\..\..\magnum\commonutils\lst;..\..\..\..\..\magnum\basemodules\chp\include\common;..\..\..\..\..\magnum\basemodules\chp\include\4538\rdb\hab\b0;..\..\..\..\..\magnum\basemodules\chp\include\4538\rdb\b0;..\..\..\..\..\magnum\basemodules\chp\include\3447\rdb\b0;..\..\..\..\..\magnum\basemodules\reg;..\..\..\..\..\magnum\basemodules\int;..\..\..\..\..\magnum\portinginterface\ast\include\common;..\..\..\..\..\magnum\portinginterface\ast\include\4538;..\..\..\..\..\magnum\portinginterface\ast\src\common;..\..\..\..\..\magnum\portinginterface\ast\src\4538;..\..\..\..\..\magnum\portinginterface\wfe\src\common;..\..\..\..\..\magnum\portinginterface\wfe\src\4538;..\..\..\..\..\magnum\portinginterface\wfe\include\common;..\..\..\..\..\magnum\portinginterface\wfe\include\4538;..\..\..\..\..\magnum\portinginterface\fsk\src\common;..\..\..\..\..\magnum\portinginterface\fsk\src\4538;..\..\..\..\..\magnum\portinginterface\fsk\include\common;..\..\..\..\..\magnum\portinginterface\fsk\include\4538;..\..\..\..\..\magnum\portinginterface\mxt\src;..\..\..\..\..\magnum\portinginterface\mxt\include;..\..\..\..\..\rockford\applications\diags\satfe\bcm94538;..\..\..\..\..\rockford\applications\diags\satfe;..\..\..\..\..\rockford\applications\diags\satfe\4538;..\..\..\..\..\magnum\basemodules\hab\include\common;..\..\..\..\..\magnum\basemodules\hab\include\4538;..\..\..\..\..\magnum\basemodules\hab\src\leapsatfe\4538;..\..\..\..\..\magnum\basemodules\hab\src\common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;WIN32;_CONSOLE;BDBG_DEBUG_BUILD;_DEBUG;BCHP_CHIP=4538;BCHP_VER=B0;BSTD_CPU_ENDIAN=BSTD_ENDIAN_BIG;PC_HOST;__STDC_CONSTANT_MACROS;BAST_DEBUG;BAST_DONT_USE_INTERRUPT;a0=0;a1=1;b0=65536;BAST_4538_VER=b0;BHAB_DONT_USE_INTERRUPT;SATFE_USE_BFSK;BFSK_PROTOCOL_ECHO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>.\Release\</AssemblerListingLocation>
+      <BrowseInformation>true</BrowseInformation>
+      <PrecompiledHeaderOutputFile>.\Release\diags.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <ObjectFileName>.\Release\</ObjectFileName>
+      <ProgramDataBaseFileName>.\Release\</ProgramDataBaseFileName>
+      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+    </ClCompile>
+    <PostBuildEvent>
+      <Command>copy Release\diags.exe S:\refsw\myrepo\AP\satfe\release\diags_94538</Command>
+      <Message>installing diags in S:\refsw\myrepo\AP\satfe\release\diags_94538</Message>
+    </PostBuildEvent>
+    <Midl>
+      <TypeLibraryName>.\Release\diags.tlb</TypeLibraryName>
+    </Midl>
+    <ResourceCompile>
+      <Culture>0x0409</Culture>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\Release\diags.bsc</OutputFile>
+    </Bscmake>
+    <Link>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <OutputFile>.\Release\diags.exe</OutputFile>
+      <AdditionalDependencies>ws2_32.lib;odbc32.lib;odbccp32.lib;msvcrtd.lib;ftd2xx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <Optimization>MaxSpeed</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <WarningLevel>Level3</WarningLevel>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>..\..\..\..\..\magnum\basemodules\std;..\..\..\..\..\magnum\basemodules\std\types\generic;..\..\..\..\..\magnum\basemodules\std\config;..\..\..\..\..\magnum\basemodules\err;..\..\..\..\..\magnum\basemodules\dbg;..\..\..\..\..\magnum\basemodules\kni\win32;..\..\..\..\..\magnum\commonutils\lst;..\..\..\..\..\magnum\basemodules\chp\include\common;..\..\..\..\..\magnum\basemodules\chp\include\4538\rdb\a0;..\..\..\..\..\magnum\basemodules\reg;..\..\..\..\..\magnum\basemodules\int;..\..\..\..\..\magnum\portinginterface\ast;..\..\..\..\..\magnum\portinginterface\ast\4538;..\..\..\..\..\magnum\portinginterface\ast\4538\microcode;..\..\..\..\..\rockford\applications\diags\satfe\bcm94538;..\..\..\..\..\rockford\applications\diags\satfe;..\..\..\..\..\rockford\applications\diags\satfe\4538;..\..\..\..\..\magnum\basemodules\hab;..\..\..\..\..\magnum\basemodules\hab\4538;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;NDEBUG;WIN32;_CONSOLE;BDBG_DEBUG_BUILD;BCHP_CHIP=4538;BCHP_VER=A0;BSTD_CPU_ENDIAN=BSTD_ENDIAN_BIG;PC_HOST;__STDC_CONSTANT_MACROS;BAST_DEBUG;BAST_DONT_USE_INTERRUPT;a0=0;a1=1;b0=65536;BAST_4517_VER=a0;BHAB_DONT_USE_INTERRUPT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>.\Debug\</AssemblerListingLocation>
+      <BrowseInformation>true</BrowseInformation>
+      <PrecompiledHeaderOutputFile>.\Debug\diags.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <ObjectFileName>.\Debug\</ObjectFileName>
+      <ProgramDataBaseFileName>.\Debug\</ProgramDataBaseFileName>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+    </ClCompile>
+    <Midl>
+      <TypeLibraryName>.\Debug\diags.tlb</TypeLibraryName>
+    </Midl>
+    <ResourceCompile>
+      <Culture>0x0409</Culture>
+      <PreprocessorDefinitions>_DEBUG;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\Debug\diags.bsc</OutputFile>
+    </Bscmake>
+    <Link>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <OutputFile>.\Debug\diags.exe</OutputFile>
+      <AdditionalDependencies>ws2_32.lib;odbc32.lib;odbccp32.lib;msvcrtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\magnum\basemodules\hab\src\leapsatfe\4538\bhab_4538_fw_b0.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\basemodules\reg\breg_spi.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\commonutils\mth\src\bmth.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\commonutils\mth\src\bmth_fix.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\commonutils\mth\src\bmth_fix_matrix.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\portinginterface\ast\src\common\bast.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\portinginterface\ast\src\4538\bast_4538.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\portinginterface\ast\src\4538\bast_4538_priv.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\basemodules\dbg\bdbg.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\basemodules\dbg\bdbg_fifo.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\basemodules\dbg\win32\bdbg_os_priv.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\basemodules\dbg\bdbg_output.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\basemodules\hab\src\common\bhab.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\basemodules\hab\src\leapsatfe\4538\bhab_4538.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\basemodules\hab\src\leapsatfe\4538\bhab_4538_priv.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\portinginterface\fsk\src\4538\bfsk_4538.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\portinginterface\fsk\src\4538\bfsk_4538_priv.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\portinginterface\fsk\src\common\bfsk.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\portinginterface\wfe\src\4538\bwfe_4538.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\portinginterface\wfe\src\4538\bwfe_4538_priv.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\portinginterface\wfe\src\common\bwfe.c" />
+    <ClCompile Include="..\satfe_fsk.c" />
+    <ClCompile Include="..\satfe_ftm.c" />
+    <ClCompile Include="bi2c.cpp" />
+    <ClCompile Include="..\..\..\..\..\magnum\basemodules\kni\win32\bkni_win32.c" />
+    <ClCompile Include="..\..\..\..\..\magnum\basemodules\reg\breg_i2c.c" />
+    <ClCompile Include="bspi.c" />
+    <ClCompile Include="diags.cpp" />
+    <ClCompile Include="..\satfe.c" />
+    <ClCompile Include="..\4538\satfe_4538.c" />
+    <ClCompile Include="..\satfe_data.c" />
+    <ClCompile Include="satfe_platform.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="diags.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\chp\include\3447\rdb\b0\bchp_3447.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\commonutils\fec\include\bfec.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\portinginterface\ast\include\common\bast.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\portinginterface\ast\include\4538\bast_4538.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\portinginterface\ast\src\4538\bast_4538_priv.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\portinginterface\ast\src\common\bast_priv.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\chp\include\common\bchp.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\chp\src\common\bchp_priv.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\dbg\bdbg.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\dbg\bdbg_app.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\dbg\bdbg_fifo.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\dbg\bdbg_log.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\dbg\bdbg_os_priv.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\dbg\bdbg_priv.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\err\berr.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\err\berr_ids.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\hab\include\common\bhab.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\hab\include\4538\bhab_4538.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\hab\include\4538\bhab_4538_fw.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\hab\src\leapsatfe\4538\bhab_4538_priv.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\hab\src\common\bhab_priv.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\portinginterface\fsk\include\4538\bfsk_4538.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\portinginterface\fsk\include\common\bfsk.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\portinginterface\fsk\src\4538\bfsk_4538_priv.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\portinginterface\fsk\src\common\bfsk_priv.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\portinginterface\wfe\include\4538\bwfe_4538.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\portinginterface\wfe\include\bwfe.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\portinginterface\wfe\src\4538\bwfe_4538_priv.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\portinginterface\wfe\src\common\bwfe_priv.h" />
+    <ClInclude Include="..\satfe_fsk.h" />
+    <ClInclude Include="..\satfe_ftm.h" />
+    <ClInclude Include="bi2c.h" />
+    <ClInclude Include="bi2c_priv.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\int\bint.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\kni\generic\bkni.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\kni\generic\bkni_multi.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\reg\breg_i2c.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\reg\breg_i2c_priv.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\std\bstd.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\std\config\bstd_cfg.h" />
+    <ClInclude Include="..\..\..\..\..\magnum\basemodules\std\types\generic\bstd_defs.h" />
+    <ClInclude Include="Resource.h" />
+    <ClInclude Include="..\satfe.h" />
+    <ClInclude Include="..\4538\satfe_4538.h" />
+    <ClInclude Include="satfe_platform.h" />
+    <ClInclude Include="StdAfx.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="ReadMe.txt" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

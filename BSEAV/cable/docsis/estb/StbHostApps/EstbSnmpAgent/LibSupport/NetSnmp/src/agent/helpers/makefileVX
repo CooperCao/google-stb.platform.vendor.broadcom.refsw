@@ -1,0 +1,82 @@
+#****************************************************************************
+#
+#  Copyright (c) 2008 Broadcom Corporation
+#  All Rights Reserved
+#  No portions of this material may be reproduced in any form without the
+#  written permission of:
+#          Broadcom Corporation
+#          16215 Alton Parkway
+#          Irvine, California 92618
+#  All information contained in this document is Broadcom Corporation
+#  company private, proprietary, and trade secret.
+#
+#****************************************************************************
+#
+#  Filename:       makefileVX
+#  Author:         T. Clack
+#  Creation Date:  10/27/03
+#
+#****************************************************************************
+#  Description:
+#      The makefile for the libnetsnmphelpers_vxworks.a library.
+#
+#****************************************************************************
+
+
+TGT_DIR=$(WIND_BASE)/target
+include $(TGT_DIR)/h/make/defs.default
+include $(TGT_DIR)/h/make/make.RC32364sfgnu
+include $(TGT_DIR)/h/make/defs.$(WIND_HOST_TYPE)
+
+#HLP_OBJS = $(subst .c,.o, $(wildcard *.c))
+
+HLP_OBJS  = all_helpers.o multiplexer.o read_only.o 
+HLP_OBJS += bulk_to_next.o instance.o scalar.o 
+HLP_OBJS += watcher.o null.o debug_handler.o  
+HLP_OBJS += old_api.o serialize.o table_array.o 
+HLP_OBJS += table_iterator.o table_data.o table_dataset.o 
+HLP_OBJS += table.o mode_end_call.o 
+
+
+LIB_SUPPORT_DIR = ..\..\..\..\..\..\LibSupport
+LIBS_DIR = $(LIB_SUPPORT_DIR)\NetSnmp
+
+HLP_LIB  = libnetsnmphelpers_vxworks.a
+
+
+EXTRA_INCLUDE  = -I. \
+                 -IT:/Tornado-wm/target/h
+		  
+EXTRA_INCLUDE += -I$(LIBS_DIR)\include
+EXTRA_INCLUDE += -I../..
+
+EXTRA_DEFINE   = -DVXWORKS=1
+
+COPTS = 
+EXTRA_DEFINE += $(COPTS)
+
+
+$(HLP_LIB) : $(HLP_OBJS)
+#	echo objs $(HLP_OBJS)
+#	echo lib  $(HLP_LIB)
+	armips cru $(HLP_LIB) $?
+        
+	copy $(HLP_LIB) $(LIBS_DIR)\$(HLP_LIB)
+
+
+%.o : %.s
+	@ $(RM) $@
+	$(CC) $(CFLAGS_AS) -c -o $@ $< 
+
+%.o : %.c 
+	@ $(RM) $@
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+clean:
+	- $(RM) *.a
+	- $(RM) *.o
+	- $(RM) $(LIBS_DIR)\$(HLP_LIB)
+
+
+
+

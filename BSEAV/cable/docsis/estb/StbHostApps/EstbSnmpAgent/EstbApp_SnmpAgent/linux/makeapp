@@ -1,0 +1,772 @@
+#!/bin/sh
+#****************************************************************************
+#
+# Copyright (c) 2007-2012 Broadcom Corporation
+#
+# This program is the proprietary software of Broadcom Corporation and/or
+# its licensors, and may only be used, duplicated, modified or distributed
+# pursuant to the terms and conditions of a separate, written license
+# agreement executed between you and Broadcom (an "Authorized License").
+# Except as set forth in an Authorized License, Broadcom grants no license
+# (express or implied), right to use, or waiver of any kind with respect to
+# the Software, and Broadcom expressly reserves all rights in and to the
+# Software and all intellectual property rights therein.  IF YOU HAVE NO
+# AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
+# AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
+# SOFTWARE.  
+#
+# Except as expressly set forth in the Authorized License,
+#
+# 1.     This program, including its structure, sequence and organization,
+# constitutes the valuable trade secrets of Broadcom, and you shall use all
+# reasonable efforts to protect the confidentiality thereof, and to use this
+# information only in connection with your use of Broadcom integrated circuit
+# products.
+#
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+# "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+# OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+# RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+# IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+# A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+# ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+# THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+#
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+# OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+# INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+# RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+# HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+# EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+# WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+# FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+#
+#****************************************************************************
+# File:       makeapp
+# Author:     Mike Sieweke
+
+function usage {
+   echo "This batch file is used to build the Linux Estb SNMP Agent application."
+   echo "Options can be entered in any order or not present"
+   echo
+   echo "Usage: makeapp [options...] [target]"
+   echo
+   echo "Options:"
+   echo "    type       = us or eu             ( default us )"
+   echo "    nobpi      = omit bpi support"
+   echo "    vendor     = vendor support"
+   echo "    debug      = Linux GDB support"
+   echo "    logging    = add packet logging support"
+   echo "    slim       = build reduced-size image without message logging"
+   echo "    80211      = add Broadcom 802.11 HAL support"
+   echo "    80211lib   = add Intersil 802.11 HAL support"
+   echo "    bluetooth  = add Bluetooth support"
+   echo "    nohpna     = omit HPNA support"
+   echo "    bsafe      = use bsafe library                        ( default openssl )"
+   echo "    cablehome  = CableHome support"
+   echo "    emta       = add EMTA support"
+   echo "    vpn        = add IPSEC support"
+   echo "    show       = show build parameters, but don't build"
+   echo "    c2         = use MiniLZO compression"
+   echo "    c3         = use best (slowest) NRV2D99 compression"
+   echo "    c6         = use fastest NRV2D99 compression          ( default )"
+   echo "    mac14 CW   = Build MAC14 test image for cert wave CW"
+   echo "    sto   REV  = Specify revision string for programstore in 2.4.0a format."
+   echo "    pid   PID  = use PID (4 hex digits) as ProgramStore signature"
+   echo "    telnet     = Telnet Server console support"
+   echo "    target     = Alternate build target"
+   echo "             clean      - clean build directory"
+   echo
+   echo "Examples:"
+   echo "    makeapp 7111 eu      - Build for European 7111."
+   echo "    makeapp 3730 sto 2.4.0c"
+}
+
+function success {
+   echo "#########################################"
+   echo "  $MAKE_BOARD $country completed successfully!"
+   echo "#########################################"
+   timer_end
+}
+
+function failure {
+   echo "#########################################"
+   echo "  $MAKE_BOARD Build failed!"
+   echo "#########################################"
+   timer_end
+}
+
+# Save the current time for the elapsed build time.
+function timer_start {
+   # To provide the elapsed time for a build, first save the current time.
+   s_time=`date '+%j %H %M %S'`
+}
+
+# Compute and print the elapsed build time.
+#    Input - s_time must be set by timer_start
+function timer_end {
+   # Get and print the elapsed time for this build job.
+   e_time=`date '+%j %H %M %S'`
+
+   echo "$e_time $s_time" | awk '{et=((($1*24+$2)*60+$3)*60+$4)-((($5*24+$6)*60+$7)*60+$8);es=et%60;em=int(et/60);printf ("\n---> Elapsed time  %dm %02ds\n\n",em,es)}'
+}
+
+# Parse the command line and set variables.
+#     Input:
+#        option_no_list      - options which default to "0"
+#        option_yes_list     - options which default to "1"
+#        option_default_list - options which default to "default"
+#        option_parm_list    - options which take required parameters
+#     Output:
+#        variables starting "opt_" for each option
+#        variables named "opt_*_parm" for options with parameters
+#        variables named "target" for optional target parameter
+#        variables named "country" for us/eu selection
+function parse {
+   # Set the defaults for all options.
+   for opt in $option_no_list ; do
+      eval opt_$opt=0
+   done
+
+   for opt in $option_yes_list ; do
+      eval opt_$opt=1
+   done
+
+   for opt in $option_default_list ; do
+      eval opt_$opt=default
+   done
+
+   for opt in $option_parm_list ; do
+      eval opt_$opt=0
+   done
+
+   target=""
+   country="us"
+
+   # For each parameter
+   while [ $# != 0 ] ; do
+      parm=$1
+      shift
+      valid=0
+      # Compare the parameter to each valid option.
+      for opt in $option_no_list $option_yes_list $option_default_list ; do
+         # If it matches, turn on the option.
+         if [ $parm == $opt ] ; then
+            eval opt_$opt=1
+            valid=1
+            break
+         fi
+         # If it matches in a negated form (nohpna), turn off the option.
+         if [ $parm == no$opt ] ; then
+            eval opt_$opt=0
+            valid=1
+            break
+         fi
+      done
+      if [ $valid == 0 ] ; then
+         # Compare the parameter to each valid board.
+         for check_board in $option_board_list ; do
+            if [ $parm == $check_board ] ; then
+			   eval board=$check_board
+               eval do_$board=1
+               valid=1
+               break
+            fi
+         done
+      fi
+      if [ $valid == 0 ] ; then
+         # Check for an option which requires a parameter.
+	     for opt in $option_parm_list ; do
+	        if [ $parm == $opt ] ; then
+		       if [ $# != 0 ] ; then
+			      eval opt_${opt}=1
+      		      eval opt_${opt}_parm=$1
+        		  valid=1
+			      shift
+			      break
+			   else
+			      echo "Error: Option $opt requires a parameter."
+			      exit
+		       fi
+            fi
+         done
+      fi
+      if [ $valid == 0 ] ; then
+         if [ "$target" == "" ] ; then
+	        target="$parm"
+	     else
+	        echo "Error: Invalid parameter(s): $target $parm"
+		    exit
+	     fi
+      fi
+   done
+}
+
+# ========================================================================
+# Set up for parsing.
+# ========================================================================
+
+help_list="/help -help --help help"
+
+# See if the user typed a help command.
+for h in $help_list ; do
+   if [ "$1" == "$h" ] ; then
+      usage
+      exit
+   fi
+done
+#if [ "$1" == "" ] ; then
+#   usage
+#   exit
+#fi
+
+
+# Options which default to "no", "yes", or "default".
+option_no_list="emta emtasim ipsec vpn c0 c1 c2 c3 c6 slim applib bluetooth core_estbsnmplib"
+option_no_list="${option_no_list} show vendor debug 80211 bsafe oms 16m cs"
+option_no_list="${option_no_list} links cablehome chnolib check verbose cablecard cacheopt telnet"
+option_yes_list="bpi snmp hh kerb cmhal"
+option_default_list="hpna emta factory"
+
+if [[ $GCC_VERSION == 4 ]] ; then
+option_no_list="${option_no_list} static"
+option_yes_list="${option_yes_list} nptl"
+else
+option_no_list="${option_no_list} nptl"
+option_yes_list="${option_yes_list} static"
+fi
+
+# Parse command options and set corresponding variables.
+parse $app_options $*
+
+
+# Now verify the parameter values.
+
+# If a target was not specified, use "Linux"
+if [ "$target" == "" ] ; then
+   target=Linux
+fi
+
+# Verify parameters for options that take parameters.
+
+# ========================================================================
+# All command-line parameters are verified, so configure build settings.
+# ========================================================================
+
+# Set all following definitions to be exported.  Any definitions above this
+# point won't show up in make.
+set -a
+
+if [ "$GCC_VERSION" -ge "4" ] && [ "$GCC_MINOR_VERSION" -ge "4" ]; then
+    GCC_ALT_LIBROOT=1
+else
+    GCC_ALT_LIBROOT=0
+fi
+
+BCM_VERBOSE=$opt_verbose
+
+BCM_OPTIMIZE_CACHE=$opt_cacheopt
+LINKER_SCRIPT=target.ld
+if [[ "$opt_cacheopt" == "1" ]] ; then
+   LINKER_SCRIPT=target.cacheopt.ld
+   CacheOptScript=CmUsDsTarget.cmapp.ld
+fi
+
+
+# Handle cache optimization; for Linux, we do this through the linker script
+# file.
+if [[ $BCM_OPTIMIZE_CACHE == 1 ]] ; then
+
+    echo " "
+    echo "cacheopt was specified; generating custom linker script file."
+    echo " "
+
+    # Verify the existance of the linker script file to be inserted into the
+    # primary linker script file.
+    if [[ -e $CacheOptScript ]] ; then
+
+        # Get rid of the custom linker script file, if it exists.
+        rm -f $LINKER_SCRIPT
+
+        # Loop over all of the lines in the primary linker script file,
+        # writing them to the custom linker script file.  If we come across
+        # the line of interest, insert the custom lines from the file that
+        # was set up by the top level script.
+        cat $CROSSDEV_ROOT/mipsel-linux/lib/ldscripts/elf32ltsmip.x | while read inputLine ; do
+
+            if [[ "$inputLine" == "*(.text .stub .text.* .gnu.linkonce.t.*)"* ]] ; then
+
+                cat $CacheOptScript >>$LINKER_SCRIPT
+
+            else
+
+            	echo "$inputLine" >>$LINKER_SCRIPT
+
+            fi
+
+        done
+
+    else
+
+        echo " "
+        echo "WARNING - cacheopt was selected but the CacheOptScript variable was not set to"
+        echo "          a valid script file.  Cache Optimization will be skipped."
+        echo "          CacheOptScript = $CacheOptScript"
+        echo " "
+
+        BCM_OPTIMIZE_CACHE=0
+        LINKER_SCRIPT=target.ld
+
+    fi
+
+fi
+
+# Place default parameters here...   All local variables should be lower
+# case.  Variables used in the make files should be upper case.
+
+# - Linux defaults
+TARGET_OS=Linux
+CPU=RC32364
+LINUX_VERSION=18
+
+BCM_CABLEHOME_SUPPORT=0
+BCM_KERBEROS_SUPPORT=0
+BCM_PACKET_LOGGING=0
+CACHE_WRITEBACK_MODE=0
+BCM_REDUCED_IMAGE_SIZE=0
+BCM_BOOT_LOADER_SUPPORT=0
+unset BCM_BALIB_CHANGE
+BCM_VENDOR_SUPPORT=0
+BCM_VENDOR_NONVOL_RESET=0
+BFC_INCLUDE_EDOCSIS_SLED_SUPPORT=0
+BCM_OLD_BOARDREV=0
+BCM_FIREWALL_ENABLED=0
+BCM_VENDOR_OMS=0
+BCM_RAM_SIZE=8
+
+BPI_SUPPORT_HARDWARE=0
+EMAC_CAM_INCLUDED=0
+
+CM_HAL_INCLUDED=0
+HPNA_HAL_INCLUDED=0
+USB_HAL_INCLUDED=0
+BLUETOOTH_HAL_INCLUDED=0
+WIFI80211_HAL_INCLUDED=0
+
+# BCM_IPSEC_SUPPORT/BPI_SUPPORT= (1) SUPPORTED (0) NOT SUPPORTED
+BPI_SUPPORT=0
+BCM_IPSEC_SUPPORT=0
+
+#  SNMP_SUPPORT= (0) MEANS NO SNMP  (2) SNMPv2 & (3) SNMPv3
+SNMP_SUPPORT=3
+
+# include factory MIB support by default
+BCM_FACTORY_SUPPORT=0
+
+# SOFTWARE_CRYPTO_LIB = OPENSSL (OpenSSL library), BSAFE (Bsafe library)
+SOFTWARE_CRYPTO_LIB=OPENSSL
+
+GDB_DEBUGGING=0
+XTALFREQ=28000000
+
+EMTA_SUPPORT=0
+EMTA_SIMULATOR_SUPPORT=0
+BCM_VENDOR_LED_THREAD_SUPPORT=0
+
+# Standalone Estb SNMP Platform Defaults
+CLIENT_CONTROLLER_SUPPORT=0
+BCM_DSG_DUAL_PROCESSOR_INTERFACE=0
+BCM_DSG_DUAL_PROCESS_INTERFACE=0
+BCM_DSGCC_ECM_USE_SHARED_MEMORY_IPC=0
+BCM_STANDALONE_DSGCC=1     
+SNMP_PROXY_SUPPORT=1     
+LOCAL_SNMP_AGENT_SUPPORT=1     
+MOCA_MIB_SUPPORT=1     
+ESTBSNMP_BUILT_AS_LIB=0
+BCM_NULL_CONSOLE=1
+BCM_NULL_MESSAGE_LOG=1
+NPTL_SUPPORT=0
+CORE_ESTBSNMP_BUILT_AS_LIB=0
+
+# ------------------------------------------------
+# Override defaults with command-line parameters.
+# ------------------------------------------------
+
+if [ $opt_bsafe == 1 ] ; then
+   SOFTWARE_CRYPTO_LIB=BSAFE
+fi
+if [ $opt_snmp == 0 ] ; then
+   SNMP_SUPPORT=0
+fi
+if [ $opt_vpn == 1 ] ; then
+   BCM_IPSEC_SUPPORT=2
+fi
+if [ $opt_applib == 1 ] ; then
+   ESTBSNMP_BUILT_AS_LIB=1
+   BCM_NULL_CONSOLE=1
+   target="estbsnmplib.a"
+fi
+
+if [ $opt_core_estbsnmplib == 1 ] ; then
+   CORE_ESTBSNMP_BUILT_AS_LIB=1
+   BCM_CONSOLE_SUPPORT=1
+   BCM_EVD_INTERFACE_INCLUDED=1
+   MOCA_MIB_SUPPORT=0
+   target="core_estbsnmplib.a"
+fi
+
+BPI_SUPPORT=$opt_bpi
+BCM_VENDOR_SUPPORT=$opt_vendor
+GDB_DEBUGGING=$opt_debug
+BCM_REDUCED_IMAGE_SIZE=$opt_slim
+BCM_PACKET_LOGGING=$opt_logging
+#BCM_FACTORY_SUPPORT=$opt_factory
+BCM_VENDOR_OMS=$opt_oms
+BCM_OLD_BOARDREV=$opt_links
+#EMTA_SUPPORT=$opt_emta
+EMTA_SIMULATOR_SUPPORT=$opt_emtasim
+ESTBSNMP_BUILT_AS_LIB=$opt_applib
+ESTBSNMP_BUILT_STATIC=$opt_static
+NPTL_SUPPORT=$opt_nptl
+
+#PROGRAM_STORE_SIGNATURE=0x${board}
+#BSP_DIR=bsp_bcm9${board}
+BSP_DIR=
+#LIB_EXT=Linux${board}_BSP_${country}.a
+LIB_EXT=
+#HPNA_LIB=libhpna_BCM9${board}.a
+HPNA_LIB=
+
+TARGETDIR=bcmLinux
+
+# - Set TARGETDIR appropriately for different build types
+if [ $opt_slim == 1 ] ; then
+   TARGETDIR=${TARGETDIR}_slim
+fi
+
+if [ ! -d ${TARGETDIR} ] ; then
+   echo "Error: Build directory $TARGETDIR does not exist.  Create with mkdir."
+   exit
+fi
+
+   BCM711X_INTERNAL_AMP=0
+   DOCSIS_CORE=DOCSIS_CORE_BCM334x
+   USB_HAL_INCLUDED=0
+   BPI_SUPPORT_HARDWARE=0
+   BPI_SUPPORT=0
+   HPNA_HAL_INCLUDED=0
+   EMAC_CAM_INCLUDED=0
+   BCM_SETTOP_SUPPORT=1
+   SETTOP_API_INCLUDED=0
+   CMHAL_TARGET=bcm3345
+   SNMP_SOCKET_MODE=1
+   ESTB_SNMP_AGENT=1
+   BCM_STANDALONE_SNMP_AGENT=1
+   CPU=MIPS64
+   Linux=1
+   OPENSSL_LIBNAME=libOpenSSL$TARGET_OS.a
+   SEC_LIBNAME=SecLib$TARGET_OS.a
+
+   PROPANE_INCLUDED=0
+   #PROPANE_LIBNAME=Propane05$TARGET_OS.$CPU.a
+   PROPANE_LIBNAME=Propane05Linux_mipsel.a
+   BCM_DSG_SUPPORT=0
+   BFC_INCLUDE_EDOCSIS_SLED_SUPPORT=0
+   SETTOP_DHCP_DNS_SUPPORT=0
+   BCM_DSG_API_TEST=0
+
+   DSGDEMO_IPVIDEO_SUPPORT=0
+   BCM_DSG_DUAL_PROCESS_INTERFACE=0
+   BCM_DSGCC_ECM_USE_SHARED_MEMORY_IPC=0
+   CABLECARD_SUPPORT=0
+   BCM_VENDOR_LED_THREAD_SUPPORT=0
+
+   if [ "$opt_cablecard" == "1" ] ; then
+      CABLECARD_SUPPORT=1
+   fi
+
+   ZERO_PACKET_COPY_IP_INTERFACE=0
+   BCM_TELNET_SUPPORT=0
+   
+# ====================================================================
+# Report build parameters and go.
+# ====================================================================
+
+# To provide the elapsed time for a build, first save the current time.
+timer_start
+
+
+if [ "$target" == "clean" ] ; then
+   # - Clean build directory.
+   cd $TARGETDIR
+   rm -f *.o *.rpo  Linux*  bootrom*  ctdt.c  symTbl.c depend.* *.map *.a *.klp ram*.* username.h
+   cd ..
+   exit
+fi
+
+if [ "$opt_cs" == "1" ] ; then
+   #echo on
+   cd $TARGETDIR
+   if [ -e buildsettings.txt ] ; then
+      rm -f buildsettings.old
+      mv buildsettings.txt buildsettings.old
+   fi
+   for o in $option_no_list $option_yes_list $option_default_list ; do
+      eval "echo \"\$opt_$o\"" >>buildsettings.txt
+   done
+   if [ -e buildsettings.old ] ; then
+      cmp buildsettings.txt buildsettings.old >/dev/null
+      if [ $? != 0 ] ; then
+         echo
+         echo "***** Build settings have changed.  You may want to clean and rebuild. *****"
+      fi
+   fi
+   cd ..
+   echo off
+fi
+
+title_string="Building Application ${board} ${country} SNMP=${SNMP_SUPPORT} SLIM=${BCM_REDUCED_IMAGE_SIZE} ${BCM_RAM_SIZE}M"
+if [ $opt_applib == 1 ] ; then
+   title_string="$title_string LIB"
+fi
+
+if [ $opt_core_estbsnmplib == 1 ] ; then
+   title_string="$title_string LIB"
+fi
+
+if [ $opt_cablehome == 1 ] ; then
+   title_string="$title_string CableHome"
+fi
+
+if [ $opt_cablecard == 1 ] ; then
+   title_string="$title_string CableCard"
+fi
+
+# - Here we go...start the build.. 
+
+# Write to the screen for those building remotely.
+echo
+echo "$title_string"
+echo
+
+# - This is for batch file debugging purposes.
+# - It will display all the environment variable before they're cleared
+if [ $opt_show  == 1 ] ; then
+   set
+   exit
+fi
+
+# Just create a depend.bcmXXXX file; otherwise, Win98 compile will
+# have a hard time since a make clean deletes the depends file.
+# ***** may not be necessary for Linux *****
+echo > ${TARGETDIR}/depend.bcm9${board}
+
+# Cleanup previous build files...
+rm -f $TARGETDIR/ram*.*
+rm -f $TARGETDIR/Linux*.*
+rm -f $TARGETDIR/*.log
+
+# Delete version info file to get new build date.
+rm -f $TARGETDIR/EstbAppVersionInfo.o
+
+# Define USERNAME macro for banner.
+echo "#define USERNAME \"$USER\""> $TARGETDIR/username.h
+
+
+
+
+# If the user didn't specify a customer board spec, make a non-vol defaults file.
+if [ "$opt_board" == "0" ] ; then
+   # Make the default settings file in the build directory.
+   cd $TARGETDIR
+   
+   rm -f MergedNonVolDefaults.h.new
+   # Copy the defaults file to the build directory.
+   cp ../../CustomerNonvolDefaults.h MergedNonVolDefaults.h.new
+   chmod u+w MergedNonVolDefaults.h.new
+
+   # if custom default file exists, append it
+   if [ -e ../../../Custom/$defaultfile ] ; then
+      sed -f ../undefines.sed ../../../Custom/${defaultfile} >> MergedNonVolDefaults.h.new
+   fi
+
+   # Surround added text with #if/#endif statements.
+   echo "#ifndef MERGEDNONVOLDEFAULTS_H">>MergedNonVolDefaults.h.new
+   echo "#define MERGEDNONVOLDEFAULTS_H">>MergedNonVolDefaults.h.new
+   
+   # Define the SNMP system descriptor string.
+   echo "#undef  kDefaultValue_SysDescr">>MergedNonVolDefaults.h.new
+   echo "#define kDefaultValue_SysDescr \"V2 eSTB reference design <<HW_REV: V1.0; VENDOR: Broadcom; BOOTR: 1.0.10; SW_REV: $rev_std; MODEL: BCM9$board>>\"" >>MergedNonVolDefaults.h.new
+   
+   # Define the current software revision.
+   echo "#undef  kDefaultValue_DocsDevSwCurrentVers">>MergedNonVolDefaults.h.new
+   echo "#define kDefaultValue_DocsDevSwCurrentVers \"$rev_std\"">>MergedNonVolDefaults.h.new
+
+   # Surround added text with #if/#endif statements.
+   echo "#endif">>MergedNonVolDefaults.h.new
+   
+   # Now compare the settings file with the previous one, if it exists.
+   if [ -e MergedNonVolDefaults.h ] ; then
+      # Compare the files.
+      cmp MergedNonVolDefaults.h MergedNonVolDefaults.h.new >/dev/null
+      # If they are different, replace the old one.
+      if [ $? != 0 ] ; then
+         rm -f MergedNonVolDefaults.h
+         mv MergedNonVolDefaults.h.new MergedNonVolDefaults.h
+      fi
+   # There was no old file, so just rename the new one.
+   else
+      mv MergedNonVolDefaults.h.new MergedNonVolDefaults.h
+   fi
+   
+   # Get out of the build directory.
+   cd ..
+   
+   # This is the definition make uses to find the board-specific defaults file.
+   #unset BOARDNONVOLDEFAULTS
+   
+# The user did specify a customer board spec, so use its settings file
+else
+   # Clean up first
+   cd $TARGETDIR   
+   rm -f MergedNonVolDefaults.h.new
+   # Copy the defaults file to the build directory.
+   cp ../../CustomerNonvolDefaults.h MergedNonVolDefaults.h.new
+   chmod u+w MergedNonVolDefaults.h.new
+   
+   # Surround added text with #if/#endif statements.
+   echo "#ifndef MERGEDNONVOLDEFAULTS_H">>MergedNonVolDefaults.h.new
+   echo "#define MERGEDNONVOLDEFAULTS_H">>MergedNonVolDefaults.h.new
+   
+   # Define the SNMP system descriptor string.
+   echo "#undef  kDefaultValue_SysDescr">>MergedNonVolDefaults.h.new
+   echo "#define kDefaultValue_SysDescr \"V2 cablemodem reference design <<HW_REV: V1.0; VENDOR: Broadcom; BOOTR: 1.0.10; SW_REV: $rev_std; MODEL: BCM9$board>>\"" >>MergedNonVolDefaults.h.new
+   
+   # Define the current software revision.
+   echo "#undef  kDefaultValue_DocsDevSwCurrentVers">>MergedNonVolDefaults.h.new
+   echo "#define kDefaultValue_DocsDevSwCurrentVers \"$rev_std\"">>MergedNonVolDefaults.h.new
+   
+   # This is the definition make uses to find the board-specific defaults file.
+   # It will be merged with the master file at make time.
+   defaultfile=${opt_board_parm}NonvolDefaults.h
+
+   # Make sure the file exists
+   if [ ! -e ../../../Custom/$defaultfile ] ; then
+      echo "Error: Non-vol defaults file not found: Custom/${defaultfile}"
+      failure
+      exit
+   fi
+
+   sed -f ../undefines.sed ../../../Custom/${defaultfile} >> MergedNonVolDefaults.h.new
+
+   # Surround added text with #if/#endif statements.
+   echo "#endif">>MergedNonVolDefaults.h.new
+   
+   # Now compare the settings file with the previous one, if it exists.
+   if [ -e MergedNonVolDefaults.h ] ; then
+      # Compare the files.
+      cmp MergedNonVolDefaults.h MergedNonVolDefaults.h.new >/dev/null
+      # If they are different, replace the old one.
+      if [ $? != 0 ] ; then
+         rm -f MergedNonVolDefaults.h
+         mv MergedNonVolDefaults.h.new MergedNonVolDefaults.h
+      fi
+   # There was no old file, so just rename the new one.
+   else
+      mv MergedNonVolDefaults.h.new MergedNonVolDefaults.h
+   fi
+   
+   # Get out of the build directory.
+   cd ..
+   
+   # This is the definition make uses to find the board-specific defaults file.
+   #unset BOARDNONVOLDEFAULTS
+   
+fi
+
+
+
+
+
+# If we're just checking the environment, skip make.
+if [ $target == check ] ; then
+   exit
+fi
+
+rm -f ${TARGETDIR}/$target
+make --makefile=../Makefile --directory=$TARGETDIR -w MergedNonVolDefaults.h $target
+if [ $? != 0 ] ; then
+   failure
+   exit
+fi
+
+if [[ $opt_applib == 1 && $target != estbsnmplib.a ]] ; then
+        exit
+elif [[ $opt_core_estbsnmplib == 1 && $target != core_estbsnmplib.a ]] ; then
+        exit	
+elif [[ $target != Linux && $target != oldlink ]] ; then
+   exit
+fi
+
+cd $TARGETDIR
+if [ ! -e $target ] ; then
+   cd ..
+   failure
+   exit
+fi
+
+if [ -e linux.map ] ; then
+   if [ -e lxram.map ] ; then
+      rm -f lxram.map
+   fi
+   mv linux.map lxram.map
+   # Split and sort the linker map file.
+   sh ../sortmap.ksh 2>/dev/null
+   # If the sorted map exists, demangle the names.
+   if [ -e lxram.map.s ] ; then 
+      /opt/toolchains/mips/bin/mips-linux-c++filt <lxram.map.s >lxram.map.d
+   else
+      # Otherwise, demangle the unsorted names.
+      /opt/toolchains/mips/bin/mips-linux-c++filt <lxram.map   >lxram.map.d
+   fi
+   # If there were no errors, delete the original map file.
+   if [ $? == 0 ] ; then
+      rm -f lxram.map
+   fi
+   rm -f lxram.map.s
+fi
+
+# Convert .elf output into .bin format.
+#elfToBin < $target > lxram.bin
+
+# The programstore signature has become a product ID.  By default we use the
+# chip ID, but the user may override this value with the "pid <prodID>" option.
+#productID=$PROGRAM_STORE_SIGNATURE
+#if [ "$opt_pid" == "1" ] ; then
+#   productID=0x$opt_pid_parm
+#fi
+
+# Compress image and add header.
+#programstore -c $ps_compression -f lxram.bin -o lxram_sto.bin -v $sto -a 0x80010000 -s $productID
+#cd ..
+
+#if [ ! -e $TARGETDIR/lxram_sto.bin ] ; then
+#   failure
+#   exit
+#fi
+
+success
+#ls $TARGETDIR/lxram*
+
+# If we built for MAC14, remove the evidence.
+if [ "$opt_mac14" == "1" ] ; then
+   rm -f $TARGETDIR/mac14_image_name.h
+   rm -f $TARGETDIR/docsDevBridge.o
+   rm -f $TARGETDIR/systemBridge.o
+fi
+
+# Get and print the elapsed time for this build job.
+# call ../../cm_bsp_v2/bsp_common/os/timer_end
+
+
+

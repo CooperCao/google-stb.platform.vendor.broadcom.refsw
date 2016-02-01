@@ -1,0 +1,44 @@
+
+	#include video_tex_pre.bfx
+
+	#include video_vertex_shader.bfx
+
+	FRAGMENT_SHADER
+	{
+	   precision mediump float;
+
+	   uniform sampler2D u_tex;
+	   uniform vec2      u_texelSize;
+	   varying vec2      v_texCoord;
+
+	   #include video_tex_funcs.bfx
+
+	   #define TEX(a, b) yuv_709_to_rgb(texture2D(a, b).rgb)
+
+	   void main()
+	   {
+		vec3 val;
+
+		vec3 sample[9];
+		float lx = v_texCoord.x - u_texelSize.x;
+		float rx = v_texCoord.x + u_texelSize.x;
+		float by = v_texCoord.y - u_texelSize.y;
+		float ty = v_texCoord.y + u_texelSize.y;
+
+		val = TEX(u_tex, vec2(lx, by));
+		val += 2.0 * TEX(u_tex, vec2(v_texCoord.x, by));
+		val += TEX(u_tex, vec2(rx, by));
+		val += 2.0 * TEX(u_tex, vec2(lx, v_texCoord.y));
+		val += TEX(u_tex, v_texCoord);
+		val += 2.0 * TEX(u_tex, vec2(rx, v_texCoord.y));
+		val += TEX(u_tex, vec2(lx, ty));
+		val += 2.0 * TEX(u_tex, vec2(v_texCoord.x, ty));
+		val += TEX(u_tex, vec2(rx, ty));
+
+		// Divide by 13
+		gl_FragColor = vec4(val * 0.07692307692, 1.0);
+	   }
+	}
+
+	#include video_tex_post.bfx
+

@@ -1,0 +1,14 @@
+diff -BNru aardvark01t_rel_6_37_14_67_org/src/wl/sys/wlc_cfg.h aardvark01t_rel_6_37_14_67/src/wl/sys/wlc_cfg.h
+--- aardvark01t_rel_6_37_14_67_org/src/wl/sys/wlc_cfg.h	2013-12-18 21:38:46.000000000 -0500
++++ aardvark01t_rel_6_37_14_67/src/wl/sys/wlc_cfg.h	2014-03-20 10:31:06.641565013 -0400
+@@ -120,8 +120,8 @@
+ #endif /* WLRXEXTHDROOM */
+
+ /* **** Core type/rev defaults **** */
+-#define D11_DEFAULT	0xffffffb0	/* Supported  D11 revs: 4, 5, 7-31 */
+-#define D11_DEFAULT2	0x0000ff27	/* Supported  D11 revs: 32-34, 37, 40-47 */
++#define D11_DEFAULT	0xE0C00000	/* Supported  D11 revs: 43236, 43228 */
++#define D11_DEFAULT2	0x00000F00	/* Supported  D11 revs: 4360, 43526 */
+
+ /*
+  * The supported PHYs are either specified explicitly in the wltunable_xxx.h file, or the

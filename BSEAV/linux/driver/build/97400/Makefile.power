@@ -1,0 +1,80 @@
+#############################################################################
+#
+#       Copyright (c) 2007-2012, Broadcom Corporation.
+#       All rights reserved.
+#       Confidential Property of Broadcom Corporation.
+# 
+#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
+#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
+#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+#
+# $brcm_Workfile: $
+# $brcm_Revision: $
+# $brcm_Date: $
+#
+# [File Description:]
+#
+# Written by Troy Trammel
+#
+# Revision History:
+#
+# $brcm_Log: $
+# 
+#############################################################################
+
+BUILDDIR=$(shell pwd)
+TARGET = brcmpmdrv
+DRIVERS += $(BCM_OBJ_DIR)/$(TARGET).ko $(BCM_OBJ_DIR)/bcmkni.ko
+
+ifeq ($(STATICLIB),no)
+$(error You must unset STATICLIB)
+endif
+
+
+SYSTEM := linuxkernel
+
+all: checkdirs driver
+
+include Common.make
+include ../../../../api/build/tools.mak
+include ${BSEAV}/api/include/api.mak
+
+
+include Makefile.power.magnum
+
+.PHONY: $(DRIVERS)
+
+
+driver:  ${DRIVERS} 
+	   
+CFLAGS += ${B_REFSW_LINUXKERNEL_CFLAGS}
+CFLAGS += ${BSETTOP_CFLAGS} ${MAGNUM_CFLAGS}
+CFLAGS += -DKBUILD_MODNAME=${TARGET}
+
+OBJS-m += pm-int-handler.o \
+	brcmpmdrv.mod.o  \
+	${MAGNUM_OBJ} brcmpmdrv.o 
+
+OBJS-NODIR = $(foreach file, $(OBJS-m), $(notdir ${file}))
+
+vpath %.c $(BSEAV)/linux/driver/power 
+vpath %.S $(BSEAV)/linux/driver/power 
+
+${OBJS-m}: ${LINUX_INC} checkdirs 
+
+$(BCM_OBJ_DIR)/%.o: %.c
+	@echo [Compile... $(notdir $<)]
+	${Q_}$(CC) -MMD -c $(CFLAGS) $< -o $(BCM_OBJ_DIR)/$(notdir $@)
+
+$(BCM_OBJ_DIR)/%.o: %.S
+	@echo [Compile... $(notdir $<)]
+	${Q_}$(CC) -MMD -c $(CFLAGS) -D__ASSEMBLY__ $< -o $(BCM_OBJ_DIR)/$(notdir $@)
+
+${BCM_OBJ_DIR}/$(TARGET).ko: $(addprefix ${BCM_OBJ_DIR}/, ${OBJS-NODIR})
+	@echo [Linking... $(notdir $@)]
+	${Q_}$(LD) -Map $(BCM_OBJ_DIR)/$(TARGET).map -r $^  -o $@ $(LDFLAGS)
+
+$(BCM_OBJ_DIR)/bcmkni.ko:
+	$(MAKE) -f Makefile.kni
+-include $(BCM_OBJ_DIR)/*.d
+

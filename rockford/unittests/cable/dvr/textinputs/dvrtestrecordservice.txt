@@ -1,0 +1,10 @@
+#DVR Test Record Service
+num_sec 60
+num_millisec 100
+pathIndex 2
+num_es 2
+num_es_pid1 0x45
+num_es_pid2 0x46
+pmt_pid     0x3f
+patfile PAT.TS
+pmtfile PMT.TS

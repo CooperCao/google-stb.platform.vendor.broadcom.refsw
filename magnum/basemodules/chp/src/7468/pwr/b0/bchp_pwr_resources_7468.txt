@@ -1,0 +1,60 @@
+#
+# 7468 power resources
+#
+
+# AVD
+AVD -> AVD0
+AVD0 -> HW_AVD0
+
+# Audio
+RAP -> {RAP_OPEN, RAP_START} 
+RAP_OPEN -> HW_RAP_OPEN       # power needed for BRAP_Open, but before BRAP_StartChannel 
+RAP_START -> HW_RAP_START     # power needed for BRAP_StartChannel 
+HW_RAP_START -> HW_RAP_OPEN   # dependency for register R/W access
+
+# Display
+VDC -> {BVN, VDC_DAC, VDC_VEC} # entire BVN and VEC blocks
+BVN -> {HW_BVN, HW_BVN_108M}   # entire BVN block. one 216M clock and one 108M clock
+VDC_DAC -> HW_VDC_DAC          # DAC 108M 
+VDC_VEC -> HW_VDC_VEC          # VEC 108M and 216M
+
+#
+# Transport
+#
+XPT -> {HW_XPT_108M, HW_XPT_XMEMIF} # entire XPT block
+XPT_PARSER   -> {HW_XPT_108M, HW_XPT_XMEMIF}  # input parsers
+XPT_PLAYBACK -> {HW_XPT_108M, HW_XPT_XMEMIF}  # playback channels
+XPT_RAVE     -> {HW_XPT_108M, HW_XPT_XMEMIF}  # RAVE contexts
+XPT_108M   -> HW_XPT_108M
+XPT_XMEMIF -> HW_XPT_XMEMIF
+
+
+# HDMI TX
+HDMI_TX          -> {HDMI_TX_CLK, HDMI_TX_CEC}      # entire HDMI block
+HDMI_TX_CLK      -> HW_HDMI_TX_CLK                  # HDMI Clocks
+HW_HDMI_TX_CLK   -> {HW_HDMI_TX_108M, HW_BVN_108M}  # 108M clock for register R/W
+HDMI_TX_CEC      -> HW_HDMI_TX_CEC                  # CEC and hotplug interrupts
+HW_HDMI_TX_CEC   -> {HW_HDMI_TX_108M, HW_BVN_108M}  # 108M clock for register R/W
+
+
+# Others
+M2MC -> HW_M2MC                       # Graphics2D
+DMA  -> {HW_XPT_108M, HW_XPT_XMEMIF}  # DMA requires XPT clocks
+HSM  -> {HW_XPT_108M, HW_XPT_XMEMIF}  # HSM requires XPT clocks
+
+# I/O
+SMARTCARD -> HW_SCD
+
+# PLLs
+{RAP_START, SMARTCARD} -> HW_PLL_AC1  # shared PLL between audio and smartcard
+
+
+# BINT_Open requires access to L2 interrupt registers after BCHP_PWR_Open turns off the CLOCK_GEN clocks.
+BINT_OPEN -> {AVD, RAP, VDC, XPT, HDMI_TX, M2MC}
+
+
+# MAGNUM_CONTROLLED is a special node that keeps track of resources whose power management is done in Magnum (as opposed to upper-level SW, e.g. Nexus)
+# During BCHP_PWR_Open, all HW resources that are dependants of MAGNUM_CONTROLLED will be initialized (i.e. powered down)
+# Upper-level SW is responsible for initializing all other HW resources
+
+MAGNUM_CONTROLLED -> {AVD, RAP, VDC, XPT, HDMI_TX}

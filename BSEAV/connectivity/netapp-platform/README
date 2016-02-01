@@ -1,0 +1,226 @@
+/***************************************************************************
+ *     Copyright (c) 2005-2011, Broadcom Corporation
+ *     All Rights Reserved
+ *     Confidential Property of Broadcom Corporation
+ *
+ *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
+ *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
+ *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *
+ ***************************************************************************/
+Network Application API (NetApp) Platform
+
+Author:     Steven Hartley (steven@broadcom.com)
+
+This is the Platform component of NetApp that will take care of building the driver
+and maintaining NVRAM configurations for various STB platforms. The NetAppPlatform API
+will be responsible for driver installing and loading fo the NVRAM file.
+
+NetApp was split up into two different entities after 15.3 such that all of the
+platform components are in this module and the connection manager and all the other
+features remains in the "netapp".
+
+PLEASE BUILD netapp-platform BEFORE BUILDING netapp-api (netapp).
+
+-------------------------------------------------------------------------------
+1) BUILDING NETAPP:
+--------------------------------------------------------------------------------
+Building NetApp is very simple and can be done in the one step below:
+    make -C build
+
+The above command will build all of NetApp including the NetAppTester console test
+application that can be used to test the API.
+
+All environment variables will be discussed in more details later on in this document
+however the only mandatory variable is LINUX (and your toolchain needs to be in the path).
+
+
+-------------------
+1.1) TARGETS:
+-------------------
+OPTION              DESCRIPTION
+------              -----------
+examples            Build the example code in example folder
+                    (This is the default recommended target option and is the default option)
+
+help                Printout all the configuration options and build variables for NetApp
+
+tarball             Builds a tarball containing full source and prebuilt WLAN and BT code.
+
+install             Builds NetApp and all sub netapp components and dependent libraries
+
+clean               clean all of the code (remove build objects)
+
+distclean           Same as clean and in addition delete installed components
+                    and remove untared directories
+
+---------------------
+1.2) VARIABLES:
+---------------------
+
+1.2.1) MODULES
+By default all features are enabled in NetApp, to disable them you set the
+variable below to n when compiling NetApp
+
+VARIABLE                VALUE           DESCRIPTION
+--------                -----           -----------
+NETAPP_BLUETOOTH         [y|n]          Enabled/Disable Bluetooth support
+
+NETAPP_HOTPLUG           [y|n]          Enabled/Disable udev and hotplug support
+
+NETAPP_WIFI              [y|n]          Enabled/Disable WiFi
+
+NETAPP_WIFI_P2P          [y|n]          Enabled/Disable WiFi Direct
+
+NETAPP_WIFI_DRIVER  [falcon|aardvark|bison|dhd|eagle]Set the driver version (default dhd)
+                                           This option is not configurable for releases with
+                                           prebuilt binaries.
+
+NETAPP_WIFI_CHIP    [43236b|43238b|4360b   Which WiFi STA chip to use (See help menu).
+                    43526a|43526b|43143a0
+                    43242a0|4360nic|43569a2
+                    43570a2|43602a1|4366b1
+                    4359b1]
+
+NETAPP_NETAPP_WIFI_NVRAM_FILE [file path]  The path to the the WiFi chip NVRAM file to load
+
+
+NETAPP_GPIO         [y|n]                 GPIO control for WOMBO designs integrated into NetApp. Generally
+                                          customers want to disable this with NETAPP_GPIO=n and do the GPIO
+                                          configuration external to NetApp. This support requires NEXUS support
+                                          built into NetApp. GPIO control is added on a reference platform
+                                          case by case bases and not all platforms will have support built in.
+                                          This was added for power toggling and control.
+
+1.2.3) BUILD ENVIRONMENT:
+VARIABLE            VALUE           DESCRIPTION
+LINUX               [kernel path]   REQUIRED to build Kernel drivers and must point
+                                    to the path of a pre-built Kernel and the same Kernel
+                                    version that you will be running NetApp on.
+
+CROSS_HOST          [mipsel-linux|arm-linux|mips-linux] REQUIRED. Sets the toolchain.
+                                    PLEASE NOTE: The variable B_REFSW_ARCH is automatically
+                                    converted to CROSS_HOST so only one is needed.
+                                    Default: mipel-linux if not specified.
+
+NETAPP_OUTPUT_DIR   [path to output] Where NetApp build system should output the built
+                                    headers, libraries, modules, and binaries.
+                                    DEFAULT: stage/usr/local
+
+VERBOSE             [y/not set]     Enable/disable verbose build. Default= non-verbose
+
+NEXUS_TOP           [nexus path]    Variable to point the NetApp examples to NEXUS top directory
+                                    so NetAppTester (and other) examples can link with Nexus.
+                                    NOTE: This variable (and NEXUS support) is optional to enable
+                                    some examples that link with NEXUS.
+
+NEXUS_BIN_DIR       [built nexus]   Location of the Build NEXUS code. OPTIONAL.
+
+NEXUS_PLATFORM      [ex. 97445 ]    Specify which HW platform NetApp will run on and used to pull
+                                    the right WOMBO configuration. OPTIONAL.
+
+CONFIG_PCI          [y|n]           Enable or Disable PCIe Driver support.
+                                    DEFAULT:y
+
+NETAPP_STRIP_WIFI_DRIVER [y|n]      Strip the wifi driver from all older chipsets in favor
+                                    of a smaller driver image size
+                                    DEFAULT:y
+
+NETAPP_WIFI_SECDMA	[y|n]			Enable or disable Secure DMA support.
+									PLEASE NOTE: NETAPP_WIFI_SECDMA=y requires NETAPP_WIFI=y and NETAPP_NEXUS=y
+									DEFAULT:n
+
+1.2.3) TARGET ENVIRONMENT VARIABLES:
+VARIABLE            VALUE           DESCRIPTION
+--------            -----           -----------
+NETAPP_DEBUG        [y | not set]   If set it will output NetApp debug messages to stdout (terminal)
+NETAPP_DEBUG_SYSLOG [y | not set]   If set it will output NetApp debug messages to syslog
+NETAPP_DEBUG_FILE   [y | not set]   If set it will output NetApp debug messages to a filename
+                                    specified by NETAPP_INIT_SETTINGS::pLogFileName
+                                    DEFAULT:/tmp/NetApp.log
+NETAPP_WIFI_USE_MFG_FW [y | not set] Tell NetApp to use the DHD manufacturing driver firmware rather
+                                     than the regular firmware. This applies to DHD WiFi drivers only!
+
+The above three variables can be changed at runtime using the APi NetAppSetDebugOutput()
+
+
+
+--------------------------------------------------------------------------------
+1.3) netapp-platform.inc:
+-------------------
+When you build and install NetApp, a file called netapp-platform.inc is generated and
+contains all the LDFLAGS and CFLAGS information that your application will need
+to link and use NetApp-Platform (and it is used by netapp and carried forward to
+netapp.inc).
+NOTE: Customer applications do not need to include netapp-platform.inc, only NetApp-Api
+(NetApp) needs this file and customer applications can simply include netapp.inc
+
+--------------------------------------------------------------------------------
+2.0) RUNNING NETAPP-PLATFORM:
+-------------------
+Below shows you how to use the basic test app NetAppTester in interactive mode
+(the recommended mode).
+NOTE: Change the contents of <> with the actual values
+
+    mkdir -p /usr/local
+    mount -t nfs <NFS SERVER>:<PATH TO NETAPP>/stage/usr/local /usr/local
+    cd /usr/local/bin
+    source netapp_target_prep.sh
+    ./NetAppPlatformTester -i
+
+--------------------------------------------------------------------------------
+3.0) WIFI NVRAM FILE
+-------------------
+Please consult netapp/wlan/nvram/README file for more information.
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+4.0) USB vs PCIe CHIPSETS
+-------------------------
+By default NetApp will build with USB and PCIe WiFi support for all USB chipsets if no NEXUS_PLATFORM
+variable is defined. If you define NEXUS_PLATFORM, NetApp will build for the right reference
+board WOMBO (Wireless-on-the-motherboard) WiFi chipset.
+You can also manually set NETAPP_WIFI_CHIP to specify the WiFi chip on your platform.
+chip names ending with "nic" is interpreted as PCIe connection.
+
+Example Build methods:
+1) BCM97445C Reference: "make -C build" --> NETAPP_WIFI_CHIP=4360nic  NETAPP_WIFI_NVRAM_FILE=netapp/wlan/nvram/97445/bcm4360_vars.c
+2) 7425 + 4360 PCIe:    "make -C build WIFI_CHIPSET=4360nic NETAPP_WIFI_NVRAM_FILE=<path to my nvram file>
+3) 7435 + Cisco AE2500: "make -C build" --> Builds for all USB WiFi chipsets supported
+
+--------------------------------------------------------------------------------
+5.0) Secure DMA Support Example (when Netapp is not used)
+---------------------------------------------------------
+Secure DMA example application can be referenced if Netapp is not used.
+It is located at: /BSEAV/connectivity/netapp-platform/examples/secdma_wifi.c
+
+SecDMA WLAN driver requires a contiguous buffer for secure DMA.
+The example uses Nexus API to allocate contiguous buffer and call ARCH API (SetPcieRestrictedRange()) to unlock PCIe range.
+
+The sequence to load secDMA driver:
+	1) Example application allocates a buffer (via NEXUS_Memory_Allocate()).
+	2) Example application calls SetPcieRestrictedRange() (Nexus ARCH API) with addr+size to unlock the pcie range.
+	3) Example application passes address and size of buffer in step 1) to wlan driver via insmod module params.
+		a) "insmod wl.ko secdma_addr=0x10000000 secdma_size=0x880000"
+	4) SecDMA WLAN driver is now loaded with unlocked range.
+
+5.2) Buffer size requirement:
+-----------------------------
+WIFI CHIPSET		Buffer Size (in bytes)
+------------		----------------------
+BCM4360					0x880000
+BCM43602				0x10B0000
+BCM4366					0x10B0000
+
+5.3) WLAN Driver build target:
+------------------------------
+SecDMA is a host-only feature (there is no requirement in firmware for full dongle drivers).
+To enable secDMA in driver, add -secdma- target in host driver build.
+
+--------------------------------------------------------------------------------
+6.0) Manufacturing Drivers
+For DHD drivers you simply need to export NETAPP_WIFI_USE_MFG_FW=y on the target to get
+the manufacturing driver support. For NIC drivers like Bison and Aardvark, you need to place
+the MFG driver in the same location as the production driver and ensure the driver has the same name
+with _mfg.tgz at the end.

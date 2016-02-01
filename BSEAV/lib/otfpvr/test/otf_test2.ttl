@@ -1,0 +1,49 @@
+timeout = 5
+; Initialize OTF, sets environment for testing. This command should be sent before running any other commands
+sendln 'oinit'
+call checkretval
+; Set OTF mode (1-sequential, 2-chunk forward, 3-chunk backward 4-Interleaved
+sendln 'omode 4'
+call checkretval
+; Set OTF rate (100 - 1x, 200 - 2x, 150 -1.5x etc)
+sendln 'orate 200'
+call checkretval
+; Set Frame filter (1 - I frames 2 - IP Frames 3 - IPB frames)
+sendln 'offilter 3'
+call checkretval
+; Set direction (oforward for forward, orewind for rewind)
+sendln 'orewind'
+call checkretval
+; Set file name
+sendln 'ofname /ata0/videos/3MBPS.ts'
+call checkretval
+; Set video pid
+sendln 'ovpid 4097'
+call checkretval
+; Set start file position
+sendln 'ofpos 300000000'
+call checkretval
+; Set jump size
+sendln 'ofjumpsize -3145728'
+call checkretval
+;Set Chunk/unit size
+sendln 'ochunksize 2097152'
+call checkretval
+; Start OTF
+sendln 'ostart'
+call checkretval
+
+timeout=30
+waitevent 1
+;Stop OTF
+sendln 'ostop'
+call checkretval
+end
+
+:checkretval
+wait 'SUCCESS' 'ERROR'
+if result=1 then
+return
+endif 
+messagebox "Error in executing the script" "Error"
+end

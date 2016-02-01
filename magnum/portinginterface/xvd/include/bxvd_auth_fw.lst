@@ -1,0 +1,12 @@
+BXXX_AUTH("xvd_outer", BXVD_IMAGE_RevK_FirmwareID_eOuterELF_AVD, BXVD_DumpImage, 0x00180000)
+BXXX_AUTH("xvd_inner", BXVD_IMAGE_RevK_FirmwareID_eInnerELF_AVD, BXVD_DumpImage, 0x00180000)
+#if ((BCHP_CHIP == 7135) || \
+     (BCHP_CHIP == 7231) || \
+     (BCHP_CHIP == 7344) || \
+     (BCHP_CHIP == 7346) || \
+     (BCHP_CHIP == 7422) || \
+     (BCHP_CHIP == 7425) || \
+     (BCHP_CHIP == 7429) || \
+     (BCHP_CHIP == 7435))
+BXXX_AUTH("xvd_base",  BXVD_IMAGE_RevK_FirmwareID_eBaseELF_SVD,  BXVD_DumpImage, 0x00180000)
+#endif

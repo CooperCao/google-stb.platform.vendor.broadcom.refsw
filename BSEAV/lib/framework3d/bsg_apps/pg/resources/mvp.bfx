@@ -1,0 +1,12 @@
+uniform     mat4    u_mv;
+//uniform    mat4     u_mvp;
+//uniform     mat4    u_m;
+//uniform     mat4    u_v;
+uniform     mat4    u_proj;
+
+mat4 calc_mvp()
+{
+   //return u_proj * u_v * u_m;
+   return u_proj * u_mv;
+   //return u_mvp;
+}

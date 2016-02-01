@@ -1,0 +1,26 @@
+### ===========================================================================
+### Copyright (C) 2010 Broadcom Europe Limited.
+### All rights reserved.
+###
+### Project  :  khronos
+### Module   :  VG
+###
+### FILE DESCRIPTION
+### @geomd annotation stuff.
+### ===========================================================================
+
+.ifnset VG_GEOMD_4_QINC
+.set VG_GEOMD_4_QINC, 1
+
+.include "../../../../v3d/verification/tools/2760sim/geomd.qinc"
+
+.set geomd_i_clip_inner,       -1
+.set geomd_i_clip_outer,       -2
+.set geomd_i_fill_pre_center,  5 # yellow
+.set geomd_i_fill_post_center, 3 # cyan
+.set geomd_i_stroke_clerp_a,   4 # magenta
+.set geomd_i_stroke_clerp_b,   0 # red
+.set geomd_i_stroke_join,      1 # green
+.set geomd_i_stroke_cap,       2 # blue
+
+.endif

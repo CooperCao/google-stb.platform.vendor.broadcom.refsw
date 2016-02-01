@@ -1,0 +1,35 @@
+In order to accomodate the multiple flash configurations that need to be supported by the mtdocap driver,
+four new parameters have been introduced to represent the flash configurations for the four logical ocap
+partitions we need to support. They are:
+
+dyn - for the dynamic nonvol partition
+perm - for the permanent nonvol partition
+docsis0 - for the first docsis image partition
+docsis1 - for the second docsis image partition
+
+An additional optional parameter, docsishighram, is provided to specify the physical address of the top 2 megabytes of the
+DOCSIS window. If not specified it defaults to 0xFE000000.
+
+The docsis1 parameter is optional and if it is not provided then the partition will
+not be mapped to a mtdocap minor device.
+
+Each of the parameters has the same argument format consisting of four or five coma seperated integers specified
+in either decimal or hex notation and representing:
+
+1 - the minor device number of this mtdocap partition
+2 - the minor device number of the mtd device where the partition resides.
+3 - the start offset of the partition in bytes.
+4 - the physical size of the partition in bytes
+5 - the logical size of the partition in bytes
+
+Except for NAND flash the logical and physical sizes should be the same. For NAND, the physical size may
+be larger than the logical size and includes additional spare sectors.
+
+Example of an insmod statement including these specifications:
+
+insmod /root/mtdocap.ko debug=0 docsishighram=0xFE000000 \
+        dyn=1,3,0x17a0000,0x40000,0x40000 \
+        perm=2,3,0x17e0000,0x20000,0x20000 \
+        docsis0=4,3,0x1800000,0x200000,0x200000 \
+        docsis1=5,1,0x1000000,0x300000,0x200000
+

@@ -1,0 +1,178 @@
+OPTIONS
+{
+   SortOrder = FRONT_TO_BACK;
+}
+
+PASS 0
+{
+   SEMANTICS
+   {
+      a_pos         = VATTR_POSITION;
+
+      u_mvp         = MATRIX4_MODEL_VIEW_PROJECTION;
+
+      u_control1    = VECTOR4_USER;
+      u_control2    = VECTOR4_USER;
+
+      u_width       = SCALAR_USER;
+      u_range_recip = SCALAR_USER;
+      u_offsetX     = SCALAR_USER;
+      u_offsetY     = SCALAR_USER;
+      u_num_control = SCALAR_USER;
+
+      u_color1Start  = VECTOR4_USER;
+      u_color1Finish = VECTOR4_USER;
+      u_color2Start  = VECTOR4_USER;
+      u_color2Finish = VECTOR4_USER;
+
+      u_horizScale       = SCALAR_USER;
+      u_vertScaleStart   = SCALAR_USER;
+      u_vertScaleFinish  = SCALAR_USER;
+
+      u_basis        = MATRIX4_USER;
+   }
+
+   STATE
+   {
+      EnableBlend     = true;
+      BlendFunc       = SRC_ALPHA, ONE_MINUS_SRC_ALPHA;
+      EnableDepthTest = false;
+   }
+
+   VERTEX_SHADER
+   {
+      uniform    mat4  u_mvp;
+      uniform    vec4  u_scale;
+      uniform    vec2  u_control1[50];
+      uniform    vec2  u_control2[50];
+      uniform    vec4  u_color1Start;
+      uniform    vec4  u_color1Finish;
+      uniform    vec4  u_color2Start;
+      uniform    vec4  u_color2Finish;
+      uniform    float u_horizScale;
+      uniform    float u_vertScaleStart;
+      uniform    float u_vertScaleFinish;
+      uniform    float u_width;
+      uniform    mat4  u_basis;
+      uniform    float u_offsetX;
+      uniform    float u_offsetY;
+      uniform    int   u_num_control;
+
+      attribute  vec4  a_pos;
+
+      varying    vec2  v_pos;
+      varying    float v_blend;
+      varying    vec4  v_color;
+
+      int limit(in int i, in int m)
+      {
+         int ret = i;
+
+         if (i < 0)
+            ret += m;
+
+         if (i >= m)
+            ret -= m;
+
+         return ret;
+      }
+
+      int inc(in int i, in int m)
+      {
+          int ret = i + 1;
+
+          if (ret >= m)
+             ret = 0;
+
+          return ret;
+      }
+
+      void main()
+      {
+         // a_pos.x is parameter of curve
+         // a_pos.y is interpolation parameter between curve 1 and curve 2
+         // a_pos.z is 1 at top and -1 at bottom for strip
+
+         int    imod = u_num_control - 3;
+         float  fmod = float(imod);
+
+         float  px = (a_pos.x - u_offsetX) * fmod;
+         float  py = (a_pos.x - u_offsetY) * fmod;
+
+         int    ix = int(floor(px));
+         int    iy = int(floor(py));
+
+         int    ix0 = limit(ix, imod);         
+         int    ix1 = inc(ix0, imod);
+         int    ix2 = inc(ix1, imod);
+         int    ix3 = inc(ix2, imod);
+
+         int    iy0 = limit(iy, imod);
+         int    iy1 = inc(iy0, imod);
+         int    iy2 = inc(iy1, imod);
+         int    iy3 = inc(iy2, imod);
+
+         vec4 p1x = vec4(u_control1[ix0].x, u_control1[ix1].x, u_control1[ix2].x, u_control1[ix3].x);
+         vec4 p2x = vec4(u_control2[ix0].x, u_control2[ix1].x, u_control2[ix2].x, u_control2[ix3].x);
+
+         vec4 p1y = vec4(u_control1[iy0].y, u_control1[iy1].y, u_control1[iy2].y, u_control1[iy3].y);
+         vec4 p2y = vec4(u_control2[iy0].y, u_control2[iy1].y, u_control2[iy2].y, u_control2[iy3].y);
+
+         // Parameter vectors
+         float  fx = fract(px);
+         float  fy = fract(py);
+         float  fx2 = fx * fx;
+         float  fy2 = fy * fy;
+
+         // Multiply by basis
+         vec4   mx = u_basis * vec4(fx2 * fx, fx2, fx, 1.0);
+         vec4   my = u_basis * vec4(fy2 * fy, fy2, fy, 1.0);
+
+         // Evaluate and blend curves
+         float  x1 = dot(p1x, mx);
+         float  x2 = dot(p2x, mx);
+         float  x  = mix(x1, x2, a_pos.y) + a_pos.x;
+
+         // Evaluate and blend curves
+         float  y1 = dot(p1y, my);
+         float  y2 = dot(p2y, my);
+         float  y  = mix(y1, y2, a_pos.y);
+
+         // Perform scaling
+         y = y * mix(u_vertScaleStart, u_vertScaleFinish, a_pos.x);
+         x = x * u_horizScale;
+
+         // Project
+         gl_Position = u_mvp * vec4(x, y, 0.0, 1.0);
+
+         vec2   up = normalize(vec2(u_mvp[1].x, u_mvp[1].y));
+
+         float   thicken = a_pos.z * u_width * gl_Position.w;
+         // Thicken
+         gl_Position.y += thicken * up.y;
+         gl_Position.x += thicken * up.x;
+
+         // Blending factor for line edge AA
+         v_blend = a_pos.z;
+
+         // Blend the colors
+         float  hBlend = a_pos.x;
+         vec4   c1 = mix(u_color1Start, u_color1Finish, hBlend);
+         vec4   c2 = mix(u_color2Start, u_color2Finish, hBlend);
+         v_color = mix(c1, c2, a_pos.y);
+      }
+   }
+
+   FRAGMENT_SHADER
+   {
+      precision mediump float;
+      varying float     v_blend;
+      varying vec4      v_color;
+
+      void main()
+      {
+         float alpha = 1.0 - abs(v_blend);
+         gl_FragColor = vec4(v_color.xyz, v_color.a * alpha * alpha);
+      }
+   }
+}

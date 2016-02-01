@@ -1,0 +1,5 @@
+
+Go to /build directory
+Execute command "./build dsgtestclient"
+
+Executable "dsgtestclient" will be placed in /build directory.

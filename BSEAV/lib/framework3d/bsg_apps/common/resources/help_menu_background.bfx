@@ -1,0 +1,72 @@
+// Broadcom BSG effect file
+
+OPTIONS
+{
+    SortOrder = NONE;
+}
+
+PASS 0
+{
+    SEMANTICS
+    {
+		u_opacity   = SCALAR_OPACITY;
+        a_position  = VATTR_POSITION;
+//        a_tc        = VATTR_TEXCOORD1;
+        u_color     = VECTOR4_USER;
+	    u_mvp 		= MATRIX4_MODEL_VIEW_PROJECTION;
+    }
+
+    STATE
+    {
+        EnableDepthTest = false;
+        EnableBlend     = true;
+        BlendFunc       = SRC_ALPHA, ONE_MINUS_SRC_ALPHA;
+        EnableStencilTest = false;
+        StencilFunc       = EQUAL, 1, 255;
+    }
+
+    SAMPLER_2D u_texture
+    {
+        Unit = 0;
+        Wrap = CLAMP, CLAMP;
+        Filter = LINEAR_MIPMAP_LINEAR, LINEAR;
+    }
+
+    VERTEX_SHADER
+    {
+		uniform	   float	u_opacity;
+        attribute   vec4    a_position;
+		uniform    mat4     u_mvp;
+//        attribute   vec2    a_tc;
+//        varying     vec2    v_tc;
+		varying		float	v_opacity;
+
+        void main()
+        {
+			v_opacity = u_opacity;
+//            v_tc = a_tc;
+            gl_Position = u_mvp * a_position;
+        }
+    }
+
+    FRAGMENT_SHADER
+    {
+        precision mediump float;
+
+//        uniform sampler2D   u_texture;
+        uniform vec4        u_color;
+//        varying vec2        v_tc;
+		varying float		v_opacity;
+
+        void main()
+        {
+//            float   alpha = texture2D(u_texture, v_tc).a;
+
+//             if (alpha < 0.01)
+//                discard;
+
+     //       gl_FragColor = vec4(u_color.rgb, alpha);
+		      gl_FragColor = vec4(u_color.rgb, v_opacity * u_color.a);
+        }
+    }
+}

@@ -1,0 +1,1525 @@
+//****************************************************************************
+//
+// Copyright (c) 2011 Broadcom Corporation
+//
+// This program is the proprietary software of Broadcom Corporation and/or
+// its licensors, and may only be used, duplicated, modified or distributed
+// pursuant to the terms and conditions of a separate, written license
+// agreement executed between you and Broadcom (an "Authorized License").
+// Except as set forth in an Authorized License, Broadcom grants no license
+// (express or implied), right to use, or waiver of any kind with respect to
+// the Software, and Broadcom expressly reserves all rights in and to the
+// Software and all intellectual property rights therein.  IF YOU HAVE NO
+// AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
+// AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
+// SOFTWARE.  
+//
+// Except as expressly set forth in the Authorized License,
+//
+// 1.     This program, including its structure, sequence and organization,
+// constitutes the valuable trade secrets of Broadcom, and you shall use all
+// reasonable efforts to protect the confidentiality thereof, and to use this
+// information only in connection with your use of Broadcom integrated circuit
+// products.
+//
+// 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+// "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+// OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+// RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+// IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+// A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+// ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+// THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+//
+// 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+// OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+// INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+// RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+// HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+// EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+// WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+// FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+//
+//****************************************************************************
+//    Description:                                                          
+//                                                                          
+//****************************************************************************
+//    Revision History:                                                     
+//                                                                          
+//****************************************************************************
+//    Filename: ocStbHostBridge.h
+//    Creation Date: Monday, June 13, 2011 at 13:53:49
+//    Created by Broadcom BFC Mib Compiler BCMIBC.EXE version 3.6.1d
+//    from input file OC-STB-HOST-MIB.mib
+//
+//****************************************************************************
+
+#ifndef OCSTBHOSTBRIDGE_H
+#define OCSTBHOSTBRIDGE_H
+
+
+#include "CoreObjs.h"
+#include "MibObjs.h"
+#include "MibBridge.h"
+
+#include "ocStbHostMib.h"
+
+
+/*\
+ *  ocStbHostHWIdentifiersGroup 
+\*/
+
+#define MINLEN_OCSTBHOSTSERIALNUMBER  0
+#define MAXLEN_OCSTBHOSTSERIALNUMBER  255
+#define CONSTLEN_OCSTBHOSTHOSTID  17
+#define CONSTVAL_OCSTBHOSTCAPABILITIES_OTHER  1
+#define CONSTVAL_OCSTBHOSTCAPABILITIES_OCHD2  2
+#define CONSTVAL_OCSTBHOSTCAPABILITIES_EMBEDDED  3
+#define CONSTVAL_OCSTBHOSTCAPABILITIES_DCAS  4
+#define CONSTVAL_OCSTBHOSTCAPABILITIES_OCHD21  5
+#define CONSTVAL_OCSTBHOSTCAPABILITIES_BOCR  6
+#define CONSTVAL_OCSTBHOSTCAPABILITIES_OCHDTC  7
+#define CONSTVAL_OCSTBHOSTAVCSUPPORT_TRUE  1
+#define CONSTVAL_OCSTBHOSTAVCSUPPORT_FALSE  2
+
+class ocStbHostHWIdentifiersGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostHWIdentifiersGroup;
+
+  public:
+    ocStbHostHWIdentifiersGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostHWIdentifiersGroupBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostSerialNumber (BcmString &ocStbHostSerialNumber);
+    int Get_ocStbHostHostID (BcmString &ocStbHostHostID);
+    int Get_ocStbHostCapabilities ();
+    bool Get_ocStbHostAvcSupport ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostAVInterfaceEntry 
+\*/
+
+#define MINVAL_OCSTBHOSTAVINTERFACEINDEX  1
+#define MAXVAL_OCSTBHOSTAVINTERFACEINDEX  4294967295
+#define MINLEN_OCSTBHOSTAVINTERFACEDESC  0
+#define MAXLEN_OCSTBHOSTAVINTERFACEDESC  255
+#define CONSTVAL_OCSTBHOSTAVINTERFACESTATUS_ENABLED  1
+#define CONSTVAL_OCSTBHOSTAVINTERFACESTATUS_DISABLED  2
+
+class ocStbHostAVInterfaceEntryBridge : public TabularMibBridge
+{
+  friend class ocStbHostAVInterfaceEntry;
+
+  public:
+    ocStbHostAVInterfaceEntryBridge (unsigned long ocStbHostAVInterfaceIndex, BcmSnmpAgent *pAgent);
+   ~ocStbHostAVInterfaceEntryBridge ();
+
+    /* GET methods */
+
+    unsigned int Get_ocStbHostAVInterfaceIndex ();
+    int Get_ocStbHostAVInterfaceType (BcmObjectId &ocStbHostAVInterfaceType);
+    int Get_ocStbHostAVInterfaceDesc (BcmString &ocStbHostAVInterfaceDesc);
+    int Get_ocStbHostAVInterfaceStatus ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostSPDIfEntry 
+\*/
+
+#define CONSTVAL_OCSTBHOSTSPDIFAUDIOMUTESTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTSPDIFAUDIOMUTESTATUS_FALSE  2
+
+class ocStbHostSPDIfEntryBridge : public TabularMibBridge
+{
+  friend class ocStbHostSPDIfEntry;
+
+  public:
+    ocStbHostSPDIfEntryBridge (unsigned long ocStbHostAVInterfaceIndex, BcmSnmpAgent *pAgent);
+   ~ocStbHostSPDIfEntryBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostSPDIfAudioFormat ();
+    bool Get_ocStbHostSPDIfAudioMuteStatus ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostIEEE1394Entry 
+\*/
+
+#define MINVAL_OCSTBHOSTIEEE1394ACTIVENODES  -1 | 0
+#define MAXVAL_OCSTBHOSTIEEE1394ACTIVENODES  64
+#define CONSTVAL_OCSTBHOSTIEEE1394DATAXMISSION_TRUE  1
+#define CONSTVAL_OCSTBHOSTIEEE1394DATAXMISSION_FALSE  2
+#define CONSTVAL_OCSTBHOSTIEEE1394DTCPSTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTIEEE1394DTCPSTATUS_FALSE  2
+#define CONSTVAL_OCSTBHOSTIEEE1394LOOPSTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTIEEE1394LOOPSTATUS_FALSE  2
+#define CONSTVAL_OCSTBHOSTIEEE1394ROOTSTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTIEEE1394ROOTSTATUS_FALSE  2
+#define CONSTVAL_OCSTBHOSTIEEE1394CYCLEISMASTER_TRUE  1
+#define CONSTVAL_OCSTBHOSTIEEE1394CYCLEISMASTER_FALSE  2
+#define CONSTVAL_OCSTBHOSTIEEE1394IRMSTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTIEEE1394IRMSTATUS_FALSE  2
+#define CONSTVAL_OCSTBHOSTIEEE1394AUDIOMUTESTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTIEEE1394AUDIOMUTESTATUS_FALSE  2
+#define CONSTVAL_OCSTBHOSTIEEE1394VIDEOMUTESTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTIEEE1394VIDEOMUTESTATUS_FALSE  2
+
+class ocStbHostIEEE1394EntryBridge : public TabularMibBridge
+{
+  friend class ocStbHostIEEE1394Entry;
+
+  public:
+    ocStbHostIEEE1394EntryBridge (unsigned long ocStbHostAVInterfaceIndex, BcmSnmpAgent *pAgent);
+   ~ocStbHostIEEE1394EntryBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostIEEE1394ActiveNodes ();
+    bool Get_ocStbHostIEEE1394DataXMission ();
+    bool Get_ocStbHostIEEE1394DTCPStatus ();
+    bool Get_ocStbHostIEEE1394LoopStatus ();
+    bool Get_ocStbHostIEEE1394RootStatus ();
+    bool Get_ocStbHostIEEE1394CycleIsMaster ();
+    bool Get_ocStbHostIEEE1394IRMStatus ();
+    bool Get_ocStbHostIEEE1394AudioMuteStatus ();
+    bool Get_ocStbHostIEEE1394VideoMuteStatus ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostIEEE1394ConnectedDevicesEntry 
+\*/
+
+#define MINVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESINDEX  1
+#define MAXVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESINDEX  4294967295
+#define MINVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESAVINTERFACEINDEX  1
+#define MAXVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESAVINTERFACEINDEX  4294967295
+#define CONSTVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESSUBUNITTYPE_MONITOR  0
+#define CONSTVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESSUBUNITTYPE_AUDIO  1
+#define CONSTVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESSUBUNITTYPE_PRINTER  2
+#define CONSTVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESSUBUNITTYPE_DISC  3
+#define CONSTVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESSUBUNITTYPE_TAPE  4
+#define CONSTVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESSUBUNITTYPE_TUNER  5
+#define CONSTVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESSUBUNITTYPE_CA  6
+#define CONSTVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESSUBUNITTYPE_CAMERA  7
+#define CONSTVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESSUBUNITTYPE_RESERVED  8
+#define CONSTVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESSUBUNITTYPE_PANEL  9
+#define CONSTVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESSUBUNITTYPE_OTHER  10
+#define CONSTLEN_OCSTBHOSTIEEE1394CONNECTEDDEVICESEUI64  8
+#define CONSTVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESADSOURCESELECTSUPPORT_TRUE  1
+#define CONSTVAL_OCSTBHOSTIEEE1394CONNECTEDDEVICESADSOURCESELECTSUPPORT_FALSE  2
+
+class ocStbHostIEEE1394ConnectedDevicesEntryBridge : public TabularMibBridge
+{
+  friend class ocStbHostIEEE1394ConnectedDevicesEntry;
+
+  public:
+    ocStbHostIEEE1394ConnectedDevicesEntryBridge (unsigned long ocStbHostIEEE1394ConnectedDevicesIndex, BcmSnmpAgent *pAgent);
+   ~ocStbHostIEEE1394ConnectedDevicesEntryBridge ();
+
+    /* GET methods */
+
+    unsigned int Get_ocStbHostIEEE1394ConnectedDevicesIndex ();
+    unsigned int Get_ocStbHostIEEE1394ConnectedDevicesAVInterfaceIndex ();
+    int Get_ocStbHostIEEE1394ConnectedDevicesSubUnitType ();
+    int Get_ocStbHostIEEE1394ConnectedDevicesEui64 (BcmString &ocStbHostIEEE1394ConnectedDevicesEui64);
+    bool Get_ocStbHostIEEE1394ConnectedDevicesADSourceSelectSupport ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostDVIHDMIEntry 
+\*/
+
+#define CONSTVAL_OCSTBHOSTDVIHDMIOUTPUTTYPE_DVI  1
+#define CONSTVAL_OCSTBHOSTDVIHDMIOUTPUTTYPE_HDMI  2
+#define CONSTVAL_OCSTBHOSTDVIHDMICONNECTIONSTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTDVIHDMICONNECTIONSTATUS_FALSE  2
+#define CONSTVAL_OCSTBHOSTDVIHDMIREPEATERSTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTDVIHDMIREPEATERSTATUS_FALSE  2
+#define CONSTVAL_OCSTBHOSTDVIHDMIVIDEOXMISSIONSTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTDVIHDMIVIDEOXMISSIONSTATUS_FALSE  2
+#define CONSTVAL_OCSTBHOSTDVIHDMIHDCPSTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTDVIHDMIHDCPSTATUS_FALSE  2
+#define CONSTVAL_OCSTBHOSTDVIHDMIVIDEOMUTESTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTDVIHDMIVIDEOMUTESTATUS_FALSE  2
+#define CONSTVAL_OCSTBHOSTDVIHDMIOUTPUTFORMAT_FORMAT480I  1
+#define CONSTVAL_OCSTBHOSTDVIHDMIOUTPUTFORMAT_FORMAT480P  2
+#define CONSTVAL_OCSTBHOSTDVIHDMIOUTPUTFORMAT_FORMAT720P  3
+#define CONSTVAL_OCSTBHOSTDVIHDMIOUTPUTFORMAT_FORMAT1080I  4
+#define CONSTVAL_OCSTBHOSTDVIHDMIOUTPUTFORMAT_FORMAT1080P  5
+#define CONSTVAL_OCSTBHOSTDVIHDMIASPECTRATIO_OTHER  1
+#define CONSTVAL_OCSTBHOSTDVIHDMIASPECTRATIO_FOURBYTHREE  2
+#define CONSTVAL_OCSTBHOSTDVIHDMIASPECTRATIO_SIXTEENBYNINE  3
+#define CONSTVAL_OCSTBHOSTDVIHDMIHOSTDEVICEHDCPSTATUS_NONHDCPDEVICE  1
+#define CONSTVAL_OCSTBHOSTDVIHDMIHOSTDEVICEHDCPSTATUS_COMPLIANTHDCPDEVICE  2
+#define CONSTVAL_OCSTBHOSTDVIHDMIHOSTDEVICEHDCPSTATUS_REVOKEDHDCPDEVICE  3
+#define CONSTVAL_OCSTBHOSTDVIHDMIAUDIOSAMPLERATE_OTHER  1
+#define CONSTVAL_OCSTBHOSTDVIHDMIAUDIOSAMPLERATE_SAMPLERATE32KHZ  2
+#define CONSTVAL_OCSTBHOSTDVIHDMIAUDIOSAMPLERATE_SAMPLERATE44KHZ  3
+#define CONSTVAL_OCSTBHOSTDVIHDMIAUDIOSAMPLERATE_SAMPLERATE48KHZ  4
+#define CONSTVAL_OCSTBHOSTDVIHDMIAUDIOSAMPLERATE_SAMPLERATE88KHZ  5
+#define CONSTVAL_OCSTBHOSTDVIHDMIAUDIOSAMPLERATE_SAMPLERATE96KHZ  6
+#define CONSTVAL_OCSTBHOSTDVIHDMIAUDIOSAMPLERATE_SAMPLERATE176KHZ  7
+#define CONSTVAL_OCSTBHOSTDVIHDMIAUDIOSAMPLERATE_SAMPLERATE192KHZ  8
+#define MINVAL_OCSTBHOSTDVIHDMIAUDIOCHANNELCOUNT  0
+#define MAXVAL_OCSTBHOSTDVIHDMIAUDIOCHANNELCOUNT  10
+#define CONSTVAL_OCSTBHOSTDVIHDMIAUDIOMUTESTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTDVIHDMIAUDIOMUTESTATUS_FALSE  2
+#define CONSTVAL_OCSTBHOSTDVIHDMIAUDIOSAMPLESIZE_NOTVALID  0
+#define CONSTVAL_OCSTBHOSTDVIHDMIAUDIOSAMPLESIZE_SAMPLE16BIT  1
+#define CONSTVAL_OCSTBHOSTDVIHDMIAUDIOSAMPLESIZE_SAMPLE20BIT  2
+#define CONSTVAL_OCSTBHOSTDVIHDMIAUDIOSAMPLESIZE_SAMPLE24BIT  3
+#define CONSTVAL_OCSTBHOSTDVIHDMICOLORSPACE_RGB  0
+#define CONSTVAL_OCSTBHOSTDVIHDMICOLORSPACE_YCC422  1
+#define CONSTVAL_OCSTBHOSTDVIHDMICOLORSPACE_YCC444  2
+#define CONSTVAL_OCSTBHOSTDVIHDMIFRAMERATE_FRAMERATECODE1  1
+#define CONSTVAL_OCSTBHOSTDVIHDMIFRAMERATE_FRAMERATECODE2  2
+#define CONSTVAL_OCSTBHOSTDVIHDMIFRAMERATE_FRAMERATECODE3  3
+#define CONSTVAL_OCSTBHOSTDVIHDMIFRAMERATE_FRAMERATECODE4  4
+#define CONSTVAL_OCSTBHOSTDVIHDMIFRAMERATE_FRAMERATECODE5  5
+#define CONSTVAL_OCSTBHOSTDVIHDMIFRAMERATE_FRAMERATECODE6  6
+#define CONSTVAL_OCSTBHOSTDVIHDMIATTACHEDDEVICETYPE_TV  0
+#define CONSTVAL_OCSTBHOSTDVIHDMIATTACHEDDEVICETYPE_RECORDINGDEVICE  1
+#define CONSTVAL_OCSTBHOSTDVIHDMIATTACHEDDEVICETYPE_TUNER  3
+#define CONSTVAL_OCSTBHOSTDVIHDMIATTACHEDDEVICETYPE_PLAYBACKDEVICE  4
+#define CONSTVAL_OCSTBHOSTDVIHDMIATTACHEDDEVICETYPE_AUDIOSYSTEM  5
+#define CONSTVAL_OCSTBHOSTDVIHDMIATTACHEDDEVICETYPE_OTHER  6
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_ONETOUCHPLAY  0
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_SYSTEMSTANDBY  1
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_ONETOUCHRECORD  2
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_TIMERPROGRAMMING  3
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_DECKCONTROL  4
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_TUNERCONTROL  5
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_DEVICEMENUCONTROL  6
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_REMOTECONTROLPASSTHROUGH  7
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_SYSTEMAUDIOCONTROL  8
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_DEVICEOSDNAMETRANSFER  9
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_DEVICEPOWERSTATUS  10
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_OSDDISPLAY  11
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_ROUTINGCONTROL  12
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_SYSTEMINFORMATION  13
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_VENDORSPECIFICCOMMANDS  14
+#define CONSTVAL_OCSTBHOSTDVIHDMICECFEATURES_AUDIORATECONTROL  15
+#define CONSTVAL_OCSTBHOSTDVIHDMIFEATURES_DEEPCOLOR  0
+#define CONSTVAL_OCSTBHOSTDVIHDMIFEATURES_EXTENDEDCOLORGAMUT  1
+#define CONSTVAL_OCSTBHOSTDVIHDMIFEATURES_ONEBITAUDIO  2
+#define CONSTVAL_OCSTBHOSTDVIHDMIFEATURES_LIPSYNC  3
+#define CONSTVAL_OCSTBHOSTDVIHDMIFEATURES_CEC  4
+#define MINVAL_OCSTBHOSTDVIHDMIPREFERREDVIDEOFORMAT  0
+#define MAXVAL_OCSTBHOSTDVIHDMIPREFERREDVIDEOFORMAT  127
+#define MINLEN_OCSTBHOSTDVIHDMIEDIDVERSION  0
+#define MAXLEN_OCSTBHOSTDVIHDMIEDIDVERSION  255
+#define CONSTVAL_OCSTBHOSTDVIHDMI3DCOMPATIBILITYCONTROL_OTHER  0
+#define CONSTVAL_OCSTBHOSTDVIHDMI3DCOMPATIBILITYCONTROL_PASSTHRU3D  1
+#define CONSTVAL_OCSTBHOSTDVIHDMI3DCOMPATIBILITYCONTROL_BLOCK3D  2
+#define CONSTVAL_OCSTBHOSTDVIHDMI3DCOMPATIBILITYMSGDISPLAY_TRUE  1
+#define CONSTVAL_OCSTBHOSTDVIHDMI3DCOMPATIBILITYMSGDISPLAY_FALSE  2
+
+class ocStbHostDVIHDMIEntryBridge : public TabularMibBridge
+{
+  friend class ocStbHostDVIHDMIEntry;
+
+  public:
+    ocStbHostDVIHDMIEntryBridge (unsigned long ocStbHostAVInterfaceIndex, BcmSnmpAgent *pAgent);
+   ~ocStbHostDVIHDMIEntryBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostDVIHDMIOutputType ();
+    bool Get_ocStbHostDVIHDMIConnectionStatus ();
+    bool Get_ocStbHostDVIHDMIRepeaterStatus ();
+    bool Get_ocStbHostDVIHDMIVideoXmissionStatus ();
+    bool Get_ocStbHostDVIHDMIHDCPStatus ();
+    bool Get_ocStbHostDVIHDMIVideoMuteStatus ();
+    int Get_ocStbHostDVIHDMIOutputFormat ();
+    int Get_ocStbHostDVIHDMIAspectRatio ();
+    int Get_ocStbHostDVIHDMIHostDeviceHDCPStatus ();
+    int Get_ocStbHostDVIHDMIAudioFormat ();
+    int Get_ocStbHostDVIHDMIAudioSampleRate ();
+    unsigned int Get_ocStbHostDVIHDMIAudioChannelCount ();
+    bool Get_ocStbHostDVIHDMIAudioMuteStatus ();
+    int Get_ocStbHostDVIHDMIAudioSampleSize ();
+    int Get_ocStbHostDVIHDMIColorSpace ();
+    int Get_ocStbHostDVIHDMIFrameRate ();
+    int Get_ocStbHostDVIHDMIAttachedDeviceType ();
+    int Get_ocStbHostDVIHDMIEdid (BcmString &ocStbHostDVIHDMIEdid);
+    int Get_ocStbHostDVIHDMILipSyncDelay ();
+    unsigned long Get_ocStbHostDVIHDMICecFeatures ();
+    unsigned long Get_ocStbHostDVIHDMIFeatures ();
+    int Get_ocStbHostDVIHDMIMaxDeviceCount ();
+    int Get_ocStbHostDVIHDMIPreferredVideoFormat ();
+    int Get_ocStbHostDVIHDMIEdidVersion (BcmString &ocStbHostDVIHDMIEdidVersion);
+    int Get_ocStbHostDVIHDMI3DCompatibilityControl ();
+    bool Get_ocStbHostDVIHDMI3DCompatibilityMsgDisplay ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+    SNMP_STATUS Set_ocStbHostDVIHDMI3DCompatibilityControl (int ocStbHostDVIHDMI3DCompatibilityControl);
+    SNMP_STATUS Set_ocStbHostDVIHDMI3DCompatibilityMsgDisplay (bool ocStbHostDVIHDMI3DCompatibilityMsgDisplay);
+};
+
+
+
+/*\
+ *  ocStbHostDVIHDMIAvailableVideoFormatEntry 
+\*/
+
+#define MINVAL_OCSTBHOSTDVIHDMIAVAILABLEVIDEOFORMATINDEX  0
+#define MAXVAL_OCSTBHOSTDVIHDMIAVAILABLEVIDEOFORMATINDEX  127
+#define MINVAL_OCSTBHOSTDVIHDMIAVAILABLEVIDEOFORMAT  0
+#define MAXVAL_OCSTBHOSTDVIHDMIAVAILABLEVIDEOFORMAT  127
+#define CONSTVAL_OCSTBHOSTDVIHDMISUPPORTED3DSTRUCTURES_FRAMEPACKING  0
+#define CONSTVAL_OCSTBHOSTDVIHDMISUPPORTED3DSTRUCTURES_FIELDALTERNATIVE  1
+#define CONSTVAL_OCSTBHOSTDVIHDMISUPPORTED3DSTRUCTURES_LINEALTERNATIVE  2
+#define CONSTVAL_OCSTBHOSTDVIHDMISUPPORTED3DSTRUCTURES_SIDEBYSIDEFULL  3
+#define CONSTVAL_OCSTBHOSTDVIHDMISUPPORTED3DSTRUCTURES_LEFTPLUSDEPTH  4
+#define CONSTVAL_OCSTBHOSTDVIHDMISUPPORTED3DSTRUCTURES_LEFTPLUSDEPTHPLUSGRAPHICSPLUSGRAPHICSDEPTH  5
+#define CONSTVAL_OCSTBHOSTDVIHDMISUPPORTED3DSTRUCTURES_TOPANDBOTTOM  6
+#define CONSTVAL_OCSTBHOSTDVIHDMISUPPORTED3DSTRUCTURES_SIDEBYSIDEHALF  7
+#define CONSTVAL_OCSTBHOSTDVIHDMISUPPORTED3DSTRUCTURES_SIDEBYSIDEHALFQUINCUNX  8
+#define CONSTVAL_OCSTBHOSTDVIHDMIACTIVE3DSTRUCTURE_OTHER  0
+#define CONSTVAL_OCSTBHOSTDVIHDMIACTIVE3DSTRUCTURE_NA  1
+#define CONSTVAL_OCSTBHOSTDVIHDMIACTIVE3DSTRUCTURE_FRAMEPACKING  2
+#define CONSTVAL_OCSTBHOSTDVIHDMIACTIVE3DSTRUCTURE_FIELDALTERNATIVE  3
+#define CONSTVAL_OCSTBHOSTDVIHDMIACTIVE3DSTRUCTURE_LINEALTERNATIVE  4
+#define CONSTVAL_OCSTBHOSTDVIHDMIACTIVE3DSTRUCTURE_SIDEBYSIDEFULL  5
+#define CONSTVAL_OCSTBHOSTDVIHDMIACTIVE3DSTRUCTURE_LEFTPLUSDEPTH  6
+#define CONSTVAL_OCSTBHOSTDVIHDMIACTIVE3DSTRUCTURE_LEFTPLUSDEPTHPLUSGRAPHICSPLUSGRAPHICSDEPTH  7
+#define CONSTVAL_OCSTBHOSTDVIHDMIACTIVE3DSTRUCTURE_TOPANDBOTTOM  8
+#define CONSTVAL_OCSTBHOSTDVIHDMIACTIVE3DSTRUCTURE_SIDEBYSIDEHALF  9
+#define CONSTVAL_OCSTBHOSTDVIHDMIACTIVE3DSTRUCTURE_SIDEBYSIDEHALFQUINCUNX  10
+#define CONSTVAL_OCSTBHOSTDVIHDMIACTIVE3DSTRUCTURE_NOADDITIONALHDMIINFO  17
+#define CONSTVAL_OCSTBHOSTDVIHDMIACTIVE3DSTRUCTURE_NO3DINFORMATION  18
+#define CONSTVAL_OCSTBHOSTDVIHDMIACTIVE3DSTRUCTURE_INFOFRAMENOTAVAILABLE  19
+
+class ocStbHostDVIHDMIAvailableVideoFormatEntryBridge : public TabularMibBridge
+{
+  friend class ocStbHostDVIHDMIAvailableVideoFormatEntry;
+
+  public:
+    ocStbHostDVIHDMIAvailableVideoFormatEntryBridge (int ocStbHostDVIHDMIAvailableVideoFormatIndex, BcmSnmpAgent *pAgent);
+   ~ocStbHostDVIHDMIAvailableVideoFormatEntryBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostDVIHDMIAvailableVideoFormatIndex ();
+    int Get_ocStbHostDVIHDMIAvailableVideoFormat ();
+    unsigned long Get_ocStbHostDVIHDMISupported3DStructures ();
+    int Get_ocStbHostDVIHDMIActive3DStructure ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostComponentVideoEntry 
+\*/
+
+#define CONSTVAL_OCSTBHOSTCOMPONENTVIDEOCONSTRAINEDSTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTCOMPONENTVIDEOCONSTRAINEDSTATUS_FALSE  2
+#define CONSTVAL_OCSTBHOSTCOMPONENTOUTPUTFORMAT_FORMAT480I  1
+#define CONSTVAL_OCSTBHOSTCOMPONENTOUTPUTFORMAT_FORMAT480P  2
+#define CONSTVAL_OCSTBHOSTCOMPONENTOUTPUTFORMAT_FORMAT720P  3
+#define CONSTVAL_OCSTBHOSTCOMPONENTOUTPUTFORMAT_FORMAT1080I  4
+#define CONSTVAL_OCSTBHOSTCOMPONENTOUTPUTFORMAT_FORMAT1080P  5
+#define CONSTVAL_OCSTBHOSTCOMPONENTASPECTRATIO_OTHER  1
+#define CONSTVAL_OCSTBHOSTCOMPONENTASPECTRATIO_FOURBYTHREE  2
+#define CONSTVAL_OCSTBHOSTCOMPONENTASPECTRATIO_SIXTEENBYNINE  3
+#define CONSTVAL_OCSTBHOSTCOMPONENTVIDEOMUTESTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTCOMPONENTVIDEOMUTESTATUS_FALSE  2
+
+class ocStbHostComponentVideoEntryBridge : public TabularMibBridge
+{
+  friend class ocStbHostComponentVideoEntry;
+
+  public:
+    ocStbHostComponentVideoEntryBridge (unsigned long ocStbHostAVInterfaceIndex, BcmSnmpAgent *pAgent);
+   ~ocStbHostComponentVideoEntryBridge ();
+
+    /* GET methods */
+
+    bool Get_ocStbHostComponentVideoConstrainedStatus ();
+    int Get_ocStbHostComponentOutputFormat ();
+    int Get_ocStbHostComponentAspectRatio ();
+    bool Get_ocStbHostComponentVideoMuteStatus ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostRFChannelOutEntry 
+\*/
+
+#define MINVAL_OCSTBHOSTRFCHANNELOUT  3
+#define MAXVAL_OCSTBHOSTRFCHANNELOUT  99
+#define CONSTVAL_OCSTBHOSTRFCHANNELOUTAUDIOMUTESTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTRFCHANNELOUTAUDIOMUTESTATUS_FALSE  2
+#define CONSTVAL_OCSTBHOSTRFCHANNELOUTVIDEOMUTESTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTRFCHANNELOUTVIDEOMUTESTATUS_FALSE  2
+
+class ocStbHostRFChannelOutEntryBridge : public TabularMibBridge
+{
+  friend class ocStbHostRFChannelOutEntry;
+
+  public:
+    ocStbHostRFChannelOutEntryBridge (unsigned long ocStbHostAVInterfaceIndex, BcmSnmpAgent *pAgent);
+   ~ocStbHostRFChannelOutEntryBridge ();
+
+    /* GET methods */
+
+    unsigned int Get_ocStbHostRFChannelOut ();
+    bool Get_ocStbHostRFChannelOutAudioMuteStatus ();
+    bool Get_ocStbHostRFChannelOutVideoMuteStatus ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostInBandTunerEntry 
+\*/
+
+#define CONSTVAL_OCSTBHOSTINBANDTUNERMODULATIONMODE_OTHER  1
+#define CONSTVAL_OCSTBHOSTINBANDTUNERMODULATIONMODE_ANALOG  2
+#define CONSTVAL_OCSTBHOSTINBANDTUNERMODULATIONMODE_QAM64  3
+#define CONSTVAL_OCSTBHOSTINBANDTUNERMODULATIONMODE_QAM256  4
+#define CONSTVAL_OCSTBHOSTINBANDTUNERINTERLEAVER_UNKNOWN  1
+#define CONSTVAL_OCSTBHOSTINBANDTUNERINTERLEAVER_OTHER  2
+#define CONSTVAL_OCSTBHOSTINBANDTUNERINTERLEAVER_TAPS64INCREMENT2  3
+#define CONSTVAL_OCSTBHOSTINBANDTUNERINTERLEAVER_TAPS128INCREMENT1  4
+#define CONSTVAL_OCSTBHOSTINBANDTUNERINTERLEAVER_TAPS128INCREMENT2  5
+#define CONSTVAL_OCSTBHOSTINBANDTUNERINTERLEAVER_TAPS128INCREMENT3  6
+#define CONSTVAL_OCSTBHOSTINBANDTUNERINTERLEAVER_TAPS128INCREMENT4  7
+#define CONSTVAL_OCSTBHOSTINBANDTUNERINTERLEAVER_TAPS32INCREMENT4  8
+#define CONSTVAL_OCSTBHOSTINBANDTUNERINTERLEAVER_TAPS16INCREMENT8  9
+#define CONSTVAL_OCSTBHOSTINBANDTUNERINTERLEAVER_TAPS8INCREMENT16  10
+#define MINVAL_OCSTBHOSTINBANDTUNERAGCVALUE  0
+#define MAXVAL_OCSTBHOSTINBANDTUNERAGCVALUE  100
+#define CONSTVAL_OCSTBHOSTINBANDTUNERSTATE_READY  1
+#define CONSTVAL_OCSTBHOSTINBANDTUNERSTATE_WAITINGSYNC  2
+#define CONSTVAL_OCSTBHOSTINBANDTUNERSTATE_WAITINGQAM  3
+#define CONSTVAL_OCSTBHOSTINBANDTUNERSTATE_FOUNDSYNC  4
+#define CONSTVAL_OCSTBHOSTINBANDTUNERSTATE_FOUNDQAM  5
+#define CONSTVAL_OCSTBHOSTINBANDTUNERSTATE_UNKNOWN  6
+#define CONSTVAL_OCSTBHOSTINBANDTUNERSTATE_STANDBY  7
+#define CONSTVAL_OCSTBHOSTINBANDTUNERBER_BERGREATERTHAN10E2  1
+#define CONSTVAL_OCSTBHOSTINBANDTUNERBER_BERRANGE10E2TOGREATERTHAN10E4  2
+#define CONSTVAL_OCSTBHOSTINBANDTUNERBER_BERRANGE10E4TOGREATERTHAN10E6  3
+#define CONSTVAL_OCSTBHOSTINBANDTUNERBER_BERRANGE10E6TOGREATERTHAN10E8  4
+#define CONSTVAL_OCSTBHOSTINBANDTUNERBER_BERRANGE10E8TOGREATERTHAN10E12  5
+#define CONSTVAL_OCSTBHOSTINBANDTUNERBER_BEREQUALTOORLESSTHAN10E12  6
+#define CONSTVAL_OCSTBHOSTINBANDTUNERBER_BERNOTAPPLICABLE  7
+#define MINVAL_OCSTBHOSTINBANDTUNERMAINTAPCOEFF  1
+#define MAXVAL_OCSTBHOSTINBANDTUNERMAINTAPCOEFF  32767
+#define CONSTVAL_OCSTBHOSTINBANDTUNERBANDWIDTH_OTHER  1
+#define CONSTVAL_OCSTBHOSTINBANDTUNERBANDWIDTH_MHZ864  2
+#define CONSTVAL_OCSTBHOSTINBANDTUNERBANDWIDTH_MHZ1002  3
+
+class ocStbHostInBandTunerEntryBridge : public TabularMibBridge
+{
+  friend class ocStbHostInBandTunerEntry;
+
+  public:
+    ocStbHostInBandTunerEntryBridge (unsigned long ocStbHostAVInterfaceIndex, BcmSnmpAgent *pAgent);
+   ~ocStbHostInBandTunerEntryBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostInBandTunerModulationMode ();
+    unsigned int Get_ocStbHostInBandTunerFrequency ();
+    int Get_ocStbHostInBandTunerInterleaver ();
+    int Get_ocStbHostInBandTunerPower ();
+    unsigned int Get_ocStbHostInBandTunerAGCValue ();
+    int Get_ocStbHostInBandTunerSNRValue ();
+    unsigned int Get_ocStbHostInBandTunerUnerroreds ();
+    unsigned int Get_ocStbHostInBandTunerCorrecteds ();
+    unsigned int Get_ocStbHostInBandTunerUncorrectables ();
+    unsigned int Get_ocStbHostInBandTunerCarrierLockLost ();
+    unsigned int Get_ocStbHostInBandTunerPCRErrors ();
+    unsigned int Get_ocStbHostInBandTunerPTSErrors ();
+    int Get_ocStbHostInBandTunerState ();
+    int Get_ocStbHostInBandTunerBER ();
+    unsigned int Get_ocStbHostInBandTunerSecsSinceLock ();
+    int Get_ocStbHostInBandTunerEqGain ();
+    int Get_ocStbHostInBandTunerMainTapCoeff ();
+    unsigned int Get_ocStbHostInBandTunerTotalTuneCount ();
+    unsigned int Get_ocStbHostInBandTunerTuneFailureCount ();
+    unsigned int Get_ocStbHostInBandTunerTuneFailFreq ();
+    int Get_ocStbHostInBandTunerBandwidth ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostProgramStatusEntry 
+\*/
+
+#define MINVAL_OCSTBHOSTPROGRAMINDEX  1
+#define MAXVAL_OCSTBHOSTPROGRAMINDEX  20
+
+class ocStbHostProgramStatusEntryBridge : public TabularMibBridge
+{
+  friend class ocStbHostProgramStatusEntry;
+
+  public:
+    ocStbHostProgramStatusEntryBridge (unsigned long ocStbHostProgramIndex, BcmSnmpAgent *pAgent);
+   ~ocStbHostProgramStatusEntryBridge ();
+
+    /* GET methods */
+
+    unsigned int Get_ocStbHostProgramIndex ();
+    int Get_ocStbHostProgramAVSource (BcmObjectId &ocStbHostProgramAVSource);
+    int Get_ocStbHostProgramAVDestination (BcmObjectId &ocStbHostProgramAVDestination);
+    int Get_ocStbHostProgramContentSource (BcmObjectId &ocStbHostProgramContentSource);
+    int Get_ocStbHostProgramContentDestination (BcmObjectId &ocStbHostProgramContentDestination);
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostMpeg2ContentEntry 
+\*/
+
+#define MINVAL_OCSTBHOSTMPEG2CONTENTINDEX  1
+#define MAXVAL_OCSTBHOSTMPEG2CONTENTINDEX  20
+#define MINVAL_OCSTBHOSTMPEG2CONTENTSELECTEDVIDEOPID  -1 | 1
+#define MAXVAL_OCSTBHOSTMPEG2CONTENTSELECTEDVIDEOPID  8191
+#define MINVAL_OCSTBHOSTMPEG2CONTENTSELECTEDAUDIOPID  -1 | 1
+#define MAXVAL_OCSTBHOSTMPEG2CONTENTSELECTEDAUDIOPID  8191
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTOTHERAUDIOPIDS_TRUE  1
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTOTHERAUDIOPIDS_FALSE  2
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTCCIVALUE_COPYFREELY  0
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTCCIVALUE_COPYNOMORE  1
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTCCIVALUE_COPYONEGENERATION  2
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTCCIVALUE_COPYNEVER  3
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTCCIVALUE_UNDEFINED  4
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTAPSVALUE_TYPE1  1
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTAPSVALUE_TYPE2  2
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTAPSVALUE_TYPE3  3
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTAPSVALUE_NOMACROVISION  4
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTAPSVALUE_NOTDEFINED  5
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTCITSTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTCITSTATUS_FALSE  2
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTBROADCASTFLAGSTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTBROADCASTFLAGSTATUS_FALSE  2
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTEPNSTATUS_TRUE  1
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTEPNSTATUS_FALSE  2
+#define MINVAL_OCSTBHOSTMPEG2CONTENTPCRPID  -1 | 1
+#define MAXVAL_OCSTBHOSTMPEG2CONTENTPCRPID  8191
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTPCRLOCKSTATUS_NOTLOCKED  1
+#define CONSTVAL_OCSTBHOSTMPEG2CONTENTPCRLOCKSTATUS_LOCKED  2
+
+class ocStbHostMpeg2ContentEntryBridge : public TabularMibBridge
+{
+  friend class ocStbHostMpeg2ContentEntry;
+
+  public:
+    ocStbHostMpeg2ContentEntryBridge (unsigned long ocStbHostMpeg2ContentIndex, BcmSnmpAgent *pAgent);
+   ~ocStbHostMpeg2ContentEntryBridge ();
+
+    /* GET methods */
+
+    unsigned int Get_ocStbHostMpeg2ContentIndex ();
+    unsigned int Get_ocStbHostMpeg2ContentProgramNumber ();
+    unsigned int Get_ocStbHostMpeg2ContentTransportStreamID ();
+    unsigned int Get_ocStbHostMpeg2ContentTotalStreams ();
+    int Get_ocStbHostMpeg2ContentSelectedVideoPID ();
+    int Get_ocStbHostMpeg2ContentSelectedAudioPID ();
+    bool Get_ocStbHostMpeg2ContentOtherAudioPIDs ();
+    int Get_ocStbHostMpeg2ContentCCIValue ();
+    int Get_ocStbHostMpeg2ContentAPSValue ();
+    bool Get_ocStbHostMpeg2ContentCITStatus ();
+    bool Get_ocStbHostMpeg2ContentBroadcastFlagStatus ();
+    bool Get_ocStbHostMpeg2ContentEPNStatus ();
+    int Get_ocStbHostMpeg2ContentPCRPID ();
+    int Get_ocStbHostMpeg2ContentPCRLockStatus ();
+    int Get_ocStbHostMpeg2ContentDecoderPTS ();
+    unsigned int Get_ocStbHostMpeg2ContentDiscontinuities ();
+    unsigned int Get_ocStbHostMpeg2ContentPktErrors ();
+    unsigned int Get_ocStbHostMpeg2ContentPipelineErrors ();
+    unsigned int Get_ocStbHostMpeg2ContentDecoderRestarts ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostAnalogVideoEntry 
+\*/
+
+#define CONSTVAL_OCSTBHOSTANALOGVIDEOPROTECTIONSTATUS_COPYPROTECTIONOFF  0
+#define CONSTVAL_OCSTBHOSTANALOGVIDEOPROTECTIONSTATUS_SPLITBURSTOFF  1
+#define CONSTVAL_OCSTBHOSTANALOGVIDEOPROTECTIONSTATUS_TWOLINESPLITBURST  2
+#define CONSTVAL_OCSTBHOSTANALOGVIDEOPROTECTIONSTATUS_FOURLINESPLITBURST  3
+
+class ocStbHostAnalogVideoEntryBridge : public TabularMibBridge
+{
+  friend class ocStbHostAnalogVideoEntry;
+
+  public:
+    ocStbHostAnalogVideoEntryBridge (unsigned long ocStbHostAVInterfaceIndex, BcmSnmpAgent *pAgent);
+   ~ocStbHostAnalogVideoEntryBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostAnalogVideoProtectionStatus ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostQpskObjectsGroup 
+\*/
+
+#define CONSTVAL_OCSTBHOSTQPSKFDCBER_BERGREATERTHAN10E2  1
+#define CONSTVAL_OCSTBHOSTQPSKFDCBER_BERRANGE10E2TOGREATERTHAN10E4  2
+#define CONSTVAL_OCSTBHOSTQPSKFDCBER_BERRANGE10E4TOGREATERTHAN10E6  3
+#define CONSTVAL_OCSTBHOSTQPSKFDCBER_BERRANGE10E6TOGREATERTHAN10E8  4
+#define CONSTVAL_OCSTBHOSTQPSKFDCBER_BERRANGE10E8TOGREATERTHAN10E12  5
+#define CONSTVAL_OCSTBHOSTQPSKFDCBER_BEREQUALTOORLESSTHAN10E12  6
+#define CONSTVAL_OCSTBHOSTQPSKFDCBER_BERNOTAPPLICABLE  7
+#define CONSTVAL_OCSTBHOSTQPSKFDCSTATUS_NOTLOCKED  1
+#define CONSTVAL_OCSTBHOSTQPSKFDCSTATUS_LOCKED  2
+#define CONSTVAL_OCSTBHOSTQPSKRDCDATARATE_KBPS256  1
+#define CONSTVAL_OCSTBHOSTQPSKRDCDATARATE_KBPS1544  2
+#define CONSTVAL_OCSTBHOSTQPSKRDCDATARATE_KBPS3088  3
+
+class ocStbHostQpskObjectsGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostQpskObjectsGroup;
+
+  public:
+    ocStbHostQpskObjectsGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostQpskObjectsGroupBridge ();
+
+    /* GET methods */
+
+    unsigned int Get_ocStbHostQpskFDCFreq ();
+    unsigned int Get_ocStbHostQpskRDCFreq ();
+    int Get_ocStbHostQpskFDCBer ();
+    int Get_ocStbHostQpskFDCStatus ();
+    unsigned int Get_ocStbHostQpskFDCBytesRead ();
+    int Get_ocStbHostQpskFDCPower ();
+    unsigned int Get_ocStbHostQpskFDCLockedTime ();
+    int Get_ocStbHostQpskFDCSNR ();
+    unsigned int Get_ocStbHostQpskAGC ();
+    int Get_ocStbHostQpskRDCPower ();
+    int Get_ocStbHostQpskRDCDataRate ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostEasCodesGroup 
+\*/
+
+#define MINVAL_OCSTBEASMESSAGESTATECODE  0
+#define MAXVAL_OCSTBEASMESSAGESTATECODE  99
+#define MINVAL_OCSTBEASMESSAGECOUNTYCODE  0
+#define MAXVAL_OCSTBEASMESSAGECOUNTYCODE  999
+#define MINVAL_OCSTBEASMESSAGECOUNTYSUBDIVISIONCODE  0
+#define MAXVAL_OCSTBEASMESSAGECOUNTYSUBDIVISIONCODE  9
+
+class ocStbHostEasCodesGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostEasCodesGroup;
+
+  public:
+    ocStbHostEasCodesGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostEasCodesGroupBridge ();
+
+    /* GET methods */
+
+    unsigned int Get_ocStbEasMessageStateCode ();
+    unsigned int Get_ocStbEasMessageCountyCode ();
+    unsigned int Get_ocStbEasMessageCountySubdivisionCode ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostSecuritySubSystemGroup 
+\*/
+
+#define MINLEN_OCSTBHOSTCASYSTEMIDENTIFIER  0
+#define MAXLEN_OCSTBHOSTCASYSTEMIDENTIFIER  255
+#define CONSTVAL_OCSTBHOSTCATYPE_OTHER  1
+#define CONSTVAL_OCSTBHOSTCATYPE_EMBEDDED  2
+#define CONSTVAL_OCSTBHOSTCATYPE_CABLECARD  3
+#define CONSTVAL_OCSTBHOSTCATYPE_DCAS  4
+
+class ocStbHostSecuritySubSystemGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostSecuritySubSystemGroup;
+
+  public:
+    ocStbHostSecuritySubSystemGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostSecuritySubSystemGroupBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostCASystemIdentifier (BcmString &ocStbHostCASystemIdentifier);
+    int Get_ocStbHostCAType ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostDeviceSoftwareBaseGroup 
+\*/
+
+#define MINLEN_OCSTBHOSTSOFTWAREFIRMWAREVERSION  0
+#define MAXLEN_OCSTBHOSTSOFTWAREFIRMWAREVERSION  255
+#define MINLEN_OCSTBHOSTSOFTWAREOCAPVERSION  0
+#define MAXLEN_OCSTBHOSTSOFTWAREOCAPVERSION  255
+
+class ocStbHostDeviceSoftwareBaseGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostDeviceSoftwareBaseGroup;
+
+  public:
+    ocStbHostDeviceSoftwareBaseGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostDeviceSoftwareBaseGroupBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostSoftwareFirmwareVersion (BcmString &ocStbHostSoftwareFirmwareVersion);
+    int Get_ocStbHostSoftwareOCAPVersion (BcmString &ocStbHostSoftwareOCAPVersion);
+    time_t Get_ocStbHostSoftwareFirmwareReleaseDate ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostFirmwareDownloadStatusGroup 
+\*/
+
+#define CONSTVAL_OCSTBHOSTFIRMWAREIMAGESTATUS_IMAGEAUTHORIZED  1
+#define CONSTVAL_OCSTBHOSTFIRMWAREIMAGESTATUS_IMAGECORRUPTED  2
+#define CONSTVAL_OCSTBHOSTFIRMWAREIMAGESTATUS_IMAGECERTFAILURE  3
+#define CONSTVAL_OCSTBHOSTFIRMWAREIMAGESTATUS_IMAGEMAXDOWNLOADRETRY  4
+#define CONSTVAL_OCSTBHOSTFIRMWAREIMAGESTATUS_IMAGEMAXREBOOTRETRY  5
+#define CONSTVAL_OCSTBHOSTFIRMWARECODEDOWNLOADSTATUS_DOWNLOADINGSTARTED  1
+#define CONSTVAL_OCSTBHOSTFIRMWARECODEDOWNLOADSTATUS_DOWNLOADINGCOMPLETE  2
+#define CONSTVAL_OCSTBHOSTFIRMWARECODEDOWNLOADSTATUS_DOWNLOADINGFAILED  3
+#define CONSTVAL_OCSTBHOSTFIRMWARECODEDOWNLOADSTATUS_OTHER  4
+#define MINLEN_OCSTBHOSTFIRMWARECODEOBJECTNAME  0
+#define MAXLEN_OCSTBHOSTFIRMWARECODEOBJECTNAME  255
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR1  1
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR2  2
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR3  3
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR4  4
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR5  5
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR6  6
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR7  7
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR8  8
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR9  9
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR10  10
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR11  11
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR12  12
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR13  13
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR14  14
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR15  15
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR16  16
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR17  17
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR18  18
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR19  19
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR20  20
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR21  21
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR22  22
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR23  23
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR24  24
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR25  25
+#define CONSTVAL_OCSTBHOSTFIRMWAREDOWNLOADFAILEDSTATUS_CDLERROR99  99
+#define MINVAL_OCSTBHOSTFIRMWAREDOWNLOADGROUPID  0
+#define MAXVAL_OCSTBHOSTFIRMWAREDOWNLOADGROUPID  65535
+
+class ocStbHostFirmwareDownloadStatusGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostFirmwareDownloadStatusGroup;
+
+  public:
+    ocStbHostFirmwareDownloadStatusGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostFirmwareDownloadStatusGroupBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostFirmwareImageStatus ();
+    int Get_ocStbHostFirmwareCodeDownloadStatus ();
+    int Get_ocStbHostFirmwareCodeObjectName (BcmString &ocStbHostFirmwareCodeObjectName);
+    int Get_ocStbHostFirmwareDownloadFailedStatus ();
+    unsigned int Get_ocStbHostFirmwareDownloadFailedCount ();
+    unsigned int Get_ocStbHostFirmwareDownloadGroupId ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostSoftwareApplicationInfoGroup 
+\*/
+
+#define CONSTVAL_OCSTBHOSTSOFTWAREAPPLICATIONINFOSIGLASTREADSTATUS_UNKNOWN  0
+#define CONSTVAL_OCSTBHOSTSOFTWAREAPPLICATIONINFOSIGLASTREADSTATUS_OKAY  1
+#define CONSTVAL_OCSTBHOSTSOFTWAREAPPLICATIONINFOSIGLASTREADSTATUS_ERROR  2
+#define CONSTVAL_OCSTBHOSTSOFTWAREAPPLICATIONINFOSIGLASTREADSTATUS_OKAYBUTREJECTED  3
+#define MINVAL_OCSTBHOSTSOFTWAREAPPLICATIONINFOSIGLASTNETWORKVERSIONREAD  -1 | 0
+#define MAXVAL_OCSTBHOSTSOFTWAREAPPLICATIONINFOSIGLASTNETWORKVERSIONREAD  31
+#define MINVAL_OCSTBHOSTSOFTWAREAPPLICATIONINFOSIGVERSIONINUSE  -1 | 0
+#define MAXVAL_OCSTBHOSTSOFTWAREAPPLICATIONINFOSIGVERSIONINUSE  31
+
+class ocStbHostSoftwareApplicationInfoGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostSoftwareApplicationInfoGroup;
+
+  public:
+    ocStbHostSoftwareApplicationInfoGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostSoftwareApplicationInfoGroupBridge ();
+
+    /* GET methods */
+
+    time_t Get_ocStbHostSoftwareApplicationInfoSigLastReceivedTime ();
+    int Get_ocStbHostSoftwareApplicationInfoSigLastReadStatus ();
+    int Get_ocStbHostSoftwareApplicationInfoSigLastNetworkVersionRead ();
+    int Get_ocStbHostSoftwareApplicationInfoSigVersionInUse ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostSoftwareApplicationInfoEntry 
+\*/
+
+#define MINLEN_OCSTBHOSTSOFTWAREAPPNAMESTRING  0
+#define MAXLEN_OCSTBHOSTSOFTWAREAPPNAMESTRING  255
+#define MINLEN_OCSTBHOSTSOFTWAREAPPVERSIONNUMBER  0
+#define MAXLEN_OCSTBHOSTSOFTWAREAPPVERSIONNUMBER  255
+#define CONSTVAL_OCSTBHOSTSOFTWARESTATUS_LOADED  4
+#define CONSTVAL_OCSTBHOSTSOFTWARESTATUS_NOTLOADED  5
+#define CONSTVAL_OCSTBHOSTSOFTWARESTATUS_PAUSED  6
+#define CONSTVAL_OCSTBHOSTSOFTWARESTATUS_RUNNING  7
+#define CONSTVAL_OCSTBHOSTSOFTWARESTATUS_DESTROYED  8
+#define MINVAL_OCSTBHOSTSOFTWAREAPPLICATIONINFOINDEX  1
+#define MAXVAL_OCSTBHOSTSOFTWAREAPPLICATIONINFOINDEX  4294967295
+#define CONSTLEN_OCSTBHOSTSOFTWAREORGANIZATIONID  4
+#define CONSTLEN_OCSTBHOSTSOFTWAREAPPLICATIONID  2
+
+class ocStbHostSoftwareApplicationInfoEntryBridge : public TabularMibBridge
+{
+  friend class ocStbHostSoftwareApplicationInfoEntry;
+
+  public:
+    ocStbHostSoftwareApplicationInfoEntryBridge (unsigned long ocStbHostSoftwareApplicationInfoIndex, BcmSnmpAgent *pAgent);
+   ~ocStbHostSoftwareApplicationInfoEntryBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostSoftwareAppNameString (BcmString &ocStbHostSoftwareAppNameString);
+    int Get_ocStbHostSoftwareAppVersionNumber (BcmString &ocStbHostSoftwareAppVersionNumber);
+    int Get_ocStbHostSoftwareStatus ();
+    unsigned int Get_ocStbHostSoftwareApplicationInfoIndex ();
+    int Get_ocStbHostSoftwareOrganizationId (BcmString &ocStbHostSoftwareOrganizationId);
+    int Get_ocStbHostSoftwareApplicationId (BcmString &ocStbHostSoftwareApplicationId);
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostPowerGroup 
+\*/
+
+#define CONSTVAL_OCSTBHOSTPOWERSTATUS_POWERON  1
+#define CONSTVAL_OCSTBHOSTPOWERSTATUS_STANDBY  2
+
+class ocStbHostPowerGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostPowerGroup;
+
+  public:
+    ocStbHostPowerGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostPowerGroupBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostPowerStatus ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostSystemMemoryReportEntry 
+\*/
+
+#define MINVAL_OCSTBHOSTSYSTEMMEMORYREPORTINDEX  1
+#define MAXVAL_OCSTBHOSTSYSTEMMEMORYREPORTINDEX  4294967295
+#define CONSTVAL_OCSTBHOSTSYSTEMMEMORYREPORTMEMORYTYPE_ROM  1
+#define CONSTVAL_OCSTBHOSTSYSTEMMEMORYREPORTMEMORYTYPE_DRAM  2
+#define CONSTVAL_OCSTBHOSTSYSTEMMEMORYREPORTMEMORYTYPE_SRAM  3
+#define CONSTVAL_OCSTBHOSTSYSTEMMEMORYREPORTMEMORYTYPE_FLASH  4
+#define CONSTVAL_OCSTBHOSTSYSTEMMEMORYREPORTMEMORYTYPE_NVM  5
+#define CONSTVAL_OCSTBHOSTSYSTEMMEMORYREPORTMEMORYTYPE_VIDEOMEMORY  7
+#define CONSTVAL_OCSTBHOSTSYSTEMMEMORYREPORTMEMORYTYPE_OTHERMEMORY  8
+#define CONSTVAL_OCSTBHOSTSYSTEMMEMORYREPORTMEMORYTYPE_RESERVED  9
+#define CONSTVAL_OCSTBHOSTSYSTEMMEMORYREPORTMEMORYTYPE_INTERNALHARDDRIVE  10
+#define CONSTVAL_OCSTBHOSTSYSTEMMEMORYREPORTMEMORYTYPE_EXTERNALHARDDRIVE  11
+#define CONSTVAL_OCSTBHOSTSYSTEMMEMORYREPORTMEMORYTYPE_OPTICALMEDIA  12
+
+class ocStbHostSystemMemoryReportEntryBridge : public TabularMibBridge
+{
+  friend class ocStbHostSystemMemoryReportEntry;
+
+  public:
+    ocStbHostSystemMemoryReportEntryBridge (unsigned long ocStbHostSystemMemoryReportIndex, BcmSnmpAgent *pAgent);
+   ~ocStbHostSystemMemoryReportEntryBridge ();
+
+    /* GET methods */
+
+    unsigned int Get_ocStbHostSystemMemoryReportIndex ();
+    int Get_ocStbHostSystemMemoryReportMemoryType ();
+    int Get_ocStbHostSystemMemoryReportMemorySize ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbCardInfoGroup 
+\*/
+
+#define CONSTVAL_OCSTBHOSTCARDIPADDRESSTYPE_UNKNOWN  0
+#define CONSTVAL_OCSTBHOSTCARDIPADDRESSTYPE_IPV4  1
+#define CONSTVAL_OCSTBHOSTCARDIPADDRESSTYPE_IPV6  2
+#define CONSTVAL_OCSTBHOSTCARDIPADDRESSTYPE_DNS  16
+#define CONSTLEN_OCSTBHOSTCARDIPADDRESS  4
+#define CONSTLEN_OCSTBHOSTCARDID  17
+#define CONSTVAL_OCSTBHOSTCARDBINDINGSTATUS_UNKNOWN  1
+#define CONSTVAL_OCSTBHOSTCARDBINDINGSTATUS_INVALIDCERTIFICATE  2
+#define CONSTVAL_OCSTBHOSTCARDBINDINGSTATUS_OTHERAUTHFAILURE  3
+#define CONSTVAL_OCSTBHOSTCARDBINDINGSTATUS_BOUND  4
+#define CONSTLEN_OCSTBHOSTCARDOPENEDGENERICRESOURCE  4
+#define MINVAL_OCSTBHOSTCARDTIMEZONEOFFSET  -12
+#define MAXVAL_OCSTBHOSTCARDTIMEZONEOFFSET  12
+#define CONSTLEN_OCSTBHOSTCARDDAYLIGHTSAVINGSTIMEDELTA  1
+#define CONSTLEN_OCSTBHOSTCARDEALOCATIONCODE  3
+#define CONSTLEN_OCSTBHOSTCARDVCTID  2
+
+class ocStbCardInfoGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbCardInfoGroup;
+
+  public:
+    ocStbCardInfoGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbCardInfoGroupBridge ();
+
+    /* GET methods */
+
+    void Get_ocStbHostCardMacAddress (BcmMacAddress &ocStbHostCardMacAddress);
+    int Get_ocStbHostCardIpAddressType ();
+    int Get_ocStbHostCardIpAddress (BcmString &ocStbHostCardIpAddress);
+    int Get_ocStbHostCardId (BcmString &ocStbHostCardId);
+    int Get_ocStbHostCardBindingStatus ();
+    int Get_ocStbHostCardOpenedGenericResource (BcmString &ocStbHostCardOpenedGenericResource);
+    int Get_ocStbHostCardTimeZoneOffset ();
+    int Get_ocStbHostCardDaylightSavingsTimeDelta (BcmString &ocStbHostCardDaylightSavingsTimeDelta);
+    unsigned int Get_ocStbHostCardDaylightSavingsTimeEntry ();
+    unsigned int Get_ocStbHostCardDaylightSavingsTimeExit ();
+    int Get_ocStbHostCardEaLocationCode (BcmString &ocStbHostCardEaLocationCode);
+    int Get_ocStbHostCardVctId (BcmString &ocStbHostCardVctId);
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostCCAppInfoEntry 
+\*/
+
+#define MINVAL_OCSTBHOSTCCAPPLICATIONTYPE  0
+#define MAXVAL_OCSTBHOSTCCAPPLICATIONTYPE  4294967295
+#define MINLEN_OCSTBHOSTCCAPPLICATIONNAME  0
+#define MAXLEN_OCSTBHOSTCCAPPLICATIONNAME  255
+
+class ocStbHostCCAppInfoEntryBridge : public TabularMibBridge
+{
+  friend class ocStbHostCCAppInfoEntry;
+
+  public:
+    ocStbHostCCAppInfoEntryBridge (unsigned long ocStbHostCCApplicationType, BcmSnmpAgent *pAgent);
+   ~ocStbHostCCAppInfoEntryBridge ();
+
+    /* GET methods */
+
+    unsigned int Get_ocStbHostCCAppInfoIndex ();
+    unsigned int Get_ocStbHostCCApplicationType ();
+    int Get_ocStbHostCCApplicationName (BcmString &ocStbHostCCApplicationName);
+    unsigned int Get_ocStbHostCCApplicationVersion ();
+    int Get_ocStbHostCCAppInfoPage (BcmString &ocStbHostCCAppInfoPage);
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostSnmpProxyInfoGroup 
+\*/
+
+#define CONSTLEN_OCSTBHOSTCARDMFGID  2
+#define CONSTLEN_OCSTBHOSTCARDVERSION  2
+#define MINLEN_OCSTBHOSTCARDSERIALNUMBER  0
+#define MAXLEN_OCSTBHOSTCARDSERIALNUMBER  255
+#define CONSTVAL_OCSTBHOSTCARDSNMPACCESSCONTROL_TRUE  1
+#define CONSTVAL_OCSTBHOSTCARDSNMPACCESSCONTROL_FALSE  2
+
+class ocStbHostSnmpProxyInfoGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostSnmpProxyInfoGroup;
+
+  public:
+    ocStbHostSnmpProxyInfoGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostSnmpProxyInfoGroupBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostCardMfgId (BcmString &ocStbHostCardMfgId);
+    int Get_ocStbHostCardVersion (BcmString &ocStbHostCardVersion);
+    int Get_ocStbHostCardRootOid (BcmObjectId &ocStbHostCardRootOid);
+    int Get_ocStbHostCardSerialNumber (BcmString &ocStbHostCardSerialNumber);
+    bool Get_ocStbHostCardSnmpAccessControl ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+    SNMP_STATUS Set_ocStbHostCardSnmpAccessControl (bool ocStbHostCardSnmpAccessControl);
+};
+
+
+
+/*\
+ *  ocStbHostCardCpInfoGroup 
+\*/
+
+#define CONSTVAL_OCSTBHOSTCARDCPAUTHKEYSTATUS_READY  1
+#define CONSTVAL_OCSTBHOSTCARDCPAUTHKEYSTATUS_NOTREADY  2
+#define CONSTVAL_OCSTBHOSTCARDCPCERTIFICATECHECK_OK  1
+#define CONSTVAL_OCSTBHOSTCARDCPCERTIFICATECHECK_FAILED  2
+#define CONSTLEN_OCSTBHOSTCARDCPIDLIST  4
+
+class ocStbHostCardCpInfoGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostCardCpInfoGroup;
+
+  public:
+    ocStbHostCardCpInfoGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostCardCpInfoGroupBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostCardCpAuthKeyStatus ();
+    int Get_ocStbHostCardCpCertificateCheck ();
+    unsigned int Get_ocStbHostCardCpCciChallengeCount ();
+    unsigned int Get_ocStbHostCardCpKeyGenerationReqCount ();
+    int Get_ocStbHostCardCpIdList (BcmString &ocStbHostCardCpIdList);
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostInfoGroup 
+\*/
+
+#define CONSTVAL_OCSTBHOSTIPADDRESSTYPE_UNKNOWN  0
+#define CONSTVAL_OCSTBHOSTIPADDRESSTYPE_IPV4  1
+#define CONSTVAL_OCSTBHOSTIPADDRESSTYPE_IPV6  2
+#define CONSTVAL_OCSTBHOSTIPADDRESSTYPE_DNS  16
+#define CONSTLEN_OCSTBHOSTIPSUBNETMASK  4
+#define CONSTVAL_OCSTBHOSTOOBMESSAGEMODE_SCTE55  1
+#define CONSTVAL_OCSTBHOSTOOBMESSAGEMODE_DSG  2
+#define CONSTVAL_OCSTBHOSTOOBMESSAGEMODE_OTHER  3
+#define CONSTVAL_OCSTBHOSTBOOTSTATUS_COMPLETEDSUCCESSFULLY  1
+#define CONSTVAL_OCSTBHOSTBOOTSTATUS_COMPLETEWITHERRORS  2
+#define CONSTVAL_OCSTBHOSTBOOTSTATUS_INPROGRESSWITHCODEDOWNLOAD  3
+#define CONSTVAL_OCSTBHOSTBOOTSTATUS_INPROGRESSNOCODEDOWNLOAD  4
+#define CONSTVAL_OCSTBHOSTBOOTSTATUS_INPROGRESSAWAITINGMONITORAPP  5
+#define CONSTVAL_OCSTBHOSTBOOTSTATUS_UNKNOWN  6
+
+class ocStbHostInfoGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostInfoGroup;
+
+  public:
+    ocStbHostInfoGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostInfoGroupBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostIpAddressType ();
+    int Get_ocStbHostIpSubNetMask (BcmString &ocStbHostIpSubNetMask);
+    int Get_ocStbHostOobMessageMode ();
+    int Get_ocStbHostBootStatus ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostDumpTrapInfoGroup 
+\*/
+
+#define MINVAL_OCSTBHOSTDUMPEVENTCOUNT  0
+#define MAXVAL_OCSTBHOSTDUMPEVENTCOUNT  32
+#define CONSTVAL_OCSTBHOSTDUMPNOW_TRUE  1
+#define CONSTVAL_OCSTBHOSTDUMPNOW_FALSE  2
+#define MINVAL_OCSTBHOSTDUMPEVENTTIMEOUT  1
+#define MAXVAL_OCSTBHOSTDUMPEVENTTIMEOUT  120
+#define MINLEN_OCSTBHOSTDUMPFILEPATH  0
+#define MAXLEN_OCSTBHOSTDUMPFILEPATH  255
+
+class ocStbHostDumpTrapInfoGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostDumpTrapInfoGroup;
+
+  public:
+    ocStbHostDumpTrapInfoGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostDumpTrapInfoGroupBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostDumpEventCount ();
+    bool Get_ocStbHostDumpNow ();
+    unsigned int Get_ocStbHostDumpEventTimeout ();
+    int Get_ocStbHostDumpFilePath (BcmString &ocStbHostDumpFilePath);
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+    SNMP_STATUS Set_ocStbHostDumpEventCount (int ocStbHostDumpEventCount);
+    SNMP_STATUS Set_ocStbHostDumpNow (bool ocStbHostDumpNow);
+    SNMP_STATUS Set_ocStbHostDumpEventTimeout (unsigned int ocStbHostDumpEventTimeout);
+};
+
+
+
+/*\
+ *  ocStbHostSpecificationsInfoGroup 
+\*/
+
+#define MINLEN_OCSTBHOSTCFRSPECIFICATIONISSUE  0
+#define MAXLEN_OCSTBHOSTCFRSPECIFICATIONISSUE  255
+#define MINLEN_OCSTBHOSTMIBSPECIFICATIONISSUE  0
+#define MAXLEN_OCSTBHOSTMIBSPECIFICATIONISSUE  255
+
+class ocStbHostSpecificationsInfoGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostSpecificationsInfoGroup;
+
+  public:
+    ocStbHostSpecificationsInfoGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostSpecificationsInfoGroupBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostCfrSpecificationIssue (BcmString &ocStbHostCfrSpecificationIssue);
+    int Get_ocStbHostMibSpecificationIssue (BcmString &ocStbHostMibSpecificationIssue);
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostContentErrorSummaryInfoGroup 
+\*/
+
+
+class ocStbHostContentErrorSummaryInfoGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostContentErrorSummaryInfoGroup;
+
+  public:
+    ocStbHostContentErrorSummaryInfoGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostContentErrorSummaryInfoGroupBridge ();
+
+    /* GET methods */
+
+    unsigned int Get_ocStbHostPatTimeoutCount ();
+    unsigned int Get_ocStbHostPmtTimeoutCount ();
+    unsigned int Get_ocStbHostOobCarouselTimeoutCount ();
+    unsigned int Get_ocStbHostInbandCarouselTimeoutCount ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostRebootInfoGroup 
+\*/
+
+#define CONSTVAL_OCSTBHOSTREBOOTTYPE_UNKNOWN  0
+#define CONSTVAL_OCSTBHOSTREBOOTTYPE_DAVICDOCSIS  1
+#define CONSTVAL_OCSTBHOSTREBOOTTYPE_USER  2
+#define CONSTVAL_OCSTBHOSTREBOOTTYPE_SYSTEM  3
+#define CONSTVAL_OCSTBHOSTREBOOTTYPE_TRAP  4
+#define CONSTVAL_OCSTBHOSTREBOOTTYPE_SILENTWATCHDOG  5
+#define CONSTVAL_OCSTBHOSTREBOOTTYPE_BOOTLOADER  6
+#define CONSTVAL_OCSTBHOSTREBOOTTYPE_POWERUP  7
+#define CONSTVAL_OCSTBHOSTREBOOTTYPE_HOSTUPGRADE  8
+#define CONSTVAL_OCSTBHOSTREBOOTTYPE_HARDWARE  9
+#define CONSTVAL_OCSTBHOSTREBOOTTYPE_CABLECARDERROR  10
+#define CONSTVAL_OCSTBHOSTREBOOTRESET_TRUE  1
+#define CONSTVAL_OCSTBHOSTREBOOTRESET_FALSE  2
+
+class ocStbHostRebootInfoGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostRebootInfoGroup;
+
+  public:
+    ocStbHostRebootInfoGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostRebootInfoGroupBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostRebootType ();
+    bool Get_ocStbHostRebootReset ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+    SNMP_STATUS Set_ocStbHostRebootReset (bool ocStbHostRebootReset);
+};
+
+
+
+/*\
+ *  ocStbHostMemoryInfoGroup 
+\*/
+
+
+class ocStbHostMemoryInfoGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostMemoryInfoGroup;
+
+  public:
+    ocStbHostMemoryInfoGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostMemoryInfoGroupBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostLargestAvailableBlock ();
+    int Get_ocStbHostTotalVideoMemory ();
+    int Get_ocStbHostAvailableVideoMemory ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+/*\
+ *  ocStbHostJVMInfoGroup 
+\*/
+
+
+class ocStbHostJVMInfoGroupBridge : public ScalarMibBridge
+{
+  friend class ocStbHostJVMInfoGroup;
+
+  public:
+    ocStbHostJVMInfoGroupBridge (BcmSnmpAgent *pAgent);
+   ~ocStbHostJVMInfoGroupBridge ();
+
+    /* GET methods */
+
+    int Get_ocStbHostJVMHeapSize ();
+    int Get_ocStbHostJVMAvailHeap ();
+    int Get_ocStbHostJVMLiveObjects ();
+    int Get_ocStbHostJVMDeadObjects ();
+
+    /* TEST methods - not required */
+
+
+    /* SET methods */
+
+};
+
+
+
+#endif
+
+

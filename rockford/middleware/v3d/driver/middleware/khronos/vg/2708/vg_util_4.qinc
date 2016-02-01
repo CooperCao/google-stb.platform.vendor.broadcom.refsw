@@ -1,0 +1,31 @@
+### ===========================================================================
+### Copyright (C) 2009 Broadcom Europe Limited.
+### All rights reserved.
+###
+### Project  :  khronos
+### Module   :  VG
+###
+### FILE DESCRIPTION
+### Useful stuff for user shaders.
+### ===========================================================================
+
+.ifnset VG_UTIL_4_QINC
+.set VG_UTIL_4_QINC, 1
+
+.set ras, lambda: range(1, 32, 2) + range(0, 32, 2)
+.set ra, lambda: ra0 + remaining_ras.pop(0)
+.set ra_even, lambda: ra0 + remaining_ras.pop() # useful for working around hw-2780
+.set rbs, lambda: range(32)
+.set rb, lambda: rb0 + remaining_rbs.pop(0)
+
+.macro empty_vpm_fifo
+   mov  vr_setup, vpm_setup(1, 0, h32(0))
+   mov  -, vpm
+.endm
+
+.set elems, lambda *is_: [(i in is_) for i in range(16)]
+.set elem_range, lambda i, n: elems(*range(i, i + n))
+.set neg_elems, lambda es: [-e for e in es]
+.set not_elems, lambda es: [not e for e in es]
+
+.endif

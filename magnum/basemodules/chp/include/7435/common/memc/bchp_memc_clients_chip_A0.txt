@@ -1,0 +1,131 @@
+# entries copied (as 'select' -> copy -> 'paste into this file')  from '7435A0 SCB client list'(scb_clients.xls) linked on http://bcgbu.broadcom.com/DVT/bcm7435/default.aspx
+XPT_WR_RS	0				
+XPT_WR_XC	1				
+XPT_WR_CDB	2				
+XPT_WR_ITB_MSG	3				
+XPT_RD_RS	4				
+XPT_RD_XC_RMX_MSG	5				
+XPT_RD_XC_RAVE	6				
+XPT_RD_PB	7				
+AVD_DBLK	8	8			AVD Deblock Writes
+AVD_ILCPU	9				AVD Inner Loop ARC 
+AVD_OLCPU	10				AVD Outer Loop ARC
+AVD_CAB	11				AVD CABAC 
+AVD_ILSI	12				AVD IL Symbol read
+SVD_DBLK	13	13			SVD Deblock Writes
+SVD_ILCPU	14				SVD Inner Loop ARC 
+SVD_OLCPU	15				SVD Outer Loop ARC
+SVD_CAB	16				SVD CABAC 
+SVD_ILSI	17				SVD IL Symbol read
+SVD_BLCPU	18				SVD base layer CPU
+SVD_BLSI	19				SVD BL Symbol Interpreter
+BVN_MAD3_PIX_CAP	20	20			New in BCM7435, to support fourth simultaneous transcode [Was SVD_MVSCL. Removed in RevM: SVD base layer MV scaler]
+BVN_MAD3_PIX_FD	21	21			New in BCM7435, to support fourth simultaneous transcode [Was SVD_SPIXSTR. Removed in RevM: SVD base layer SPIXSTORE / DBLK]
+BSP	22	22			BSP (AEGIS) must remain at client 22. BSP requires special MEMC hardware.
+AVD_DBLK_1	23	23			AVD Deblock Writes, alternate blockout
+SVD_DBLK_1	24	24			SVD Deblock Writes, alternate blockout
+BVN_MFD3	25	25			New in BCM7435, to support third transcode
+SATA	26	26			 
+TPCAP	27				Test Port Capture
+CPU	28	28			BMIPS5200 has 1 SCB and 1 LMB client per MEMC. (This is the SCB client, carrying requests from both cores)
+EDU	29	29			EBI DMA Unit (Was FGT in older chips)
+BVN_MAD3_QUANT	30	30			New in BCM7435, to support fourth simultaneous transcode [Was PCI/HIF_PCI. No PCI in BCM7435.]
+PCIE	31	31			PCI Express
+BVN_CAP5	32	32			New in BCM7435, to support fourth simultaneous transcode [Was IEEE_1394. No 1394/FireWire in BCM7435]
+MCIF_RD	33				Smart Card; New in 7435: UART_DMA (for Bluetooth interaction), traffic multiplexed.
+MCIF_WR	34				Smart Card
+SDIO_EMMC	35	35			
+SDIO_CARD	36	36			
+GENET0_WR	37	37			Internal 10/100 EPHY, external 10/100/1000 GPHY, HPNA, HomePlug or similar.
+GENET0_RD	38	38			Internal 10/100 EPHY, external 10/100/1000 GPHY, HPNA, HomePlug or similar.
+FLASH_DMA	39	39			New client in 7435, accelerates NAND and Parallel-NOR transfers
+GENET1_WR	40	40			Internal MoCA, external 10/100/1000 GPHY, HPNA, HomePlug or similar.
+GENET1_RD	41	41			Internal MoCA, external 10/100/1000 GPHY, HPNA, HomePlug or similar.
+MOCA_MIPS	42	42			This client is MOCA DMA which is used to load IMEM during boot time only
+USB_HI_0	43	43			Also called "USB_20", carries UHCI traffic for first USB controller. Each controller drives 2 PHYs.
+USB_LO_0	44	44			Also called "USB_11", carries OHCI traffic for first USB controller. Each controller drives 2 PHYs.
+USB_HI_1	45	45			Second USB controller
+USB_LO_1	46	46			Second USB controller
+RAAGA1	47	47			Second instance in BCM7435, to support more Audio transcodes
+RAAGA1_1	48	48			Second instance in BCM7435, to support more Audio transcodes
+RAAGA	49	49			RAAGA audio engine
+AUD_AIO	50	50			"AIO" is the new name for "FMM"; 7435 has AIO on both SCBs (bugfix)
+RAAGA_1	51	51			RAAGA_1 is a "selective RTS" client for video apps.
+BVN_MAD2_PIX_CAP	52	52			MAD_R pixel capture (write) -- second MAD_R for dual transcode
+BVN_RDC	53	53			Register DMA controller
+BVN_MAD2_PIX_FD	54	54			MAD_R pixel feed (read) -- second MAD_R for dual transcode
+BVN_MAD2_QUANT	55	55			MAD_R quant motion history (R/W)  -- second MAD_R for dual transcode
+BVN_MFD2	56	56			VICE BVN
+BVN_MFD2_1	57	57			VICE BVN
+BVN_MFD1	58	58			MPEG feeders have access to all DRAMs
+BVN_MFD1_1	59	59			MFD Alternate blockout
+BVN_MFD0	60	60			MPEG feeders have access to all DRAMs
+BVN_MFD0_1	61	61			MFD Alternate blockout
+BVN_CAP4	62	62			VICE BVN
+BVN_CAP3	63	63			
+BVN_CAP2	64	64			
+BVN_CAP1	65	65			
+BVN_CAP0	66	66			
+BVN_VFD4	67	67			VICE BVN
+BVN_VFD3	68	68			
+BVN_VFD2	69	69			
+BVN_VFD1	70	70			
+BVN_VFD0	71	71			
+BVN_MCVP0	72	72			AKA "client 0" and "rwc0" -- 16JW R/W (MCVP contains MCDI)
+BVN_MCVP1	73	73			AKA "client 1" and "rrc1" -- 16JW R
+BVN_MAD_PIX_CAP	74	74			MAD_R pixel capture (write)
+BVN_MAD_PIX_FD	75	75			MAD_R pixel feed (read)
+BVN_MAD_QUANT	76	76			MAD_R quant motion history (R/W)
+BVN_GFD3	77	77			VICE BVN
+BVN_GFD2	78	78			Third output "Echostar" GFD
+BVN_GFD1	79	79			
+BVN_GFD0	80	80			
+BVN_VFD5	81	81			New in BCM7435, to support fourth simultaneous transcode [Was VEC_VBI_ENC2. No analog tertiary VEC in BCM7435]
+VEC_VBI_ENC1	82				TTX1 -- assigned to VBI path 1 (typically IT_1, SD/CVBS display) and arbitrated with ITU656 path 1
+VEC_VBI_ENC0	83				TTX0 -- assigned to VBI path 0 (typically IT_0, HD/component display) and arbitrated with ITU656 path 0
+BVN_MCVP2	84	84			AKA "client 2" and "rwc2" -- QM client for MCDI
+BVN_MAD1_PIX_CAP	85	85			New in BCM7435, to support third transcode
+M2M_DMA1	86	86			Second instance in BCM7435, something not done since 7400
+M2M_DMA0	87	87			Note that M2M DMA has simultaneous access to all SCBs
+V3D_0	88	88			VC4 3D graphics core (replaces Pix3D/pirhana)
+V3D_1	89	89			VC4 3D graphics core -- Tile Buffer writes
+M2MC0 (GFX)	90	90			M2MC has access to all SCBs (Called "GFX" for BCM7038)
+M2MC1	91	91			Second instance in BCM7435, potentially for WebApp use
+BVN_MAD1_PIX_FD	92	92			New in BCM7435, to support third transcode
+BVN_MAD1_QUANT	93	93			New in BCM7435, to support third transcode
+SID	94	94			Still Image decoder
+VICE_VIP0_INST0	95	95	VICE1_VIP0_INST0		"VICE Clients, all VICE clients have access to SCB0.
+(module: o_scb_420_req. vice2: o_vip0_scb1_req) write only. Luma and 420 chroma"
+VICE_VIP1_INST0	96	96	VICE1_VIP1_INST0		(module: o_scb_dec_y_req. vice2: o_vip1_scb1_req) read/write. Write: 2h2v_luma, 2h1v_luma. Read: pcc_luma, hist_luma
+VICE_VIP2_INST0	97	97	VICE1_VIP2_INST0		(module: o_scb_shift_c_req. vice2: o_vip2_scb1_req) write only. Shift_chroma
+VICE_CME0	98	98	VICE1_CME0		(module: o_scb_xmb_req. vice2: o_cme0_scb1_req) read only. Input and reference picture luma
+VICE_CME1	99	99	VICE1_CME1		(module: o_scb_csc_req. vice2: o_cme1_scb1_req) write only. CMV, SAD, Confidence values
+VICE_FME0	100	100	VICE1_FME0		(module: o_scb_csc_req. vice2: o_fme0_scb1_req) read only. CMV, SAD, Confidence values
+VICE_FME1	101	101	VICE1_FME1		(module: o_scb_cmb_y_req. vice2: o_fme1_scb1_req) read only. CMB luma
+VICE_FME2	102	102	VICE1_FME2		(module: o_scb_cmb_c_req. vice2: o_fme2_scb1_req) read only. CMB chroma
+VICE_SG	103				(module: o_scb_sg_req. vice2: o_sg_scb0_req) write only. Coded bits / bins
+VICE_DBLK	104	104	VICE1_DBLK		(module: o_scb_dblk_req. vice2: o_dblk_scb1_req) write only. Deblocked, reconstructed MBs
+VICE_CABAC0	105				"(module: o_scb_cabac0_req. vice2: o_cabac0_scb0_req) write only. 
+CABAC0 writes final bitstream to SCB0. (All clear compressed data must be on SCB0)"
+VICE_CABAC1	106				(module: o_scb_cabac1_req. vice2: o_cabac1_scb0_req) read only. Bits / bins from SG
+VICE_ARCSS0	107	107	VICE1_ARCSS0		(module: o_arcss_scb0_req. vice2: o_arcss0_scb1_req) read/write. Firmware code and data
+VICE_VIP0_INST1	108	108	VICE1_VIP0_INST1		Second VIP instance for dual transcode. write only. Luma and 420 chroma
+VICE_VIP1_INST1	109	109	VICE1_VIP1_INST1		Second VIP instance for dual transcode. write only. read/write. Write: 2h2v_luma, 2h1v_luma. Read: pcc_luma, hist_luma
+VICE_VIP2_INST1	110	110	VICE1_VIP2_INST1		Second VIP instance for dual transcode. write only. write only. Shift_chroma
+BVN_GFD4	111	111			New in BCM7435, to support third transcode
+VICE1_SG	112				Was DOCSIS. New in BCM7435: second ViCE. All clear compressed data must be on SCB0
+VICE1_CABAC0	113				Was DOCSIS. New in BCM7435: second ViCE. All clear compressed data must be on SCB0
+VICE1_CABAC1	114				Was DOCSIS. New in BCM7435: second ViCE. All clear compressed data must be on SCB0
+BVN_MFD3_1	115	115			New in BCM7435, to support third transcode
+BVN_GFD5	116	116			New in BCM7435, to support fourth simultaneous transcode 
+DIS2	117	117			Internal data stress client (test)
+MSA	118	118			MSA soft access
+DIS	119	119			Internal data stress client (test)
+AVD_MOCOMP	120	120			AVD MOCOMP/DBLK PFRI
+SVD_MOCOMP	121	121			SVD MOCOMP/DBLK PFRI
+VICE_OPT	122	122	VICE1_OPT		VICE optional PFRI fetches. [Was on 116 in 7425B0] [Client 122 was SVD_SPIXSCALE. Removed in RevM: SVD SpixScale PFRI]
+VICE_REQ	123	123	VICE1_REQ		VICE required PFRI fetches
+CPU_LMB_HI	124	124			High priority LMB client 
+CPU_LMB_LO	125	125			1-LMB bus fans into 2 SCB clients inside MEMC.
+DRAM_INIT	126	126			MEMC internal client
+REF	127	127			Internal Refresh

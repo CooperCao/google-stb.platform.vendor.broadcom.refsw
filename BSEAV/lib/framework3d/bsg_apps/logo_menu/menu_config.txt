@@ -1,0 +1,47 @@
+# Planets demo
+Planets
+planets.png
+A Solar System tour using multi-texture\nand shader effects.
+pushd ../planets
+planets d=1920x1080 +m +loop +demo
+popd
+
+# Program guide
+Program Guide
+pg.png
+Demonstration of an EPG implemented\nin OpenGL ES 2.0.
+pushd ../pg
+pg d=1920x1080 +m
+popd
+
+# Geometry Viewer
+Geometry Viewer
+geom_viewer.png
+Shows the built-in geometries available in BSG\nand shows texture coordinate mappings.
+pushd ../geom_viewer
+geom_viewer d=1920x1080 +m
+popd
+
+# Hello LOD
+Hello LOD
+hello_lod.png
+Shows the BSG LOD mechanism in action.
+pushd ../hello_lod
+hello_lod d=1280x720 +m +s
+popd
+
+# Hello FBO
+Hello FBO
+hello_fbo.png
+Shows the BSG rendering to a framebuffer object.\nThe FBO is used as a texture.
+pushd ../hello_fbo
+hello_fbo d=1920x1080 +m
+popd
+
+# Hello Cube
+Hello Cube
+hello_cube.png
+Simple example of BSG rendering.\nStart with this application to learn BSG.
+pushd ../hello_cube4
+hello_cube4 d=1920x1080 +m
+popd

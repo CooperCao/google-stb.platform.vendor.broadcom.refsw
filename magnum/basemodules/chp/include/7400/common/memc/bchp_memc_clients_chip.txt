@@ -1,0 +1,72 @@
+# entries copied (as 'select' -> copy -> 'paste into this file') from the Chip_Architecture/Bussing/Released/BCM7425/scb_clients.xls
+# Edit XPT, AEGIS and PIX_3D clients
+#7400 clients	7405 DDR0 client #	7405 DDR1 client #	Comments
+#7400 clients	7400 64-bit DDR0 client #	7400 16-bit DDR1 client #	7400 16-bit DDR2 client #	Comments
+XPT2 	0 (XPT2)			XPT client names change
+XPT1 	1 (XPT1)			XPT client names change
+XPT0 	2 (XPT0)			XPT client names change
+M2MC0 (GFX)	3	3	3	M2MC has access to all SCBs (Called "GFX" for BCM7038)
+AVD_BLK_0	 	4	 	AVD Deblock Writes
+AVD_ILA_0	5			AVD Inner Loop ARC
+AVD_OLA_0	6			AVD Outer Loop ARC
+AVD_CAB_0	7			AVD CABAC
+AVD_SYM_0	8			AVD Symbol read
+XPT4 	9 (XPT4)		 	Reserved on BCM7400B. Not used on BCM7400A
+M2MC1	10	10	10	M2MC has access to all SCBs. (Not used on BCM7400B)
+AVD_BLK_1	 		11	AVD Deblock Writes
+AVD_ILA_1	12			AVD Inner Loop ARC
+AVD_OLA_1	13			AVD Outer Loop ARC
+AVD_CAB_1	14		 	AVD CABAC
+AVD_SYM_1	15		 	AVD Symbol read
+XPT5 	16 (XPT5)		 	Reserved on BCM7400B. Not used on BCM7400A
+BVNM_FGT	17 (B only)			This client  is reserved for BCM7400B. It is not used. Client #51 is used for FGT
+BVN_I656_ANC1	18			ITU656 input #2 ancillary data writes
+AUD_ZSP	19
+AUD_AIO	20			"AIO" is the new name for "FMM"
+BVN_I656_ANC0	21			ITU656 input ancillary data writes
+AEGIS 	22
+XPT3 	23 (XPT3)			XPT client names change
+VEC_VBI_ENC2	24			TTX2 -- assigned to tertiary VEC
+VEC_VBI_ENC1	25			TTX1 -- assigned to secondary VEC
+VEC_VBI_ENC0	26			TTX0 -- assigned to primary VEC
+BVN_GFD2	27
+BVN_GFD1	28
+BVN_GFD0	29
+BVN_CAP3	30
+BVN_CAP2	31
+BVN_CAP1	32
+BVN_CAP0	33
+BVN_RDC	34
+BVN_VFD3	35
+BVN_VFD2	36
+BVN_VFD1	37
+BVN_VFD0	38
+BVN_MFD1	39	1	1	Note that feeders have access to all DRAMs
+BVN_MFD0	40	2	2	Note that feeders have access to all DRAMs
+CPU_BRIDGE	41			EC Bridge (MISB bridge for BCM7400)
+PCI	42			PCI DMA
+M2M_DMA1	43	5	5	Access to all SCBs (BCM7400B0 Only)
+M2M_DMA0	44	0	0	Note that M2M DMA has simultaneous access to all SCBs
+ENET0	45
+PIX_3D	46		 	Pirhana 3D GFX core or dedicated graphics port
+USB_20	47			Also called "USB_HI"
+USB_11	48			Also called "USB_LO"
+CPU_CACHE0	49		 	LMB High priority
+CPU_CACHE1	50			LMB Low priority (sponge)
+BVN_FGT	51 (B only)
+BLKAVG_0	52			AVD decoder client. BCM7400B only
+BLKAVG_1	53			AVD decoder client. BCM7400B only
+BVN_MAD_PIX	54			Previously MAD32_0
+BVN_MAD_QUANT	55			Previously MAD32_1
+MCIF_RD	56			Smart Card
+MCIF_WR	57			Smart Card
+SATA	58
+ENET1
+AVD_PFR_0		13		AVD PFRI reads
+AVD_PFR_1			13	AVD PFRI reads
+MEMC64_SOFT	62			MSA soft access
+MEMC64_REF	63			Internal Refresh
+MEMC16_SOFT0		14	 	MSA soft access
+MEMC16_REF0		15	 	Internal Refresh
+MEMC16_SOFT1		 	14	MSA soft access
+MEMC16_REF1		 	15	Internal Refresh

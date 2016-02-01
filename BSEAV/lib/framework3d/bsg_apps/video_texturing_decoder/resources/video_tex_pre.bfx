@@ -1,0 +1,32 @@
+// Broadcom BSG effect file
+
+OPTIONS
+{
+	SortOrder = AUTO;
+}
+
+PASS 0
+{
+	SEMANTICS
+	{
+		u_mvpMatrix		= MATRIX4_MODEL_VIEW_PROJECTION;
+		a_position		= VATTR_POSITION;
+		a_tc				= VATTR_TEXCOORD1;
+		u_texelSize		= VECTOR2_USER;
+		u_timer			= SCALAR_USER;
+		u_flip			= SCALAR_USER;
+	}
+
+	STATE
+	{
+		EnableBlend     = false;
+		EnableDepthTest = true;
+	}
+
+	SAMPLER_2D u_tex
+	{
+		Unit = 0;
+		Wrap = CLAMP, CLAMP;
+		Filter = LINEAR, LINEAR;
+	}
+

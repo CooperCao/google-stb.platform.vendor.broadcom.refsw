@@ -1,0 +1,53 @@
+// Broadcom BSG effect file
+
+OPTIONS
+{
+    SortOrder = NONE;
+}
+
+PASS 0
+{
+    SEMANTICS
+    {
+        a_position   = VATTR_POSITION;
+        a_index      = VATTR_USER1;
+        u_quadOffset = VECTOR4_QUAD_OFFSET;
+    }
+
+    STATE
+    {
+        EnableBlend     = false;
+        EnableDepthTest = true;
+        DepthMask       = false;
+    }
+
+    VERTEX_SHADER
+    {
+        attribute   vec4    a_position;
+        attribute   float   a_index;
+        varying     vec3    v_color;
+        uniform     vec3    u_colors[4];
+        uniform     vec4    u_quadOffset;
+
+        void main()
+        {
+            vec2     xy = a_position.xy * u_quadOffset.xy + u_quadOffset.zw;
+
+            v_color     = u_colors[int(a_index + 0.5)];
+            gl_Position = vec4(xy, a_position.z, 1.0);
+        }
+    }
+
+    FRAGMENT_SHADER
+    {
+        precision mediump float;
+
+        varying vec3      v_color;
+
+        void main()
+        {
+            gl_FragColor = vec4(v_color, 1.0);
+        }
+    }
+}
+

@@ -1,0 +1,44 @@
+// Broadcom BSG flat color
+
+OPTIONS
+{
+	SortOrder = FRONT_TO_BACK;
+}
+
+PASS 0
+{
+	SEMANTICS
+	{
+		u_mvpMatrix		= MATRIX4_MODEL_VIEW_PROJECTION;
+		a_position		= VATTR_POSITION;
+		u_color			= SCALAR_USER;
+	}
+
+	STATE
+	{
+		EnableDepthTest = true;
+	}
+
+	VERTEX_SHADER
+	{
+		uniform mat4   u_mvpMatrix;
+		attribute vec4 a_position;
+
+		void main()
+		{
+		  vec4 p = u_mvpMatrix * a_position;
+		  gl_Position = p;
+		}
+	}
+
+	FRAGMENT_SHADER
+	{
+		precision mediump float; 
+		uniform vec4 u_color;
+
+		void main()
+		{
+		  gl_FragColor = u_color;
+		}
+	}
+}

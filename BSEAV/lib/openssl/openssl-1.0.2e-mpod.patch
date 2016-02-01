@@ -1,0 +1,2224 @@
+diff -rNup openssl-1.0.2e.orig/apps/apps.c openssl-1.0.2e/apps/apps.c
+--- openssl-1.0.2e.orig/apps/apps.c	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/apps/apps.c	2016-01-06 16:36:02.847367849 -0800
+@@ -952,6 +952,67 @@ X509_CRL *load_crl(const char *infile, i
+     return (x);
+ }
+ 
++/* yexu 10/8/2014 */
++/********************************************************************************/
++X509 *load_cert_buffer(BIO *err,  unsigned long buffer_len, const char *buffer, int format,
++	const char *pass, ENGINE *e, const char *cert_descrip)
++	{
++	X509 *x=NULL;
++	BIO *cert;
++
++	if ((cert=BIO_new(BIO_s_file())) == NULL)
++		{
++		ERR_print_errors(err);
++		goto end;
++		}
++
++	if 	(format == FORMAT_ASN1)
++		x=d2i_X509_bio_buffer(buffer_len, buffer, NULL);
++	else if (format == FORMAT_NETSCAPE)
++		{
++		NETSCAPE_X509 *nx;
++		nx=ASN1_item_d2i_bio(ASN1_ITEM_rptr(NETSCAPE_X509),cert,NULL);
++		if (nx == NULL)
++				goto end;
++
++		if ((strncmp(NETSCAPE_CERT_HDR,(char *)nx->header->data,
++			nx->header->length) != 0))
++			{
++			NETSCAPE_X509_free(nx);
++			BIO_printf(err,"Error reading header on certificate\n");
++			goto end;
++			}
++		x=nx->cert;
++		nx->cert = NULL;
++		NETSCAPE_X509_free(nx);
++		}
++	else if (format == FORMAT_PEM)
++		x=PEM_read_bio_buffer_X509_AUX(cert,NULL,
++			(pem_password_cb *)password_callback, NULL, buffer_len, buffer);
++	else if (format == FORMAT_PKCS12)
++		{
++		PKCS12 *p12 = d2i_PKCS12_bio(cert, NULL);
++
++		PKCS12_parse(p12, NULL, NULL, &x, NULL);
++		PKCS12_free(p12);
++		p12 = NULL;
++		}
++	else	{
++		BIO_printf(err,"bad input format specified for %s\n",
++			cert_descrip);
++		goto end;
++		}
++end:
++	if (x == NULL)
++		{
++		BIO_printf(err,"unable to load certificate\n");
++		ERR_print_errors(err);
++		}
++	if (cert != NULL) BIO_free(cert);
++	return(x);
++	}
++/********************************************************************************/
++
+ EVP_PKEY *load_key(BIO *err, const char *file, int format, int maybe_stdin,
+                    const char *pass, ENGINE *e, const char *key_descrip)
+ {
+diff -rNup openssl-1.0.2e.orig/apps/apps.h openssl-1.0.2e/apps/apps.h
+--- openssl-1.0.2e.orig/apps/apps.h	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/apps/apps.h	2016-01-06 16:38:55.428573496 -0800
+@@ -245,9 +245,11 @@ int app_passwd(BIO *err, char *arg1, cha
+ int add_oid_section(BIO *err, CONF *conf);
+ X509 *load_cert(BIO *err, const char *file, int format,
+                 const char *pass, ENGINE *e, const char *cert_descrip);
+-X509_CRL *load_crl(const char *infile, int format);
+-int load_cert_crl_http(const char *url, BIO *err,
+-                       X509 **pcert, X509_CRL **pcrl);
++/* yexu 10/8/2014 */
++/********************************************************************************/
++X509 *load_cert_buffer(BIO *err, unsigned long buffer_len, const char *buffer, int format,
++	const char *pass, ENGINE *e, const char *cert_descrip);
++/********************************************************************************/
+ EVP_PKEY *load_key(BIO *err, const char *file, int format, int maybe_stdin,
+                    const char *pass, ENGINE *e, const char *key_descrip);
+ EVP_PKEY *load_pubkey(BIO *err, const char *file, int format, int maybe_stdin,
+diff -rNup openssl-1.0.2e.orig/apps/CA.pl openssl-1.0.2e/apps/CA.pl
+--- openssl-1.0.2e.orig/apps/CA.pl	2015-12-03 06:44:32.000000000 -0800
++++ openssl-1.0.2e/apps/CA.pl	2016-01-06 16:36:02.847367849 -0800
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!/usr/local/bin/perl
+ #
+ # CA - wrapper around ca to make it easier to use ... basically ca requires
+ #      some setup stuff to be done before you can use it and this makes
+diff -rNup openssl-1.0.2e.orig/apps/Makefile openssl-1.0.2e/apps/Makefile
+--- openssl-1.0.2e.orig/apps/Makefile	2015-12-03 06:44:30.000000000 -0800
++++ openssl-1.0.2e/apps/Makefile	2016-01-06 16:36:02.851367930 -0800
+@@ -941,22 +941,21 @@ speed.o: ../include/openssl/dsa.h ../inc
+ speed.o: ../include/openssl/ec.h ../include/openssl/ecdh.h
+ speed.o: ../include/openssl/ecdsa.h ../include/openssl/engine.h
+ speed.o: ../include/openssl/err.h ../include/openssl/evp.h
+-speed.o: ../include/openssl/hmac.h ../include/openssl/idea.h
+-speed.o: ../include/openssl/lhash.h ../include/openssl/md4.h
+-speed.o: ../include/openssl/md5.h ../include/openssl/mdc2.h
++speed.o: ../include/openssl/hmac.h ../include/openssl/lhash.h
++speed.o: ../include/openssl/md4.h ../include/openssl/md5.h
+ speed.o: ../include/openssl/modes.h ../include/openssl/obj_mac.h
+ speed.o: ../include/openssl/objects.h ../include/openssl/ocsp.h
+ speed.o: ../include/openssl/opensslconf.h ../include/openssl/opensslv.h
+ speed.o: ../include/openssl/ossl_typ.h ../include/openssl/pkcs7.h
+ speed.o: ../include/openssl/rand.h ../include/openssl/rc2.h
+-speed.o: ../include/openssl/rc4.h ../include/openssl/ripemd.h
+-speed.o: ../include/openssl/rsa.h ../include/openssl/safestack.h
+-speed.o: ../include/openssl/seed.h ../include/openssl/sha.h
+-speed.o: ../include/openssl/stack.h ../include/openssl/symhacks.h
+-speed.o: ../include/openssl/txt_db.h ../include/openssl/ui.h
+-speed.o: ../include/openssl/ui_compat.h ../include/openssl/whrlpool.h
+-speed.o: ../include/openssl/x509.h ../include/openssl/x509_vfy.h
+-speed.o: ../include/openssl/x509v3.h apps.h speed.c testdsa.h testrsa.h
++speed.o: ../include/openssl/rc4.h ../include/openssl/rsa.h
++speed.o: ../include/openssl/safestack.h ../include/openssl/seed.h
++speed.o: ../include/openssl/sha.h ../include/openssl/stack.h
++speed.o: ../include/openssl/symhacks.h ../include/openssl/txt_db.h
++speed.o: ../include/openssl/ui.h ../include/openssl/ui_compat.h
++speed.o: ../include/openssl/whrlpool.h ../include/openssl/x509.h
++speed.o: ../include/openssl/x509_vfy.h ../include/openssl/x509v3.h apps.h
++speed.o: speed.c testdsa.h testrsa.h
+ spkac.o: ../e_os.h ../include/openssl/asn1.h ../include/openssl/bio.h
+ spkac.o: ../include/openssl/buffer.h ../include/openssl/conf.h
+ spkac.o: ../include/openssl/crypto.h ../include/openssl/e_os2.h
+@@ -1029,17 +1028,17 @@ version.o: ../include/openssl/crypto.h .
+ version.o: ../include/openssl/des_old.h ../include/openssl/e_os2.h
+ version.o: ../include/openssl/ec.h ../include/openssl/ecdh.h
+ version.o: ../include/openssl/ecdsa.h ../include/openssl/engine.h
+-version.o: ../include/openssl/evp.h ../include/openssl/idea.h
+-version.o: ../include/openssl/lhash.h ../include/openssl/obj_mac.h
+-version.o: ../include/openssl/objects.h ../include/openssl/ocsp.h
+-version.o: ../include/openssl/opensslconf.h ../include/openssl/opensslv.h
+-version.o: ../include/openssl/ossl_typ.h ../include/openssl/pkcs7.h
+-version.o: ../include/openssl/rc4.h ../include/openssl/safestack.h
+-version.o: ../include/openssl/sha.h ../include/openssl/stack.h
+-version.o: ../include/openssl/symhacks.h ../include/openssl/txt_db.h
+-version.o: ../include/openssl/ui.h ../include/openssl/ui_compat.h
+-version.o: ../include/openssl/x509.h ../include/openssl/x509_vfy.h
+-version.o: ../include/openssl/x509v3.h apps.h version.c
++version.o: ../include/openssl/evp.h ../include/openssl/lhash.h
++version.o: ../include/openssl/obj_mac.h ../include/openssl/objects.h
++version.o: ../include/openssl/ocsp.h ../include/openssl/opensslconf.h
++version.o: ../include/openssl/opensslv.h ../include/openssl/ossl_typ.h
++version.o: ../include/openssl/pkcs7.h ../include/openssl/rc4.h
++version.o: ../include/openssl/safestack.h ../include/openssl/sha.h
++version.o: ../include/openssl/stack.h ../include/openssl/symhacks.h
++version.o: ../include/openssl/txt_db.h ../include/openssl/ui.h
++version.o: ../include/openssl/ui_compat.h ../include/openssl/x509.h
++version.o: ../include/openssl/x509_vfy.h ../include/openssl/x509v3.h apps.h
++version.o: version.c
+ x509.o: ../e_os.h ../include/openssl/asn1.h ../include/openssl/bio.h
+ x509.o: ../include/openssl/bn.h ../include/openssl/buffer.h
+ x509.o: ../include/openssl/conf.h ../include/openssl/crypto.h
+diff -rNup openssl-1.0.2e.orig/apps/openssl.cnf openssl-1.0.2e/apps/openssl.cnf
+--- openssl-1.0.2e.orig/apps/openssl.cnf	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/apps/openssl.cnf	2016-01-06 16:36:02.851367930 -0800
+@@ -39,7 +39,8 @@ default_ca	= CA_default		# The default c
+ ####################################################################
+ [ CA_default ]
+ 
+-dir		= ./demoCA		# Where everything is kept
++# yexu 10/8/2014 
++dir		= ../apps/demoCA		# Where everything is kept       BSYT
+ certs		= $dir/certs		# Where the issued certs are kept
+ crl_dir		= $dir/crl		# Where the issued crl are kept
+ database	= $dir/index.txt	# database index file.
+@@ -47,12 +48,14 @@ database	= $dir/index.txt	# database ind
+ 					# several ctificates with same subject.
+ new_certs_dir	= $dir/newcerts		# default place for new certs.
+ 
+-certificate	= $dir/cacert.pem 	# The CA certificate
++# yexu 10/8/2014 
++certificate	= $dir/CAcert.pem 	# The CA certificate
+ serial		= $dir/serial 		# The current serial number
+ crlnumber	= $dir/crlnumber	# the current crl number
+ 					# must be commented out to leave a V1 CRL
+ crl		= $dir/crl.pem 		# The current CRL
+-private_key	= $dir/private/cakey.pem# The private key
++# yexu 10/8/2014
++private_key	= $dir/private/CAkey.pem# The private key
+ RANDFILE	= $dir/private/.rand	# private random number file
+ 
+ x509_extensions	= usr_cert		# The extentions to add to the cert
+@@ -126,30 +129,40 @@ string_mask = utf8only
+ 
+ [ req_distinguished_name ]
+ countryName			= Country Name (2 letter code)
+-countryName_default		= AU
++# yexu 10/8/2014
++countryName_default		= US   # BSYT
+ countryName_min			= 2
+ countryName_max			= 2
+ 
+ stateOrProvinceName		= State or Province Name (full name)
+-stateOrProvinceName_default	= Some-State
++# yexu 10/8/2014 
++stateOrProvinceName_default	= California  # BSYT
+ 
+ localityName			= Locality Name (eg, city)
++# yexu 10/8/2014 
++localityName_default			= Irvine    # BSYT
+ 
+ 0.organizationName		= Organization Name (eg, company)
+-0.organizationName_default	= Internet Widgits Pty Ltd
++# yexu 10/8/2014 
++0.organizationName_default	= Broadcom Corp. # BSYT
+ 
+ # we can do this but it is not needed normally :-)
+ #1.organizationName		= Second Organization Name (eg, company)
+ #1.organizationName_default	= World Wide Web Pty Ltd
+ 
+ organizationalUnitName		= Organizational Unit Name (eg, section)
+-#organizationalUnitName_default	=
++# yexu 10/8/2014
++organizationalUnitName_default	= BroadBand Engineering Systems # BSYT
+ 
+ commonName			= Common Name (e.g. server FQDN or YOUR name)
+ commonName_max			= 64
++# yexu 10/8/2014
++commonName_default			= Bryant Tan  # BSYT
+ 
+ emailAddress			= Email Address
+-emailAddress_max		= 64
++# yexu 10/8/2014 
++emailAddress_max		= 40
++emailAddress_default	= btan@broadcom.com
+ 
+ # SET-ex3			= SET extension number 3
+ 
+diff -rNup openssl-1.0.2e.orig/crypto/asn1/a_d2i_fp.c openssl-1.0.2e/crypto/asn1/a_d2i_fp.c
+--- openssl-1.0.2e.orig/crypto/asn1/a_d2i_fp.c	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/asn1/a_d2i_fp.c	2016-01-06 16:36:02.851367930 -0800
+@@ -63,6 +63,10 @@
+ #include <openssl/asn1_mac.h>
+ 
+ static int asn1_d2i_read_bio(BIO *in, BUF_MEM **pb);
++/* yexu 10/8/2014 */
++int buf_read (int buffer_len, const char *buffer, void *out, int outl);
++static int asn1_d2i_read_bio_buffer(int buffer_len, const char *buffer, BUF_MEM **pb);
++
+ 
+ #ifndef NO_OLD_ASN1
+ # ifndef OPENSSL_NO_FP_API
+@@ -104,6 +108,24 @@ void *ASN1_d2i_bio(void *(*xnew) (void),
+ 
+ #endif
+ 
++/* yexu 10/8/2014 */
++void *ASN1_item_d2i_bio_buffer(const ASN1_ITEM *it, int buffer_len, const char *buffer, void *x)
++	{
++	BUF_MEM *b = NULL;
++	const unsigned char *p;
++	void *ret=NULL;
++	int len;
++
++	len = asn1_d2i_read_bio_buffer(buffer_len, buffer, &b);
++	if(len < 0) goto err;
++
++	p=(const unsigned char *)b->data;
++	ret=ASN1_item_d2i(x,&p,len, it);
++err:
++	if (b != NULL) BUF_MEM_free(b);
++	return(ret);
++	}
++
+ void *ASN1_item_d2i_bio(const ASN1_ITEM *it, BIO *in, void *x)
+ {
+     BUF_MEM *b = NULL;
+@@ -266,3 +288,129 @@ static int asn1_d2i_read_bio(BIO *in, BU
+         BUF_MEM_free(b);
+     return -1;
+ }
++
++/* yexu 10/8/2014 */
++/********************************************************************************/
++static int asn1_d2i_read_bio_buffer(int buffer_len, const char *buffer, BUF_MEM **pb)
++	{
++	BUF_MEM *b;
++	unsigned char *p;
++	int i;
++	int ret=-1;
++	ASN1_const_CTX c;
++	int want=HEADER_SIZE;
++	int eos=0;
++#if defined(__GNUC__) && defined(__ia64)
++	/* pathetic compiler bug in all known versions as of Nov. 2002 */
++	long off=0;
++#else
++	int off=0;
++#endif
++	int len=0;
++
++	b=BUF_MEM_new();
++	if (b == NULL)
++		{
++		ASN1err(ASN1_F_ASN1_D2I_READ_BIO,ERR_R_MALLOC_FAILURE);
++		return -1;
++		}
++
++	ERR_clear_error();
++	for (;;)
++		{
++		if (want >= (len-off))
++			{
++			want-=(len-off);
++
++			if (!BUF_MEM_grow_clean(b,len+want))
++				{
++				ASN1err(ASN1_F_ASN1_D2I_READ_BIO,ERR_R_MALLOC_FAILURE);
++				goto err;
++				}
++			//BSYT i=BIO_read(in,&(b->data[len]),want);
++			i = buf_read(buffer_len, buffer, &(b->data[len]),want);
++			if ((i < 0) && ((len-off) == 0))
++				{
++				ASN1err(ASN1_F_ASN1_D2I_READ_BIO,ASN1_R_NOT_ENOUGH_DATA);
++				goto err;
++				}
++			if (i > 0)
++				len+=i;
++			}
++		/* else data already loaded */
++
++		p=(unsigned char *)&(b->data[off]);
++		c.p=p;
++		c.inf=ASN1_get_object(&(c.p),&(c.slen),&(c.tag),&(c.xclass),
++			len-off);
++		if (c.inf & 0x80)
++			{
++			unsigned long e;
++
++			e=ERR_GET_REASON(ERR_peek_error());
++			if (e != ASN1_R_TOO_LONG)
++				goto err;
++			else
++				ERR_clear_error(); /* clear error */
++			}
++		i=c.p-p;/* header length */
++		off+=i;	/* end of data */
++
++		if (c.inf & 1)
++			{
++			/* no data body so go round again */
++			eos++;
++			want=HEADER_SIZE;
++			}
++		else if (eos && (c.slen == 0) && (c.tag == V_ASN1_EOC))
++			{
++			/* eos value, so go back and read another header */
++			eos--;
++			if (eos <= 0)
++				break;
++			else
++				want=HEADER_SIZE;
++			}
++		else 
++			{
++			/* suck in c.slen bytes of data */
++			want=(int)c.slen;
++			if (want > (len-off))
++				{
++				want-=(len-off);
++				if (!BUF_MEM_grow_clean(b,len+want))
++					{
++					ASN1err(ASN1_F_ASN1_D2I_READ_BIO,ERR_R_MALLOC_FAILURE);
++					goto err;
++					}
++				while (want > 0)
++					{
++					//BSYT i=BIO_read(in,&(b->data[len]),want);
++					i = buf_read(buffer_len, buffer+len, &(b->data[len]),want);
++					if (i <= 0)
++						{
++						ASN1err(ASN1_F_ASN1_D2I_READ_BIO,
++						    ASN1_R_NOT_ENOUGH_DATA);
++						goto err;
++						}
++					len+=i;
++					want -= i;
++					}
++				}
++			off+=(int)c.slen;
++			if (eos <= 0)
++				{
++				break;
++				}
++			else
++				want=HEADER_SIZE;
++			}
++		}
++
++	*pb = b;
++	return off;
++err:
++	if (b != NULL) BUF_MEM_free(b);
++	return(ret);
++	}
++/********************************************************************************/
+diff -rNup openssl-1.0.2e.orig/crypto/asn1/asn1.h openssl-1.0.2e/crypto/asn1/asn1.h
+--- openssl-1.0.2e.orig/crypto/asn1/asn1.h	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/asn1/asn1.h	2016-01-06 16:36:02.851367930 -0800
+@@ -1019,6 +1019,8 @@ void *ASN1_d2i_bio(void *(*xnew) (void),
+                           CHECKED_PPTR_OF(type, x)))
+ 
+ void *ASN1_item_d2i_bio(const ASN1_ITEM *it, BIO *in, void *x);
++/* yexu 10/8/2014 */
++void *ASN1_item_d2i_bio_buffer(const ASN1_ITEM *it, int buffer_len, const char *buffer, void *x);
+ int ASN1_i2d_bio(i2d_of_void *i2d, BIO *out, unsigned char *x);
+ 
+ #  define ASN1_i2d_bio_of(type,i2d,out,x) \
+diff -rNup openssl-1.0.2e.orig/crypto/bio/bio_lib.c openssl-1.0.2e/crypto/bio/bio_lib.c
+--- openssl-1.0.2e.orig/crypto/bio/bio_lib.c	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/bio/bio_lib.c	2016-01-06 16:36:02.855367998 -0800
+@@ -140,6 +140,14 @@ void BIO_vfree(BIO *a)
+     BIO_free(a);
+ }
+ 
++/* yexu 10/8/2014 */
++/* simulate BIO_read */
++int buf_read (int buffer_len, const char *buffer, void *out, int outl)
++{
++	memcpy(out, buffer, outl);
++	return(outl);
++}
++
+ void BIO_clear_flags(BIO *b, int flags)
+ {
+     b->flags &= ~flags;
+diff -rNup openssl-1.0.2e.orig/crypto/opensslconf.h openssl-1.0.2e/crypto/opensslconf.h
+--- openssl-1.0.2e.orig/crypto/opensslconf.h	2015-12-03 06:44:31.000000000 -0800
++++ openssl-1.0.2e/crypto/opensslconf.h	2016-01-06 16:36:02.855367998 -0800
+@@ -14,6 +14,9 @@ extern "C" {
+ #ifndef OPENSSL_NO_GMP
+ # define OPENSSL_NO_GMP
+ #endif
++#ifndef OPENSSL_NO_IDEA
++# define OPENSSL_NO_IDEA
++#endif
+ #ifndef OPENSSL_NO_JPAKE
+ # define OPENSSL_NO_JPAKE
+ #endif
+@@ -26,12 +29,18 @@ extern "C" {
+ #ifndef OPENSSL_NO_MD2
+ # define OPENSSL_NO_MD2
+ #endif
++#ifndef OPENSSL_NO_MDC2
++# define OPENSSL_NO_MDC2
++#endif
+ #ifndef OPENSSL_NO_RC5
+ # define OPENSSL_NO_RC5
+ #endif
+ #ifndef OPENSSL_NO_RFC3779
+ # define OPENSSL_NO_RFC3779
+ #endif
++#ifndef OPENSSL_NO_RIPEMD
++# define OPENSSL_NO_RIPEMD
++#endif
+ #ifndef OPENSSL_NO_SCTP
+ # define OPENSSL_NO_SCTP
+ #endif
+@@ -47,6 +56,9 @@ extern "C" {
+ 
+ #endif /* OPENSSL_DOING_MAKEDEPEND */
+ 
++#ifndef OPENSSL_THREADS
++# define OPENSSL_THREADS
++#endif
+ #ifndef OPENSSL_NO_DYNAMIC_ENGINE
+ # define OPENSSL_NO_DYNAMIC_ENGINE
+ #endif
+@@ -62,6 +74,9 @@ extern "C" {
+ # if defined(OPENSSL_NO_GMP) && !defined(NO_GMP)
+ #  define NO_GMP
+ # endif
++# if defined(OPENSSL_NO_IDEA) && !defined(NO_IDEA)
++#  define NO_IDEA
++# endif
+ # if defined(OPENSSL_NO_JPAKE) && !defined(NO_JPAKE)
+ #  define NO_JPAKE
+ # endif
+@@ -74,12 +89,18 @@ extern "C" {
+ # if defined(OPENSSL_NO_MD2) && !defined(NO_MD2)
+ #  define NO_MD2
+ # endif
++# if defined(OPENSSL_NO_MDC2) && !defined(NO_MDC2)
++#  define NO_MDC2
++# endif
+ # if defined(OPENSSL_NO_RC5) && !defined(NO_RC5)
+ #  define NO_RC5
+ # endif
+ # if defined(OPENSSL_NO_RFC3779) && !defined(NO_RFC3779)
+ #  define NO_RFC3779
+ # endif
++# if defined(OPENSSL_NO_RIPEMD) && !defined(NO_RIPEMD)
++#  define NO_RIPEMD
++# endif
+ # if defined(OPENSSL_NO_SCTP) && !defined(NO_SCTP)
+ #  define NO_SCTP
+ # endif
+@@ -133,14 +154,15 @@ extern "C" {
+  * - Intel P6 because partial register stalls are very expensive;
+  * - elder Alpha because it lacks byte load/store instructions;
+  */
+-#define RC4_INT unsigned int
++#define RC4_INT unsigned char
+ #endif
+ #if !defined(RC4_CHUNK)
+ /*
+  * This enables code handling data aligned at natural CPU word
+  * boundary. See crypto/rc4/rc4_enc.c for further details.
+  */
+-#undef RC4_CHUNK
++/* yexu 10/8/2014 */
++#define RC4_CHUNK unsigned long
+ #endif
+ #endif
+ 
+@@ -148,13 +170,13 @@ extern "C" {
+ /* If this is set to 'unsigned int' on a DEC Alpha, this gives about a
+  * %20 speed up (longs are 8 bytes, int's are 4). */
+ #ifndef DES_LONG
+-#define DES_LONG unsigned long
++#define DES_LONG unsigned int
+ #endif
+ #endif
+ 
+ #if defined(HEADER_BN_H) && !defined(CONFIG_HEADER_BN_H)
+ #define CONFIG_HEADER_BN_H
+-#undef BN_LLONG
++#define BN_LLONG
+ 
+ /* Should we define BN_DIV2W here? */
+ 
+@@ -168,12 +190,13 @@ extern "C" {
+ #define CONFIG_HEADER_RC4_LOCL_H
+ /* if this is defined data[i] is used instead of *data, this is a %20
+  * speedup on x86 */
+-#undef RC4_INDEX
++#define RC4_INDEX
+ #endif
+ 
+ #if defined(HEADER_BF_LOCL_H) && !defined(CONFIG_HEADER_BF_LOCL_H)
+ #define CONFIG_HEADER_BF_LOCL_H
+-#undef BF_PTR
++/* yexu 10/8/2014 */
++#define BF_PTR
+ #endif /* HEADER_BF_LOCL_H */
+ 
+ #if defined(HEADER_DES_LOCL_H) && !defined(CONFIG_HEADER_DES_LOCL_H)
+@@ -193,7 +216,7 @@ extern "C" {
+ #endif
+ 
+ #ifndef DES_RISC2
+-#undef DES_RISC2
++#define DES_RISC2
+ #endif
+ 
+ #if defined(DES_RISC1) && defined(DES_RISC2)
+@@ -203,7 +226,7 @@ extern "C" {
+ /* Unroll the inner loop, this sometimes helps, sometimes hinders.
+  * Very mucy CPU dependant */
+ #ifndef DES_UNROLL
+-#undef DES_UNROLL
++#define DES_UNROLL
+ #endif
+ 
+ /* These default values were supplied by
+diff -rNup openssl-1.0.2e.orig/crypto/pem/pem.h openssl-1.0.2e/crypto/pem/pem.h
+--- openssl-1.0.2e.orig/crypto/pem/pem.h	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/pem/pem.h	2016-01-06 17:02:24.564937585 -0800
+@@ -212,7 +212,11 @@ typedef struct pem_ctx_st {
+ # ifdef OPENSSL_NO_FP_API
+ 
+ #  define IMPLEMENT_PEM_read_fp(name, type, str, asn1) /**/
++/* yexu 10/8/2014 */
++#  define IMPLEMENT_PEM_read_fp_buffer(name, type, str, asn1) /**/
+ #  define IMPLEMENT_PEM_write_fp(name, type, str, asn1) /**/
++/* yexu 10/8/2014 */
++#  define IMPLEMENT_PEM_write_fp_buffer(name, type, str, asn1) /**/
+ #  define IMPLEMENT_PEM_write_fp_const(name, type, str, asn1) /**/
+ #  define IMPLEMENT_PEM_write_cb_fp(name, type, str, asn1) /**/
+ #  define IMPLEMENT_PEM_write_cb_fp_const(name, type, str, asn1) /**/
+@@ -223,6 +227,13 @@ type *PEM_read_##name(FILE *fp, type **x
+ { \
+ return PEM_ASN1_read((d2i_of_void *)d2i_##asn1, str,fp,(void **)x,cb,u); \
+ }
++/* yexu 10/8/2014 */
++#  define IMPLEMENT_PEM_read_fp_buffer(name, type, str, asn1) \
++type *PEM_read_buffer_##name(FILE *fp, type **x, pem_password_cb *cb, void *u, unsigned long buffer_len, const char *buffer)\
++{ \
++return((type *)PEM_ASN1_read_buffer((char *(*)())d2i_##asn1, str,fp,(char **)x,\
++	cb,u, buffer_len, buffer)); \
++} 
+ 
+ #  define IMPLEMENT_PEM_write_fp(name, type, str, asn1) \
+ int PEM_write_##name(FILE *fp, type *x) \
+@@ -230,6 +241,15 @@ int PEM_write_##name(FILE *fp, type *x)
+ return PEM_ASN1_write((i2d_of_void *)i2d_##asn1,str,fp,x,NULL,NULL,0,NULL,NULL); \
+ }
+ 
++/* yexu 10/8/2014 */
++#  define IMPLEMENT_PEM_write_fp_buffer(name, type, str, asn1) \
++int PEM_write_buffer##name(FILE *fp, type *x) \
++{ \
++return(PEM_ASN1_write_buffer((int (*)())i2d_##asn1,str,fp, (char *)x, \
++							 NULL,NULL,0,NULL,NULL)); \
++} 
++
++
+ #  define IMPLEMENT_PEM_write_fp_const(name, type, str, asn1) \
+ int PEM_write_##name(FILE *fp, const type *x) \
+ { \
+@@ -260,12 +280,28 @@ type *PEM_read_bio_##name(BIO *bp, type
+ return PEM_ASN1_read_bio((d2i_of_void *)d2i_##asn1, str,bp,(void **)x,cb,u); \
+ }
+ 
++/* yexu 10/8/2014 */
++# define IMPLEMENT_PEM_read_bio_buffer(name, type, str, asn1) \
++type *PEM_read_bio_buffer_##name(BIO *bp, type **x, pem_password_cb *cb, void *u, unsigned long  buffer_len, const char *buffer)\
++{ \
++return((type *)PEM_ASN1_read_bio_buffer((char *(*)())d2i_##asn1, str,  bp, \
++							(char **)x,cb,u, buffer_len, buffer)); \
++}
++
+ # define IMPLEMENT_PEM_write_bio(name, type, str, asn1) \
+ int PEM_write_bio_##name(BIO *bp, type *x) \
+ { \
+ return PEM_ASN1_write_bio((i2d_of_void *)i2d_##asn1,str,bp,x,NULL,NULL,0,NULL,NULL); \
+ }
+ 
++/* yexu 10/8/2014 */
++# define IMPLEMENT_PEM_write_bio_buffer(name, type, str, asn1) \
++int PEM_write_bio_buffer##name(BIO *bp, type *x) \
++{ \
++return(PEM_ASN1_write_bio_buffer((int (*)())i2d_##asn1,str,bp, (char *)x, \
++							 NULL,NULL,0,NULL,NULL)); \
++}
++
+ # define IMPLEMENT_PEM_write_bio_const(name, type, str, asn1) \
+ int PEM_write_bio_##name(BIO *bp, const type *x) \
+ { \
+@@ -290,6 +326,11 @@ int PEM_write_bio_##name(BIO *bp, type *
+         IMPLEMENT_PEM_write_bio(name, type, str, asn1) \
+         IMPLEMENT_PEM_write_fp(name, type, str, asn1)
+ 
++/* yexu 10/8/2014 */
++# define IMPLEMENT_PEM_write_buffer(name, type, str, asn1) \
++        IMPLEMENT_PEM_write_bio_buffer(name, type, str, asn1) \
++        IMPLEMENT_PEM_write_fp_buffer(name, type, str, asn1) 
++
+ # define IMPLEMENT_PEM_write_const(name, type, str, asn1) \
+         IMPLEMENT_PEM_write_bio_const(name, type, str, asn1) \
+         IMPLEMENT_PEM_write_fp_const(name, type, str, asn1)
+@@ -306,10 +347,20 @@ int PEM_write_bio_##name(BIO *bp, type *
+         IMPLEMENT_PEM_read_bio(name, type, str, asn1) \
+         IMPLEMENT_PEM_read_fp(name, type, str, asn1)
+ 
++/* yexu 10/8/2014 */
++# define IMPLEMENT_PEM_read_buffer(name, type, str, asn1) \
++        IMPLEMENT_PEM_read_bio_buffer(name, type, str, asn1) \
++        IMPLEMENT_PEM_read_fp_buffer(name, type, str, asn1) 
++
+ # define IMPLEMENT_PEM_rw(name, type, str, asn1) \
+         IMPLEMENT_PEM_read(name, type, str, asn1) \
+         IMPLEMENT_PEM_write(name, type, str, asn1)
+ 
++/* yexu 10/8/2014 */
++# define IMPLEMENT_PEM_rw_buffer(name, type, str, asn1) \
++        IMPLEMENT_PEM_read_buffer(name, type, str, asn1) \
++        IMPLEMENT_PEM_write_buffer(name, type, str, asn1)
++
+ # define IMPLEMENT_PEM_rw_const(name, type, str, asn1) \
+         IMPLEMENT_PEM_read(name, type, str, asn1) \
+         IMPLEMENT_PEM_write_const(name, type, str, asn1)
+@@ -323,16 +374,31 @@ int PEM_write_bio_##name(BIO *bp, type *
+ # if defined(OPENSSL_NO_FP_API)
+ 
+ #  define DECLARE_PEM_read_fp(name, type) /**/
++/* yexu 10/8/2014 */
++#  define DECLARE_PEM_read_fp_buffer(name, type) /**/
+ #  define DECLARE_PEM_write_fp(name, type) /**/
++/* yexu 10/8/2014 */
++#  define DECLARE_PEM_write_fp_buffer(name, type) /**/
+ #  define DECLARE_PEM_write_cb_fp(name, type) /**/
++/* yexu 10/8/2014 */
++#  define DECLARE_PEM_write_cb_fp_buffer(name, type) /**/
++
+ # else
+ 
+ #  define DECLARE_PEM_read_fp(name, type) \
+         type *PEM_read_##name(FILE *fp, type **x, pem_password_cb *cb, void *u);
+ 
++/* yexu 10/8/2014 */
++#  define DECLARE_PEM_read_fp_buffer(name, type) \
++        type *PEM_read_buffer_##name(FILE *fp, type **x, pem_password_cb *cb, void *u, unsigned long buffer_len, const char *buffer);
++
+ #  define DECLARE_PEM_write_fp(name, type) \
+         int PEM_write_##name(FILE *fp, type *x);
+ 
++/* yexu 10/8/2014 */
++#  define DECLARE_PEM_write_fp_buffer(name, type) \
++        int PEM_write_buffer_##name(FILE *fp, type *x);
++
+ #  define DECLARE_PEM_write_fp_const(name, type) \
+         int PEM_write_##name(FILE *fp, const type *x);
+ 
+@@ -340,15 +406,28 @@ int PEM_write_bio_##name(BIO *bp, type *
+         int PEM_write_##name(FILE *fp, type *x, const EVP_CIPHER *enc, \
+              unsigned char *kstr, int klen, pem_password_cb *cb, void *u);
+ 
++/* yexu 10/8/2014 */
++#  define DECLARE_PEM_write_cb_fp_buffer(name, type) \
++        int PEM_write_##name(FILE *fp, type *x, const EVP_CIPHER *enc, \
++             unsigned char *kstr, int klen, pem_password_cb *cb, void *u);
++
+ # endif
+ 
+ # ifndef OPENSSL_NO_BIO
+ #  define DECLARE_PEM_read_bio(name, type) \
+         type *PEM_read_bio_##name(BIO *bp, type **x, pem_password_cb *cb, void *u);
+ 
++/* yexu 10/8/2014 */
++#  define DECLARE_PEM_read_bio_buffer(name, type) \
++        type *PEM_read_bio_buffer_##name(BIO *bp, type **x, pem_password_cb *cb, void *u, unsigned long buffer_len, const char *buffer);
++
+ #  define DECLARE_PEM_write_bio(name, type) \
+         int PEM_write_bio_##name(BIO *bp, type *x);
+ 
++/* yexu 10/8/2014 */
++#  define DECLARE_PEM_write_bio_buffer(name, type) \
++        int PEM_write_bio_buffer_##name(BIO *bp, type *x);
++
+ #  define DECLARE_PEM_write_bio_const(name, type) \
+         int PEM_write_bio_##name(BIO *bp, const type *x);
+ 
+@@ -356,34 +435,78 @@ int PEM_write_bio_##name(BIO *bp, type *
+         int PEM_write_bio_##name(BIO *bp, type *x, const EVP_CIPHER *enc, \
+              unsigned char *kstr, int klen, pem_password_cb *cb, void *u);
+ 
++/* yexu 10/8/2014 */
++#  define DECLARE_PEM_write_cb_bio_buffer(name, type) \
++        int PEM_write_bio_##name(BIO *bp, type *x, const EVP_CIPHER *enc, \
++             unsigned char *kstr, int klen, pem_password_cb *cb, void *u);
++
+ # else
+ 
+ #  define DECLARE_PEM_read_bio(name, type) /**/
++/* yexu 10/8/2014 */
++#  define DECLARE_PEM_read_bio_buffer(name, type) /**/
+ #  define DECLARE_PEM_write_bio(name, type) /**/
++/* yexu 10/8/2014 */
++#  define DECLARE_PEM_write_bio_buffer(name, type) /**/
+ #  define DECLARE_PEM_write_bio_const(name, type) /**/
+ #  define DECLARE_PEM_write_cb_bio(name, type) /**/
++/* yexu 10/8/2014 */
++#  define DECLARE_PEM_write_cb_bio_buffer(name, type) /**/
++
+ # endif
++
+ # define DECLARE_PEM_write(name, type) \
+         DECLARE_PEM_write_bio(name, type) \
+         DECLARE_PEM_write_fp(name, type)
++
++/* yexu 10/8/2014 */
++# define DECLARE_PEM_write_buffer(name, type) \
++        DECLARE_PEM_write_bio_buffer(name, type) \
++        DECLARE_PEM_write_fp_buffer(name, type) 
++
+ # define DECLARE_PEM_write_const(name, type) \
+         DECLARE_PEM_write_bio_const(name, type) \
+         DECLARE_PEM_write_fp_const(name, type)
+ # define DECLARE_PEM_write_cb(name, type) \
+         DECLARE_PEM_write_cb_bio(name, type) \
+         DECLARE_PEM_write_cb_fp(name, type)
++
++/* yexu 10/8/2014 */
++# define DECLARE_PEM_write_cb_buffer(name, type) \
++        DECLARE_PEM_write_cb_bio_buffer(name, type) \
++        DECLARE_PEM_write_cb_fp_buffer(name, type) 
++
+ # define DECLARE_PEM_read(name, type) \
+         DECLARE_PEM_read_bio(name, type) \
+         DECLARE_PEM_read_fp(name, type)
++
++/* yexu 10/8/2014 */
++# define DECLARE_PEM_read_buffer(name, type) \
++        DECLARE_PEM_read_bio_buffer(name, type) \
++        DECLARE_PEM_read_fp_buffer(name, type)
++
+ # define DECLARE_PEM_rw(name, type) \
+         DECLARE_PEM_read(name, type) \
+         DECLARE_PEM_write(name, type)
++
++/* yexu 10/8/2014 */
++# define DECLARE_PEM_rw_buffer(name, type) \
++        DECLARE_PEM_read_buffer(name, type) \
++        DECLARE_PEM_write_buffer(name, type)
++
+ # define DECLARE_PEM_rw_const(name, type) \
+         DECLARE_PEM_read(name, type) \
+         DECLARE_PEM_write_const(name, type)
+ # define DECLARE_PEM_rw_cb(name, type) \
+         DECLARE_PEM_read(name, type) \
+         DECLARE_PEM_write_cb(name, type)
++
++/* yexu 10/8/2014 */
++# define DECLARE_PEM_rw_cb_buffer(name, type) \
++        DECLARE_PEM_read_buffer(name, type) \
++        DECLARE_PEM_write_cb_buffer(name, type)
++
++
+ # if 1
+ /* "userdata": new with OpenSSL 0.9.4 */
+ typedef int pem_password_cb (char *buf, int size, int rwflag, void *userdata);
+@@ -399,19 +522,35 @@ int PEM_do_header(EVP_CIPHER_INFO *ciphe
+ # ifndef OPENSSL_NO_BIO
+ int PEM_read_bio(BIO *bp, char **name, char **header,
+                  unsigned char **data, long *len);
++/* yexu 10/8/2014 */
++int PEM_read_bio_buffer(unsigned long buffer_len, const char *buffer, unsigned long *curr_pos, char **name, 
++	char **header, unsigned char **data,
++	     long *len);
+ int PEM_write_bio(BIO *bp, const char *name, const char *hdr,
+                   const unsigned char *data, long len);
+ int PEM_bytes_read_bio(unsigned char **pdata, long *plen, char **pnm,
+                        const char *name, BIO *bp, pem_password_cb *cb,
+                        void *u);
++/* yexu 10/8/2014 */
++int PEM_bytes_read_bio_buffer(unsigned char **pdata, long *plen, char **pnm, const char *name, BIO *bp,
++	     pem_password_cb *cb, void *u, unsigned long buffer_len, const char *buffer);
+ void *PEM_ASN1_read_bio(d2i_of_void *d2i, const char *name, BIO *bp, void **x,
+                         pem_password_cb *cb, void *u);
++/* yexu 10/8/2014 */
++char *PEM_ASN1_read_bio_buffer(char *(*d2i)(),const char *name,BIO *bp,char **x,
++		pem_password_cb *cb, void *u, unsigned long buffer_len, const char *buffer);
+ int PEM_ASN1_write_bio(i2d_of_void *i2d, const char *name, BIO *bp, void *x,
+                        const EVP_CIPHER *enc, unsigned char *kstr, int klen,
+                        pem_password_cb *cb, void *u);
+ 
++/* yexu 10/8/2014 */
++int	PEM_ASN1_write_bio_buffer(int (*i2d)(),const char *name,BIO *bp,char *x,
++			   const EVP_CIPHER *enc,unsigned char *kstr,int klen,
++			   pem_password_cb *cb, void *u);
+ STACK_OF(X509_INFO) *PEM_X509_INFO_read_bio(BIO *bp, STACK_OF(X509_INFO) *sk,
+                                             pem_password_cb *cb, void *u);
++/* yexu 10/8/2014 */
++STACK_OF(X509_INFO) *PEM_X509_INFO_read_bio_from_buffer(unsigned long buffer_len, const char *buffer, STACK_OF(X509_INFO) *sk, pem_password_cb *cb, void *u);
+ int PEM_X509_INFO_write_bio(BIO *bp, X509_INFO *xi, EVP_CIPHER *enc,
+                             unsigned char *kstr, int klen,
+                             pem_password_cb *cd, void *u);
+@@ -423,9 +562,16 @@ int PEM_write(FILE *fp, const char *name
+               const unsigned char *data, long len);
+ void *PEM_ASN1_read(d2i_of_void *d2i, const char *name, FILE *fp, void **x,
+                     pem_password_cb *cb, void *u);
++/* yexu 10/8/2014 */
++char *	PEM_ASN1_read_buffer(char *(*d2i)(),const char *name,FILE *fp,char **x,
++	pem_password_cb *cb, void *u, unsigned long buffer_len, const char *buffer);
+ int PEM_ASN1_write(i2d_of_void *i2d, const char *name, FILE *fp,
+                    void *x, const EVP_CIPHER *enc, unsigned char *kstr,
+                    int klen, pem_password_cb *callback, void *u);
++/* yexu 10/8/2014 */
++int	PEM_ASN1_write_buffer(int (*i2d)(),const char *name,FILE *fp,void *x,
++		       const EVP_CIPHER *enc,unsigned char *kstr,int klen,
++		       pem_password_cb *callback, void *u);
+ STACK_OF(X509_INFO) *PEM_X509_INFO_read(FILE *fp, STACK_OF(X509_INFO) *sk,
+                                         pem_password_cb *cb, void *u);
+ 
+@@ -449,7 +595,13 @@ void PEM_dek_info(char *buf, const char
+ # include <openssl/symhacks.h>
+ 
+ DECLARE_PEM_rw(X509, X509)
++/* yexu 10/8/2014 */
++DECLARE_PEM_rw_buffer(X509, X509)
++
+ DECLARE_PEM_rw(X509_AUX, X509)
++/* yexu 10/8/2014 */
++DECLARE_PEM_rw_buffer(X509_AUX, X509)
++
+ DECLARE_PEM_rw(X509_CERT_PAIR, X509_CERT_PAIR)
+ DECLARE_PEM_rw(X509_REQ, X509_REQ)
+ DECLARE_PEM_write(X509_REQ_NEW, X509_REQ)
+@@ -478,6 +630,9 @@ DECLARE_PEM_rw_const(DHparams, DH)
+ DECLARE_PEM_write_const(DHxparams, DH)
+ # endif
+ DECLARE_PEM_rw_cb(PrivateKey, EVP_PKEY)
++/* yexu 10/8/2014 */
++DECLARE_PEM_rw_cb_buffer(PrivateKey, EVP_PKEY)
++
+ DECLARE_PEM_rw(PUBKEY, EVP_PKEY)
+ 
+ int PEM_write_bio_PKCS8PrivateKey_nid(BIO *bp, EVP_PKEY *x, int nid,
+@@ -578,6 +733,12 @@ void ERR_load_PEM_strings(void);
+ # define PEM_F_PEM_X509_INFO_READ                         115
+ # define PEM_F_PEM_X509_INFO_READ_BIO                     116
+ # define PEM_F_PEM_X509_INFO_WRITE_BIO                    117
++/* yexu 10/8/2014 */
++#define PEM_F_PEM_READ_BIO_BUFFER 	                      122
++#define PEM_F_PEM_ASN1_READ_BIO_BUFFER				      123
++#define PEM_F_PEM_ASN1_READ_BUFFER				          124
++#define PEM_F_PEM_ASN1_WRITE_BUFFER				          125
++#define PEM_F_PEM_ASN1_WRITE_BIO_BUFFER			          126
+ 
+ /* Reason codes. */
+ # define PEM_R_BAD_BASE64_DECODE                          100
+diff -rNup openssl-1.0.2e.orig/crypto/pem/pem_info.c openssl-1.0.2e/crypto/pem/pem_info.c
+--- openssl-1.0.2e.orig/crypto/pem/pem_info.c	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/pem/pem_info.c	2016-01-06 16:36:02.855367998 -0800
+@@ -88,19 +88,216 @@ STACK_OF(X509_INFO) *PEM_X509_INFO_read(
+ }
+ #endif
+ 
+-STACK_OF(X509_INFO) *PEM_X509_INFO_read_bio(BIO *bp, STACK_OF(X509_INFO) *sk,
+-                                            pem_password_cb *cb, void *u)
+-{
+-    X509_INFO *xi = NULL;
+-    char *name = NULL, *header = NULL;
+-    void *pp;
+-    unsigned char *data = NULL;
+-    const unsigned char *p;
+-    long len, error = 0;
+-    int ok = 0;
+-    STACK_OF(X509_INFO) *ret = NULL;
+-    unsigned int i, raw, ptype;
+-    d2i_of_void *d2i = 0;
++/* yexu 10/8/2014 */
++/**********************************************************************************/
++/* Modified PEM_X509_INFO_read_bio to create PEM_X509_INFO_read_bio_from_buffer */
++STACK_OF(X509_INFO) *PEM_X509_INFO_read_bio_from_buffer(unsigned long buffer_len, const char *buffer, 
++STACK_OF(X509_INFO) *sk, pem_password_cb *cb, void *u)
++	{
++	X509_INFO *xi=NULL;
++	char *name=NULL,*header=NULL,**pp;
++	unsigned char *data=NULL,*p;
++	long len,error=0;
++	int ok=0;
++	unsigned long curr_pos=0;
++	STACK_OF(X509_INFO) *ret=NULL;
++	unsigned int i,raw;
++	char *(*d2i)();
++
++	if (sk == NULL)
++		{
++		if ((ret=sk_X509_INFO_new_null()) == NULL)
++			{
++			PEMerr(PEM_F_PEM_X509_INFO_READ_BIO,ERR_R_MALLOC_FAILURE);
++			goto err;
++			}
++		}
++	else
++		ret=sk;
++
++	if ((xi=X509_INFO_new()) == NULL) goto err;
++	for (;;)
++		{
++		raw=0;
++		i=PEM_read_bio_buffer(buffer_len, buffer, &curr_pos, &name,&header,&data,&len);
++		if (i == 0)
++			{
++			error=ERR_GET_REASON(ERR_peek_last_error());
++			if (error == PEM_R_NO_START_LINE)
++				{
++				ERR_clear_error();
++				break;
++				}
++			goto err;
++			}
++start:
++		if (	(strcmp(name,PEM_STRING_X509) == 0) ||
++			(strcmp(name,PEM_STRING_X509_OLD) == 0))
++			{
++			d2i=(char *(*)())d2i_X509;
++			if (xi->x509 != NULL)
++				{
++				if (!sk_X509_INFO_push(ret,xi)) goto err;
++				if ((xi=X509_INFO_new()) == NULL) goto err;
++				goto start;
++				}
++			pp=(char **)&(xi->x509);
++			}
++		else if ((strcmp(name,PEM_STRING_X509_TRUSTED) == 0))
++			{
++			d2i=(char *(*)())d2i_X509_AUX;
++			if (xi->x509 != NULL)
++				{
++				if (!sk_X509_INFO_push(ret,xi)) goto err;
++				if ((xi=X509_INFO_new()) == NULL) goto err;
++				goto start;
++				}
++			pp=(char **)&(xi->x509);
++			}
++		else if (strcmp(name,PEM_STRING_X509_CRL) == 0)
++			{
++			d2i=(char *(*)())d2i_X509_CRL;
++			if (xi->crl != NULL)
++				{
++				if (!sk_X509_INFO_push(ret,xi)) goto err;
++				if ((xi=X509_INFO_new()) == NULL) goto err;
++				goto start;
++				}
++			pp=(char **)&(xi->crl);
++			}
++		else
++#ifndef OPENSSL_NO_RSA
++			if (strcmp(name,PEM_STRING_RSA) == 0)
++			{
++			d2i=(char *(*)())d2i_RSAPrivateKey;
++			if (xi->x_pkey != NULL) 
++				{
++				if (!sk_X509_INFO_push(ret,xi)) goto err;
++				if ((xi=X509_INFO_new()) == NULL) goto err;
++				goto start;
++				}
++
++			xi->enc_data=NULL;
++			xi->enc_len=0;
++
++			xi->x_pkey=X509_PKEY_new();
++			if ((xi->x_pkey->dec_pkey=EVP_PKEY_new()) == NULL)
++				goto err;
++			xi->x_pkey->dec_pkey->type=EVP_PKEY_RSA;
++			pp=(char **)&(xi->x_pkey->dec_pkey->pkey.rsa);
++			if ((int)strlen(header) > 10) /* assume encrypted */
++				raw=1;
++			}
++		else
++#endif
++#ifndef OPENSSL_NO_DSA
++			if (strcmp(name,PEM_STRING_DSA) == 0)
++			{
++			d2i=(char *(*)())d2i_DSAPrivateKey;
++			if (xi->x_pkey != NULL) 
++				{
++				if (!sk_X509_INFO_push(ret,xi)) goto err;
++				if ((xi=X509_INFO_new()) == NULL) goto err;
++				goto start;
++				}
++
++			xi->enc_data=NULL;
++			xi->enc_len=0;
++
++			xi->x_pkey=X509_PKEY_new();
++			if ((xi->x_pkey->dec_pkey=EVP_PKEY_new()) == NULL)
++				goto err;
++			xi->x_pkey->dec_pkey->type=EVP_PKEY_DSA;
++			pp=(char **)&(xi->x_pkey->dec_pkey->pkey.dsa);
++			if ((int)strlen(header) > 10) /* assume encrypted */
++				raw=1;
++			}
++		else
++#endif
++			{
++			d2i=NULL;
++			pp=NULL;
++			}
++
++		if (d2i != NULL)
++			{
++			if (!raw)
++				{
++				EVP_CIPHER_INFO cipher;
++
++				if (!PEM_get_EVP_CIPHER_INFO(header,&cipher))
++					goto err;
++				if (!PEM_do_header(&cipher,data,&len,cb,u))
++					goto err;
++				p=data;
++				if (d2i(pp,&p,len) == NULL)
++					{
++					PEMerr(PEM_F_PEM_X509_INFO_READ_BIO,ERR_R_ASN1_LIB);
++					goto err;
++					}
++				}
++			else
++				{ /* encrypted RSA data */
++				if (!PEM_get_EVP_CIPHER_INFO(header,
++					&xi->enc_cipher)) goto err;
++				xi->enc_data=(char *)data;
++				xi->enc_len=(int)len;
++				data=NULL;
++				}
++			}
++		else	{
++			/* unknown */
++			}
++		if (name != NULL) OPENSSL_free(name);
++		if (header != NULL) OPENSSL_free(header);
++		if (data != NULL) OPENSSL_free(data);
++		name=NULL;
++		header=NULL;
++		data=NULL;
++		}
++
++	/* if the last one hasn't been pushed yet and there is anything
++	 * in it then add it to the stack ... 
++	 */
++	if ((xi->x509 != NULL) || (xi->crl != NULL) ||
++		(xi->x_pkey != NULL) || (xi->enc_data != NULL))
++		{
++		if (!sk_X509_INFO_push(ret,xi)) goto err;
++		xi=NULL;
++		}
++	ok=1;
++err:
++	if (xi != NULL) X509_INFO_free(xi);
++	if (!ok)
++		{
++		for (i=0; ((int)i)<sk_X509_INFO_num(ret); i++)
++			{
++			xi=sk_X509_INFO_value(ret,i);
++			X509_INFO_free(xi);
++			}
++		if (ret != sk) sk_X509_INFO_free(ret);
++		ret=NULL;
++		}
++		
++	if (name != NULL) OPENSSL_free(name);
++	if (header != NULL) OPENSSL_free(header);
++	if (data != NULL) OPENSSL_free(data);
++	return(ret);
++	}
++/**********************************************************************************/
++
++STACK_OF(X509_INFO) *PEM_X509_INFO_read_bio(BIO *bp, STACK_OF(X509_INFO) *sk, pem_password_cb *cb, void *u)
++	{
++	X509_INFO *xi=NULL;
++	char *name=NULL,*header=NULL;
++	void *pp;
++	unsigned char *data=NULL;
++	const unsigned char *p;
++	long len,error=0;
++	int ok=0;
++	STACK_OF(X509_INFO) *ret=NULL;
++	unsigned int i,raw,ptype;
++	d2i_of_void *d2i = 0;
+ 
+     if (sk == NULL) {
+         if ((ret = sk_X509_INFO_new_null()) == NULL) {
+diff -rNup openssl-1.0.2e.orig/crypto/pem/pem_lib.c openssl-1.0.2e/crypto/pem/pem_lib.c
+--- openssl-1.0.2e.orig/crypto/pem/pem_lib.c	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/pem/pem_lib.c	2016-01-06 16:36:02.859368113 -0800
+@@ -82,6 +82,23 @@ static int load_iv(char **fromp, unsigne
+ static int check_pem(const char *nm, const char *name);
+ int pem_check_suffix(const char *pem_str, const char *suffix);
+ 
++/* yexu 10/8/2014 */
++/* simulate fgets */
++int buf_gets(char *result, unsigned int size, const char *source, unsigned long source_len)
++{
++   unsigned int count = 0;
++
++   while( (count < size) && (count <= source_len) ) {
++      result[count] = source[count];
++      if (source[count++] == '\n') {
++         break;
++      }
++   }
++   return count;
++
++}
++
++
+ int PEM_def_callback(char *buf, int num, int w, void *key)
+ {
+ #ifdef OPENSSL_NO_FP_API
+@@ -177,6 +194,24 @@ void *PEM_ASN1_read(d2i_of_void *d2i, co
+     BIO_free(b);
+     return (ret);
+ }
++
++/* yexu 10/8/2014 */
++char *PEM_ASN1_read_buffer(char *(*d2i)(), const char *name, FILE *fp, char **x,
++	     pem_password_cb *cb, void *u, unsigned long buffer_len, const char *buffer)
++	{
++        BIO *b;
++        char *ret;
++
++	if ((b=BIO_new(BIO_s_file())) == NULL)
++		{
++		PEMerr(PEM_F_PEM_ASN1_READ,ERR_R_BUF_LIB);
++                return(0);
++		}
++        //BIO_set_fp(b,fp,BIO_NOCLOSE);
++        ret=PEM_ASN1_read_bio_buffer(d2i,name,b,x,cb,u,buffer_len, buffer);
++        BIO_free(b);
++        return(ret);
++	}
+ #endif
+ 
+ static int check_pem(const char *nm, const char *name)
+@@ -271,6 +306,52 @@ static int check_pem(const char *nm, con
+     return 0;
+ }
+ 
++/* yexu 10/8/2014 */
++int PEM_bytes_read_bio_buffer(unsigned char **pdata, long *plen, char **pnm, const char *name, BIO *bp,
++							  
++	     pem_password_cb *cb, void *u, unsigned long buffer_len, const char *buffer)
++	{
++	EVP_CIPHER_INFO cipher;
++	char *nm=NULL,*header=NULL;
++	unsigned char *data=NULL;
++	long len;
++	int ret = 0;
++	unsigned long curr_pos =0;
++	//BSYT  bad
++	//unsigned char *pBuffer = NULL;
++	//int buffer_len = 0;
++
++	for (;;)
++		{
++		if (!PEM_read_bio_buffer(buffer_len, buffer, &curr_pos,&nm,&header,&data,&len)) {
++			if(ERR_GET_REASON(ERR_peek_error()) ==
++				PEM_R_NO_START_LINE)
++				ERR_add_error_data(2, "Expecting: ", name);
++			return 0;
++		}
++		if(check_pem(nm, name)) break;
++		OPENSSL_free(nm);
++		OPENSSL_free(header);
++		OPENSSL_free(data);
++		}
++	if (!PEM_get_EVP_CIPHER_INFO(header,&cipher)) goto err;
++	if (!PEM_do_header(&cipher,data,&len,cb,u)) goto err;
++
++	*pdata = data;
++	*plen = len;
++
++	if (pnm)
++		*pnm = nm;
++
++	ret = 1;
++
++err:
++	if (!ret || !pnm) OPENSSL_free(nm);
++	OPENSSL_free(header);
++	if (!ret) OPENSSL_free(data);
++	return ret;
++	}
++
+ int PEM_bytes_read_bio(unsigned char **pdata, long *plen, char **pnm,
+                        const char *name, BIO *bp, pem_password_cb *cb,
+                        void *u)
+@@ -332,6 +413,25 @@ int PEM_ASN1_write(i2d_of_void *i2d, con
+     BIO_free(b);
+     return (ret);
+ }
++
++/* yexu 10/8/2014 */
++int PEM_ASN1_write_buffer(int (*i2d)(), const char *name, FILE *fp, void *x,
++	     const EVP_CIPHER *enc, unsigned char *kstr, int klen,
++	     pem_password_cb *callback, void *u)
++{
++    BIO *b;
++    int ret;
++
++    if ((b=BIO_new(BIO_s_file())) == NULL)
++    {
++        PEMerr(PEM_F_PEM_ASN1_WRITE, ERR_R_BUF_LIB);
++        return (0);
++    }
++    BIO_set_fp(b, fp, BIO_NOCLOSE);
++    ret = PEM_ASN1_write_bio(i2d, name, b, x, enc, kstr, klen, callback, u);
++    BIO_free(b);
++    return (ret);
++}
+ #endif
+ 
+ int PEM_ASN1_write_bio(i2d_of_void *i2d, const char *name, BIO *bp,
+@@ -436,6 +536,112 @@ int PEM_ASN1_write_bio(i2d_of_void *i2d,
+     return (ret);
+ }
+ 
++/* yexu 10/8/2014 */
++/*******************************************************************************/
++int PEM_ASN1_write_bio_buffer(int (*i2d)(), const char *name, BIO *bp, char *x,
++	     const EVP_CIPHER *enc, unsigned char *kstr, int klen,
++	     pem_password_cb *callback, void *u)
++	{
++	EVP_CIPHER_CTX ctx;
++	int dsize=0,i,j,ret=0;
++	unsigned char *p,*data=NULL;
++	const char *objstr=NULL;
++	char buf[PEM_BUFSIZE];
++	unsigned char key[EVP_MAX_KEY_LENGTH];
++	unsigned char iv[EVP_MAX_IV_LENGTH];
++	
++	if (enc != NULL)
++		{
++		objstr=OBJ_nid2sn(EVP_CIPHER_nid(enc));
++		if (objstr == NULL)
++			{
++			PEMerr(PEM_F_PEM_ASN1_WRITE_BIO,PEM_R_UNSUPPORTED_CIPHER);
++			goto err;
++			}
++		}
++
++	if ((dsize=i2d(x,NULL)) < 0)
++		{
++		PEMerr(PEM_F_PEM_ASN1_WRITE_BIO,ERR_R_MALLOC_FAILURE);
++		dsize=0;
++		goto err;
++		}
++	/* dzise + 8 bytes are needed */
++	/* actually it needs the cipher block size extra... */
++	data=(unsigned char *)OPENSSL_malloc((unsigned int)dsize+20);
++	if (data == NULL)
++		{
++		PEMerr(PEM_F_PEM_ASN1_WRITE_BIO,ERR_R_MALLOC_FAILURE);
++		goto err;
++		}
++	p=data;
++	i=i2d(x,&p);
++
++	if (enc != NULL)
++		{
++		if (kstr == NULL)
++			{
++			if (callback == NULL)
++				klen=PEM_def_callback(buf,PEM_BUFSIZE,1,u);
++			else
++				klen=(*callback)(buf,PEM_BUFSIZE,1,u);
++			if (klen <= 0)
++				{
++				PEMerr(PEM_F_PEM_ASN1_WRITE_BIO,PEM_R_READ_KEY);
++				goto err;
++				}
++#ifdef CHARSET_EBCDIC
++			/* Convert the pass phrase from EBCDIC */
++			ebcdic2ascii(buf, buf, klen);
++#endif
++			kstr=(unsigned char *)buf;
++			}
++		RAND_add(data,i,0);/* put in the RSA key. */
++		OPENSSL_assert(enc->iv_len <= sizeof iv);
++		if (RAND_pseudo_bytes(iv,enc->iv_len) < 0) /* Generate a salt */
++			goto err;
++		/* The 'iv' is used as the iv and as a salt.  It is
++		 * NOT taken from the BytesToKey function */
++		EVP_BytesToKey(enc,EVP_md5(),iv,kstr,klen,1,key,NULL);
++
++		if (kstr == (unsigned char *)buf) OPENSSL_cleanse(buf,PEM_BUFSIZE);
++
++		OPENSSL_assert(strlen(objstr)+23+2*enc->iv_len+13 <= sizeof buf);
++
++		buf[0]='\0';
++		PEM_proc_type(buf,PEM_TYPE_ENCRYPTED);
++		PEM_dek_info(buf,objstr,enc->iv_len,(char *)iv);
++		/* k=strlen(buf); */
++
++		EVP_CIPHER_CTX_init(&ctx);
++		EVP_EncryptInit_ex(&ctx,enc,NULL,key,iv);
++		EVP_EncryptUpdate(&ctx,data,&j,data,i);
++		EVP_EncryptFinal_ex(&ctx,&(data[j]),&i);
++		EVP_CIPHER_CTX_cleanup(&ctx);
++		i+=j;
++		ret=1;
++		}
++	else
++		{
++		ret=1;
++		buf[0]='\0';
++		}
++	i=PEM_write_bio(bp,name,buf,data,i);
++	if (i <= 0) ret=0;
++err:
++	OPENSSL_cleanse(key,sizeof(key));
++	OPENSSL_cleanse(iv,sizeof(iv));
++	OPENSSL_cleanse((char *)&ctx,sizeof(ctx));
++	OPENSSL_cleanse(buf,PEM_BUFSIZE);
++	if (data != NULL)
++		{
++		OPENSSL_cleanse(data,(unsigned int)dsize);
++		OPENSSL_free(data);
++		}
++	return(ret);
++	}
++/*******************************************************************************/
++
+ int PEM_do_header(EVP_CIPHER_INFO *cipher, unsigned char *data, long *plen,
+                   pem_password_cb *callback, void *u)
+ {
+@@ -672,6 +878,230 @@ int PEM_read(FILE *fp, char **name, char
+ }
+ #endif
+ 
++
++/* yexu 10/8/2014 */
++/*******************************************************************************/
++int PEM_read_bio_buffer(unsigned long buffer_len, const char *buffer, unsigned long *curr_pos, 
++char **name, char **header, unsigned char **data,
++	     long *len)
++	{
++	EVP_ENCODE_CTX ctx;
++	int end=0,i=0,k,bl=0,hl=0,nohead=0; // length=0;
++	char buf[256];
++    unsigned long SourceLen = buffer_len;
++	BUF_MEM *nameB;
++	BUF_MEM *headerB;
++	BUF_MEM *dataB,*tmpB;
++	
++	nameB=BUF_MEM_new();
++	headerB=BUF_MEM_new();
++	dataB=BUF_MEM_new();
++	if ((nameB == NULL) || (headerB == NULL) || (dataB == NULL))
++		{
++		PEMerr(PEM_F_PEM_READ_BIO,ERR_R_MALLOC_FAILURE);
++		return(0);
++		}
++
++	buf[254]='\0';
++	for (;;)
++		{
++		//BSYT i=BIO_gets(bp,buf,254);
++
++		if ((*curr_pos) >= buffer_len)
++			{
++			PEMerr(PEM_F_PEM_READ_BIO,PEM_R_NO_START_LINE);
++			goto err;
++			}
++
++        i = buf_gets(buf, 254, buffer+(*curr_pos), SourceLen);
++	(*curr_pos) += i;		
++        //length = i--;
++        //SourceLen -= length;
++        SourceLen -= i;
++        
++		buf[i] = '\0';
++
++		while ((i >= 0) && (buf[i] <= ' ')) i--;
++		buf[++i]='\n'; buf[++i]='\0';
++
++		if (strncmp(buf,"-----BEGIN ",11) == 0)
++			{
++			i=strlen(&(buf[11]));
++
++			if (strncmp(&(buf[11+i-6]),"-----\n",6) != 0)
++				continue;
++			if (!BUF_MEM_grow(nameB,i+9))
++				{
++				PEMerr(PEM_F_PEM_READ_BIO,ERR_R_MALLOC_FAILURE);
++				goto err;
++				}
++			memcpy(nameB->data,&(buf[11]),i-6);
++			nameB->data[i-6]='\0';
++			break;
++			}
++		}
++	hl=0;
++	if (!BUF_MEM_grow(headerB,256))
++		{ PEMerr(PEM_F_PEM_READ_BIO,ERR_R_MALLOC_FAILURE); goto err; }
++	headerB->data[0]='\0';
++	for (;;)
++		{
++		//BSYT i=BIO_gets(bp,buf,254);
++        //i = buf_gets(buf, 254, buffer+length, SourceLen);
++
++		if ((*curr_pos) >= buffer_len)
++			{
++			break;
++			}
++        i = buf_gets(buf, 254, buffer+(*curr_pos), SourceLen);
++        //length += i;
++	(*curr_pos) += i;	                
++        SourceLen -= i;
++
++        //if (SourceLen == 0)
++           buf[i] = '\0';
++		if (i <= 0) break;
++
++		while ((i >= 0) && (buf[i] <= ' ')) i--;
++		buf[++i]='\n'; buf[++i]='\0';
++
++		if (buf[0] == '\n') break;
++		if (!BUF_MEM_grow(headerB,hl+i+9))
++			{ PEMerr(PEM_F_PEM_READ_BIO,ERR_R_MALLOC_FAILURE); goto err; }
++		if (strncmp(buf,"-----END ",9) == 0)
++			{
++			nohead=1;
++			break;
++			}
++		memcpy(&(headerB->data[hl]),buf,i);
++		headerB->data[hl+i]='\0';
++
++		hl+=i;
++		}
++
++#ifdef BCM_POD_DEBUG
++{
++ int mycounter;
++ for (mycounter=0; mycounter<headerB->length; mycounter++) {
++
++   printf("%c", headerB->data[mycounter]);
++
++ }
++}
++#endif
++
++	bl=0;
++	if (!BUF_MEM_grow(dataB,1024))
++		{ PEMerr(PEM_F_PEM_READ_BIO,ERR_R_MALLOC_FAILURE); goto err; }
++	dataB->data[0]='\0';
++	if (!nohead)
++		{
++		for (;;)
++			{
++			//BSYT i=BIO_gets(bp,buf,254);
++				
++		if ((*curr_pos) >= buffer_len)
++			{
++			break;
++			}
++            i = buf_gets(buf, 254, buffer+(*curr_pos), SourceLen);
++           //length += i;
++  	   (*curr_pos) += i;	              
++           SourceLen -= i;
++	   
++           if (SourceLen == 0)
++              buf[i] = '\0';
++			//if (i <= 0) break;
++
++			while ((i >= 0) && (buf[i] <= ' ')) i--;
++			buf[++i]='\n'; buf[++i]='\0';
++
++			if (i != 65) end=1;
++			if (strncmp(buf,"-----END ",9) == 0)
++				break;
++			if (i > 65) break;
++			if (!BUF_MEM_grow_clean(dataB,i+bl+9))
++				{
++				PEMerr(PEM_F_PEM_READ_BIO,ERR_R_MALLOC_FAILURE);
++				goto err;
++				}
++			memcpy(&(dataB->data[bl]),buf,i);
++			dataB->data[bl+i]='\0';
++			bl+=i;
++			if (end)
++				{
++				buf[0]='\0';
++//BSYT 				i=BIO_gets(bp,buf,254);
++				if ((*curr_pos) >= buffer_len)
++				{
++					break;
++				}
++                i = buf_gets(buf, 254, buffer+(*curr_pos), SourceLen);
++				(*curr_pos) += i;	
++                 //length += i;
++                
++                 SourceLen -= i;				 
++                 if (SourceLen == 0)
++                    buf[i] = '\0';
++				if (i <= 0) break;
++
++				while ((i >= 0) && (buf[i] <= ' ')) i--;
++				buf[++i]='\n'; buf[++i]='\0';
++
++				break;
++				}
++			}
++		}
++	else
++		{
++		tmpB=headerB;
++		headerB=dataB;
++		dataB=tmpB;
++		bl=hl;
++		}
++	i=strlen(nameB->data);
++	if (	(strncmp(buf,"-----END ",9) != 0) ||
++		(strncmp(nameB->data,&(buf[9]),i) != 0) ||
++		(strncmp(&(buf[9+i]),"-----\n",6) != 0))
++		{
++		PEMerr(PEM_F_PEM_READ_BIO,PEM_R_BAD_END_LINE);
++		goto err;
++		}
++
++	EVP_DecodeInit(&ctx);
++	i=EVP_DecodeUpdate(&ctx,
++		(unsigned char *)dataB->data,&bl,
++		(unsigned char *)dataB->data,bl);
++	if (i < 0)
++		{
++		PEMerr(PEM_F_PEM_READ_BIO,PEM_R_BAD_BASE64_DECODE);
++		goto err;
++		}
++	i=EVP_DecodeFinal(&ctx,(unsigned char *)&(dataB->data[bl]),&k);
++	if (i < 0)
++		{
++		PEMerr(PEM_F_PEM_READ_BIO,PEM_R_BAD_BASE64_DECODE);
++		goto err;
++		}
++	bl+=k;
++
++	if (bl == 0) goto err;
++	*name=nameB->data;
++	*header=headerB->data;
++	*data=(unsigned char *)dataB->data;
++	*len=bl;
++	OPENSSL_free(nameB);
++	OPENSSL_free(headerB);
++	OPENSSL_free(dataB);
++	return(1);
++err:
++	BUF_MEM_free(nameB);
++	BUF_MEM_free(headerB);
++	BUF_MEM_free(dataB);
++	return(0);
++	}
++/*******************************************************************************/
++
+ int PEM_read_bio(BIO *bp, char **name, char **header, unsigned char **data,
+                  long *len)
+ {
+@@ -752,6 +1182,15 @@ int PEM_read_bio(BIO *bp, char **name, c
+         hl += i;
+     }
+ 
++/* yexu 10/8/2014 */
++{
++ int mycounter;
++ for (mycounter=0; mycounter<headerB->length; mycounter++) {
++
++   printf("%c", headerB->data[mycounter]);
++
++ }
++}
+     bl = 0;
+     if (!BUF_MEM_grow(dataB, 1024)) {
+         PEMerr(PEM_F_PEM_READ_BIO, ERR_R_MALLOC_FAILURE);
+diff -rNup openssl-1.0.2e.orig/crypto/pem/pem_oth.c openssl-1.0.2e/crypto/pem/pem_oth.c
+--- openssl-1.0.2e.orig/crypto/pem/pem_oth.c	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/pem/pem_oth.c	2016-01-06 16:36:02.859368113 -0800
+@@ -67,6 +67,24 @@
+ 
+ /* Handle 'other' PEMs: not private keys */
+ 
++/* yexu 10/8/2014 */
++char *PEM_ASN1_read_bio_buffer(char *(*d2i)(), const char *name, BIO *bp, char **x,
++	     pem_password_cb *cb, void *u, unsigned long buffer_len, const char *buffer)
++	{
++	unsigned char *p=NULL,*data=NULL;
++	long len;
++	char *ret=NULL;
++
++	if (!PEM_bytes_read_bio_buffer(&data, &len, NULL, name, bp, cb, u,  buffer_len, buffer))
++		return NULL;
++	p = data;
++	ret=d2i(x,&p,len);
++	if (ret == NULL)
++		PEMerr(PEM_F_PEM_ASN1_READ_BIO,ERR_R_ASN1_LIB);
++	OPENSSL_free(data);
++	return(ret);
++	}
++
+ void *PEM_ASN1_read_bio(d2i_of_void *d2i, const char *name, BIO *bp, void **x,
+                         pem_password_cb *cb, void *u)
+ {
+diff -rNup openssl-1.0.2e.orig/crypto/pem/pem_pkey.c openssl-1.0.2e/crypto/pem/pem_pkey.c
+--- openssl-1.0.2e.orig/crypto/pem/pem_pkey.c	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/pem/pem_pkey.c	2016-01-06 16:36:02.859368113 -0800
+@@ -210,6 +210,65 @@ int PEM_write_bio_Parameters(BIO *bp, EV
+                               pem_str, bp, x, NULL, NULL, 0, 0, NULL);
+ }
+ 
++/* yexu 10/8/2014 */
++/*********************************************************************************/
++EVP_PKEY *PEM_read_bio_buffer_PrivateKey(BIO *bp, EVP_PKEY **x, pem_password_cb *cb, void *u, 
++	unsigned long buffer_len, const char *buffer)
++	{
++	char *nm=NULL;
++	const unsigned char *p=NULL;
++	unsigned char *data=NULL;
++	long len;
++	EVP_PKEY *ret=NULL;
++
++	if (!PEM_bytes_read_bio_buffer(&data, &len, &nm, PEM_STRING_EVP_PKEY, bp, cb, u, buffer_len, buffer))
++		return NULL;
++	p = data;
++
++	if (strcmp(nm,PEM_STRING_RSA) == 0)
++		ret=d2i_PrivateKey(EVP_PKEY_RSA,x,&p,len);
++	else if (strcmp(nm,PEM_STRING_DSA) == 0)
++		ret=d2i_PrivateKey(EVP_PKEY_DSA,x,&p,len);
++	else if (strcmp(nm,PEM_STRING_PKCS8INF) == 0) {
++		PKCS8_PRIV_KEY_INFO *p8inf;
++		p8inf=d2i_PKCS8_PRIV_KEY_INFO(NULL, &p, len);
++		if(!p8inf) goto p8err;
++		ret = EVP_PKCS82PKEY(p8inf);
++		PKCS8_PRIV_KEY_INFO_free(p8inf);
++	} else if (strcmp(nm,PEM_STRING_PKCS8) == 0) {
++		PKCS8_PRIV_KEY_INFO *p8inf;
++		X509_SIG *p8;
++		int klen;
++		char psbuf[PEM_BUFSIZE];
++		p8 = d2i_X509_SIG(NULL, &p, len);
++		if(!p8) goto p8err;
++		if (cb) klen=cb(psbuf,PEM_BUFSIZE,0,u);
++		else klen=PEM_def_callback(psbuf,PEM_BUFSIZE,0,u);
++		if (klen <= 0) {
++			PEMerr(PEM_F_PEM_ASN1_READ_BIO,
++					PEM_R_BAD_PASSWORD_READ);
++			goto err;
++		}
++		p8inf = PKCS8_decrypt(p8, psbuf, klen);
++		X509_SIG_free(p8);
++		if(!p8inf) goto p8err;
++		ret = EVP_PKCS82PKEY(p8inf);
++		if(x) {
++			if(*x) EVP_PKEY_free((EVP_PKEY *)*x);
++			*x = ret;
++		}
++		PKCS8_PRIV_KEY_INFO_free(p8inf);
++	}
++p8err:
++	if (ret == NULL)
++		PEMerr(PEM_F_PEM_ASN1_READ_BIO,ERR_R_ASN1_LIB);
++err:
++	OPENSSL_free(nm);
++	OPENSSL_free(data);
++	return(ret);
++	}
++/*********************************************************************************/
++
+ #ifndef OPENSSL_NO_FP_API
+ EVP_PKEY *PEM_read_PrivateKey(FILE *fp, EVP_PKEY **x, pem_password_cb *cb,
+                               void *u)
+@@ -224,7 +283,25 @@ EVP_PKEY *PEM_read_PrivateKey(FILE *fp,
+     BIO_set_fp(b, fp, BIO_NOCLOSE);
+     ret = PEM_read_bio_PrivateKey(b, x, cb, u);
+     BIO_free(b);
+-    return (ret);
++    return(ret);
++}
++
++/* yexu 10/8/2014 */
++EVP_PKEY *PEM_read_buffer_PrivateKey(FILE *fp, EVP_PKEY **x, pem_password_cb *cb, void *u, 
++	unsigned long buffer_len, const char *buffer)
++{
++    BIO *b;
++    EVP_PKEY *ret;
++
++    if ((b=BIO_new(BIO_s_file())) == NULL)
++	{
++		PEMerr(PEM_F_PEM_ASN1_READ,ERR_R_BUF_LIB);
++                return(0);
++	}
++    //BIO_set_fp(b,fp,BIO_NOCLOSE);
++    ret=PEM_read_bio_buffer_PrivateKey(b,x,cb,u, buffer_len, buffer);
++    BIO_free(b);
++    return(ret);
+ }
+ 
+ int PEM_write_PrivateKey(FILE *fp, EVP_PKEY *x, const EVP_CIPHER *enc,
+diff -rNup openssl-1.0.2e.orig/crypto/pem/pem_x509.c openssl-1.0.2e/crypto/pem/pem_x509.c
+--- openssl-1.0.2e.orig/crypto/pem/pem_x509.c	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/pem/pem_x509.c	2016-01-06 16:36:02.863368268 -0800
+@@ -66,3 +66,5 @@
+ #include <openssl/pem.h>
+ 
+ IMPLEMENT_PEM_rw(X509, X509, PEM_STRING_X509, X509)
++/* yexu 10/8/2014 */
++IMPLEMENT_PEM_rw_buffer(X509, X509, PEM_STRING_X509, X509)
+diff -rNup openssl-1.0.2e.orig/crypto/pem/pem_xaux.c openssl-1.0.2e/crypto/pem/pem_xaux.c
+--- openssl-1.0.2e.orig/crypto/pem/pem_xaux.c	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/pem/pem_xaux.c	2016-01-06 16:36:02.863368268 -0800
+@@ -68,3 +68,5 @@
+ IMPLEMENT_PEM_rw(X509_AUX, X509, PEM_STRING_X509_TRUSTED, X509_AUX)
+ IMPLEMENT_PEM_rw(X509_CERT_PAIR, X509_CERT_PAIR, PEM_STRING_X509_PAIR,
+                  X509_CERT_PAIR)
++/* yexu 10/8/2014 */
++IMPLEMENT_PEM_rw_buffer(X509_AUX, X509, PEM_STRING_X509_TRUSTED, X509_AUX)
+diff -rNup openssl-1.0.2e.orig/crypto/rsa/rsa_gen.c openssl-1.0.2e/crypto/rsa/rsa_gen.c
+--- openssl-1.0.2e.orig/crypto/rsa/rsa_gen.c	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/rsa/rsa_gen.c	2016-01-06 16:36:02.863368268 -0800
+@@ -247,4 +247,146 @@ static int rsa_builtin_keygen(RSA *rsa,
+     }
+ 
+     return ok;
++ }
++
++/* yexu 10/8/2014 */
++/********************************************************************************/
++RSA *RSA_generate_key_big_exponent(int bits, BIGNUM  *e_value,
++	     void (*callback)(int,int,void *), void *cb_arg)
++	{
++	RSA *rsa=NULL;
++	BIGNUM *r0=NULL,*r1=NULL,*r2=NULL,*r3=NULL,*tmp;
++	int bitsp,bitsq,ok= -1,n=0;
++	BN_CTX *ctx=NULL,*ctx2=NULL;
++
++	ctx=BN_CTX_new();
++	if (ctx == NULL) goto err;
++	ctx2=BN_CTX_new();
++	if (ctx2 == NULL) goto err;
++	BN_CTX_start(ctx);
++	r0 = BN_CTX_get(ctx);
++	r1 = BN_CTX_get(ctx);
++	r2 = BN_CTX_get(ctx);
++	r3 = BN_CTX_get(ctx);
++	if (r3 == NULL) goto err;
++
++	bitsp=(bits+1)/2;
++	bitsq=bits-bitsp;
++	rsa=RSA_new();
++	if (rsa == NULL) goto err;
++
++    
++#if BSYT_COMMENT_OUT_FOR_BIG_E
++	/* set e */ 
++	rsa->e=BN_new();
++	if (rsa->e == NULL) goto err;
++
++#if 1
++	/* The problem is when building with 8, 16, or 32 BN_ULONG,
++	 * unsigned long can be larger */
++	for (i=0; i<sizeof(unsigned long)*8; i++)
++		{
++		if (e_value & (1UL<<i))
++			BN_set_bit(rsa->e,i);
++		}
++#else
++	if (!BN_set_word(rsa->e,e_value)) goto err;
++#endif
++#endif /* COMMENT_OUT_FOR_BIG_E */
++
++    rsa->e=e_value;
++
++
++	/* generate p and q */
++	for (;;)
++		{
++		rsa->p=BN_generate_prime(NULL,bitsp,0,NULL,NULL,callback,cb_arg);
++		if (rsa->p == NULL) goto err;
++		if (!BN_sub(r2,rsa->p,BN_value_one())) goto err;
++		if (!BN_gcd(r1,r2,rsa->e,ctx)) goto err;
++		if (BN_is_one(r1)) break;
++		if (callback != NULL) callback(2,n++,cb_arg);
++		BN_free(rsa->p);
++		}
++	if (callback != NULL) callback(3,0,cb_arg);
++	for (;;)
++		{
++		rsa->q=BN_generate_prime(NULL,bitsq,0,NULL,NULL,callback,cb_arg);
++		if (rsa->q == NULL) goto err;
++		if (!BN_sub(r2,rsa->q,BN_value_one())) goto err;
++		if (!BN_gcd(r1,r2,rsa->e,ctx)) goto err;
++		if (BN_is_one(r1) && (BN_cmp(rsa->p,rsa->q) != 0))
++			break;
++		if (callback != NULL) callback(2,n++,cb_arg);
++		BN_free(rsa->q);
++		}
++	if (callback != NULL) callback(3,1,cb_arg);
++	if (BN_cmp(rsa->p,rsa->q) < 0)
++		{
++		tmp=rsa->p;
++		rsa->p=rsa->q;
++		rsa->q=tmp;
++		}
++
++	/* calculate n */
++	rsa->n=BN_new();
++	if (rsa->n == NULL) goto err;
++	if (!BN_mul(rsa->n,rsa->p,rsa->q,ctx)) goto err;
++
++	/* calculate d */
++	if (!BN_sub(r1,rsa->p,BN_value_one())) goto err;	/* p-1 */
++	if (!BN_sub(r2,rsa->q,BN_value_one())) goto err;	/* q-1 */
++	if (!BN_mul(r0,r1,r2,ctx)) goto err;	/* (p-1)(q-1) */
++
++/* should not be needed, since gcd(p-1,e) == 1 and gcd(q-1,e) == 1 */
++/*	for (;;)
++		{
++		if (!BN_gcd(r3,r0,rsa->e,ctx)) goto err;
++		if (BN_is_one(r3)) break;
++
++		if (1)
++			{
++			if (!BN_add_word(rsa->e,2L)) goto err;
++			continue;
++			}
++		RSAerr(RSA_F_RSA_GENERATE_KEY,RSA_R_BAD_E_VALUE);
++		goto err;
++		}
++*/
++	rsa->d=BN_mod_inverse(NULL,rsa->e,r0,ctx2);	/* d */
++	if (rsa->d == NULL) goto err;
++
++	/* calculate d mod (p-1) */
++	rsa->dmp1=BN_new();
++	if (rsa->dmp1 == NULL) goto err;
++	if (!BN_mod(rsa->dmp1,rsa->d,r1,ctx)) goto err;
++
++	/* calculate d mod (q-1) */
++	rsa->dmq1=BN_new();
++	if (rsa->dmq1 == NULL) goto err;
++	if (!BN_mod(rsa->dmq1,rsa->d,r2,ctx)) goto err;
++
++	/* calculate inverse of q mod p */
++	rsa->iqmp=BN_mod_inverse(NULL,rsa->q,rsa->p,ctx2);
++	if (rsa->iqmp == NULL) goto err;
++
++	ok=1;
++err:
++	if (ok == -1)
++		{
++		RSAerr(RSA_F_RSA_GENERATE_KEY,ERR_LIB_BN);
++		ok=0;
++		}
++	BN_CTX_end(ctx);
++	BN_CTX_free(ctx);
++	BN_CTX_free(ctx2);
++	
++	if (!ok)
++		{
++		if (rsa != NULL) RSA_free(rsa);
++		return(NULL);
++		}
++	else
++		return(rsa);
+ }
++/********************************************************************************/
+diff -rNup openssl-1.0.2e.orig/crypto/rsa/rsa.h openssl-1.0.2e/crypto/rsa/rsa.h
+--- openssl-1.0.2e.orig/crypto/rsa/rsa.h	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/rsa/rsa.h	2016-01-06 16:36:02.867368415 -0800
+@@ -329,7 +329,9 @@ RSA *RSA_generate_key(int bits, unsigned
+ 
+ /* New version */
+ int RSA_generate_key_ex(RSA *rsa, int bits, BIGNUM *e, BN_GENCB *cb);
+-
++/* yexu 10/8/2014 */
++RSA *	RSA_generate_key_big_exponent(int bits, BIGNUM  *e_value,void
++		(*callback)(int,int,void *),void *cb_arg);
+ int RSA_check_key(const RSA *);
+         /* next 4 return -1 on error */
+ int RSA_public_encrypt(int flen, const unsigned char *from,
+diff -rNup openssl-1.0.2e.orig/crypto/x509/by_file.c openssl-1.0.2e/crypto/x509/by_file.c
+--- openssl-1.0.2e.orig/crypto/x509/by_file.c	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/x509/by_file.c	2016-01-06 16:36:02.867368415 -0800
+@@ -70,6 +70,12 @@
+ 
+ static int by_file_ctrl(X509_LOOKUP *ctx, int cmd, const char *argc,
+                         long argl, char **ret);
++
++/* yexu 10/8/2014 */
++static int by_buffer_ctrl(X509_LOOKUP *ctx, int cmd, const char *argc,
++	long argl, char **ret);
++
++
+ X509_LOOKUP_METHOD x509_file_lookup = {
+     "Load file into cache",
+     NULL,                       /* new */
+@@ -83,11 +89,50 @@ X509_LOOKUP_METHOD x509_file_lookup = {
+     NULL,                       /* get_by_alias */
+ };
+ 
++/* yexu 10/8/2014 */
++X509_LOOKUP_METHOD x509_buffer_lookup=
++{
++	"Load file into cache",
++	NULL,		/* new */
++	NULL,		/* free */
++	NULL, 		/* init */
++	NULL,		/* shutdown */
++	by_buffer_ctrl,	/* ctrl */
++	NULL,		/* get_by_subject */
++	NULL,		/* get_by_issuer_serial */
++	NULL,		/* get_by_fingerprint */
++	NULL,		/* get_by_alias */
++};
++
++X509_LOOKUP_METHOD *X509_LOOKUP_buffer(void)
++{
++	return(&x509_buffer_lookup);
++}
++
+ X509_LOOKUP_METHOD *X509_LOOKUP_file(void)
+ {
+     return (&x509_file_lookup);
+ }
+ 
++/* yexu 10/8/2014 */
++static int by_buffer_ctrl(X509_LOOKUP *ctx, int buffer_len, const char *buffer, long argl,
++	     char **ret)
++{
++	int ok=0;
++	//char *file;
++
++
++		
++	if(argl == X509_FILETYPE_PEM)
++		ok = (X509_load_cert_crl_buffer(ctx,buffer_len, buffer,  
++			X509_FILETYPE_PEM) != 0);
++	else
++		ok = (X509_load_cert_buffer(ctx,buffer_len, buffer,(int)argl) != 0);
++
++	
++	return(ok);
++}
++
+ static int by_file_ctrl(X509_LOOKUP *ctx, int cmd, const char *argp,
+                         long argl, char **ret)
+ {
+@@ -122,6 +167,78 @@ static int by_file_ctrl(X509_LOOKUP *ctx
+     return (ok);
+ }
+ 
++/* yexu 10/8/2014 */
++/********************************************************************************/
++int X509_load_cert_buffer(X509_LOOKUP *ctx, int buffer_len, const char *buffer, int type)
++	{
++	int ret=0;
++	BIO *in=NULL;
++	int i,count=0;
++	X509 *x=NULL;
++
++	//if (file == NULL) return(1);
++	in=BIO_new(BIO_s_file_internal());
++
++/*
++	if ((in == NULL) || (BIO_read_filename(in,file) <= 0))
++		{
++		X509err(X509_F_X509_LOAD_CERT_FILE,ERR_R_SYS_LIB);
++		goto err;
++		}
++*/		
++
++	if (type == X509_FILETYPE_PEM)
++		{
++		for (;;)
++			{
++			x=PEM_read_bio_X509_AUX(in,NULL,NULL,NULL);
++			if (x == NULL)
++				{
++				if ((ERR_GET_REASON(ERR_peek_error()) ==
++					PEM_R_NO_START_LINE) && (count > 0))
++					{
++					ERR_clear_error();
++					break;
++					}
++				else
++					{
++					X509err(X509_F_X509_LOAD_CERT_FILE,
++						ERR_R_PEM_LIB);
++					goto err;
++					}
++				}
++			i=X509_STORE_add_cert(ctx->store_ctx,x);
++			if (!i) goto err;
++			count++;
++			X509_free(x);
++			x=NULL;
++			}
++		ret=count;
++		}
++	else if (type == X509_FILETYPE_ASN1)
++		{
++		x=d2i_X509_bio_buffer( buffer_len, buffer,NULL);
++		if (x == NULL)
++			{
++			X509err(X509_F_X509_LOAD_CERT_FILE,ERR_R_ASN1_LIB);
++			goto err;
++			}
++		i=X509_STORE_add_cert(ctx->store_ctx,x);
++		if (!i) goto err;
++		ret=i;
++		}
++	else
++		{
++		X509err(X509_F_X509_LOAD_CERT_FILE,X509_R_BAD_X509_FILETYPE);
++		goto err;
++		}
++err:
++	if (x != NULL) X509_free(x);
++	if (in != NULL) BIO_free(in);
++	return(ret);
++	}
++/********************************************************************************/
++
+ int X509_load_cert_file(X509_LOOKUP *ctx, const char *file, int type)
+ {
+     int ret = 0;
+@@ -274,4 +391,55 @@ int X509_load_cert_crl_file(X509_LOOKUP
+     return count;
+ }
+ 
+-#endif                          /* OPENSSL_NO_STDIO */
++
++/* yexu 10/8/2014 */
++/********************************************************************************/
++int X509_load_cert_crl_buffer(X509_LOOKUP *ctx, int buffer_len, const char *buffer, int type)
++{
++	STACK_OF(X509_INFO) *inf;
++	X509_INFO *itmp;
++
++#if 0
++	BIO *in;
++#endif
++
++	int i, count = 0;
++
++#if 0
++	if(type != X509_FILETYPE_PEM)
++		return X509_load_cert_file(ctx, file, type);
++	in = BIO_new_file(file, "r");
++	if(!in) {
++		X509err(X509_F_X509_LOAD_CERT_CRL_FILE,ERR_R_SYS_LIB);
++		return 0;
++	}
++#endif
++
++	inf = PEM_X509_INFO_read_bio_from_buffer(buffer_len, buffer, NULL, NULL, NULL);
++
++#if 0
++	BIO_free(in);
++#endif
++
++	if(!inf) {
++		X509err(X509_F_X509_LOAD_CERT_CRL_FILE,ERR_R_PEM_LIB);
++		return 0;
++	}
++	for(i = 0; i < sk_X509_INFO_num(inf); i++) {
++		itmp = sk_X509_INFO_value(inf, i);
++		if(itmp->x509) {
++			X509_STORE_add_cert(ctx->store_ctx, itmp->x509);
++			count++;
++		}
++		if(itmp->crl) {
++			X509_STORE_add_crl(ctx->store_ctx, itmp->crl);
++			count++;
++		}
++	}
++	sk_X509_INFO_pop_free(inf, X509_INFO_free);
++	return count;
++}
++/********************************************************************************/
++
++#endif /* OPENSSL_NO_STDIO */
++
+diff -rNup openssl-1.0.2e.orig/crypto/x509/x509.h openssl-1.0.2e/crypto/x509/x509.h
+--- openssl-1.0.2e.orig/crypto/x509/x509.h	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/x509/x509.h	2016-01-06 16:36:02.871368546 -0800
+@@ -707,6 +707,8 @@ EVP_PKEY *d2i_PUBKEY_fp(FILE *fp, EVP_PK
+ 
+ # ifndef OPENSSL_NO_BIO
+ X509 *d2i_X509_bio(BIO *bp, X509 **x509);
++/* yexu 10/8/2014 */
++X509 *d2i_X509_bio_buffer(int buffer_len,const char *buffer,X509 **x509);
+ int i2d_X509_bio(BIO *bp, X509 *x509);
+ X509_CRL *d2i_X509_CRL_bio(BIO *bp, X509_CRL **crl);
+ int i2d_X509_CRL_bio(BIO *bp, X509_CRL *crl);
+@@ -1285,6 +1287,9 @@ void ERR_load_X509_strings(void);
+ # define X509_F_X509_TRUST_ADD                            133
+ # define X509_F_X509_TRUST_SET                            141
+ # define X509_F_X509_VERIFY_CERT                          127
++/* yexu 10/8/2014 */
++#define X509_F_X509_LOAD_CERT_BUFFER			 144
++
+ 
+ /* Reason codes. */
+ # define X509_R_AKID_MISMATCH                             110
+diff -rNup openssl-1.0.2e.orig/crypto/x509/x509_vfy.h openssl-1.0.2e/crypto/x509/x509_vfy.h
+--- openssl-1.0.2e.orig/crypto/x509/x509_vfy.h	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/x509/x509_vfy.h	2016-01-06 16:36:02.871368546 -0800
+@@ -309,6 +309,10 @@ void X509_STORE_CTX_set_depth(X509_STORE
+ # define X509_LOOKUP_load_file(x,name,type) \
+                 X509_LOOKUP_ctrl((x),X509_L_FILE_LOAD,(name),(long)(type),NULL)
+ 
++/* yexu 10/8/2014 */
++#define X509_LOOKUP_load_buffer(x,size,buffer,type) \
++		X509_LOOKUP_ctrl((x),(size),(buffer),(long)(type),NULL)
++
+ # define X509_LOOKUP_add_dir(x,name,type) \
+                 X509_LOOKUP_ctrl((x),X509_L_ADD_DIR,(name),(long)(type),NULL)
+ 
+@@ -493,6 +497,8 @@ X509_LOOKUP *X509_STORE_add_lookup(X509_
+ 
+ X509_LOOKUP_METHOD *X509_LOOKUP_hash_dir(void);
+ X509_LOOKUP_METHOD *X509_LOOKUP_file(void);
++/* yexu 10/8/2014 */
++X509_LOOKUP_METHOD *X509_LOOKUP_buffer(void);
+ 
+ int X509_STORE_add_cert(X509_STORE *ctx, X509 *x);
+ int X509_STORE_add_crl(X509_STORE *ctx, X509_CRL *x);
+@@ -505,9 +511,14 @@ int X509_LOOKUP_ctrl(X509_LOOKUP *ctx, i
+ 
+ # ifndef OPENSSL_NO_STDIO
+ int X509_load_cert_file(X509_LOOKUP *ctx, const char *file, int type);
++/* yexu 10/8/2014 */
++int X509_load_cert_buffer(X509_LOOKUP *ctx, int buffer_len, const char *buffer, int type);
+ int X509_load_crl_file(X509_LOOKUP *ctx, const char *file, int type);
+ int X509_load_cert_crl_file(X509_LOOKUP *ctx, const char *file, int type);
+-# endif
++/* yexu 10/8/2014 */
++int X509_load_cert_crl_buffer(X509_LOOKUP *ctx, int buffer_len, const char *buffer, int type);
++#endif
++
+ 
+ X509_LOOKUP *X509_LOOKUP_new(X509_LOOKUP_METHOD *method);
+ void X509_LOOKUP_free(X509_LOOKUP *ctx);
+diff -rNup openssl-1.0.2e.orig/crypto/x509/x_all.c openssl-1.0.2e/crypto/x509/x_all.c
+--- openssl-1.0.2e.orig/crypto/x509/x_all.c	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.2e/crypto/x509/x_all.c	2016-01-06 16:36:02.871368546 -0800
+@@ -170,6 +170,12 @@ X509 *d2i_X509_bio(BIO *bp, X509 **x509)
+     return ASN1_item_d2i_bio(ASN1_ITEM_rptr(X509), bp, x509);
+ }
+ 
++/* yexu 10/8/2014 */
++X509 *d2i_X509_bio_buffer(int buffer_len, const char *buffer, X509 **x509)
++	{
++	return ASN1_item_d2i_bio_buffer(ASN1_ITEM_rptr(X509), buffer_len, buffer, x509);
++	}
++
+ int i2d_X509_bio(BIO *bp, X509 *x509)
+ {
+     return ASN1_item_i2d_bio(ASN1_ITEM_rptr(X509), bp, x509);

@@ -1,0 +1,126 @@
+*****************************************************************************
+*
+* Copyright (c) 2011 Broadcom Corporation
+*
+* This program is the proprietary software of Broadcom Corporation and/or
+* its licensors, and may only be used, duplicated, modified or distributed
+* pursuant to the terms and conditions of a separate, written license
+* agreement executed between you and Broadcom (an "Authorized License").
+* Except as set forth in an Authorized License, Broadcom grants no license
+* (express or implied), right to use, or waiver of any kind with respect to
+* the Software, and Broadcom expressly reserves all rights in and to the
+* Software and all intellectual property rights therein.  IF YOU HAVE NO
+* AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
+* AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
+* SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1.     This program, including its structure, sequence and organization,
+* constitutes the valuable trade secrets of Broadcom, and you shall use all
+* reasonable efforts to protect the confidentiality thereof, and to use this
+* information only in connection with your use of Broadcom integrated circuit
+* products.
+*
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+* "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+* OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+* RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+* IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+* A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+* ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+* THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+* OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+* INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+* RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+* HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+* EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+* WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+* FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+*
+*****************************************************************************
+*****************************************************************************
+*
+#    Filename: BRCM_README
+*    Author:  Maurice Turcotte
+#    Creation Date: 20 SEP 08
+*
+*****************************************************************************
+
+
+NOTES AND BUILD INSTRUCTIONS
+-----------------------------
+
+This is NetSNMP ported for the eSTB SNMP Agent which runs on 
+little endian MIPS Linux. These libraries need to be built after
+the OpenSSL and SecLib libraries are built correctly. 
+See "LibSupport/OpenSSL". Typically, the order is:
+
+  build OpenSSL crypto library
+  build SecLib library
+  build NetSnmp libraries 
+  build the agent 
+
+This README deals with the "build NetSnmp libraries" step.
+ 
+-----------------------------
+Building The NetSnmp libraries:
+-----------------------------
+
+The NetSnmp libraries are:
+
+  libnetsnmp_linux.a
+  libnetsnmpagent_linux.a
+  libnetsnmphelpers_linux.a
+  libnetsnmpmibs_linux.a
+
+To build the libraries, in the current directory run makeStblinux. 
+
+  ./makeStblinux
+
+Make sure that all four libs were built successfully. If there was an
+error in the build of one library the others may successfully complete
+and the error message will scroll off the screen.
+     
+
+--------------
+Running configure:
+--------------
+
+You shouldn't have to run a configure unless you are going to a new
+toolchain or target processor. 
+
+You have to set up the include directory. Configure expects it to
+be here, not in the lib directory, where we put it for the agent build.
+
+  cd NetSnmp/src
+  ln -s ../include include
+
+Then just run the configure...
+
+  ./brcmconfigure_stblinux
+
+This will generate a bunch of makefiles which are never used. The reason
+to run it is to generate some special include files that contain a
+lot of host-specific definitions. Note that these have been heavily modified
+for BRCM use, so you probably will want to save them off and then merge the
+old files with the new ones. Then you can build the libraries.
+
+If you need to clean up after the last configure, do this:
+
+  make distclean
+
+If "make distclean" starts running the native configure just do a <ctl> c and
+run the brcm configure as above.
+
+The include files that are generated are:
+
+  include/net-snmp-config.h
+  include/net-snmp/agent/mib_module_config.h 
+  include/net-snmp/library/snmpv3-security-includes.h
+  agent/mibgroup/mib_module_inits.h
+
+You may need to merge the new include files with the old ones, and you MUST
+merge net-snmp-config.h which is modified for the Broadcom build.

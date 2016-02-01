@@ -1,0 +1,7 @@
+cd $root/BSEAV/lib/livemedia
+make (this should untar the tgz file, genmakefiles, patch cpp files, and build all libraries)
+cd $root/BSEAV/lib/livemedia/arm-linux.debug/live/liveMedia (this is the build area where the obj files are created)
+cp Makefile Makefile.blive
+vi Makefile.blive (make desired changes)
+diff -ruN Makefile Makefile.blive > $root/BSEAV/lib/livemedia/blive_ext/build/lm_blive.patch
+git commit -a

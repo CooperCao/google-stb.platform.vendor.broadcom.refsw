@@ -1,0 +1,89 @@
+// Broadcom BSG effect file
+
+OPTIONS
+{
+	SortOrder = FRONT_TO_BACK;
+}
+
+PASS 0
+{
+	SEMANTICS
+	{
+		u_mvpMatrix		= MATRIX4_MODEL_VIEW_PROJECTION;
+		u_mvMatrix		= MATRIX4_MODEL_VIEW;
+		u_imvtMatrix	= MATRIX3_INVT_MODEL_VIEW;
+		a_position		= VATTR_POSITION;
+		a_normal		= VATTR_NORMAL;
+		a_tc			= VATTR_TEXCOORD1;
+	}
+
+	STATE
+	{
+		EnableBlend     = false;
+		EnableDepthTest = true;
+	}
+
+	SAMPLER_2D u_tex
+	{
+		Unit = 0;
+		Wrap = CLAMP, CLAMP;
+		Filter = LINEAR_MIPMAP_LINEAR, LINEAR;
+	}
+
+	VERTEX_SHADER
+	{
+		uniform		mat4	u_mvpMatrix;
+		uniform		mat3	u_imvtMatrix;
+		uniform		mat4	u_mvMatrix;
+		attribute	vec4	a_position;
+		attribute	vec3	a_normal;
+		attribute	vec2	a_tc;
+		varying		vec2	v_tc;
+		//varying		float	v_diffuse;
+		varying		vec3	v_specular;
+
+		#include basic_lighting.bfx
+
+		void main()
+		{
+			vec3 specCol = vec3(0.6, 0.6, 0.6);
+			float specularHardness = 15.0;
+
+			vec4 pos = u_mvMatrix * a_position;
+			vec3 normal = normalize(u_imvtMatrix * a_normal);
+			vec3 lightPos = vec3(0.0, 0.5, 0.0);
+
+			// Diffuse
+			// v_diffuse = PointLightDiffuseComp(lightPos, pos.xyz, normal);
+
+			// Eliminates nasty black edges
+			// v_diffuse = max(v_diffuse, 0.2);
+
+			// Specular
+			v_specular = specCol * PointLightSpecularComp(lightPos, pos.xyz, vec3(0.0, 0.0, 0.0), normal, specularHardness);
+			v_specular = max(v_specular, 0.0);
+
+			v_tc = a_tc;
+			gl_Position	= u_mvpMatrix * a_position;
+		}
+	}
+
+	FRAGMENT_SHADER
+	{
+		precision mediump float;
+
+		uniform sampler2D	u_tex;
+		varying vec2		v_tc;
+		//varying	float		v_diffuse;
+		varying	vec3		v_specular;
+
+		void main()
+		{
+			//vec3 col = texture2D(u_tex, v_tc).rgb * v_diffuse + v_specular;
+            float z = min(gl_FragCoord.w - 0.4, 0.8);
+			vec3 col = texture2D(u_tex, v_tc).rgb * z + v_specular;
+			gl_FragColor = vec4(col, 1.0);
+		}
+	}
+}
+

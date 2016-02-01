@@ -1,0 +1,41 @@
+OPTIONS
+{
+   SortOrder = NONE;
+}
+
+PASS 0
+{
+   SEMANTICS
+   {
+      a_position    = VATTR_POSITION;
+      u_mvp         = MATRIX4_MODEL_VIEW_PROJECTION;
+      u_size        = SCALAR_USER;
+   }
+
+   STATE
+   {
+      EnableDepthTest = true;
+   }
+
+   VERTEX_SHADER
+   {
+      uniform    mat4  u_mvp;
+      attribute  vec4  a_position;
+      uniform    float u_size;
+
+      void main()
+      {
+         gl_Position = u_mvp * a_position * vec4(u_size, 1.0, 1.0, 1.0);
+      }
+   }
+
+   FRAGMENT_SHADER
+   {
+      precision mediump float;
+
+      void main()
+      {
+         gl_FragColor = vec4(0.5, 0.5, 1.0, 1.0);
+      }
+   }
+}

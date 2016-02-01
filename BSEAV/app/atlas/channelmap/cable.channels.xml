@@ -1,0 +1,41 @@
+<!-- XML Grammer for this file can be found in the Atlas Users Guide -->
+<atlas version="3.0">
+  <channellist>
+    <channel major="1" minor="1" type="qam" freq="429000000" mode="64" bandwidth="6000000" symrate="5056900" annex="B">
+      <stream number="0" type="ts">
+        <pid videopid="17" videotype="mpeg2"></pid>
+        <pid audiopid="20" audiotype="ac3"></pid>
+      </stream>
+    </channel>
+    <channel major="2" minor="1" type="qam" freq="435000000" mode="64" bandwidth="6000000" symrate="5056900" annex="B">
+      <stream number="0" type="ts">
+        <pid videopid="17" videotype="mpeg2"></pid>
+        <pid audiopid="20" audiotype="ac3"></pid>
+      </stream>
+    </channel>
+    <channel major="3" minor="1" type="qam" freq="441000000" mode="64" bandwidth="6000000" symrate="5056900" annex="B">
+          <stream number="0" type="ts">
+            <pid videopid="17" videotype="mpeg2"></pid>
+            <pid audiopid="20" audiotype="ac3"></pid>
+          </stream>
+    </channel>
+    <channel major="4" minor="1" type="qam" freq="447000000" mode="64" bandwidth="6000000" symrate="5056900" annex="B">
+          <stream number="0" type="ts">
+            <pid videopid="17" videotype="mpeg2"></pid>
+            <pid audiopid="20" audiotype="ac3"></pid>
+          </stream>
+    </channel>
+    <channel major="4" minor="2" type="qam" freq="447000000" mode="64" bandwidth="6000000" symrate="5056900" annex="B">
+          <stream number="0" type="ts">
+            <pid videopid="33" videotype="mpeg2"></pid>
+	    <pid audiopid="36" audiotype="ac3"></pid>
+    </stream>
+    </channel>
+    <channel major="5" minor="1" type="qam" freq="471000000" mode="256" bandwidth="6000000" symrate="5360537" annex="B">
+      <stream number="0" type="ts">
+        <pid videopid="481" videotype="h264"></pid>
+        <pid audiopid="482" audiotype="mpeg"></pid>
+      </stream>
+    </channel>
+  </channellist>
+</atlas>

@@ -1,0 +1,191 @@
+# entries copied (as 'select' -> copy -> 'paste into this file') from the Chip_Architecture/Bussing/Released/BCM7445/scb_clients.xlsx
+#Client Name	7445			Comments	Instance Name	Client Base Port Name
+XPT_WR_RS	0	0	0	XMEM IF write	core_xpt_inst	wr_rs
+XPT_WR_XC	1	1	1	XMEM IF write	core_xpt_inst	wr_xc
+XPT_WR_CDB	2	2	2	XMEM IF write	core_xpt_inst	wr_cdb
+XPT_WR_ITB_MSG	3	3	3	XMEM IF write	core_xpt_inst	wr_itb_msg
+XPT_RD_RS	4	4	4	XMEM IF read	core_xpt_inst	rd_rs
+XPT_RD_XC_RMX_MSG	5	5	5	XMEM IF read	core_xpt_inst	rd_xc_rmx_msg
+XPT_RD_XC_RAVE	6	6	6	XMEM IF read	core_xpt_inst	rd_xc_rave
+XPT_RD_PB	7	7	7	XMEM IF read	core_xpt_inst	rd_pb
+XPT_WR_MEMDMA	8	8	8	M2M DMA write	core_xpt_inst	wr_memdma
+XPT_RD_MEMDMA	9	9	9	M2M DMA read	core_xpt_inst	rd_memdma
+SYSPORT_WR	10	10	10	10/100/1000/2000 network switch interface (Write port, Rx)	vec_aio_gfx_top_inst	systemport_wr
+SYSPORT_RD	11	11	11	10/100/1000/2000 network switch interface (Read port, Tx)	vec_aio_gfx_top_inst	systemport_rd
+
+PCIE_1	15	15	15	PCIe - 2nd instance	sata3_pcie_top_inst	pcie_1
+MOCA_MIPS	16	16	16	This client is MOCA DMA which is used to load IMEM during boot time and during Host-MoCA message echange	mocamac_top_inst	moca
+SATA	17	17	17	SATA - First controller/port	sata3_pcie_top_inst	sata0
+SATA_1	18	18	18	SATA - Second controller/port	sata3_pcie_top_inst	sata1
+MCIF1_RD	19			M-Card, 2nd port (read), (cablecard)	sys_ctrl_inst	mcif1_rd
+MCIF1_WR	20			M-Card, 2nd port (write), (cablecard)	sys_ctrl_inst	mcif1_wr
+
+BSP	22	22	22	Broadcom Security Processor - Must be 22	sectop_inst	bsp
+SCPU	23	23	23	Sage CPU - Must be 23	sectop_inst	scpu
+FLASH_DMA	24	24	24	FLASH_DMA replaces EDU	hif_inst	flash_dma
+PCIE	25	25	25	PCIe - 1st instance	pcie_x1_top_inst	pcie
+SDIO_EMMC	26	26	26	SDIO eMMC - client is for boot code storage/retrieval	hif_inst	sdio_emmc
+SDIO_CARD	27	27	27	SDIO  Card - client is for WIFI and video/audio  storage/playback	hif_inst	sdio_card
+TPCAP	28			Test Port Capture	sys_ctrl_inst	tpcap
+MCIF_RD	29			M-Card, 1st port (read), (cablecard)	sys_ctrl_inst	mcif0_rd
+MCIF_WR	30			M-Card, 1st port (write), (cablecard)	sys_ctrl_inst	mcif0_wr
+UART_DMA_RD	31			UART_DMA (for Bluetooth interaction)	sys_ctrl_inst	uart_dma_rd
+UART_DMA_WR	32			UART_DMA (for Bluetooth interaction)	sys_ctrl_inst	uart_dma_wr
+USB_HI_0	33	33	33	Also called "USB_20", carries EHCI traffic for first USB controller. Controller drives 2 ports.	usb0_top_inst	usb0_ehci
+USB_LO_0	34	34	34	Also called "USB_11", carries OHCI traffic for first USB controller. Controller drives 2 portss.	usb0_top_inst	usb0_ohci
+USB_X_WRITE_0	35	35	35	(USB 3.0) carries XHCI Write traffic for first USB controller. Controller drives 2 ports.	usb0_top_inst	usb0_xhci_write
+USB_X_READ_0	36	36	36	(USB 3.0) carries XHCI Read traffic for first USB controller. Controller drives 2 ports.	usb0_top_inst	usb0_xhci_read
+USB_X_CTRL_0	37	37	37	(USB 3.0) carries XHCI Control traffic for first USB controller. Controller drives 2 ports.	usb0_top_inst	usb0_xhci_ctrl
+USB_HI_1	38	38	38	Second USB controller (USB 2.0/1.1 only)	usb1_top_inst	usb1_ehci
+USB_LO_1	39	39	39	Second USB controller (USB 2.0/1.1 only)	usb1_top_inst	usb1_ohci
+RAAGA	40	40	40	RAAGA audio engine - instance 0	raaga_dsp_top_wrap_inst	raaga0_cl0
+RAAGA_1	41	41	41	RAAGA audio engine - instance 0 / selective RTS	raaga_dsp_top_wrap_inst	raaga0_cl1
+RAAGA1	42	42	42	RAAGA audio engine - instance 1	raaga_dsp_top_wrap_inst	raaga1_cl0
+RAAGA1_1	43	43	43	RAAGA audio engine - instance 1 / selective RTS	raaga_dsp_top_wrap_inst	raaga1_cl1
+AUD_AIO	44	44	44	Audio Analog IO	vec_aio_gfx_top_inst	aio
+VICE_CME0	45	45	45	ViCE instance 0 - read only. Input and reference picture luma	vice2_0_inst	cme0
+VICE_CME1	46	46	46	ViCE instance 0 - write only. CMV, SAD, Confidence values	vice2_0_inst	cme1
+VICE_FME0	47	47	47	ViCE instance 0 - read only. CMV, SAD, Confidence values	vice2_0_inst	fme0
+VICE_FME1	48	48	48	ViCE instance 0 - read only. CMB luma	vice2_0_inst	fme1
+VICE_FME2	49	49	49	ViCE instance 0 - read only. CMB chroma	vice2_0_inst	fme2
+VICE_SG	50			ViCE instance 0 - write only. Coded bits / bins	vice2_0_inst	sg
+VICE_DBLK	51	51	51	ViCE instance 0 - write only. Deblocked, reconstructed MBs	vice2_0_inst	dblk
+VICE_CABAC0	52			ViCE instance 0 - write only. CABAC0 writes final bitstream to SCB0. (All clear compressed data must be on SCB0)	vice2_0_inst	cabac0
+VICE_CABAC1	53			ViCE instance 0 - read only. Bits / bins from SG	vice2_0_inst	cabac1
+VICE_ARCSS0	54	54	54	ViCE instance 0 - read/write. Firmware code and data	vice2_0_inst	arcss0
+VICE_VIP0_INST0	55	55	55	ViCE instance 0 - First VIP instance for dual transcode. write only. Luma and 420 chroma	vice2_0_inst	vip0_inst0
+VICE_VIP1_INST0	56	56	56	ViCE instance 0 - First VIP instance for dual transcode.  read/write. Write: 2h2v_luma, 2h1v_luma. Read: pcc_luma, hist_luma	vice2_0_inst	vip1_inst0
+VICE_VIP0_INST1	57	57	57	ViCE instance 0 - Second VIP instance for dual transcode. write only. Luma and 420 chroma	vice2_0_inst	vip0_inst1
+VICE_VIP1_INST1	58	58	58	ViCE instance 0 - Second VIP instance for dual transcode. read/write. Write: 2h2v_luma, 2h1v_luma. Read: pcc_luma, hist_luma	vice2_0_inst	vip1_inst1
+VICE1_CME0	59	59	59	ViCE instance 1 - read only. Input and reference picture luma	vice2_1_inst	cme0
+VICE1_CME1	60	60	60	ViCE instance 1 - write only. CMV, SAD, Confidence values	vice2_1_inst	cme1
+VICE1_FME0	61	61	61	ViCE instance 1 - read only. CMV, SAD, Confidence values	vice2_1_inst	fme0
+VICE1_FME1	62	62	62	ViCE instance 1 - read only. CMB luma	vice2_1_inst	fme1
+VICE1_FME2	63	63	63	ViCE instance 1 - read only. CMB chroma	vice2_1_inst	fme2
+VICE1_SG	64			ViCE instance 1 - write only. Coded bits / bins	vice2_1_inst	sg
+VICE1_DBLK	65	65	65	ViCE instance 1 - write only. Deblocked, reconstructed MBs	vice2_1_inst	dblk
+VICE1_CABAC0	66			ViCE instance 1 - write only. CABAC0 writes final bitstream to SCB0. (All clear compressed data must be on SCB0)	vice2_1_inst	cabac0
+VICE1_CABAC1	67			ViCE instance 1 - read only. Bits / bins from SG	vice2_1_inst	cabac1
+VICE1_ARCSS0	68	68	68	ViCE instance 1 - read/write. Firmware code and data	vice2_1_inst	arcss0
+VICE1_VIP0_INST0	69	69	69	ViCE instance 1 - First VIP instance for dual transcode. write only. Luma and 420 chroma	vice2_1_inst	vip0_inst0
+VICE1_VIP1_INST0	70	70	70	ViCE instance 1 - First VIP instance for dual transcode.  read/write. Write: 2h2v_luma, 2h1v_luma. Read: pcc_luma, hist_luma	vice2_1_inst	vip1_inst0
+VICE1_VIP0_INST1	71	71	71	ViCE instance 1 - Second VIP instance for dual transcode. write only. Luma and 420 chroma	vice2_1_inst	vip0_inst1
+VICE1_VIP1_INST1	72	72	72	ViCE instance 1 - Second VIP instance for dual transcode. read/write. Write: 2h2v_luma, 2h1v_luma. Read: pcc_luma, hist_luma	vice2_1_inst	vip1_inst1
+HVD0_DBLK	73	73	73	HVD0 Deblock Writes	hvd0_top_inst	db
+HVD0_DBLK1	74	74	74	HVD0 Deblock Writes / alternate blockout	hvd0_top_inst	db2
+HVD0_ILCPU	75			HVD0 Inner Loop ARC 	hvd0_top_inst	il
+HVD0_OLCPU	76			HVD0 Outer Loop ARC	hvd0_top_inst	ol
+HVD0_CAB	77			HVD0 CABAC 	hvd0_top_inst	cab
+HVD0_ILSI	78			HVD0 IL Symbol read	hvd0_top_inst	si
+HVD0_ILCPU_p2	79			HVD0 Inner Loop ARC, 2nd pipeline	hvd0_top_inst	ilp2
+HVD0_ILSI_p2	80			HVD0 IL Symbol read, 2nd pipeline	hvd0_top_inst	sip2
+
+HVD1_DBLK	81	81	81	HVD1 - Deblock Writes	hvd_sid1_top_inst	db
+HVD1_DBLK1	82	82	82	HVD1 - Deblock Writes / alternate blockout	hvd_sid1_top_inst	db2
+HVD1_ILCPU	83			HVD1 - Inner Loop ARC 	hvd_sid1_top_inst	il
+HVD1_OLCPU	84			HVD1 - Outer Loop ARC	hvd_sid1_top_inst	ol
+HVD1_CAB	85			HVD1 -  CABAC 	hvd_sid1_top_inst	cab
+HVD1_ILSI	86			HVD1 - IL Symbol read	hvd_sid1_top_inst	si
+SID	87	87	87	Still Image decoder	hvd_sid1_top_inst	sid
+HVD2_DBLK	88	88	88	HVD2 - Deblock Writes	hvd2_top_inst	db
+HVD2_DBLK1	89	89	89	HVD2 - Deblock Writes / alternate blockout	hvd2_top_inst	db2
+HVD2_ILCPU	90			HVD2 - Inner Loop ARC 	hvd2_top_inst	il
+HVD2_OLCPU	91			HVD2 - Outer Loop ARC	hvd2_top_inst	ol
+HVD2_CAB	92			HVD2 -  CABAC 	hvd2_top_inst	cab
+HVD2_ILSI	93			HVD2 - IL Symbol read	hvd2_top_inst	si
+BVN_MAD_PIX_FD	94	94	94	MAD_R pixel feed (read) (instance 0)	bvn_mvp_top_inst	mvp1_pix_rd
+BVN_MAD_QUANT	95	95	95	MAD_R quant motion history (R/W) (instance 0)	bvn_mvp_top_inst	mvp1_quant
+BVN_MAD_PIX_CAP	96	96	96	MAD_R pixel capture (write) (instance 0)	bvn_mvp_top_inst	mvp1_pix_wr
+BVN_MAD1_PIX_FD	97	97	97	MAD_R pixel feed (read) (instance 1)	bvn_mvp_top_inst	mvp2_pix_rd
+BVN_MAD1_QUANT	98	98	98	MAD_R quant motion history (R/W) (instance 1)	bvn_mvp_top_inst	mvp2_quant
+BVN_MAD1_PIX_CAP	99	99	99	MAD_R pixel capture (write) (instance 1)	bvn_mvp_top_inst	mvp2_pix_wr
+BVN_MAD2_PIX_FD	100	100	100	MAD_R pixel feed (read) (instance 2)	bvn_mvp_top_inst	mvp3_pix_rd
+BVN_MAD2_QUANT	101	101	101	MAD_R quant motion history (R/W) (instance 2)	bvn_mvp_top_inst	mvp3_quant
+BVN_MAD2_PIX_CAP	102	102	102	MAD_R pixel capture (write) (instance 2)	bvn_mvp_top_inst	mvp3_pix_wr
+BVN_MAD3_PIX_FD	103	103	103	MAD_R pixel feed (read) (instance 3)	bvn_mvp_top_inst	mvp4_pix_rd
+BVN_MAD3_QUANT	104	104	104	MAD_R quant motion history (R/W) (instance 3)	bvn_mvp_top_inst	mvp4_quant
+BVN_MAD3_PIX_CAP	105	105	105	MAD_R pixel capture (write) (instance 3)	bvn_mvp_top_inst	mvp4_pix_wr
+BVN_MFD0	106	106	106	MPEG feeders have access to all DRAMs (instance 0)	bvn_edge_top_inst	mfd0_0
+BVN_MFD0_1	107	107	107	MFD Alternate blockout (instance 0)	bvn_edge_top_inst	mfd0_1
+BVN_MFD1	108	108	108	MPEG feeders have access to all DRAMs (instance 1)	bvn_edge_top_inst	mfd1_0
+BVN_MFD1_1	109	109	109	MFD Alternate blockout (instance 1)	bvn_edge_top_inst	mfd1_1
+BVN_MFD2	110	110	110	MPEG feeders have access to all DRAMs (instance 2)	bvn_edge_top_inst	mfd2_0
+BVN_MFD2_1	111	111	111	MFD Alternate blockout (instance 2)	bvn_edge_top_inst	mfd2_1
+BVN_MFD3	112	112	112	MPEG feeders have access to all DRAMs (instance 3)	bvn_edge_top_inst	mfd3_0
+BVN_MFD3_1	113	113	113	MFD Alternate blockout (instance 3)	bvn_edge_top_inst	mfd3_1
+BVN_MFD4	114	114	114	MPEG feeders have access to all DRAMs (instance 4)	bvn_edge_top_inst	mfd4_0
+BVN_MFD4_1	115	115	115	MFD Alternate blockout (instance 4)	bvn_edge_top_inst	mfd4_1
+BVN_MFD5	116	116	116	MPEG feeders have access to all DRAMs (instance 5)	bvn_edge_top_inst	mfd5_0
+BVN_MFD5_1	117	117	117	MFD Alternate blockout (instance 5)	bvn_edge_top_inst	mfd5_1
+BVN_VFD0	118	118	118	Video feeder (instance 0)	bvn_edge_top_inst	vfd0
+BVN_VFD1	119	119	119	Video feeder (instance 1)	bvn_edge_top_inst	vfd1
+BVN_VFD2	120	120	120	Video feeder (instance 2)	bvn_edge_top_inst	vfd2
+BVN_VFD3	121	121	121	Video feeder (instance 3)	bvn_edge_top_inst	vfd3
+BVN_VFD4	122	122	122	Video feeder (instance 4)	bvn_edge_top_inst	vfd4
+BVN_VFD5	123	123	123	Video feeder (instance 5)	bvn_edge_top_inst	vfd5
+BVN_VFD6	124	124	124	Video feeder (instance 6)	bvn_edge_top_inst	vfd6
+BVN_VFD7	125	125	125	Video feeder (instance 7)	bvn_edge_top_inst	vfd7
+BVN_CAP0	126	126	126	Video capture (instance 0)	bvn_edge_top_inst	cap0
+BVN_CAP1	127	127	127	Video capture (instance 1)	bvn_edge_top_inst	cap1
+BVN_CAP2	128	128	128	Video capture (instance 2)	bvn_edge_top_inst	cap2
+BVN_CAP3	129	129	129	Video capture (instance 3)	bvn_edge_top_inst	cap3
+BVN_CAP4	130	130	130	Video capture (instance 4)	bvn_edge_top_inst	cap4
+BVN_CAP5	131	131	131	Video capture (instance 5)	bvn_edge_top_inst	cap5
+BVN_CAP6	132	132	132	Video capture (instance 6)	bvn_edge_top_inst	cap6
+BVN_CAP7	133	133	133	Video capture (instance 7)	bvn_edge_top_inst	cap7
+BVN_GFD0	134	134	134	Graphic feeder (instance 0)	bvn_edge_top_inst	gfd0
+BVN_GFD1	135	135	135	Graphic feeder (instance 1)	bvn_edge_top_inst	gfd1
+BVN_GFD2	136	136	136	Graphic feeder (instance 2)	bvn_edge_top_inst	gfd2
+BVN_GFD3	137	137	137	Graphic feeder (instance 3)	bvn_edge_top_inst	gfd3
+BVN_GFD4	138	138	138	Graphic feeder (instance 4)	bvn_edge_top_inst	gfd4
+BVN_GFD5	139	139	139	Graphic feeder (instance 5)	bvn_edge_top_inst	gfd5
+BVN_GFD6	140	140	140	Graphic feeder (instance 6)	bvn_edge_top_inst	gfd6
+BVN_MCVP0	141	141	141	MCVP client 0	bvn_mvp_top_inst	mvp0_rwc0
+BVN_MCVP1	142	142	142	MCVP client 1	bvn_mvp_top_inst	mvp0_rrc1
+BVN_MCVP2	143	143	143	MCVP client 2	bvn_mvp_top_inst	mvp0_rwc2
+BVN_RDC	144	144	144	RDC	bvn_edge_top_inst	rdc
+VEC_VBI_ENC0	145			TTX0 -- assigned to VBI path 0 (typically IT_0, HD/component display) and arbitrated with ITU656 path 0	vec_aio_gfx_top_inst	vec0
+VEC_VBI_ENC1	146			TTX1 -- assigned to VBI path 1 (typically IT_1, SD/CVBS display)	vec_aio_gfx_top_inst	vec1
+M2MC_0	147	147	147	2D graphics - instance 0 - client "0"	vec_aio_gfx_top_inst	m2mc0
+M2MC_1	148	148	148	2D graphics - instance 0 - client "1"	vec_aio_gfx_top_inst	m2mc01
+M2MC_2	149	149	149	2D graphics - instance 0 - client "2"	vec_aio_gfx_top_inst	m2mc02
+
+VICE_VIP0_INST2	151	151	151	ViCE instance 0 - Third VIP instance for triple transcode. write only. Luma and 420 chroma	vice2_0_inst	vip0_inst2
+VICE_VIP1_INST2	152	152	152	ViCE instance 0 - Third VIP instance for triple transcode. read/write. Write: 2h2v_luma, 2h1v_luma. Read: pcc_luma, hist_luma	vice2_0_inst	vip1_inst2
+VICE1_VIP0_INST2	153	153	153	ViCE instance 1 - Third VIP instance for triple transcode. write only. Luma and 420 chroma	vice2_1_inst	vip0_inst2
+VICE1_VIP1_INST2	154	154	154	ViCE instance 1 - Third VIP instance for triple transcode. read/write. Write: 2h2v_luma, 2h1v_luma. Read: pcc_luma, hist_luma	vice2_1_inst	vip1_inst2
+HVD0_DBLK_p2	155	155	155	HVD0 Deblock Writes, 2nd pipeline	hvd0_top_inst	dbp2
+HVD0_DBLK1_p2	156	156	156	HVD0 Deblock Writes / alternate blockout, 2nd pipeline	hvd0_top_inst	db2p2
+BVN_MAD4_PIX_FD	157	157	157	MAD_R pixel feed (read) (instance 4)	bvn_mvp_top_inst	mvp5_pix_rd
+BVN_MAD4_QUANT	158	158	158	MAD_R quant motion history (R/W) (instance 4)	bvn_mvp_top_inst	mvp5_quant
+BVN_MAD4_PIX_CAP	159	159	159	MAD_R pixel capture (write) (instance 4)	bvn_mvp_top_inst	mvp5_pix_wr
+M2MC1_0	160	160	160	2D graphics - instance 1 - client "0"	vec_aio_gfx_top_inst	m2mc1
+M2MC1_1	161	161	161	2D graphics - instance 1 - client "1"	vec_aio_gfx_top_inst	m2mc11
+M2MC1_2	162	162	162	2D graphics - instance 1 - client "2"	vec_aio_gfx_top_inst	m2mc12
+
+
+
+HOST_CPU_MCP_R_HI	200	200	200	Host CPU MCP read client - high priority
+HOST_CPU_MCP_R_LO	201	201	201	Host CPU MCP read client - low priority
+HOST_CPU_MCP_W_HI	202	202	202	Host CPU MCP write client - high priority
+HOST_CPU_MCP_W_LO	203	203	203	Host CPU MCP write client - low priority
+V3D_MCP_R_HI	204	204	204	V3D (VC4 graphics core) MCP read client - high priority
+V3D_MCP_R_LO	205	205	205	V3D (VC4 graphics core) MCP read client - low priority
+V3D_MCP_W_HI	206	206	206	V3D (VC4 graphics core) MCP write client (tile buffer writes) - high priority
+V3D_MCP_W_LO	207	207	207	V3D (VC4 graphics core) MCP write client (tile buffer writes) - low priority
+			208-215	Unused UBUS
+HVD0_MOCOMP	216	216	216	HVD0 PFRI / MOCOMP
+HVD1_MOCOMP	217	217	217	HVD1 PFRI / MOCOMP
+HVD2_MOCOMP	218	218	218	HVD2 PFRI / MOCOMP
+VICE_PFRI	219	219	219	VICE2v2 instance 0 PFRI (required + optional)
+VICE1_PFRI	220	220	220	VICE2v2 instance 1 PFRI (required + optional)
+			221-231	Unused PFRI
+			232-247	Unused LMB
+TRACELOG	248	248	248	TraceLog
+MEMC_RESERVED_0	249	249	249	Reserved for MEMC use
+ZCQS_ENGINE	250	250	250	DRAM ZQ Calibration Short client
+MSA	251	251	251	MSA (Memory Soft Access)
+DIS0	252	252	252	DIS (DRAM Interface Stress) #0
+DIS1	253	253	253	DIS (DRAM Interface Stress) #1
+DRAM_INIT_ZQCS	254	254	254	DRAM Init (Being updated to ZQCS)
+REFRESH	255	255	255	Refresh

@@ -1,0 +1,12 @@
+#
+# This script will build the standard atlas fonts from the ms webfonts
+#
+
+BUILDFONT=$BSEAV/lib/bwin/utils/i386-linux/buildfont
+
+$BUILDFONT Arialbd.ttf 11 0 default arial_11.bwin_font
+$BUILDFONT Arialbd.ttf 24 1 default arial_black_24_aa.bwin_font
+$BUILDFONT Arialbd.ttf 25 0 default arial_black_25.bwin_font
+$BUILDFONT Arialbd.ttf 18 1 default arial_18_aa.bwin_font
+$BUILDFONT Arialbi.ttf 35 1 default arial_italic_35_aa.bwin_font
+

@@ -1,0 +1,14 @@
+Soft-float support
+
+Compiling from checked in binaries is deprecated. Please use the code in the src subdirectory.
+
+I've taken the original fp-bit.c and created two files. The difference is that one defined FLOAT and
+the other guarantees that FLOAT is not defined. This provides for both single and double 
+precision float support.
+
+This code is included from the linux 2.4.25 release directory.
+
+As noted in the source file, this code is licensed under GPL with a special exception which
+grants permission to link without transferring GPL to the linked code.
+
+

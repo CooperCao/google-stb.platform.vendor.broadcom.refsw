@@ -1,0 +1,3 @@
+#ifndef BSTD_CPU_ENDIAN 
+#define  BSTD_CPU_ENDIAN BSTD_ENDIAN_LITTLE
+#endif

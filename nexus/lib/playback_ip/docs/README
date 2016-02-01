@@ -1,0 +1,349 @@
+        ***********************************************************************************************
+        ********** Please read these notes below before trying out the IP Applib Example Apps **********
+        ***********************************************************************************************
+
+This directory contains sample test apps for demonstrating IP Client & IP Streamer functionality.
+
+ip_client:
+==========
+"ip_client" app can receive, decode, and display either live IP content over UDP/RTP/RTSP protocols which is being "pushed" by IP Headend. 
+Similarly, it can also receive, decode, and display content from a digital home or Internet server using HTTP "pull" model. 
+
+ip_streamer:
+===========
+"ip_streamer" app can stream either "live" or pre-recorded content using either HTTP or UDP/RTP protocols to home network clients.
+Live streaming can be from QAM/SAT/VSB/IP/Streamer sources. ip_streamer will optionally PVR encrypt the live data, then decrypt it,
+and re-encrypt it with DTCP/IP.
+
+In addition, live streams can be transcoded so that it can be played on mobile devices. Http Live Streaming (HLS) is used for streaming
+to iOS devices. 
+
+For file streaming, ip_streamer by default expects the files to be /data/videos directory. This can be changed via -m option.
+
+==================================================================
+Steps for building the client & server test programs:
+==================================================================
+
+Set following additional flags in your build environment for IP support:
+    export PLAYBACK_IP_SUPPORT=y    # Top level Build Switch for IP
+
+Here are the optional flags which are set by default:
+    export LIVEMEDIA_SUPPORT=y      # enables Livemedia library usage for RTCP & RTSP support
+                                    # set if PLAYBACK_IP_SUPPORT is set
+    export NETACCEL_SUPPORT=n       # enables usage of Broadcom's Accelerated Sockets for high performance
+                                    # useful for receiving Live RTP/UDP IP Channels (disabled by default)
+
+Here are the additional optional flags which can be set:
+    export HLS_PROTOCOL_SUPPORT=y   # enables receiving AV streaming using HTTP Live Streaming (HLS) Protocol
+    export DTCP_IP_SUPPORT=y        # enables usage of Broadcom's DTCP/IP library for encryption & decryption
+                                    # Also, please copy the dtcp test key & certs from nexus/lib/dtcp_ip/data directory
+                                    # Note this requires some additional DTCP/IP related compile flags 
+    export SSL_SUPPORT=y            # enables receiving SSL/TLS encrypted HTTP sessions (HTTPS protocols) using OpenSSL library
+                                    #
+
+=========================================================
+Building IP Applib example app (ip_client & ip_streamer):
+=========================================================
+steps to build sample programs as well as its dependencies (nexus, magnum, IP & OS Applibs, etc.)
+
+    cd <top-of-src-tree>/vobs/nexus/lib/playback_ip/apps
+    make clean
+    make install
+
+After successful build, binaries (ip_client & ip_streamer) & needed libraries should get copied into the nexus/bin directory.
+Copy these binaries over to your runtime directory on the STB Or NFS mount your vobs/nexus/bin directory on your STB
+    cp -f ../../../../nexus/bin/*.so <bin-directory-from-where-to-run>
+    cp -f ../../../../nexus/bin/bcmdriver.ko <bin-directory-from-where-to-run>
+    cp -f ../../../../BSEAV/bin/bcmnetaccel.ko <bin-directory-from-where-to-run>    #optional
+    cp -f <tool-chain-directory>/mipsel-uclibc-gcc/libstdc++.so.6 <bin-directory-from-where-to-run>
+    cp -f ../../../../BSEAV/bin/ip_client <bin-directory-from-where-to-run>
+    cp -f ../../../../BSEAV/bin/ip_streamer <bin-directory-from-where-to-run>
+
+
+=======================================================================================================
+Setup VLC Streaming Server on a Windows or Linux PC: Needed to receive Live IP content on your platform
+=======================================================================================================
+You can download VLC Media Player from http://www.videolan.org/vlc/. 
+We recommend version 0.9.2 or before (available via google search) as newer versions always seem to 
+transcode and consume too much cpu.
+Also, if running VLC on Windows, make sure your Ethernet interface's MTU is set to 1500. Please do 
+a google search on how to change the MTU on your Windows platform (via regedit32). Please reboot your 
+PC after this change.
+
+Configure VLC to hardcode Audio & Video PIDS for all content to be streamed out (optional step):
+    Settings -> Preferences
+        Click Advanced Options box
+        Double Click on Stream output
+            Double Click on Muxers
+                Click on MPEG-TS
+                    Hardcode the Video PID value (e.g. to decimal 17 (0x11)
+                    Hardcode the Audio PID value (e.g. to decimal 20 (0x14)
+            
+Configure VLC to stream content to your platform using following steps:
+    File -> Open File
+        Click on Browse & select the content that you want to stream.
+    File -> Open File
+        Select Stream/Save
+        Click on Settings, this brings up Stream output page
+        Select the streaming protocol, HTTP, RTP, or UDP
+        In Address field, 
+            put the address of *RECEIVING NODE* or MULTICAST Address for RTP & UDP Protocols.
+            put the address of the VLC Streaming PC for HTTP protocol
+        Click OK
+    Click OK
+
+===========================================================================================================
+Running IP Streamer on a SMS/VMS gateway or server platform: Needed to receive HTTP based file/live content
+===========================================================================================================
+Copy the media files to your server's HDD, default folder is /data/videos.
+After the binaries are copied on your target STB (or NFS mounted), you can start server using following command:
+    export LD_LIBRARY_PATH=.        #set it to where all the libraries & binaries are copied 
+    insmod bcmdriver.ko
+    insmod bcmnetaccel.ko           #only needed if built w/ NETACCEL_SUPPORT on. 
+                                    #this driver is not built part of your build, so if you are using different kernel version,
+    ./nexus ip_streamer
+
+Currently defined options are:
+# ./ip_streamer -h
+Usage: ip_streamer [-v] [-d] [-s] [-i <interface name>] [-n #threads] [-m media directory path] [-f] [-h]
+options are:
+ -p             # server port (default: 5000)
+ -d             # dtcp-ip server port (default: 8000)
+ -v             # print stats
+ -s             # run in slave mode (for VMS)
+ -i <interface name> # name of the interface to send multicast join on (default: eth0)
+ -m <dir name > # full path of content directory (default: /data/videos)
+ -n <# threads> # number of streaming threads (default: 3)
+ -f             # dont use frontends for live streaming (default live streaming is on)
+ -u <uri>       # uri for RTP/UDP streaming (e.g. rtp://192.168.1.2:8080/data/videos/AbsMpeg2HD.mpg
+ -h             # prints this usage
+#
+
+==================================
+# Setting up a simple RTSP Server:
+==================================
+Build testOnDemandRTSPServer from the BSEAV/lib/livemedia/live/testProgs directory for another MIPS platform or Linux PC (using gcc)
+Create a soft-link test.ts to the media file that you want to stream and run testOnDemandRTSPServer. 
+    ln -s /data/vidoes/AbcMpeg2HD.mpg test.ts
+    ./testOnDemandRTSPServer -v
+It should give you the RTSP URLi such as 192.168.1.111:8554/mpeg2TransportStreamTest 
+(please see the exact ip_client syntax below for RTSP session)
+
+
+=====================================
+Running IP Applib Client example App:
+=====================================
+After the binaries are copied on your target STB (or NFS mounted), you can start client using following command:
+    export LD_LIBRARY_PATH=.        #set it to where all the libraries & binaries are copied 
+    insmod bcmdriver.ko
+    insmod bcmnetaccel.ko           #only needed if built w/ NETACCEL_SUPPORT on. 
+                                    #this driver is not built part of your build, so if you are using different kernel version,
+                                    #it may fail to load. Please contact chiplead of your platform for the driver matching your kernel.
+    ./ip_client <options>      
+    ./ip_client -h             #-h prints different options
+
+Example options:
+# ./ip_client -h
+Usage: ip_client [options] [<URI>]
+Usage: ip_client -d <ip> -p <port> [-t <num>] [-u <url>] [-v <num>] [-S <num>] [-b <num>] [-i <num>] [-l <num>] [-T <num>] -j <num> [-c] [-y] [-k] [-f] [-h]
+options are:
+ <uri>          # Complete URI specifying protocol, server, port number and url
+                # e.g. nexus ip_client -S 2 http://192.168.1.109:5000/AbcMpeg2HD.mpg
+                # e.g. nexus ip_client https://192.168.1.109/AbcMpeg2HD.mpg
+                # e.g. nexus ip_client udp://192.168.1.109:1234
+                # e.g. nexus ip_client rtp://192.168.1.109:1234
+ -d <ip>        # IP address of Live IP Channel (e.g. 192.168.1.110)
+ -p <port>      # Port of Live IP Channel (e.g. 1234)
+ -t <0|1|2|3|4> # protocol: UDP(0)|RTP(1)|RTSP(2)|HTTP(3)|RTP w/o RTCP(4), default is UDP
+ -u <url>       # URL for RTSP & HTTP protocols
+ -v             # IP version to use: IPv4: 4, IPv6: 6, default is IPv4
+ -s             # print decoder stats
+ -S <0|1|2|3|4> # Security: none(0) | SSL(1) | DTCP-IP(2) | RAD-EA(3) | AES128(4), default is none
+ -b <time>      # pre-charge the buffers for <time> seconds, default is 0
+ -i <time>      # initial seek time in seconds, default is 0
+ -j <num>       # jump forward/backward by these many seconds when j is pressed
+ -l <num>       # loop around after end, default is true
+ -T <num>       # number of seconds the live decode/playback will continue for
+ -n <ake-port>  # DTCP/IP AKE Port, default 8000
+ -m             # play MP3 (skips media probing)
+ -r             # use server based trickmodes (default client based)
+ -z             # run in slave mode
+ -y             # run basic unit tests on the stream (seek, pause, ff, fr, etc.)
+ -c             # play lpcm file
+ -k             # skip psi parsing (PSI info is harded in ip_client.c)
+ -f             # use fast channel
+ -h             # prints this usage
+ env variables:
+ additionalHttpHeader=<Browser Cookie String>      # set it if URL is obtained via a Browser session requiring a HTTP Cookie
+ setupTimeout=<SessionSetupTimeout in msec>        # set this to high value in sec (say 20sec) if receiving HTTP session from a Internet sever
+
+#
+=================================================
+Receiving Live IP Content from a IP Server:
+=================================================
+For receiving using simple UDP protocol:
+    nexus ip_client udp://224.1.1.10:1234           # new syntax
+    nexus ip_client -d 224.1.1.10 -p 1234 -t 0      # old syntax
+
+For receiving using RTP protocol:
+    nexus ip_client rtp://224.1.1.12:1234
+
+For receiving using RTSP protocol:
+    nexus ip_client rtsp://192.168.1.130:8554/mpeg2TransportStreamTest
+
+For receiving using HTTP protocol (streamed by a server with IP address 192.168.1.109 on port 5000)
+    nexus ip_client http://192.168.1.109:5000/AbcMPEG2HD.mpg
+
+For receiving DTCP/IP encrypted content using HTTP protocol (streamed by ip_streamer)
+    nexus ip_client -S 2 http://192.168.1.109:5000/AbcMPEG2HD.mpg
+
+For receiving using HTTP protocol (streamed by VLC streamer running on a PC w/ IP address 192.168.1.101 on port 5000):
+    nexus ip_client http://192.168.1.101:5000/
+
+For receiving using HLS protocol:
+    nexus ip_client http://devimages.apple.com/iphone/samples/bipbop/bipbopall.m3u8
+
+======================================================
+Receiving Live IP Content from a IP Gateway (SMS/VMS):
+=====================================================
+
+For receiving Live QAM Content from Gateway using HTTP protocol 
+    ./ip_client -d <gateway's IP> -p 5000 -t 3 -u /LiveChannel\;Type=QAM\;QamMode=QAM256\;Freq=357.00\;SubChannel=2\;
+    server=192.168.1.109            # IP address of the Gateway Server where ip_streamer is running
+    port=5000                       # default listening port # of ip_streamer
+    freq=147000000                  # Freq in Hz of the channel to tune to
+    ch=1                            # Sub-channel/sub-program in the tuned freq use for streaming session, starts from 1
+    nexus ip_client "http://$server:$port/LiveChannel;Type=QAM;QamMode=QAM256;Freq=$freq;SubChannel=$ch;QamAnnex=B;SymbolRate=5360537;"
+    nexus ip_client "http://192.168.1.130:5000/LiveChannel;Type=QAM;QamMode=QAM256;Freq=147000000;SubChannel=1;QamAnnex=B;SymbolRate=5360537;"
+
+For receiving DTCP/IP encrypted Live QAM Content from Gateway using HTTP protocol 
+    nexus ip_client -S 2 "http://192.168.1.130:5000/LiveChannel;Type=QAM;QamMode=QAM256;Freq=147000000;SubChannel=1;QamAnnex=B;SymbolRate=5360537;EncEnabled=Yes"
+
+For receiving Live UDP IP Content from Gateway using HTTP protocol 
+    nexus ip_client "http://<gateway's IP>:5000/LiveChannel;Type=IP;Address=<IP Address content being streamed on>;Port=1234;Protocol=UDP;SubChannel=1;"
+    nexus ip_client -S 0 "http://192.168.1.109:$port/LiveChannel;Type=IP;Address=224.1.1.10;Port=1234;InterfaceName=eth0;Protocol=UDP;"
+
+For receiving Live RTP IP Content from Gateway using HTTP protocol 
+    nexus ip_client -S 0 "http://192.168.1.109:$port/LiveChannel;Type=IP;Address=224.1.1.10;Port=1234;InterfaceName=eth0;Protocol=RTP;"
+
+For receiving Live Content from a streamer source on Gateway using HTTP protocol 
+    nexus ip_client -S 0 "http://192.168.1.101:5000/LiveChannel;Type=STREAMER;SubChannel=1;"
+
+For receiving Live Content from a Sat source on Gateway using HTTP protocol 
+    nexus ip_client "http://192.168.1.101:5000/LiveChannel;Type=SAT;SatMode=DVB;DiseqcVoltage=13;ToneEnabled=Yes;SymbolRate=20000000;Freq=1207000000;SubChannel=1;"
+
+Note: Here are the additional options that can be added to the live channels:
+    TimeshiftingEnabled=Yes;        # to enable timeshiting of live content where it is written to a fifo and then streamed out
+    RecEnabled=Yes;                 # to enable recording of live channel
+    FileName=/data/videos/rec0.mpg  # name of the file where live channel will be recorded
+    EncEnabled=Yes;                 # for enabling the DTCP/IP encryption. Requires -S 2 option as well.
+    PvrEncDecEnabled=Yes;           # for enabling PVR encryption of live channel
+Note: it is earier to put these commands in a shell script file and run the script using sh command. 
+
+====================================================================
+Using ip_streamer to transcode files or live channels to iOS Devices
+====================================================================
+
+1. Make sure that following additional build flags are defined in your build env:
+    export VIDEO_ENCODER_SUPPORT=y      # for Vice2 based platforms (974x5)
+    export BDSP_ENCODER_SUPPORT=y       # additional flag for enabling Raaga based encoding
+
+2. cd nexus/lib/playback_ip/apps and run
+    make clean; make install
+
+3. ip_streamer binary and associated libraries are all placed in nexus/bin directory. Please copy nexus/bin or mount it on your target STB platform.
+
+4. copy media files to be transcoded to the /data/videos directory. If local disk is not attached to the target STB, you can specify the alternate
+media file directory path using the -m option of ip_streamer.
+
+5. for streaming to an iOS4 device, manually create m3u8 file (named avatar.m3u8) for each live channel or media file to be transcoded and 
+place it in /data/videos/ or your media directory. 
+#Here is an example m3u8 file for live qam channels 
+#EXTM3U
+#EXT-X-TARGETDURATION:5
+#EXT-X-MEDIA-SEQUENCE:0
+#LiveChannel
+#480p
+#EXTINF:7200, no desc
+http://192.168.1.130/LiveChannel;Type=QAM;QamMode=QAM256;Freq=147000000;SubChannel=2;StreamingEnabled=Yes;QamAnnex=B;SymbolRate=5360537;TranscodeEnabled=Yes;OutWidth=640;OutHeight=480;OutVideoCodec=H264;OutFrateRate=30;OutAudio=Yes;OutAudioCodec=AAC;TransportBitrate=2000000;
+#EXT-X-ENDLIST
+#
+
+For encoding from a file source, have a m3u8 file like this:
+#Here is an example m3u8 file for avatar_AVC_15M.ts media file:
+#EXTM3U
+#EXT-X-TARGETDURATION:10
+#EXT-X-MEDIA-SEQUENCE:0
+#EXTINF:7200, no desc
+#this line shows how you can specify the transcode parameters for a media file, here 192.168.1.109 is the IP address of server running ip_streamer on port 80
+http://192.168.1.105/avatar_AVC_15M.ts;TranscodeEnabled=Yes;OutWidth=320;OutHeight=240;OutVideoCodec=H264;OutAudio=Yes;OutAudioCodec=AAC;OutFrameRate=30;TransportBitrate=800000;
+#comment the previous line and uncomment this line to stream a pre-transcoded media file
+#http://192.168.1.105/avatar_416x224_800kbps_30fps.mpg
+#EXT-X-ENDLIST
+#
+
+6. Notes: 
+    this file extension has to be .m3u8, otherwise, iOS devices dont recognize the file format.
+    replace the IP Address in the avatar.m3u8 file to the IP Address of the target STB platform. Also, you can update the encode parameters.
+    ip_streamer is currently unable to stream to iOS5 devices due to more stringer HLS streaming requirements in iOS5. 
+    make sure iPad is connected to the same router as target STB is (which implies that this router needs to have Wifi support)
+
+7. run ip_streamer as follows:
+    nexus ip_streamer -p 80
+
+8. on iPad, start the Safari browser and type in the URL as follows: <remember to change to IP address to the IP of the target STB platform>
+    http://192.168.1.100/avatar.m3u8
+
+9. Safari should start displaying the video. To stop the video playback, please kill the browser window. Minimizing Safari doesn't stop the 
+    transcode session with the STB platform.
+
+====================================================================================================
+Using ip_streamer to transcode files or live channels to STB using ip_client or PC Devices using VLC
+====================================================================================================
+
+1. Follow the steps above to properl build & run ip_streamer with encoding support. 
+
+1.5. For Vice2 (97425/97435) Vs. Raaga Encoder (97231/97346), just remember to change the resolution and frame rates. Vice2 can support full 480p, 720p encodes at higher bitrates.
+
+2. start ip_streamer as follows:
+    nexus ip_streamer -p 80
+
+3. Use following URLs with ip_client on STB or VLC (take out the nexus ip_client part) to try out Vice2 xcode case of encode with following parameters: 30fps at 640x480 H264/AAC MPEG2 TS format at 2Mpbs
+    nexus ip_client "http://$server:$port/LiveChannel;Type=QAM;QamMode=QAM256;Freq=$freq;SubChannel=$ch;QamAnnex=B;SymbolRate=5360537;TranscodeEnabled=Yes;OutWidth=640;OutHeight=480;OutVideoCodec=H264;OutFrameRate=30;OutAudio=Yes;OutAudioCodec=AAC;TransportBitrate=2000000;"
+    nexus ip_client "http://192.168.1.109/LiveChannel;Type=QAM;QamMode=QAM256;Freq=147000000;SubChannel=1;QamAnnex=B;SymbolRate=5360537;TranscodeEnabled=Yes;OutWidth=640;OutHeight=480;OutVideoCodec=H264;OutFrameRate=30;OutAudio=Yes;OutAudioCodec=AAC;TransportBitrate=2000000;"
+
+4. Use following URLs with ip_client on STB or VLC (take out the nexus ip_client part) to try out Raaga xcode case of encode with following parameters: 29.97 at 416x224 H264/AAC MPEG2 TS format at 400Kbps
+    nexus ip_client "http://192.168.1.109/LiveChannel;Type=QAM;QamMode=QAM256;Freq=147000000;SubChannel=1;QamAnnex=B;SymbolRate=5360537;TranscodeEnabled=Yes;OutWidth=416;OutHeight=240;OutVideoCodec=H264;OutFrameRate=2997;OutAudio=Yes;OutAudioCodec=AAC;TransportBitrate=400000;"
+
+5. Use following URLs with ip_client on STB or VLC (take out the nexus ip_client part) to try out Raaga xcode case of encode from the file source with following parameters: 29.97 at 416x224 H264/AAC MPEG2 TS format at 400Kbps
+    nexus ip_client "http://192.168.1.109/avatar_AVC_15M.ts;TranscodeEnabled=Yes;OutWidth=416;OutHeight=240;OutVideoCodec=H264;OutFrameRate=2997;OutAudio=Yes;OutAudioCodec=AAC;TransportBitrate=400000;"
+
+6. Use following URLs with ip_client on STB or VLC (take out the nexus ip_client part) to try out Raaga xcode case of encode from the HDMI source with following parameters: 29.97 at 416x224 H264/AAC MPEG2 TS format at 400Kbps
+    nexus ip_client "http://192.168.1.109/LiveChannel;Type=HDMI;StreamingEnabled=Yes;TranscodeEnabled=Yes;OutWidth=416;OutHeight=240;OutVideoCodec=H264;OutFrameRate=2997;OutAudio=Yes;OutAudioCodec=AAC;TransportBitrate=400000;"
+
+7. Use following URLs with ip_client on STB or VLC (take out the nexus ip_client part) to try out Raaga xcode case of encode from the IP UDP source with following parameters: 29.97 at 416x224 H264/AAC MPEG2 TS format at 400Kbps
+    nexus ip_client "http://192.168.1.109/LiveChannel;Type=IP;Address=224.1.1.10;Port=1234;InterfaceName=eth0;Protocol=UDP;TranscodeEnabled=Yes;OutWidth=640;OutHeight=480;OutVideoCodec=H264;OutFrameRate=30;OutAudio=Yes;OutAudioCodec=AAC;TransportBitrate=2000000;"
+
+8. Use following URLs with ip_client on STB or VLC (take out the nexus ip_client part) to try out Raaga xcode case of encode from the IP RTP source with following parameters: 29.97 at 416x224 H264/AAC MPEG2 TS format at 400Kbps
+    nexus ip_client "http://192.168.1.109/LiveChannel;Type=IP;Address=224.1.1.10;Port=1234;InterfaceName=eth0;Protocol=RTP;TranscodeEnabled=Yes;OutWidth=640;OutHeight=480;OutVideoCodec=H264;OutFrameRate=30;OutAudio=Yes;OutAudioCodec=AAC;TransportBitrate=2000000;"
+
+
+========================================================
+Running the app with multiprocessing in Nexus :
+========================================================
+Set the following environment options while building the app to get it run into multiprocessing nexus environment:
+
+export NEXUS_MODE=proxy (For Linux Kernel mode (export KERNELMODE=y))
+
+You can also build manually for Linux user mode as follows:
+
+unset NEXUS_MODE
+make <server app>
+export NEXUS_MODE=client
+make <client app>
+
+Make sure to run some of the apps as in "master" or "slave" mode while running them as a server or client respectively during multiprocessing.
+For example if ip_streamer app is acting as a client or running as a secondary app in presence of another nexus app then run it into "slave" mode as follows:
+
+./nexus ip_streamer -s
+

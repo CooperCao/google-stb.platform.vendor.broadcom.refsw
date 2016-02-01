@@ -1,0 +1,135 @@
+MLIBS README
+
+Written by David Erickson
+(C)2001-2002 Broadcom Corporation
+Proprietary and Confidential
+
+---------------------------------------
+OVERVIEW
+
+mlibs is a name for a collection of three libraries:
+
+	mcommon
+	mwidgets
+	mnet
+
+They are a collection of C++ classes which facilitate application
+development. mcommon and mwidgets are patterned after Trolltech's Qt library.
+You can learn how to use mlibs largely by reading Qt documentation,
+and take simple Qt apps (like a helloworld), change the Q prefix to M,
+and it often will work.
+
+The MAJOR exception to this is that I don't use slots and signals. I really 
+like them, but I don't want to create a meta-object compiler like Qt. So
+I'm using event interfaces with some macros to make it easier. This method
+is similar to Java, but I've added some macros to facilitate
+firing to multiple event handlers with a single event.
+
+My target was a GUI for embedded devices which was free for commercial use.
+Qt/Embedded's licensing terms are GPL or pay, and it's too
+big. GTK+ is too big and I don't like C GUI code. I didn't like
+FLTK design. So I've made my own, patterned after a class library I like,
+but completely my own code.
+
+I chose Microwindows because it's small, clean and LGPL (as opposed to GPL, which
+would cause mlibs to be GPL). Other options included X (too big) or
+Qt/Embedded (already discussed above).
+
+The C++ code does not use the standard template library, exceptions
+or run-time type information. This increases speed and decreases size.
+Of course I'm reinventing the wheel at some points, but it's an awfully
+faster and smaller wheel.
+
+The "M" in mlibs stands for "Microwidgets" (abbreviated mwidgets)which 
+is the name of the widget library. This name was chosen
+because I was originally targetting Microwindows, although it could be
+ported to other windowing systems. Later, I broke the microwidgets
+library up into three parts. The webserver and webclient apps use only
+mnet and mcommon, for instance.
+
+mcommon and mnet have been run on the following platforms:
+
+	mips-linux
+	i386-linux
+	mips-vxworks
+	i386-win32
+
+mwidgets has been run on mips-linux only.
+
+---------------------------------------
+MCOMMON
+
+Non-graphical classes that help you avoid using the bulky standard
+template library of C++.
+
+Files:
+	mstring.cpp
+	mgeom.cpp
+	mstringlist.cpp
+	mvoidlist.cpp
+	mregexp.cpp
+	mstringhash.cpp
+
+Classes:
+	MString - string class with lots of operators and methods
+	MRect - basic geometry building block
+	MPoint - basic geometry building block
+	MSize - basic geometry building block
+	MStringList - An MList optimized for MString usage.
+	MStringHash - An MHash optimized for MString usage.
+	MVoidList - facilitates the effecient implementation of the
+		pure template MList, which is found in mlist.h.
+	MRegExp - regular expressions
+
+---------------------------------------
+MWIDGETS
+
+MWidgets is short for Microwidgets. Microwidgets is a set of widget
+classes for implementing a GUI. It is meant as a very small but complete
+wrapper around a basic windowing system. Currently,
+the only implementation is for Microwindows, but another windowing
+system could be chosen (like X) and all mlibs apps should be portable.
+
+It is currently TV-oriented for use in cable and satellite set-top boxes.
+TV-oriented features include support for 2 dimensional focus
+changing (up,down,left,right), fat focus indicators, and
+no requirement (currently no support) for a pointing device like a mouse.
+
+There is a main message loop which processes events, and widgets which
+create and receive events to drive the GUI.
+
+mwidgets depends on mcommon and a windowing system.
+
+Files:
+	mapplication.cpp mwidget.cpp mpainter.cpp
+	mbutton.cpp mlabel.cpp mfont.cpp mpixmap.cpp
+	mtimer.cpp mlistbox.cpp
+	mscrollbar.cpp mlineedit.cpp mmessagebox.cpp
+	mradiobuttongroup.cpp mstyle.cpp
+	mfontmetrics.cpp mscrollview.cpp mlistview.cpp
+	mfileview.cpp
+
+---------------------------------------
+MNET
+
+Classes for performing common Internet communication. These are NOT based on
+Qt. Currently support protocols and standards are simply HTTP, XML and SOAP.
+
+HTTP support includes both a client and a server. They are super small but they actually
+work with IE and Netscape browsers. The list of features they don't support is
+immense.
+
+XML support includes a DOM parser, super primitive XPath parser, and a few classes
+to facilitate XML RPC and SOAP over HTTP.
+
+mnet depends on mcommon.
+
+Files:
+	murl.cpp
+	mhttpclient.cpp
+	mhttpserver.cpp
+	mhttpengine.cpp
+	mxmlelement.cpp
+	mxmlparser.cpp
+	mxmlrpc.cpp
+	mxpath.cpp

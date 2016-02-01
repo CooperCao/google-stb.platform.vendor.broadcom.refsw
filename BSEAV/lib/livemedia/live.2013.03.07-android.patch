@@ -1,0 +1,2153 @@
+diff -ru live.2013.03.07/BasicUsageEnvironment/BasicTaskScheduler.cpp live/BasicUsageEnvironment/BasicTaskScheduler.cpp
+--- live.2013.03.07/BasicUsageEnvironment/BasicTaskScheduler.cpp	2013-03-07 22:57:30.000000000 +0000
++++ live/BasicUsageEnvironment/BasicTaskScheduler.cpp	2013-12-09 15:17:28.888894681 +0000
+@@ -40,6 +40,14 @@
+ 
+   if (maxSchedulerGranularity > 0) schedulerTickTask(); // ensures that we handle events frequently
+ }
++BasicTaskScheduler::BasicTaskScheduler()
++  : fMaxSchedulerGranularity(10), fMaxNumSockets(0) {
++  FD_ZERO(&fReadSet);
++  FD_ZERO(&fWriteSet);
++  FD_ZERO(&fExceptionSet);
++
++  schedulerTickTask(); // ensures that we handle events frequently
++}
+ 
+ BasicTaskScheduler::~BasicTaskScheduler() {
+ }
+diff -ru live.2013.03.07/BasicUsageEnvironment/include/BasicUsageEnvironment.hh live/BasicUsageEnvironment/include/BasicUsageEnvironment.hh
+--- live.2013.03.07/BasicUsageEnvironment/include/BasicUsageEnvironment.hh	2013-03-07 22:57:30.000000000 +0000
++++ live/BasicUsageEnvironment/include/BasicUsageEnvironment.hh	2013-12-09 15:17:28.888894681 +0000
+@@ -54,8 +54,8 @@
+   virtual ~BasicTaskScheduler();
+ 
+ protected:
+-  BasicTaskScheduler(unsigned maxSchedulerGranularity);
+-      // called only by "createNew()"
++  BasicTaskScheduler(unsigned maxSchedulerGranularity); // called only by "createNew()"
++  BasicTaskScheduler(); // called by "bscheduler.cpp"
+ 
+   static void schedulerTickTask(void* clientData);
+   void schedulerTickTask();
+diff -ru live.2013.03.07/BasicUsageEnvironment/Makefile live/BasicUsageEnvironment/Makefile
+--- live.2013.03.07/BasicUsageEnvironment/Makefile	2013-12-09 15:20:00.872653158 +0000
++++ live/BasicUsageEnvironment/Makefile	2013-12-09 15:21:53.103429994 +0000
+@@ -1,6 +1,6 @@
+ INCLUDES = -Iinclude -I../UsageEnvironment/include -I../groupsock/include
+-PREFIX = /usr/local
+-LIBDIR = $(PREFIX)/lib
++
++
+ ##### Change the following for your environment:
+ # 'CURRENT':'REVISION':'AGE' are updated - whenever a library changes - as follows:
+ # The library code changes, but without any changes to the API (i.e., interfaces) => increment REVISION
+@@ -39,13 +39,12 @@
+ DESTDIR = ../../../../../../nexus/bin
+ # LIBDIR is used if you want the libraries to be in a subdirectory ... like /usr/local/lib
+ LIBDIR = 
+-PREFIX = 
+ 
+ B_REFSW_ARCH ?= mipsel-uclibc
+-ifeq ($(filter ${B_REFSW_ARCH}, mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
+-CROSS_COMPILE ?= mips-linux-uclibc-
++ifeq ($(filter ${B_REFSW_ARCH}, arm-linux mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
++CROSS_COMPILE ?= $(B_REFSW_ARCH)-
+ else
+-CROSS_COMPILE ?= mipsel-linux-uclibc-
++CROSS_COMPILE ?= mipsel-linux-
+ endif
+ 
+ COMPILE_OPTS =		$(INCLUDES) -I. -DSOCKLEN_T=socklen_t -DNO_STRSTREAM=1 -DNO_SSTREAM=1 $(B_REFSW_CFLAGS) -O2 -DXLOCALE_NOT_USED=1 -fPIC
+@@ -66,7 +65,8 @@
+ LIBRARY_LINK_OPTS =	-shared $(LDFLAGS) -nostdlib -Wl,--no-undefined,--gc-sections -L$(ANDROID_LIB) \
+                     $(ANDROID_LIB)/crtbegin_so.o $(ANDROID_LIB)/crtend_so.o \
+                     -Wl,--no-whole-archive -Wl,-dy,-ldl,-lstdc++,-lcutils,-lc,-lm \
+-                    -Wl,--whole-archive -Wl,-lgcc,-lsupc++
++                    -Wl,--whole-archive -Wl,-lgcc,-lsupc++ \
++                    -L$(DESTDIR) -Wl,-lUsageEnvironment
+ 
+ LIBS_FOR_CONSOLE_APPLICATION =
+ LIBS_FOR_GUI_APPLICATION =
+@@ -111,7 +111,7 @@
+ 	  install -m 644 include/*.hh $(DESTDIR)$(PREFIX)/include/BasicUsageEnvironment
+ 	  install -m 644 libBasicUsageEnvironment.$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)
+ install_shared_libraries: libBasicUsageEnvironment.$(LIB_SUFFIX)
+-	  ln -s $(NAME).$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/$(NAME).$(SHORT_LIB_SUFFIX)
+-	  ln -s $(NAME).$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/$(NAME).so
++	  ln -fs $(NAME).$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/$(NAME).$(SHORT_LIB_SUFFIX)
++	  ln -fs $(NAME).$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/$(NAME).so
+ 
+ ##### Any additional, platform-specific rules come here:
+diff -ru live.2013.03.07/groupsock/GroupsockHelper.cpp live/groupsock/GroupsockHelper.cpp
+--- live.2013.03.07/groupsock/GroupsockHelper.cpp	2013-03-07 22:57:30.000000000 +0000
++++ live/groupsock/GroupsockHelper.cpp	2013-12-09 15:17:28.888894681 +0000
+@@ -30,6 +30,175 @@
+ #define initializeWinsockIfNecessary() 1
+ #endif
+ #include <stdio.h>
++#include <pthread.h>
++
++/*
++ * This function accepts as input a socket for which a peer socket address must be determined for it.
++ * Then the address is converted into a string and returned. If an error occurs, NULL is returned.
++ */
++char * peer_addr(int s, char *buf, size_t bufsiz) 
++{
++    int rc; /* Status return code */
++    struct sockaddr_in adr_inet;/* AF_INET */
++    socklen_t len_inet; /* length */
++
++    /*
++     * Obtain the address of the socket:
++     */
++    len_inet = sizeof adr_inet;
++
++    // int getpeername(int socket, struct sockaddr *restrict address, socklen_t *restrict address_len);
++    rc = getpeername(s, (struct sockaddr *)&adr_inet, &len_inet);
++    if ( rc == -1) {
++       return NULL; /* Failed */
++    }
++
++    /*
++     * Convert address into a string form that can be displayed:
++     */
++    //fprintf(stderr,"buf size (%u); addr (%s); port (%u)\n", bufsiz, inet_ntoa(adr_inet.sin_addr), (unsigned)ntohs(adr_inet.sin_port) );
++    rc = snprintf(buf, bufsiz, "%s:%u", inet_ntoa(adr_inet.sin_addr), (unsigned)ntohs(adr_inet.sin_port) );
++
++    if ( rc == -1 )
++    {
++       return NULL; /* Buffer too small */
++    }
++    return buf;
++}
++
++int SocketOptions ( int fd )
++{
++    int type;
++    socklen_t length = sizeof( int );
++    char buf[32];
++
++    if (fd>0)
++    {
++        // SO_SNDBUF, SO_RCVBUF, SO_TYPE,
++        getsockopt( fd, SOL_SOCKET, SO_TYPE, &type, &length );
++
++#ifdef DEBUG
++        fprintf(stderr, "SO_TYPE is (%s); ", (type==SOCK_STREAM)?"TCP":(type==SOCK_DGRAM)?"DGRAM":"RAW" );
++#endif
++
++        if (type==SOCK_STREAM)
++        {
++#if 0
++            struct sockaddr address;
++            int address_len=sizeof(address);
++            int rc = getpeername(fd, &address, &address_len );
++            if (rc==0)
++            {
++            }
++            else
++            {
++                fprintf(stderr, "getpeername error (%u) ... %s\n", errno, strerror(errno) );
++            }
++#else
++            if (peer_addr ( fd, buf, sizeof(buf) )==NULL)
++            {
++                fprintf(stderr, "peer_addr error (%u) ... %s\n", errno, strerror(errno) );
++            }
++            else
++            {
++                fprintf(stderr, "addr (%s)\n", buf );
++            }
++#endif
++        }
++        else
++        {
++            fprintf(stderr, "no addr; \n" );
++        }
++
++        // SocketMacAddress (fd);
++    }
++
++    return 0;
++}
++
++/* ******************************************************************************************************
++*                                                                                                       *
++*   PrintAddrPort - outputs to stderr the IP address and port used in the sockaddr structure.           *
++*                                                                                                       *
++********************************************************************************************************/
++int PrintAddrPort ( sockaddr_in * dest )
++{
++    if (dest==NULL) return -1;
++
++    #ifdef DEBUG
++    fprintf(stderr,"%lx(%s:%u)", ((unsigned long int) pthread_self()&0xFFFFFFFF), inet_ntoa(dest->sin_addr), htons(dest->sin_port) );
++    #endif
++    return 0;
++}
++
++/* ******************************************************************************************************
++*                                                                                                       *
++*   DumpBuffer - dumps the specified buffer in hex and ascii                                            *
++*                                                                                                       *
++********************************************************************************************************/
++void DumpBuffer ( const char * funccaller, const unsigned char * buffer, unsigned int bufferlen)
++{
++#if DEBUG
++    unsigned short int idx2 = 0;
++    char hexline[256];
++    char asciiline[20];
++    char twochar[3];
++
++    memset(hexline, 0, sizeof(hexline) );
++    memset(asciiline, 0, 20);
++
++    for (idx2=0; idx2<bufferlen; idx2++)
++    {
++        sprintf(twochar, "%02x", buffer[idx2]);
++        twochar[2] = '\0';
++        if ( (strlen(hexline) + strlen(twochar)) < sizeof(hexline) ) {
++            strcat(hexline, twochar);
++        } else {
++            fprintf(stderr, "%s: (%s)\n", funccaller, hexline );
++            fprintf(stderr, "%s: hexline buffer len (%d) exceeded\n", __FUNCTION__, sizeof(hexline) );fflush(stdout);fflush(stderr);
++            break;
++        }
++        #if 0
++        if (isprint(buffer[idx2]))
++        {
++            asciiline[idx2%16] = (char) buffer[idx2];
++        }
++        else
++        {
++            asciiline[idx2%16] = '.';
++        }
++
++        /* output line is 16 bytes */
++        if (idx2%16 == 15)
++        {
++            printf("%s '%s'\n", hexline, asciiline );
++            memset(hexline, 0, 64);
++            memset(asciiline, 0, 20);
++        }
++        #else
++        if (idx2%2==1) {
++            strcat(hexline, " ");
++        }
++        #endif
++    }
++
++    #if 0
++    /* partial last line */
++    if (idx2%16 != 0)
++    {
++        fprintf(stderr, "%s: (%s)\n", funccaller, hexline );fflush(stdout);fflush(stderr);
++    }
++    #else
++    fprintf(stderr, "%s: (%s)\n", funccaller, hexline );fflush(stdout);fflush(stderr);
++    #endif
++#else
++    ((void)funccaller);
++    ((void)buffer); // UNUSED
++    ((void)bufferlen); // UNUSED
++#endif
++
++    return;
++}
+ 
+ // By default, use INADDR_ANY for the sending and receiving interfaces:
+ netAddressBits SendingInterfaceAddr = INADDR_ANY;
+@@ -295,15 +464,34 @@
+   } else if (bytesRead == 0) {
+     // "recvfrom()" on a stream socket can return 0 if the remote end has closed the connection.  Treat this as an error:
+     return -1;
++  } else {
++#if DEBUG
++    fflush(stdout);fflush(stderr);
++    fprintf(stderr,"\n%lx: recvfrom(sd %u,ip %s:%u) %d bytes (%c%c%c%c%c%c%c%c%c%c%c)\n", ((unsigned long int) pthread_self()&0xFFFFFFFF), 
++            socket, inet_ntoa(fromAddress.sin_addr), htons(fromAddress.sin_port), bytesRead, strerror(errno),
++            buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], buffer[8],
++            buffer[9], buffer[10] );
++    fflush(stdout);fflush(stderr);
++    if (bytesRead == 56) {
++        DumpBuffer ( __FUNCTION__, (unsigned char*)buffer, 56 );
++    }
++    SocketOptions(socket);
++#endif
+   }
+ 
+   return bytesRead;
+ }
+ 
++#ifdef DEBUG
++static struct timeval timeprev, timenow;
++#endif
++static unsigned long int pktcnt=0;
++static unsigned long int gspktcnt=0;
+ Boolean writeSocket(UsageEnvironment& env,
+ 		    int socket, struct in_addr address, Port port,
+ 		    u_int8_t ttlArg,
+ 		    unsigned char* buffer, unsigned bufferSize) {
++	gspktcnt++;
+ 	do {
+ 		if (ttlArg != 0) {
+ 			// Before sending, set the socket's TTL:
+@@ -321,8 +509,39 @@
+ 		}
+ 
+ 		MAKE_SOCKADDR_IN(dest, address.s_addr, port.num());
++#if DEBUG
++		if(gspktcnt%1000==999) {
++			   printf("sendto skt %u:%s(0x%x):htons %u(0x%x); raw %u(0x%x); bytes %u; ", socket, inet_ntoa(address), address.s_addr, htons(port.num()), htons(port.num()), port.num(), port.num(), bufferSize );
++			   {
++				   char line[64];
++				   char nibble[3];
++				   int idx=0;
++				   unsigned char * pos= (unsigned char*) &dest;
++				   memset(line, 0, sizeof line);
++				   for (idx=0; idx<8;idx++) {
++					   sprintf(nibble,"%02x", pos[idx] );
++					   nibble[2] = '\0';
++					   strcat(line, nibble);
++					   if ((idx%4==3)) { strcat(line, " "); }
++				   }
++				   printf (("%s: dest struct (%s); ", __FUNCTION__, line ));
++			   }
++			   fflush(stdout); 
++		}
++#endif
+ 		int bytesSent = sendto(socket, (char*)buffer, bufferSize, 0,
+ 			               (struct sockaddr*)&dest, sizeof dest);
++        pktcnt++;
++#ifdef DEBUG
++        gettimeofday(&timenow, NULL);
++        if (timenow.tv_sec > (timeprev.tv_sec+5) ) {
++          timeprev = timenow;
++          fprintf(stderr, "socket %u; cnt %lu; ", socket, pktcnt);
++          PrintAddrPort ( &dest ); // 10 02 e7 6e 0a 00 00 08
++          SocketOptions(socket);
++        }
++#endif
++
+ 		if (bytesSent != (int)bufferSize) {
+ 			char tmpBuf[100];
+ 			sprintf(tmpBuf, "writeSocket(%d), sendTo() error: wrote %d bytes instead of %u: ", socket, bytesSent, bufferSize);
+diff -ru live.2013.03.07/groupsock/Makefile live/groupsock/Makefile
+--- live.2013.03.07/groupsock/Makefile	2013-12-09 15:20:00.860652752 +0000
++++ live/groupsock/Makefile	2013-12-09 15:22:34.532455037 +0000
+@@ -1,6 +1,6 @@
+ INCLUDES = -Iinclude -I../UsageEnvironment/include
+-PREFIX = /usr/local
+-LIBDIR = $(PREFIX)/lib
++
++
+ ##### Change the following for your environment:
+ # 'CURRENT':'REVISION':'AGE' are updated - whenever a library changes - as follows:
+ # The library code changes, but without any changes to the API (i.e., interfaces) => increment REVISION
+@@ -39,13 +39,12 @@
+ DESTDIR = ../../../../../../nexus/bin
+ # LIBDIR is used if you want the libraries to be in a subdirectory ... like /usr/local/lib
+ LIBDIR = 
+-PREFIX = 
+ 
+ B_REFSW_ARCH ?= mipsel-uclibc
+-ifeq ($(filter ${B_REFSW_ARCH}, mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
+-CROSS_COMPILE ?= mips-linux-uclibc-
++ifeq ($(filter ${B_REFSW_ARCH}, arm-linux mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
++CROSS_COMPILE ?= $(B_REFSW_ARCH)-
+ else
+-CROSS_COMPILE ?= mipsel-linux-uclibc-
++CROSS_COMPILE ?= mipsel-linux-
+ endif
+ 
+ COMPILE_OPTS =		$(INCLUDES) -I. -DSOCKLEN_T=socklen_t -DNO_STRSTREAM=1 -DNO_SSTREAM=1 $(B_REFSW_CFLAGS) -O2 -DXLOCALE_NOT_USED=1 -fPIC
+@@ -66,7 +65,8 @@
+ LIBRARY_LINK_OPTS =	-shared $(LDFLAGS) -nostdlib -Wl,--no-undefined,--gc-sections -L$(ANDROID_LIB) \
+                     $(ANDROID_LIB)/crtbegin_so.o $(ANDROID_LIB)/crtend_so.o \
+                     -Wl,--no-whole-archive -Wl,-dy,-ldl,-lstdc++,-lcutils,-lc,-lm \
+-                    -Wl,--whole-archive -Wl,-lgcc,-lsupc++
++                    -Wl,--whole-archive -Wl,-lgcc,-lsupc++ \
++                    -L$(DESTDIR) -Wl,-lBasicUsageEnvironment,-lUsageEnvironment
+ 
+ LIBS_FOR_CONSOLE_APPLICATION =
+ LIBS_FOR_GUI_APPLICATION =
+@@ -113,7 +113,7 @@
+ 	  install -m 644 include/*.hh include/*.h $(DESTDIR)$(PREFIX)/include/groupsock
+ 	  install -m 644 libgroupsock.$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)
+ install_shared_libraries: libgroupsock.$(LIB_SUFFIX)
+-	  ln -s libgroupsock.$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/libgroupsock.$(SHORT_LIB_SUFFIX)
+-	  ln -s libgroupsock.$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/libgroupsock.so
++	  ln -fs libgroupsock.$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/libgroupsock.$(SHORT_LIB_SUFFIX)
++	  ln -fs libgroupsock.$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/libgroupsock.so
+ 
+ ##### Any additional, platform-specific rules come here:
+diff -ru live.2013.03.07/liveMedia/include/OnDemandServerMediaSubsession.hh live/liveMedia/include/OnDemandServerMediaSubsession.hh
+--- live.2013.03.07/liveMedia/include/OnDemandServerMediaSubsession.hh	2013-03-07 22:57:30.000000000 +0000
++++ live/liveMedia/include/OnDemandServerMediaSubsession.hh	2013-12-09 15:17:28.888894681 +0000
+@@ -43,6 +43,7 @@
+ 
+ protected: // redefined virtual functions
+   virtual char const* sdpLines();
++  virtual char const* sdpLines( const char * filename );
+   virtual void getStreamParameters(unsigned clientSessionId,
+ 				   netAddressBits clientAddress,
+                                    Port const& clientRTPPort,
+diff -ru live.2013.03.07/liveMedia/include/PassiveServerMediaSubsession.hh live/liveMedia/include/PassiveServerMediaSubsession.hh
+--- live.2013.03.07/liveMedia/include/PassiveServerMediaSubsession.hh	2013-03-07 22:57:30.000000000 +0000
++++ live/liveMedia/include/PassiveServerMediaSubsession.hh	2013-12-09 15:17:28.888894681 +0000
+@@ -45,6 +45,7 @@
+ 
+ protected: // redefined virtual functions
+   virtual char const* sdpLines();
++  virtual char const* sdpLines( const char *);
+   virtual void getStreamParameters(unsigned clientSessionId,
+ 				   netAddressBits clientAddress,
+                                    Port const& clientRTPPort,
+diff -ru live.2013.03.07/liveMedia/include/RTSPClient.hh live/liveMedia/include/RTSPClient.hh
+--- live.2013.03.07/liveMedia/include/RTSPClient.hh	2013-03-07 22:57:30.000000000 +0000
++++ live/liveMedia/include/RTSPClient.hh	2013-12-09 15:17:28.888894681 +0000
+@@ -31,6 +31,9 @@
+ #include "DigestAuthentication.hh"
+ #endif
+ 
++#ifndef RTSPCLIENT_SYNCHRONOUS_INTERFACE
++#define RTSPCLIENT_SYNCHRONOUS_INTERFACE 1
++#endif
+ class RTSPClient: public Medium {
+ public:
+   static RTSPClient* createNew(UsageEnvironment& env, char const* rtspURL,
+@@ -156,6 +159,9 @@
+       // Parses "url" as "rtsp://[<username>[:<password>]@]<server-address-or-name>[:<port>][/<stream-name>]"
+       // (Note that the returned "username" and "password" are either NULL, or heap-allocated strings that the caller must later delete[].)
+ 
++  // BRCM: CAD 2013-10-21
++  unsigned describeStatus() const { return fDescribeStatusCode; }
++
+   void setUserAgentString(char const* userAgentName);
+       // sets an alternative string to be used in RTSP "User-Agent:" headers
+ 
+@@ -165,6 +171,15 @@
+ 
+   static unsigned responseBufferSize;
+ 
++  // JJ/BRCM 20061026
++  char* serverType(void) { return fServerTypeStr; }
++
++  // SSOOD/BRCM 20100303
++  char* responseMessage(void) { return fResponseMessageStr; }
++
++  // SSOOD/BRCM 20100416 
++  void setAdditionalHeaders(char *hdr) { fAdditionHeadersStr = hdr; } 
++
+ public: // Some compilers complain if this is "private:"
+   // The state of a request-in-progress:
+   class RequestRecord {
+@@ -297,6 +312,9 @@
+   unsigned char fTCPStreamIdCount; // used for (optional) RTP/TCP
+   char* fLastSessionId;
+   unsigned fSessionTimeoutParameter; // optionally set in response "Session:" headers
++
++  // BRCM: CAD 2013-10-21
++  unsigned fDescribeStatusCode; // 0: OK; 1: connection failed; 2: stream unavailable
+   char* fResponseBuffer;
+   unsigned fResponseBytesAlreadySeen, fResponseBufferBytesLeft;
+   RequestQueue fRequestsAwaitingConnection, fRequestsAwaitingHTTPTunneling, fRequestsAwaitingResponse;
+@@ -366,6 +384,15 @@
+   char* fResultString;
+   int fResultCode;
+ #endif
++
++  // JJ/BRCM 20061026 - save Server type for users of RTSPClient
++  char *fServerTypeStr;
++
++  // SSOOD/BRCM 20100303 - save the last response headers
++  char *fResponseMessageStr;
++
++  // SSOOD/BRCM 20100416 - save the additional headers to be included w/ outgoing messages
++  char *fAdditionHeadersStr;
+ };
+ 
+ #endif
+diff -ru live.2013.03.07/liveMedia/include/RTSPCommon.hh live/liveMedia/include/RTSPCommon.hh
+--- live.2013.03.07/liveMedia/include/RTSPCommon.hh	2013-03-07 22:57:30.000000000 +0000
++++ live/liveMedia/include/RTSPCommon.hh	2013-12-09 15:17:28.892894519 +0000
+@@ -25,10 +25,14 @@
+ #include "Boolean.hh"
+ #endif
+ 
++#ifdef __cplusplus /* these header files should not be included for gcc compiler */
++
+ #ifndef _MEDIA_HH
+ #include <Media.hh> // includes some definitions perhaps needed for Borland compilers?
+ #endif
+ 
++#endif   /* __cplusplus */
++
+ #if defined(__WIN32__) || defined(_WIN32) || defined(_QNX4)
+ #define _strncasecmp _strnicmp
+ #define snprintf _snprintf
+@@ -38,6 +42,22 @@
+ 
+ #define RTSP_PARAM_STRING_MAX 200
+ 
++#define DEBUG 1
++
++typedef enum
++{
++    RTSP_CMD_SATFILE_CREATE_NAME,
++    RTSP_CMD_SATFILE_OPEN,
++    RTSP_CMD_SATFILE_PLAY,
++    RTSP_CMD_SATFILE_PAUSE,
++    RTSP_CMD_SATFILE_CLOSE,
++	RTSP_CMD_SATFILE_SET_SERVER_PORT,
++	RTSP_CMD_SATFILE_SET_CLIENT_PORT,
++    RTSP_CMD_SATFILE_JOIN
++} enRTSP_CMD;
++typedef long int (tDvbsControlFunc)(void* context, enRTSP_CMD command, char * arg1 );
++
++#ifdef __cplusplus /* these header files should not be included for gcc compiler */
+ Boolean parseRTSPRequestString(char const *reqStr, unsigned reqStrSize,
+ 			       char *resultCmdName,
+ 			       unsigned resultCmdNameMaxSize,
+@@ -61,5 +81,6 @@
+ char const* dateHeader(); // A "Date:" header that can be used in a RTSP (or HTTP) response 
+ 
+ void ignoreSigPipeOnSocket(int socketNum);
++#endif   /* __cplusplus */
+ 
+ #endif
+diff -ru live.2013.03.07/liveMedia/include/RTSPServer.hh live/liveMedia/include/RTSPServer.hh
+--- live.2013.03.07/liveMedia/include/RTSPServer.hh	2013-03-07 22:57:30.000000000 +0000
++++ live/liveMedia/include/RTSPServer.hh	2013-12-09 15:17:28.892894519 +0000
+@@ -21,6 +21,22 @@
+ #ifndef _RTSP_SERVER_HH
+ #define _RTSP_SERVER_HH
+ 
++#include "RTSPCommon.hh"
++
++// CAD/BRCM 20121031 - Added to support RTSP in ip_streamer
++#ifdef __cplusplus /* these prototypes should not be name mangled for gcc compiler */
++extern "C" {
++#endif
++
++int RTSPServerStart ( unsigned short const Port, void* GlobalCfg, tDvbsControlFunc lDvbsControlFunc );
++int RTSPServerStop ( void );
++long int RTSPServerCallback ( void *data, unsigned int command,  char * requestUrl );
++const char * LiveMediaGetVersion ( void );
++
++// CAD/BRCM 20121031 - Added to support RTSP in ip_streamer (want gcc to ignore g++ stuff)
++#ifdef __cplusplus
++}
++
+ #ifndef _SERVER_MEDIA_SESSION_HH
+ #include "ServerMediaSession.hh"
+ #endif
+@@ -124,6 +140,9 @@
+       // Note: RTSP-over-HTTP tunneling is described in http://developer.apple.com/quicktime/icefloe/dispatch028.html
+   portNumBits httpServerPortNum() const; // in host byte order.  (Returns 0 if not present.)
+ 
++  void * fGlobalCtx; // used to send config back to ip_streamer
++  tDvbsControlFunc* fDvbsControlFunc; // used to perform callbacks to ip_streamer
++
+ protected:
+   RTSPServer(UsageEnvironment& env,
+ 	     int ourSocket, Port ourPort,
+@@ -154,6 +173,7 @@
+   public:
+     RTSPClientConnection(RTSPServer& ourServer, int clientSocket, struct sockaddr_in clientAddr);
+     virtual ~RTSPClientConnection();
++    char * getShortFileName ( const char * streamName );
+   protected:
+     friend class RTSPClientSession;
+     // Make the handler functions for each command virtual, to allow subclasses to redefine them:
+@@ -206,6 +226,7 @@
+     Authenticator fCurrentAuthenticator; // used if access control is needed
+     char* fOurSessionCookie; // used for optional RTSP-over-HTTP tunneling
+     unsigned fBase64RemainderCount; // used for optional RTSP-over-HTTP tunneling (possible values: 0,1,2,3)
++    unsigned char * fIpStreamerCtx;
+   };
+ 
+   // The state of an individual client session (using one or more sequential TCP connections) handled by a RTSP server:
+@@ -224,7 +245,7 @@
+ 					 char const* urlPreSuffix, char const* urlSuffix,
+ 					 char const* fullRequestStr);
+     virtual void handleCmd_TEARDOWN(RTSPClientConnection* ourClientConnection,
+-				    ServerMediaSubsession* subsession);
++				    ServerMediaSubsession* subsession, char const* fullRequestStr);
+     virtual void handleCmd_PLAY(RTSPClientConnection* ourClientConnection,
+ 				ServerMediaSubsession* subsession, char const* fullRequestStr);
+     virtual void handleCmd_PAUSE(RTSPClientConnection* ourClientConnection,
+@@ -240,6 +261,8 @@
+     void noteLiveness();
+     static void noteClientLiveness(RTSPClientSession* clientSession);
+     static void livenessTimeoutTask(RTSPClientSession* clientSession);
++    ServerMediaSession* lookupServerMediaSessionByInfoSDPString( char const * streamName );
++    char * getShortFileName ( const char * streamName );
+   protected:
+     RTSPServer& fOurServer;
+     u_int32_t fOurSessionId;
+@@ -253,6 +276,7 @@
+       ServerMediaSubsession* subsession;
+       void* streamToken;
+     } * fStreamStates;
++    unsigned char * fIpStreamerCtx;
+   };
+ 
+ protected:
+@@ -302,4 +326,6 @@
+   unsigned fReclamationTestSeconds;
+ };
+ 
++// CAD/BRCM 20121031 - Added to support RTSP in ip_streamer
++#endif /* __cplusplus */
+ #endif
+diff -ru live.2013.03.07/liveMedia/include/ServerMediaSession.hh live/liveMedia/include/ServerMediaSession.hh
+--- live.2013.03.07/liveMedia/include/ServerMediaSession.hh	2013-03-07 22:57:30.000000000 +0000
++++ live/liveMedia/include/ServerMediaSession.hh	2013-12-09 15:17:28.892894519 +0000
+@@ -24,6 +24,8 @@
+ #ifndef _SERVER_MEDIA_SESSION_HH
+ #define _SERVER_MEDIA_SESSION_HH
+ 
++#include "RTSPCommon.hh"
++
+ #ifndef _MEDIA_HH
+ #include "Media.hh"
+ #endif
+@@ -58,6 +60,7 @@
+       // Note: The caller is responsible for freeing the returned string
+ 
+   char const* streamName() const { return fStreamName; }
++  char const* sInfoSDPString() const { return fInfoSDPString; }
+ 
+   Boolean addSubsession(ServerMediaSubsession* subsession);
+   unsigned numSubsessions() const { return fSubsessionCounter; }
+@@ -79,11 +82,17 @@
+     //   you must first close any client connections that use it,
+     //   by calling "RTSPServer::closeAllClientSessionsForServerMediaSession()".
+ 
++  unsigned long int * fIpStreamerGlobalCtx;
++  tDvbsControlFunc* /*unsigned long int * */ fIpStreamerControlFunc;
++  int setIpStreamerGlobalCtx   (unsigned long int * arg1) { fIpStreamerGlobalCtx = arg1; return 0; }
++  unsigned long int * getIpStreamerGlobalCtx   ( void ) { return fIpStreamerGlobalCtx; }
++
+ protected:
+   ServerMediaSession(UsageEnvironment& env, char const* streamName,
+ 		     char const* info, char const* description,
+ 		     Boolean isSSM, char const* miscSDPLines);
+   // called only by "createNew()"
++  char* fInfoSDPString;
+ 
+ private: // redefined virtual functions
+   virtual Boolean isServerMediaSession() const;
+@@ -98,7 +107,6 @@
+   unsigned fSubsessionCounter;
+ 
+   char* fStreamName;
+-  char* fInfoSDPString;
+   char* fDescriptionSDPString;
+   char* fMiscSDPLines;
+   struct timeval fCreationTime;
+@@ -128,6 +136,7 @@
+   unsigned trackNumber() const { return fTrackNumber; }
+   char const* trackId();
+   virtual char const* sdpLines() = 0;
++  virtual char const* sdpLines(const char *) = 0;
+   virtual void getStreamParameters(unsigned clientSessionId, // in
+ 				   netAddressBits clientAddress, // in
+ 				   Port const& clientRTPPort, // in
+@@ -175,6 +184,7 @@
+   // address and port number fields in SDP descriptions need to be non-zero:
+   void setServerAddressAndPortForSDP(netAddressBits addressBits,
+ 				     portNumBits portBits);
++  char const* infoSDPString() const;
+ 
+ protected: // we're a virtual base class
+   ServerMediaSubsession(UsageEnvironment& env);
+diff -ru live.2013.03.07/liveMedia/Locale.cpp live/liveMedia/Locale.cpp
+--- live.2013.03.07/liveMedia/Locale.cpp	2013-03-07 22:57:30.000000000 +0000
++++ live/liveMedia/Locale.cpp	2013-12-09 15:17:28.892894519 +0000
+@@ -21,6 +21,7 @@
+ 
+ #include "Locale.hh"
+ #include <strDup.hh>
++#include <cstdio>
+ 
+ Locale::Locale(char const* newLocale, LocaleCategory category) {
+ #ifndef LOCALE_NOT_USED
+diff -ru live.2013.03.07/liveMedia/Makefile live/liveMedia/Makefile
+--- live.2013.03.07/liveMedia/Makefile	2013-12-09 15:20:00.860652710 +0000
++++ live/liveMedia/Makefile	2013-12-09 15:23:11.901379693 +0000
+@@ -1,6 +1,6 @@
+-INCLUDES = -Iinclude -I../UsageEnvironment/include -I../groupsock/include
+-PREFIX = /usr/local
+-LIBDIR = $(PREFIX)/lib
++INCLUDES = -Iinclude -I../UsageEnvironment/include -I../BasicUsageEnvironment/include -I../groupsock/include
++
++
+ ##### Change the following for your environment:
+ # 'CURRENT':'REVISION':'AGE' are updated - whenever a library changes - as follows:
+ # The library code changes, but without any changes to the API (i.e., interfaces) => increment REVISION
+@@ -34,18 +34,22 @@
+ B_REFSW_CFLAGS += -pipe
+ B_REFSW_CFLAGS += -W
+ B_REFSW_CFLAGS += -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
++B_REFSW_CFLAGS += -DRTSPCLIENT_SYNCHRONOUS_INTERFACE
++
++ifeq ($(WMS_SUPPORT), y)
++B_REFSW_CFLAGS += -DB_HAS_WMS
++endif
+ 
+ # DESTDIR is where you want the shared object libraries to end up (relative to the build directory obj.97425/BSEAV/lib/livemedia/mipsel-uclibc.debug/live/BasicUsageEnvironment
+ DESTDIR = ../../../../../../nexus/bin
+ # LIBDIR is used if you want the libraries to be in a subdirectory ... like /usr/local/lib
+ LIBDIR = 
+-PREFIX = 
+ 
+ B_REFSW_ARCH ?= mipsel-uclibc
+-ifeq ($(filter ${B_REFSW_ARCH}, mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
+-CROSS_COMPILE ?= mips-linux-uclibc-
++ifeq ($(filter ${B_REFSW_ARCH}, arm-linux mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
++CROSS_COMPILE ?= $(B_REFSW_ARCH)-
+ else
+-CROSS_COMPILE ?= mipsel-linux-uclibc-
++CROSS_COMPILE ?= mipsel-linux-
+ endif
+ 
+ COMPILE_OPTS =		$(INCLUDES) -I. -DSOCKLEN_T=socklen_t -DNO_STRSTREAM=1 -DNO_SSTREAM=1 $(B_REFSW_CFLAGS) -O2 -DXLOCALE_NOT_USED=1 -fPIC
+@@ -66,7 +70,8 @@
+ LIBRARY_LINK_OPTS =	-shared $(LDFLAGS) -nostdlib -Wl,--no-undefined,--gc-sections -L$(ANDROID_LIB) \
+                     $(ANDROID_LIB)/crtbegin_so.o $(ANDROID_LIB)/crtend_so.o \
+                     -Wl,--no-whole-archive -Wl,-dy,-ldl,-lstdc++,-lcutils,-lc,-lm \
+-                    -Wl,--whole-archive -Wl,-lgcc,-lsupc++
++                    -Wl,--whole-archive -Wl,-lgcc,-lsupc++ \
++                    -L$(DESTDIR) -Wl,-lgroupsock,-lBasicUsageEnvironment,-lUsageEnvironment
+ 
+ LIBS_FOR_CONSOLE_APPLICATION =
+ LIBS_FOR_GUI_APPLICATION =
+@@ -433,7 +438,7 @@
+ 	 install -m 644 include/*.hh $(DESTDIR)$(PREFIX)/include/liveMedia
+ 	 install -m 644 $(LIVEMEDIA_LIB) $(DESTDIR)$(LIBDIR)
+ install_shared_libraries: $(LIVEMEDIA_LIB)
+-	 ln -s $(NAME).$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/$(NAME).$(SHORT_LIB_SUFFIX)
+-	 ln -s $(NAME).$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/$(NAME).so
++	 ln -fs $(NAME).$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/$(NAME).$(SHORT_LIB_SUFFIX)
++	 ln -fs $(NAME).$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/$(NAME).so
+ 
+ ##### Any additional, platform-specific rules come here:
+diff -ru live.2013.03.07/liveMedia/MPEG2TransportFileServerMediaSubsession.cpp live/liveMedia/MPEG2TransportFileServerMediaSubsession.cpp
+--- live.2013.03.07/liveMedia/MPEG2TransportFileServerMediaSubsession.cpp	2013-03-07 22:57:30.000000000 +0000
++++ live/liveMedia/MPEG2TransportFileServerMediaSubsession.cpp	2013-12-09 15:17:28.892894519 +0000
+@@ -21,6 +21,7 @@
+ 
+ #include "MPEG2TransportFileServerMediaSubsession.hh"
+ #include "SimpleRTPSink.hh"
++#include "RTSPServer.hh"
+ 
+ MPEG2TransportFileServerMediaSubsession*
+ MPEG2TransportFileServerMediaSubsession::createNew(UsageEnvironment& env,
+@@ -160,16 +161,57 @@
+   // Create the video source:
+   unsigned const inputDataChunkSize
+     = TRANSPORT_PACKETS_PER_NETWORK_PACKET*TRANSPORT_PACKET_SIZE;
+-  ByteStreamFileSource* fileSource
+-    = ByteStreamFileSource::createNew(envir(), fFileName, inputDataChunkSize);
++  ByteStreamFileSource* fileSource=NULL;
++  char * lFileName = NULL;
++  FILE * psatFILE=NULL;
++  unsigned int portnum = clientSessionId;
++
++  // if this is non-zero, it is a hack to give access to new filename, but string must have ts extension
++  if (estBitrate && ( strstr( (char*) estBitrate, ".ts") || strncmp ( (char*) estBitrate, "brcmsat", 7)==0) ) {
++    lFileName = (char*) estBitrate;
++  } else {
++    lFileName = (char*) fFileName;
++  }
++
++  // if we are processing a satip file
++  if (strncmp(lFileName, "brcmsat", 7)==0 || strstr(lFileName,"msys=" ) ) {
++	  char sPort[8] ;
++	  sprintf(sPort, "/%u", portnum );
++	  if ( fParentSession->fIpStreamerControlFunc != NULL) {
++		  char * newFileName = (char*) malloc(strlen(lFileName) + strlen(sPort) + 1);
++		  if (newFileName) {
++			  memset (newFileName, 0, strlen(lFileName) + strlen(sPort) + 1);
++              if (strstr(lFileName,"msys=")) {
++                  /* use the short file name (brcmsatxxx) */
++                  strcpy(newFileName, fParentSession->streamName() );
++              } else {
++                  strcpy(newFileName, lFileName);
++              }
++			  strcat(newFileName, sPort);
++
++              fflush(stdout);
++              fflush(stderr);
++			  psatFILE = (FILE*) (*(fParentSession->fIpStreamerControlFunc))( fParentSession->getIpStreamerGlobalCtx(), RTSP_CMD_SATFILE_OPEN, (char*) newFileName );
++			  free(newFileName);
++		  }
++	  }
++	  fileSource = ByteStreamFileSource::createNew(envir(), psatFILE, inputDataChunkSize);
++  } else {
++      fileSource = ByteStreamFileSource::createNew(envir(), fFileName, inputDataChunkSize);
++  }
++
+   if (fileSource == NULL) return NULL;
+-  fFileSize = fileSource->fileSize();
+ 
+-  // Use the file size and the duration to estimate the stream's bitrate:
+-  if (fFileSize > 0 && fDuration > 0.0) {
+-    estBitrate = (unsigned)((int64_t)fFileSize/(125*fDuration) + 0.5); // kbps, rounded
++  if (strncmp(lFileName, "brcmsat", 7)==0) {
++	  fFileSize = 2000000000;
+   } else {
+-    estBitrate = 5000; // kbps, estimate
++	  fFileSize = fileSource->fileSize();
++      // Use the file size and the duration to estimate the stream's bitrate:
++      if (fFileSize > 0 && fDuration > 0.0) {
++        estBitrate = (unsigned)((int64_t)fFileSize/(125*fDuration) + 0.5); // kbps, rounded
++      } else {
++        estBitrate = 5000; // kbps, estimate
++      }
+   }
+ 
+ 
+diff -ru live.2013.03.07/liveMedia/MultiFramedRTPSink.cpp live/liveMedia/MultiFramedRTPSink.cpp
+--- live.2013.03.07/liveMedia/MultiFramedRTPSink.cpp	2013-03-07 22:57:30.000000000 +0000
++++ live/liveMedia/MultiFramedRTPSink.cpp	2013-12-09 15:17:28.892894519 +0000
+@@ -354,7 +354,13 @@
+   return fOutBuf->isTooBigForAPacket(numBytes);
+ }
+ 
++#ifdef DEBUG
++static unsigned long long int PktCount=0, PrevByteCount=0;
++static struct timeval t_start, t_finish;
++#endif
++
+ void MultiFramedRTPSink::sendPacketIfNecessary() {
++  float tempMB=0.0;
+   if (fNumFramesUsedSoFar > 0) {
+     // Send the packet:
+ #ifdef TEST_LOSS
+@@ -364,6 +370,19 @@
+ 	// if failure handler has been specified, call it
+ 	if (fOnSendErrorFunc != NULL) (*fOnSendErrorFunc)(fOnSendErrorData);
+       }
++#ifdef DEBUG
++    PrevByteCount += fOutBuf->curPacketSize();
++    ++PktCount;
++    gettimeofday(&t_finish, 0);
++    if( t_finish.tv_sec > (t_start.tv_sec))
++    {
++      tempMB = PrevByteCount / 1000000.;
++      fprintf(stderr,"1000p(%1.1fMB)", tempMB );
++      PrevByteCount=0;
++      t_start.tv_sec = t_finish.tv_sec;
++      t_start.tv_usec = t_finish.tv_usec;
++    }
++#endif
+     ++fPacketCount;
+     fTotalOctetCount += fOutBuf->curPacketSize();
+     fOctetCount += fOutBuf->curPacketSize()
+diff -ru live.2013.03.07/liveMedia/MultiFramedRTPSource.cpp live/liveMedia/MultiFramedRTPSource.cpp
+--- live.2013.03.07/liveMedia/MultiFramedRTPSource.cpp	2013-03-07 22:57:30.000000000 +0000
++++ live/liveMedia/MultiFramedRTPSource.cpp	2013-12-09 15:17:28.892894519 +0000
+@@ -23,6 +23,15 @@
+ #include "GroupsockHelper.hh"
+ #include <string.h>
+ 
++/* PT: for some ASF streams (dido -> tw -> an), default of 10000  */
++/* is not enough. BJ/CH team (AY) suggested increasing this for   */
++/* TCP mode ASF over IP. Only do this for WMS case.    */
++#ifdef B_HAS_WMS
++#define MAX_PACKET_SIZE 28000
++#else
++#define MAX_PACKET_SIZE 20000
++#endif
++
+ ////////// ReorderingPacketBuffer definition //////////
+ 
+ class ReorderingPacketBuffer {
+@@ -208,6 +217,11 @@
+       fTo += frameSize; fMaxSize -= frameSize;
+       fNeedDelivery = True;
+     }
++/* PT: BJ/CH team (AY) have applied and need this HACK to get rid of an OOM */
++/* condition, for TCP ASF over IP. Only do this for WMS */
++#ifdef B_HAS_WMS
++    fNeedDelivery = True;
++#endif
+   }
+ }
+ 
+@@ -328,8 +342,6 @@
+ 
+ ////////// BufferedPacket and BufferedPacketFactory implementation /////
+ 
+-#define MAX_PACKET_SIZE 20000
+-
+ BufferedPacket::BufferedPacket()
+   : fPacketSize(MAX_PACKET_SIZE),
+     fBuf(new unsigned char[MAX_PACKET_SIZE]),
+diff -ru live.2013.03.07/liveMedia/OnDemandServerMediaSubsession.cpp live/liveMedia/OnDemandServerMediaSubsession.cpp
+--- live.2013.03.07/liveMedia/OnDemandServerMediaSubsession.cpp	2013-03-07 22:57:30.000000000 +0000
++++ live/liveMedia/OnDemandServerMediaSubsession.cpp	2013-12-09 15:17:28.896894377 +0000
+@@ -53,7 +53,7 @@
+     // subsession (as a unicast stream).  To do so, we first create
+     // dummy (unused) source and "RTPSink" objects,
+     // whose parameters we use for the SDP lines:
+-    unsigned estBitrate;
++    unsigned estBitrate=0; // unused
+     FramedSource* inputSource = createNewStreamSource(0, estBitrate);
+     if (inputSource == NULL) return NULL; // file not found
+ 
+@@ -72,6 +72,32 @@
+   return fSDPLines;
+ }
+ 
++char const*
++OnDemandServerMediaSubsession::sdpLines( const char * filename ) {
++  if (fSDPLines == NULL) {
++    // We need to construct a set of SDP lines that describe this
++    // subsession (as a unicast stream).  To do so, we first create
++    // dummy (unused) source and "RTPSink" objects,
++    // whose parameters we use for the SDP lines:
++    unsigned estBitrate=0; // unused
++    FramedSource* inputSource = createNewStreamSource(0, (unsigned&) filename );
++    if (inputSource == NULL) return NULL; // file not found
++
++    struct in_addr dummyAddr;
++    dummyAddr.s_addr = 0;
++    Groupsock dummyGroupsock(envir(), dummyAddr, 0, 0);
++    unsigned char rtpPayloadType = 96 + trackNumber()-1; // if dynamic
++    RTPSink* dummyRTPSink
++      = createNewRTPSink(&dummyGroupsock, rtpPayloadType, inputSource);
++
++    setSDPLinesFromRTPSink(dummyRTPSink, inputSource, estBitrate);
++    Medium::close(dummyRTPSink);
++    closeStreamSource(inputSource);
++  }
++
++  return fSDPLines;
++}
++
+ void OnDemandServerMediaSubsession
+ ::getStreamParameters(unsigned clientSessionId,
+ 		      netAddressBits clientAddress,
+@@ -101,7 +127,7 @@
+     // Normal case: Create a new media source:
+     unsigned streamBitrate;
+     FramedSource* mediaSource
+-      = createNewStreamSource(clientSessionId, streamBitrate);
++      = createNewStreamSource(htons(clientRTPPort.num()) /*not used clientSessionId*/, streamBitrate);
+ 
+     // Create 'groupsock' and 'sink' objects for the destination,
+     // using previously unused server port numbers:
+@@ -138,6 +164,19 @@
+ 	  continue; // try again
+ 	}
+ 
++    fflush(stdout); fflush(stderr); 
++    // if this is satellite file, tell ip_streamer the server port it should be using 
++    if ( fParentSession->fIpStreamerControlFunc != NULL && strstr(fParentSession->streamName(), "brcmsat")) {
++        int rc=0;
++        char * filename_with_port = (char*) malloc( strlen(fParentSession->streamName()) + 11 /* space for slash, 5-digit port, ,slash, 3-digit socket, EOS */);
++
++        if ( filename_with_port) {
++            sprintf(filename_with_port, "%s/%u/%u", fParentSession->streamName(), htons(serverRTPPort.num()), rtpGroupsock->socketNum() );
++            rc = (int) (*(fParentSession->fIpStreamerControlFunc))(fParentSession->getIpStreamerGlobalCtx(), RTSP_CMD_SATFILE_SET_SERVER_PORT, filename_with_port );
++            free(filename_with_port);
++        }
++    }
++
+ 	serverRTCPPort = serverPortNum+1;
+ 	rtcpGroupsock = new Groupsock(envir(), dummyAddr, serverRTCPPort, 255);
+ 	if (rtcpGroupsock->socketNum() < 0) {
+@@ -172,7 +211,7 @@
+       = new StreamState(*this, serverRTPPort, serverRTCPPort, rtpSink, udpSink,
+ 			streamBitrate, mediaSource,
+ 			rtpGroupsock, rtcpGroupsock);
+-  }
++  } // else createNewStreamSource()
+ 
+   // Record these destinations as being for this client session id:
+   Destinations* destinations;
+@@ -306,7 +345,7 @@
+ }
+ 
+ char const* OnDemandServerMediaSubsession
+-::getAuxSDPLine(RTPSink* rtpSink, FramedSource* /*inputSource*/) {
++::getAuxSDPLine(RTPSink* rtpSink, FramedSource* inputSource) {
+   // Default implementation:
+   return rtpSink == NULL ? NULL : rtpSink->auxSDPLine();
+ }
+diff -ru live.2013.03.07/liveMedia/PassiveServerMediaSubsession.cpp live/liveMedia/PassiveServerMediaSubsession.cpp
+--- live.2013.03.07/liveMedia/PassiveServerMediaSubsession.cpp	2013-03-07 22:57:30.000000000 +0000
++++ live/liveMedia/PassiveServerMediaSubsession.cpp	2013-12-09 15:17:28.896894377 +0000
+@@ -115,6 +115,11 @@
+   return fSDPLines;
+ }
+ 
++char const*
++PassiveServerMediaSubsession::sdpLines( const char *) {
++  return sdpLines();
++}
++
+ void PassiveServerMediaSubsession
+ ::getStreamParameters(unsigned clientSessionId,
+ 		      netAddressBits clientAddress,
+diff -ru live.2013.03.07/liveMedia/RTSPClient.cpp live/liveMedia/RTSPClient.cpp
+--- live.2013.03.07/liveMedia/RTSPClient.cpp	2013-03-07 22:57:30.000000000 +0000
++++ live/liveMedia/RTSPClient.cpp	2013-12-09 15:17:28.896894377 +0000
+@@ -300,7 +300,14 @@
+     fVerbosityLevel(verbosityLevel), fCSeq(1),
+     fTunnelOverHTTPPortNum(tunnelOverHTTPPortNum), fUserAgentHeaderStr(NULL), fUserAgentHeaderStrLen(0),
+     fInputSocketNum(-1), fOutputSocketNum(-1), fServerAddress(0), fBaseURL(NULL), fTCPStreamIdCount(0),
+-    fLastSessionId(NULL), fSessionTimeoutParameter(0), fSessionCookieCounter(0), fHTTPTunnelingConnectionIsPending(False) {
++    fLastSessionId(NULL), fSessionTimeoutParameter(0), fSessionCookieCounter(0), fHTTPTunnelingConnectionIsPending(False)
++    // JJ/BRCM 20061026 - save Server type for users of RTSPClient
++    ,fServerTypeStr(NULL)
++    // SS/BRCM 20100210: save RTSP Response Message received for last RTSP Command sent to the server
++    ,fResponseMessageStr(NULL)
++    // SS/BRCM 20100416: pointer to app specified additional HTTP header
++    ,fAdditionHeadersStr(NULL)
++{
+   setBaseURL(rtspURL);
+ 
+   fResponseBuffer = new char[responseBufferSize+1];
+@@ -321,6 +328,7 @@
+   char* userAgentName = new char[userAgentNameSize];
+   sprintf(userAgentName, "%s%s%s%s%s", applicationName, libPrefix, libName, libVersionStr, libSuffix);
+   setUserAgentString(userAgentName);
++  printf("RTSPClient constructor. User Agent %s\n", userAgentName);
+   delete[] userAgentName;
+ }
+ 
+@@ -329,6 +337,11 @@
+ 
+   delete[] fResponseBuffer;
+   delete[] fUserAgentHeaderStr;
++  // JJ/BRCM 20061026 - save Server type for users of RTSPClient
++  delete fServerTypeStr; fServerTypeStr = NULL;
++  // SS/BRCM 20100210: 
++  delete fResponseMessageStr; fResponseMessageStr = NULL;
++  fAdditionHeadersStr = NULL;
+ }
+ 
+ Boolean RTSPClient::isRTSPClient() const {
+@@ -345,6 +358,11 @@
+   fCurrentAuthenticator.reset();
+ 
+   delete[] fLastSessionId; fLastSessionId = NULL;
++  // JJ/BRCM 20061026 - save Server type for users of RTSPClient
++  delete fServerTypeStr; fServerTypeStr = NULL;
++  // SS/BRCM 20100210: 
++  delete fResponseMessageStr; fResponseMessageStr = NULL; 
++  fAdditionHeadersStr = NULL;
+ }
+ 
+ void RTSPClient::resetTCPSockets() {
+@@ -1468,6 +1486,16 @@
+     char* bodyStart = NULL;
+     unsigned numBodyBytes = 0;
+     responseSuccess = False;
++
++  /* PT: BJ/CH team (AY) have applied and need this HACK to get rid of   */
++  /* a macroblocking condition, for TCP ASF over IP only do this for WMS */
++
++#ifdef B_HAS_WMS
++  if(!strcasecmp(tag, "GET_PARAMETER")) {
++      return True;
++  }
++#endif
++  
+     do {
+       headerDataCopy = new char[responseBufferSize];
+       strncpy(headerDataCopy, fResponseBuffer, fResponseBytesAlreadySeen);
+@@ -1543,6 +1571,9 @@
+ 	  // Note: we accept "Allow:" instead of "Public:", so that "OPTIONS" requests made to HTTP servers will work.
+ 	} else if (checkForHeader(lineStart, "Location:", 9, headerParamsStr)) {
+ 	  setBaseURL(headerParamsStr);
++      // JJ/BRCM 20061026 - save Server type for users of RTSPClient
++	} else if (checkForHeader(lineStart, "Server: ", 8, headerParamsStr)) {
++        delete fServerTypeStr; fServerTypeStr = strDup(&lineStart[8]);
+ 	}
+       }
+       if (!reachedEndOfHeaders) break; // an error occurred
+@@ -1597,6 +1628,9 @@
+ 	if (responseCode == 200) {
+ 	  // Do special-case response handling for some commands:
+ 	  if (strcmp(foundRequest->commandName(), "SETUP") == 0) {
++          // SS/BRCM 20100210: 
++          delete[] fResponseMessageStr; fResponseMessageStr = strDup(nextLineStart);
++
+ 	    if (!handleSETUPResponse(*foundRequest->subsession(), sessionParamsStr, transportParamsStr, foundRequest->booleanFlags()&0x1)) break;
+ 	  } else if (strcmp(foundRequest->commandName(), "PLAY") == 0) {
+ 	    if (!handlePLAYResponse(*foundRequest->session(), *foundRequest->subsession(), scaleParamsStr, rangeParamsStr, rtpInfoParamsStr)) break;
+@@ -1604,7 +1638,13 @@
+ 	    if (!handleTEARDOWNResponse(*foundRequest->session(), *foundRequest->subsession())) break;
+ 	  } else if (strcmp(foundRequest->commandName(), "GET_PARAMETER") == 0) {
+ 	    if (!handleGET_PARAMETERResponse(foundRequest->contentStr(), bodyStart)) break;
+-	  }
++      } else if (strcmp(foundRequest->commandName(), "OPTONS") == 0) {
++          // SS/BRCM 20100210: 
++          delete[] fResponseMessageStr; fResponseMessageStr = strDup(nextLineStart);
++#if 0
++          printf("************ resp %s\n", fResponseMessageStr);
++#endif
++      }
+ 	} else if (responseCode == 401 && handleAuthenticationFailure(wwwAuthenticateParamsStr)) {
+ 	  // We need to resend the command, with an "Authorization:" header:
+ 	  needToResendCommand = True;
+@@ -1779,6 +1819,8 @@
+ 
+   // First, check whether "url" contains a username:password to be used.  If so, handle this using "describeWithPassword()" instead:
+   char* username; char* password;
++  fDescribeStatusCode = 0; // BRCM: CAD 2013-10-21
++
+   if (authenticator == NULL
+       && parseRTSPURLUsernamePassword(url, username, password)) {
+     char* result = describeWithPassword(url, username, password, allowKasennaProtocol, timeout);
+@@ -1801,6 +1843,7 @@
+   envir().taskScheduler().doEventLoop(&fWatchVariableForSyncInterface);
+   if (fResultCode == 0) return fResultString; // success
+   delete[] fResultString;
++  if (fDescribeStatusCode == 0) fDescribeStatusCode = 2 /* stream unavailable*/; // BRCM: CAD 2013-10-21 
+   return NULL;
+ }
+ 
+diff -ru live.2013.03.07/liveMedia/RTSPServer.cpp live/liveMedia/RTSPServer.cpp
+--- live.2013.03.07/liveMedia/RTSPServer.cpp	2013-03-07 22:57:30.000000000 +0000
++++ live/liveMedia/RTSPServer.cpp	2013-12-09 15:17:28.896894377 +0000
+@@ -21,8 +21,25 @@
+ #include "RTSPServer.hh"
+ #include "RTSPCommon.hh"
+ #include "Base64.hh"
+-#include <GroupsockHelper.hh>
++#include "liveMedia.hh"
++#include "BasicUsageEnvironment.hh"
++#include "GroupsockHelper.hh"
++#ifdef DEBUG
++#include <pthread.h>
++#endif /* DEBUG */
++#include <time.h> // for "strftime()" and "gmtime()"
++#include <net/if.h>
++
++ServerMediaSession * AddRtspStream ( char const* streamName, char const* inputFileName, char const* descriptionString, RTSPServer* rtspServer );
++int SocketOptions ( int fd );
++
++char * formatRemoteFilename ( unsigned long int Ctx )
++{
++    static char filename[32];
++    sprintf(filename, "brcmsat.%lx", Ctx );
+ 
++    return filename;
++}
+ ////////// RTSPServer implementation //////////
+ 
+ RTSPServer*
+@@ -114,6 +131,9 @@
+ ::rtspURL(ServerMediaSession const* serverMediaSession, int clientSocket) const {
+   char* urlPrefix = rtspURLPrefix(clientSocket);
+   char const* sessionName = serverMediaSession->streamName();
++  if (strstr(sessionName,"brcmsat")) {
++      sessionName = serverMediaSession->sInfoSDPString();
++  }
+ 
+   char* resultURL = new char[strlen(urlPrefix) + strlen(sessionName) + 1];
+   sprintf(resultURL, "%s%s", urlPrefix, sessionName);
+@@ -229,7 +249,7 @@
+     fServerMediaSessions(HashTable::create(STRING_HASH_KEYS)),
+     fClientConnections(HashTable::create(ONE_WORD_HASH_KEYS)),
+     fClientConnectionsForHTTPTunneling(NULL), // will get created if needed
+-    fClientSessions(HashTable::create(STRING_HASH_KEYS)),
++    fClientSessions(HashTable::create(STRING_HASH_KEYS)), fDvbsControlFunc(NULL),
+     fAuthDB(authDatabase), fReclamationTestSeconds(reclamationTestSeconds) {
+   ignoreSigPipeOnSocket(ourSocket); // so that clients on the same host that are killed don't also kill us
+ 
+@@ -304,7 +324,7 @@
+   increaseSendBufferTo(envir(), clientSocket, 50*1024);
+ 
+ #ifdef DEBUG
+-  envir() << "accept()ed connection from " << AddressString(clientAddr).val() << "\n";
++  fprintf(stderr, "%s: accept()ed connection from %s\n", __FUNCTION__, AddressString(clientAddr).val() );
+ #endif
+ 
+   // Create a new object for handling this RTSP connection:
+@@ -372,6 +392,8 @@
+ ::handleCmd_DESCRIBE(char const* urlPreSuffix, char const* urlSuffix, char const* fullRequestStr) {
+   char* sdpDescription = NULL;
+   char* rtspURL = NULL;
++  ServerMediaSession* session = NULL;
++  char* urlFilename=NULL; /* stream name is either in the url or created when sat request arrives */
+   do {
+     char urlTotalSuffix[RTSP_PARAM_STRING_MAX];
+     if (strlen(urlPreSuffix) + strlen(urlSuffix) + 2 > sizeof urlTotalSuffix) {
+@@ -390,13 +412,123 @@
+     // We should really check that the request contains an "Accept:" #####
+     // for "application/sdp", because that's what we're sending back #####
+     
+-    // Begin by looking up the "ServerMediaSession" object for the specified "urlTotalSuffix":
+-    ServerMediaSession* session = fOurServer.lookupServerMediaSession(urlTotalSuffix);
++    // this is a satellite tune request
++    if ( strstr(urlSuffix,"msys=dvbs") )
++    {
++      char const* descriptionString = "Session streamed by \"ip_streamer\"";
++#ifdef DEBUG
++      fprintf(stderr, "%s: Detected msys=dvbs; DvbsControlFunc (%p); ipaddr (%x) (%s)\n", __FUNCTION__, fOurServer.fDvbsControlFunc, fClientAddr.sin_addr.s_addr, inet_ntoa(fClientAddr.sin_addr) );fflush(stderr);
++#endif
++      if (fOurServer.fDvbsControlFunc != NULL) {
++        char satfilenameext[128]; /* the short name with the .ts extension */
++        char * urlSuffix2 = NULL;
++        char sIpAddr[48];
++        unsigned int newlen=0;
++
++        /* create a temporary string with the client's ip addr appended to the end of the url */
++        memset(sIpAddr, 0, sizeof(sIpAddr));
++        sprintf(sIpAddr,"&addr=%s", inet_ntoa(fClientAddr.sin_addr) );
++        newlen = strlen(urlSuffix) + strlen(sIpAddr) + 1 + 50; // add some extra space at the end
++        urlSuffix2 = (char*) malloc( newlen );
++        if (urlSuffix2!=NULL)
++        {
++            memset(urlSuffix2, 0, newlen );
++            strcpy(urlSuffix2, urlSuffix);
++            strcat(urlSuffix2, sIpAddr);
++        }
++
++        /*
++            In the normal (non-satellite) case LiveMedia works with a short filename and long filename. The long filename is the
++            full path to the file you are offering to stream /mnt/sda1/videos/highdef/hollywood/2009/avatar_h264_16x9.ts. The
++            short filename is the name the users will request from the URL ... avatarhd.
++         
++            In the live satellite streaming case, the web user provides the "long filename" via the browser URL ... for example:
++                 ?src=1&fe=1&freq=11067&pol=v&msys=dvbs&mtype=qpsk&sr=20000&fec=12&pids=0,68,69
++            The RTSP_CMD_SATFILE_CREATE_NAME command converts this long filename to a short filename ... brcmsat.708321. Once
++            we have a long filename/short filename pair, we can use the same process that LiveMedia uses for streaming from a
++            disc-based file.
++        */
++        fflush(stdout);
++        fflush(stderr);
++        urlFilename = (char*) (*(fOurServer.fDvbsControlFunc))(fOurServer.fGlobalCtx, RTSP_CMD_SATFILE_CREATE_NAME, (char*) urlSuffix2 );
++#ifdef DEBUG
++        fprintf(stderr, "%s: after RTSP_CMD_SATFILE_CREATE_NAME, urlFilename (%s); urlSuffix2 (%s)\n", __FUNCTION__, urlFilename, urlSuffix2 );fflush(stdout);fflush(stderr);
++#endif
++
++        /* we are done with the temp url string */
++        if (urlSuffix2!=NULL) { free(urlSuffix2); }
++
++        /* if the short filename was created successfully */
++        if (urlFilename != NULL) {
++          char * originalStreamName = NULL;
++
++          char * streamName = getShortFileName ( urlFilename );
++          unsigned char * pIpStreamerCtx;
++          sscanf(urlFilename, "brcmsat.%lx", (unsigned long int*) &pIpStreamerCtx );
++          fIpStreamerCtx = pIpStreamerCtx;
++
++          originalStreamName = getShortFileName ( urlSuffix );
++
++#ifdef DEBUG
++        fprintf(stderr, "%s: originalStreamname (%s); streamName (%s); Connection::fIpStreamerCtx (%x)\n", __FUNCTION__,
++                originalStreamName, streamName, (unsigned int) RTSPClientConnection::fIpStreamerCtx );fflush(stdout);fflush(stderr);
++#endif
++
++          // if this stream has not been encountered yet
++          if ( originalStreamName == NULL)  {
++              strncpy(satfilenameext, urlFilename, sizeof(satfilenameext) );
++              strcat(satfilenameext, ".ts");
++              // Create an on-the-fly "ServerMediaSession" object for the specified "urlSuffix":
++              session = AddRtspStream ( urlFilename /*was urlSuffix */, urlSuffix /*was satfilenameext*/, descriptionString, &fOurServer );
++          } else { /* we need to join this live video conference */
++              const unsigned int join_len = 64;
++              char * join_cmd = (char*) malloc(join_len);
++
++              if (join_cmd) {
++                  long int rc = 0;
++                  memset(join_cmd, 0, join_len ); /* brcmsat.7001d0/brcmsat.701345 */
++                  sprintf(join_cmd, "%s/%s", streamName, originalStreamName );
++                  rc = (long int) (*(fOurServer.fDvbsControlFunc))(fOurServer.fGlobalCtx, RTSP_CMD_SATFILE_JOIN, (char*) join_cmd );
++                  free ( join_cmd );
++              }
++              session = fOurServer.lookupServerMediaSession( originalStreamName );
++              if(session) rtspURL = fOurServer.rtspURL(session, fClientInputSocket);
++              fprintf(stderr,"%s: session %x; rtspURL 1 (%s)\n", __FUNCTION__, (unsigned int) session, rtspURL ); fflush(stderr);fflush(stdout);
++          }
++
++          if(session)
++          {
++              if (strstr(urlFilename, "brcmsat")) {
++                  rtspURL = strdup(urlSuffix);
++                  fprintf(stderr,"%s: session %x; rtspURL 2 (%s)\n", __FUNCTION__, (unsigned int) session, rtspURL ); fflush(stderr);fflush(stdout);
++              } else {
++                  rtspURL = strdup(urlFilename);
++                  fprintf(stderr,"%s: session %x; rtspURL 3 (%s)\n", __FUNCTION__, (unsigned int) session, rtspURL ); fflush(stderr);fflush(stdout);
++              }
++          }
++          else {
++#ifdef DEBUG
++            fprintf(stderr, "%s: FAILED TO AddRtspStream (%s)\n", __FUNCTION__, satfilenameext );
++#endif
++          }
++          free (urlFilename);
++          urlFilename=NULL;
++        }
++      }
++    } else {
++      // this is a known file streaming request
++      // Begin by looking up the "ServerMediaSession" object for the specified "urlTotalSuffix":
++      session = fOurServer.lookupServerMediaSession(urlTotalSuffix);
++      // Also, generate our RTSP URL, for the "Content-Base:" header
++      // (which is necessary to ensure that the correct URL gets used in subsequent "SETUP" requests).
++      if(session) rtspURL = fOurServer.rtspURL(session, fClientInputSocket);
++    }
++    
+     if (session == NULL) {
+       handleCmd_notFound();
+       break;
+     }
+-    
++
+     // Then, assemble a SDP description for this session:
+     sdpDescription = session->generateSDPDescription();
+     if (sdpDescription == NULL) {
+@@ -407,14 +539,10 @@
+     }
+     unsigned sdpDescriptionSize = strlen(sdpDescription);
+     
+-    // Also, generate our RTSP URL, for the "Content-Base:" header
+-    // (which is necessary to ensure that the correct URL gets used in subsequent "SETUP" requests).
+-    rtspURL = fOurServer.rtspURL(session, fClientInputSocket);
+-    
+     snprintf((char*)fResponseBuffer, sizeof fResponseBuffer,
+ 	     "RTSP/1.0 200 OK\r\nCSeq: %s\r\n"
+ 	     "%s"
+-	     "Content-Base: %s/\r\n"
++	     "Content-Base: %s/\r\n" /* this value is used in subsequent SETUP, PLAY, TEARDOWN requests */
+ 	     "Content-Type: application/sdp\r\n"
+ 	     "Content-Length: %d\r\n\r\n"
+ 	     "%s",
+@@ -622,6 +750,13 @@
+   struct sockaddr_in dummy; // 'from' address, meaningless in this case
+ 
+   int bytesRead = readSocket(envir(), fClientInputSocket, &fRequestBuffer[fRequestBytesAlreadySeen], fRequestBufferBytesLeft, dummy);
++#ifdef DEBUG
++    fflush(stdout);fflush(stderr);
++    fprintf(stderr, "RTSPServer:%s: ==========================================================================================================\n", __FUNCTION__ );
++    fprintf(stderr, "RTSPServer:%s: RTSPClientSession; bytesRead (%d); fRequestBufferBytesLeft (%u)\n",
++            __FUNCTION__, bytesRead, fRequestBufferBytesLeft );
++    fflush(stdout);fflush(stderr);
++#endif
+   handleRequestBytes(bytesRead);
+ }
+ 
+@@ -657,7 +792,7 @@
+       // Either the client socket has died, or the request was too big for us.
+       // Terminate this connection:
+ #ifdef DEBUG
+-      fprintf(stderr, "RTSPClientConnection[%p]::handleRequestBytes() read %d new bytes (of %d); terminating connection!\n", this, newBytesRead, fRequestBufferBytesLeft);
++      fprintf(stderr, "RTSPClientConnection[%p]::%s() read %d new bytes (of %d); terminating connection!\n", this, __FUNCTION__, newBytesRead, fRequestBufferBytesLeft);
+ #endif
+       fIsActive = False;
+       break;
+@@ -665,10 +800,15 @@
+     
+     Boolean endOfMsg = False;
+     unsigned char* ptr = &fRequestBuffer[fRequestBytesAlreadySeen];
+-#ifdef DEBUG
+     ptr[newBytesRead] = '\0';
+-    fprintf(stderr, "RTSPClientConnection[%p]::handleRequestBytes() %s %d new bytes:%s\n",
+-	    this, numBytesRemaining > 0 ? "processing" : "read", newBytesRead, ptr);
++#ifdef DEBUG
++    fprintf(stderr, "RTSPClientConnection[%p]::%s() %s %d new bytes:\nRECVD RECVD RECVD >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n%s\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n\n",
++	    this, 
++            __FUNCTION__, 
++            numBytesRemaining > 0 ? "processing" : "read", 
++            newBytesRead, 
++            ptr);
++    fprintf(stderr, "%s: fIpStreamerCtx %x\n", __FUNCTION__, (unsigned int) fIpStreamerCtx );
+ #endif
+     
+     if (fClientOutputSocket != fClientInputSocket) {
+@@ -780,7 +920,10 @@
+ 	    handleCmd_sessionNotFound();
+ 	  }
+ 	}
+-	if (clientSession != NULL) clientSession->handleCmd_SETUP(this, urlPreSuffix, urlSuffix, (char const*)fRequestBuffer);
++	if (clientSession != NULL) {
++    clientSession->fIpStreamerCtx = fIpStreamerCtx;
++    clientSession->handleCmd_SETUP(this, urlPreSuffix, urlSuffix, (char const*)fRequestBuffer);
++  }
+       } else if (strcmp(cmdName, "TEARDOWN") == 0
+ 		 || strcmp(cmdName, "PLAY") == 0
+ 		 || strcmp(cmdName, "PAUSE") == 0
+@@ -851,8 +994,9 @@
+     }
+     
+ #ifdef DEBUG
+-    fprintf(stderr, "sending response: %s", fResponseBuffer);
++    fprintf(stderr, "%lx:RTSPClientSession[%p]::incomingRequestHandler1()  sending response:\nSENDING SENDING SENDING SENDING >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n%s\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n\n", ((unsigned long int) pthread_self()&0xFFFFFFFF), this, fResponseBuffer);
+ #endif
++
+     send(fClientOutputSocket, (char const*)fResponseBuffer, strlen((char*)fResponseBuffer), 0);
+     
+     if (clientSession != NULL && clientSession->fStreamAfterSETUP && strcmp(cmdName, "SETUP") == 0) {
+@@ -1057,7 +1201,7 @@
+ RTSPServer::RTSPClientSession
+ ::RTSPClientSession(RTSPServer& ourServer, u_int32_t sessionId)
+   : fOurServer(ourServer), fOurSessionId(sessionId), fOurServerMediaSession(NULL), fIsMulticast(False), fStreamAfterSETUP(False),
+-    fTCPStreamIdCount(0), fLivenessCheckTask(NULL), fNumStreamStates(0), fStreamStates(NULL) {
++    fTCPStreamIdCount(0), fLivenessCheckTask(NULL), fNumStreamStates(0), fStreamStates(NULL), fIpStreamerCtx(NULL) {
+   noteLiveness();
+ }
+ 
+@@ -1175,15 +1319,22 @@
+ 
+ void RTSPServer::RTSPClientSession
+ ::handleCmd_SETUP(RTSPServer::RTSPClientConnection* ourClientConnection,
+-		  char const* urlPreSuffix, char const* urlSuffix, char const* fullRequestStr) {
++		  char const* urlPreSuffix /*stream short name*/, char const* urlSuffix /* track */, char const* fullRequestStr) {
+   // Normally, "urlPreSuffix" should be the session (stream) name, and "urlSuffix" should be the subsession (track) name.
+   // However (being "liberal in what we accept"), we also handle 'aggregate' SETUP requests (i.e., without a track name),
+   // in the special case where we have only a single track.  I.e., in this case, we also handle:
+   //    "urlPreSuffix" is empty and "urlSuffix" is the session (stream) name, or
+   //    "urlPreSuffix" concatenated with "urlSuffix" (with "/" inbetween) is the session (stream) name.
+-  char const* streamName = urlPreSuffix; // in the normal case
++  char const* streamName = NULL; // in the normal case
+   char const* trackId = urlSuffix; // in the normal case
+   char* concatenatedStreamName = NULL; // in the normal case
++  unsigned streamNum = 0;
++
++  streamName = getShortFileName ( urlPreSuffix );
++
++#ifdef DEBUG
++  fprintf( stderr, "%s: getShortFileName(%s) returned (%s); fIpStreamerCtx %x\n", __FUNCTION__, urlPreSuffix, streamName, (unsigned int) fIpStreamerCtx );
++#endif
+ 
+   noteLiveness();
+   do {
+@@ -1192,7 +1343,7 @@
+     if (sms == NULL) {
+       // Check for the special case (noted above), before we give up:
+       if (urlPreSuffix[0] == '\0') {
+-	streamName = urlSuffix;
++	streamName = (char*) urlSuffix;
+       } else {
+ 	concatenatedStreamName = new char[strlen(urlPreSuffix) + strlen(urlSuffix) + 2]; // allow for the "/" and the trailing '\0'
+ 	sprintf(concatenatedStreamName, "%s/%s", urlPreSuffix, urlSuffix);
+@@ -1242,7 +1393,6 @@
+ 
+     // Look up information for the specified subsession (track):
+     ServerMediaSubsession* subsession = NULL;
+-    unsigned streamNum;
+     if (trackId != NULL && trackId[0] != '\0') { // normal case
+       for (streamNum = 0; streamNum < fNumStreamStates; ++streamNum) {
+ 	subsession = fStreamStates[streamNum].subsession;
+@@ -1332,7 +1482,7 @@
+     ReceivingInterfaceAddr = SendingInterfaceAddr = sourceAddr.sin_addr.s_addr;
+ #endif
+ 
+-    subsession->getStreamParameters(fOurSessionId, ourClientConnection->fClientAddr.sin_addr.s_addr,
++    subsession->getStreamParameters(fOurSessionId, ourClientConnection->fClientAddr.sin_addr.s_addr, /* calls RTSP_CMD_SATFILE_OPEN */
+ 				    clientRTPPort, clientRTCPPort,
+ 				    tcpSocketNum, rtpChannelId, rtcpChannelId,
+ 				    destinationAddress, destinationTTL, fIsMulticast,
+@@ -1341,6 +1491,15 @@
+     SendingInterfaceAddr = origSendingInterfaceAddr;
+     ReceivingInterfaceAddr = origReceivingInterfaceAddr;
+     
++    if (fOurServer.fDvbsControlFunc != NULL) {
++        long int rc = 0;
++        char client_port[32];
++        memset(&client_port, 0, sizeof(client_port));
++        sprintf(client_port, "%s/%u", formatRemoteFilename ( (long unsigned int) fIpStreamerCtx ), htons(clientRTPPort.num()) );
++
++        rc = (*(fOurServer.fDvbsControlFunc))(fOurServer.fGlobalCtx, RTSP_CMD_SATFILE_SET_CLIENT_PORT, client_port );
++    }
++
+     AddressString destAddrStr(destinationAddress);
+     AddressString sourceAddrStr(sourceAddr);
+     if (fIsMulticast) {
+@@ -1467,13 +1626,37 @@
+       ourClientConnection->handleCmd_notFound();
+       return;
+     }
++  }  else if (strlen(urlPreSuffix)>0 && strlen(urlSuffix)==0) { /* VLC client */
++      // satfile operation
++      // Look up the media subsession whose track id is "urlSuffix":
++      ServerMediaSubsessionIterator iter(*fOurServerMediaSession);
++      while ((subsession = iter.next()) != NULL)
++      {
++          if (strcmp(subsession->infoSDPString(), urlPreSuffix) == 0) break; // success
++      }
++      if (subsession == NULL) { // no such track!
++          ourClientConnection->handleCmd_notFound();
++          return;
++      }
++  } else if (strlen(urlPreSuffix)==0 && strlen(urlSuffix)>0) { /* ip_client */
++      // satfile operation
++      // Look up the media subsession whose track id is "urlSuffix":
++      ServerMediaSubsessionIterator iter(*fOurServerMediaSession);
++      while ((subsession = iter.next()) != NULL)
++      {
++          if (strcmp(subsession->infoSDPString(), urlSuffix) == 0) break; // success
++      }
++      if (subsession == NULL) { // no such track!
++          ourClientConnection->handleCmd_notFound();
++          return;
++      }
+   } else { // the request doesn't match a known stream and/or track at all!
+     ourClientConnection->handleCmd_notFound();
+     return;
+   }
+ 
+   if (strcmp(cmdName, "TEARDOWN") == 0) {
+-    handleCmd_TEARDOWN(ourClientConnection, subsession);
++    handleCmd_TEARDOWN(ourClientConnection, subsession, fullRequestStr );
+   } else if (strcmp(cmdName, "PLAY") == 0) {
+     handleCmd_PLAY(ourClientConnection, subsession, fullRequestStr);
+   } else if (strcmp(cmdName, "PAUSE") == 0) {
+@@ -1487,8 +1670,21 @@
+ 
+ void RTSPServer::RTSPClientSession
+ ::handleCmd_TEARDOWN(RTSPServer::RTSPClientConnection* ourClientConnection,
+-		     ServerMediaSubsession* subsession) {
++		     ServerMediaSubsession* subsession, char const* fullRequestStr) {
+   unsigned i;
++
++#ifdef DEBUG
++  fprintf(stderr,"%s: request(%s); fIpStreamerCtx (%x)\n", __FUNCTION__, fullRequestStr, (unsigned int) fIpStreamerCtx );
++#endif
++  /* CAD/BRCM if we are streaming a live satellite feed ... (TEARDOWN brcmsat.709238.ts RTSP/1.0 */
++  if (fOurServer.fDvbsControlFunc != NULL && ( strstr(fullRequestStr, "brcmsat") || strstr(fullRequestStr, "msys=") ) ) {
++    long int rc=0;
++
++    fflush(stdout);
++    fflush(stderr);
++    rc = (long int) (*(fOurServer.fDvbsControlFunc))(fOurServer.fGlobalCtx, RTSP_CMD_SATFILE_CLOSE, formatRemoteFilename ( (long unsigned int) fIpStreamerCtx ) );
++  }
++
+   for (i = 0; i < fNumStreamStates; ++i) {
+     if (subsession == NULL /* means: aggregated operation */
+ 	|| subsession == fStreamStates[i].subsession) {
+@@ -1540,8 +1736,12 @@
+ void RTSPServer::RTSPClientSession
+ ::handleCmd_PLAY(RTSPServer::RTSPClientConnection* ourClientConnection,
+ 		 ServerMediaSubsession* subsession, char const* fullRequestStr) {
++#ifdef DEBUG
++    fprintf( stderr, "%s: fullRequestStr (%s)\n", __FUNCTION__, fullRequestStr ); fflush(stdout);
++#endif
+   char* rtspURL = fOurServer.rtspURL(fOurServerMediaSession, ourClientConnection->fClientInputSocket);
+   unsigned rtspURLSize = strlen(rtspURL);
++  char cseq[RTSP_PARAM_STRING_MAX];
+ 
+   // Parse the client's "Scale:" header, if any:
+   float scale;
+@@ -1686,11 +1886,33 @@
+       unsigned short rtpSeqNum = 0;
+       unsigned rtpTimestamp = 0;
+       if (fStreamStates[i].subsession == NULL) continue;
++
++      /* CAD/BRCM if we are streaming a live satellite feed */
++      if (fOurServer.fDvbsControlFunc != NULL && ( strncmp(&fullRequestStr[5], "brcmsat", 7)==0 || strstr(&fullRequestStr[5], "msys=") ) ) {
++          long int rc=0;
++          struct timeval timestamp;
++
++          fflush(stdout);
++          fflush(stderr);
++          rc = (long int) (*(fOurServer.fDvbsControlFunc))(fOurServer.fGlobalCtx, RTSP_CMD_SATFILE_PLAY, formatRemoteFilename ( (unsigned long int) fIpStreamerCtx ) );
++          if (rc < 0) {
++#ifdef DEBUG
++              fprintf( stderr, "%s: RTSP_CMD_SATFILE_PLAY failed to tune\n", __FUNCTION__ );
++#endif
++              ourClientConnection->handleCmd_notFound();
++              return;
++          }
++          gettimeofday(&timestamp, NULL);
++          sscanf ( cseq, "%hu", &rtpSeqNum);
++          rtpTimestamp = timestamp.tv_sec;
++      }
++      else {
+       fStreamStates[i].subsession->startStream(fOurSessionId,
+ 					       fStreamStates[i].streamToken,
+ 					       (TaskFunc*)noteClientLiveness, this,
+ 					       rtpSeqNum, rtpTimestamp,
+ 					       RTSPServer::RTSPClientConnection::handleAlternativeRequestByte, ourClientConnection);
++      }
+       const char *urlSuffix = fStreamStates[i].subsession->trackId();
+       char* prevRTPInfo = rtpInfo;
+       unsigned rtpInfoSize = rtpInfoFmtSize
+@@ -1724,11 +1946,11 @@
+   snprintf((char*)ourClientConnection->fResponseBuffer, sizeof ourClientConnection->fResponseBuffer,
+ 	   "RTSP/1.0 200 OK\r\n"
+ 	   "CSeq: %s\r\n"
+-	   "%s"
+-	   "%s"
+-	   "%s"
++	   "%s" /* date */
++	   "%s" /* scale */
++	   "%s" /* range */
+ 	   "Session: %08X\r\n"
+-	   "%s\r\n",
++	   "%s\r\n", /* rtp info */
+ 	   ourClientConnection->fCurrentCSeq,
+ 	   dateHeader(),
+ 	   scaleHeader,
+@@ -1836,6 +2058,111 @@
+ }
+ 
+ 
++ServerMediaSession * RTSPServer::RTSPClientSession ::lookupServerMediaSessionByInfoSDPString ( char const * streamName ) {
++    HashTable::Iterator* iter = HashTable::Iterator::create(*fOurServer.fServerMediaSessions);
++    ServerMediaSession* serverMediaSession;
++    char const* key; // dummy
++
++    while ((serverMediaSession = (ServerMediaSession*)(iter->next(key))) != NULL) {
++      if (serverMediaSession)
++      {
++          if (strcmp(serverMediaSession->sInfoSDPString(), streamName) == 0)
++          {
++            break;
++          }
++      }
++    }
++    delete iter;
++
++    // if something was found in the loop
++    if (serverMediaSession)
++    {
++      char const* msys="http://10.14.236.133:554/?src=1&pos=1&msys=dvb&mtype=qpsk&freq=11607&pol=1&abc=def&ghi=jfk/track1 RTSP 1.0/OK";
++      // lookupServerMediaSessionByInfoSDPString: len1 (19); len2 (24); len3 (18)
++      // handleCmd_SETUP: lookupServerMediaSessionByInfoSDPString (mpeg2TransportStreamTest)
++      char * pos1;
++      char * pos2;
++      pos1=strstr(msys, "/?");
++      pos2=strstr(msys,"/track1");
++      if (pos1)
++      {
++        if(pos2==NULL)
++        {
++          pos2=strstr(msys," ");
++        }
++        if(pos2)
++        {
++          char * newstring=NULL;
++          unsigned int len1 = pos1 - msys;
++          unsigned int len2 = strlen(serverMediaSession->sInfoSDPString());
++          unsigned int len3 = strlen(pos2);
++          newstring = (char*) malloc ( len1 + 1 + len2 + len3 + 1);
++          if (newstring)
++          {
++            memset(newstring, 0, len1 + 1 + len2 + len3 + 1);
++            strncpy(newstring, msys, len1+1);
++            strcat(newstring, serverMediaSession->sInfoSDPString());
++            strcat(newstring, pos2);
++            free(newstring);
++          }
++        }
++      }
++      return serverMediaSession;
++    }
++
++    return NULL;
++}
++
++char * RTSPServer::RTSPClientSession:: getShortFileName ( const char * streamName )
++{
++  char const* key; // dummy
++  char * matchName = NULL;
++
++  if (strstr(streamName, "msys=")) {
++	  HashTable::Iterator* iter2 = HashTable::Iterator::create(*fOurServer.fServerMediaSessions);
++	  ServerMediaSession* serverMediaSession;
++	  while ((serverMediaSession = (ServerMediaSession*)(iter2->next(key))) != NULL) {
++		if (serverMediaSession)
++		{
++          if ( strcmp(streamName, serverMediaSession->sInfoSDPString()) == 0 ) {
++            matchName = (char*) serverMediaSession->streamName();
++            break;
++          }
++		}
++	  }
++	  delete iter2;
++  } else {
++      matchName = (char*) streamName;
++  }
++
++  return matchName;
++}
++
++char * RTSPServer::RTSPClientConnection:: getShortFileName ( const char * streamName )
++{
++  char const* key; // dummy
++  char * matchName = NULL;
++
++  if (strstr(streamName, "msys=")) {
++	  HashTable::Iterator* iter2 = HashTable::Iterator::create(*fOurServer.fServerMediaSessions);
++	  ServerMediaSession* serverMediaSession;
++	  while ((serverMediaSession = (ServerMediaSession*)(iter2->next(key))) != NULL) {
++		if (serverMediaSession)
++		{
++          if ( strcmp(streamName, serverMediaSession->sInfoSDPString()) == 0 ) {
++            matchName = (char*) serverMediaSession->streamName();
++            break;
++          }
++		}
++	  }
++	  delete iter2;
++  } else {
++      matchName = (char*) streamName;
++  }
++
++  return matchName;
++}
++
+ ////////// UserAuthenticationDatabase implementation //////////
+ 
+ UserAuthenticationDatabase::UserAuthenticationDatabase(char const* realm,
+@@ -1870,3 +2197,232 @@
+ char const* UserAuthenticationDatabase::lookupPassword(char const* username) {
+   return (char const*)(fTable->Lookup(username));
+ }
++#if 0
++/* ******************************************************************************************************
++*                                                                                                       *
++*   DumpBuffer - dumps the specified buffer in hex and ascii                                            *
++*                                                                                                       *
++********************************************************************************************************/
++static int DumpBuffer ( const char * funccaller, const unsigned char * buffer, unsigned int bufferlen)
++{
++	char line[256];
++	char nibble[3];
++	unsigned int idx=0;
++	unsigned char * pos = (unsigned char*) buffer;
++	memset(line, 0, sizeof line);
++	for (idx=0; idx<bufferlen;idx++) {
++		sprintf(nibble,"%02x", pos[idx] );
++		nibble[2] = '\0';
++		if ( (strlen(line) + strlen(nibble)  + 1) < sizeof(line) ) {
++            strcat(line, nibble);
++		}
++        /* add a space after every two bytes */
++		if (idx%2==1) {
++            strcat(line, " ");
++		}
++	}
++	fprintf(stderr, "%s: (%s)\n", funccaller, line );
++
++    return 0;
++}
++#else
++/* defined in MPEG2TransportFileServerMediaSubsession.cpp */
++int DumpBuffer ( const char * funccaller, const unsigned char * buffer, unsigned int bufferlen);
++#endif
++
++/*
++    Create a new socket descriptor and bind it to the global ethernet interface (eth0 or eth1 or eth2)
++*/
++int NewSocketAndBindToIf (  const char * interfaceName )
++{
++	int rc=0;
++	int streamingFd = 0;
++    struct ifreq ifr;
++
++	if ( (streamingFd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
++		/* Socket Create Error */
++		perror("Socket Open Err");
++		return streamingFd;
++	}
++#ifdef DEBUG
++	fprintf(stderr, "%s: new DGRAM socket to stream content on %d using (%s)\n", __FUNCTION__, streamingFd, interfaceName );
++#endif
++	memset(&ifr, 0, sizeof(ifr));
++	strncpy(ifr.ifr_name, interfaceName, sizeof(ifr.ifr_name)-1);
++	if ( (rc=setsockopt(streamingFd, SOL_SOCKET, SO_BINDTODEVICE, (void *)&ifr, sizeof(ifr) )) < 0 ) {
++		perror("SO_BINDTODEVICE");
++		return rc;
++	}
++
++	return streamingFd;
++}
++
++static void announceStream(RTSPServer* rtspServer, ServerMediaSession* sms,
++                           char const* streamName, char const* inputFileName); // fwd
++static void play( void ); // forward
++static void afterPlaying(void* clientData); // forward
++
++static void announceStream(RTSPServer* rtspServer, ServerMediaSession* sms,
++                           char const* streamName, char const* inputFileName)
++{
++    ((void)streamName); // UNUSED
++    ((void)inputFileName); // UNUSED
++    char* url = rtspServer->rtspURL(sms);
++#ifdef DEBUG
++    fprintf(stderr, "Announcing ... Browser name streamName \"%s\" associated with inputFileName \"%s\"\n", streamName, inputFileName);
++    fprintf(stderr, "Announcing ... Play this stream using URL \"%s\"\n", url );
++#endif
++    delete[] url;
++}
++
++
++static unsigned const VOB_AUDIO = 1<<0;
++static unsigned const VOB_VIDEO = 1<<1;
++static unsigned mediaToStream = VOB_AUDIO|VOB_VIDEO; // by default
++static UsageEnvironment* env = NULL;
++static MPEG1or2Demux* mpegDemux;
++static AC3AudioStreamFramer* audioSource = NULL;
++static FramedSource* videoSource = NULL;
++static RTPSink* audioSink = NULL;
++static RTPSink* videoSink = NULL;
++static Boolean iFramesOnly = False;
++static char const* InputFileName = "gilmour0_pcm24.vob";
++
++static void play( void )
++{
++    // Open the current input file as a 'byte-stream file source':
++    ByteStreamFileSource* fileSource = ByteStreamFileSource::createNew(*env, InputFileName );
++    if (fileSource == NULL)
++    {
++        *env << "Unable to open file \"" << *InputFileName << "\" as a byte-stream file source\n";
++        return;
++    }
++
++    // We must demultiplex Audio and Video Elementary Streams
++    // from the input source:
++    mpegDemux = MPEG1or2Demux::createNew(*env, fileSource);
++    if (mediaToStream&VOB_AUDIO)
++    {
++        FramedSource* audioES = mpegDemux->newElementaryStream(0xBD);
++        // Because, in a VOB file, the AC3 audio has stream id 0xBD
++        audioSource
++        = AC3AudioStreamFramer::createNew(*env, audioES, 0x80);
++    }
++    if (mediaToStream&VOB_VIDEO)
++    {
++        FramedSource* videoES = mpegDemux->newVideoStream();
++
++        videoSource
++        = MPEG1or2VideoStreamFramer::createNew(*env, videoES, iFramesOnly);
++    }
++
++    // Finally, start playing each sink.
++    *env << "Beginning to read from \"" << InputFileName << "\"...\n";
++    if (videoSink != NULL)
++    {
++        videoSink->startPlaying(*videoSource, afterPlaying, videoSink);
++    }
++    if (audioSink != NULL)
++    {
++        audioSink->setRTPTimestampFrequency(audioSource->samplingRate());
++        audioSink->startPlaying(*audioSource, afterPlaying, audioSink);
++    }
++}
++
++static void afterPlaying(void* clientData)
++{
++    ((void)clientData); // UNUSED
++    // One of the sinks has ended playing.
++    // Check whether any of the sources have a pending read.  If so,
++    // wait until its sink ends playing also:
++    if ( ( audioSource != NULL && audioSource->isCurrentlyAwaitingData())
++         || (videoSource != NULL && videoSource->isCurrentlyAwaitingData() ) )
++    {
++        return;
++    }
++
++    // Now that both sinks have ended, close both input sources,
++    // and start playing again:
++    *env << "...done reading from file\n";
++
++    if (audioSink != NULL) audioSink->stopPlaying();
++    if (videoSink != NULL) videoSink->stopPlaying();
++    // ensures that both are shut down
++    Medium::close(audioSource);
++    Medium::close(videoSource);
++    Medium::close(mpegDemux);
++    // Note: This also closes the input file that this source read from.
++
++    // Start playing once again:
++    play();
++}
++
++/* ******************************************************************************************************
++   // CAD/BRCM 20121031 - Added to support RTSP in ip_streamer
++********************************************************************************************************/
++ServerMediaSession * AddRtspStream ( char const* streamName, char const* inputFileName, char const* descriptionString,
++                                     RTSPServer* rtspServer )
++{
++    // To make the second and subsequent client for each stream reuse the same input stream as the first
++    // client (rather than playing the file from the start for each client), change "False" to "True":
++    Boolean reuseFirstSource = True /*CAD was True*/;
++  ServerMediaSession * sms = NULL;
++
++    sms = ServerMediaSession::createNew(*env, streamName, inputFileName,  descriptionString);
++    if ( strstr(inputFileName,".ts") || strstr(inputFileName,".TS") || strstr(inputFileName,"msys=") )
++    {
++        sms->addSubsession(MPEG2TransportFileServerMediaSubsession ::createNew(*env,  inputFileName/*streamName */,  NULL/*indexfile*/, reuseFirstSource));
++        sms->setIpStreamerGlobalCtx ( (unsigned long int*) rtspServer->fGlobalCtx );
++        sms->fIpStreamerControlFunc = rtspServer->fDvbsControlFunc ;
++    }
++    rtspServer->addServerMediaSession(sms);
++
++    announceStream(rtspServer, sms, streamName, inputFileName);
++
++    return sms;
++}
++/* ******************************************************************************************************
++   // CAD/BRCM 20121031 - Added to support RTSP in ip_streamer
++********************************************************************************************************/
++extern "C" int RTSPServerStart ( unsigned short const Port, void* GlobalCtx, tDvbsControlFunc lDvbsControlFunc )
++{
++#ifdef DEBUG
++    char const* const libName = "LIVE555 Streaming Media v";
++    char const* const libVersionStr = LIVEMEDIA_LIBRARY_VERSION_STRING;
++    char const* descriptionString = "Session streamed by \"ip_streamer\"";
++    fprintf(stderr,"%s: Using Port %d with ... %s%s; GlobalCtx (%p)\n", __FUNCTION__, Port, libName, libVersionStr, GlobalCtx );
++#endif
++
++    // Begin by setting up our usage environment:
++    TaskScheduler* scheduler = BasicTaskScheduler::createNew();
++    env = BasicUsageEnvironment::createNew(*scheduler);
++
++    // Create the RTSP server:
++    RTSPServer* rtspServer = RTSPServer::createNew(*env, Port, NULL/* authDB*/, 45 /*keepAlive timeout*/);
++    if (rtspServer == NULL)
++    {
++        *env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
++        exit(1);
++    }
++
++    rtspServer->fGlobalCtx = GlobalCtx;
++    rtspServer->fDvbsControlFunc = lDvbsControlFunc;
++
++    // Set up each of the possible streams that can be served by the RTSP server.  Each such stream is
++    // implemented using a "ServerMediaSession" object, plus one or more "ServerMediaSubsession" 
++    // objects for each audio/video substream.
++
++#ifdef DEBUG
++    // A MPEG-2 Transport Stream:
++    AddRtspStream ( "mpeg2ts", "test.ts", descriptionString, rtspServer );
++#endif
++
++    env->taskScheduler().doEventLoop(); // does not return
++
++    return 0; // only to prevent compiler warning
++}
++
++const char * LiveMediaGetVersion ( void )
++{
++    return LIVEMEDIA_LIBRARY_VERSION_STRING;
++}
+diff -ru live.2013.03.07/liveMedia/ServerMediaSession.cpp live/liveMedia/ServerMediaSession.cpp
+--- live.2013.03.07/liveMedia/ServerMediaSession.cpp	2013-03-07 22:57:30.000000000 +0000
++++ live/liveMedia/ServerMediaSession.cpp	2013-12-09 15:17:28.900894237 +0000
+@@ -89,6 +89,10 @@
+ 
+ Boolean
+ ServerMediaSession::addSubsession(ServerMediaSubsession* subsession) {
++    if (subsession == NULL) {
++      return false;
++    }
++
+   if (subsession->fParentSession != NULL) return False; // it's already used
+ 
+   if (fSubsessionsTail == NULL) {
+@@ -228,10 +232,14 @@
+     // causes correct subsession 'duration()'s to be calculated later.)
+     unsigned sdpLength = 0;
+     ServerMediaSubsession* subsession;
+-    for (subsession = fSubsessionsHead; subsession != NULL;
+-	 subsession = subsession->fNext) {
+-      char const* sdpLines = subsession->sdpLines();
+-      if (sdpLines == NULL) continue; // the media's not available
++    for (subsession = fSubsessionsHead; subsession != NULL; subsession = subsession->fNext) {
++      char const* sdpLines = NULL;
++      if ( sInfoSDPString() == NULL ) {
++        sdpLines = subsession->sdpLines();
++      } else {
++        sdpLines = subsession->sdpLines( streamName() );
++	  }
++      if (sdpLines == NULL) break; // the media's not available
+       sdpLength += strlen(sdpLines);
+     }
+     if (sdpLength == 0) break; // the session has no usable subsessions
+@@ -437,3 +445,9 @@
+     return strDup(buf);
+   }
+ }
++
++char const*
++ServerMediaSubsession::infoSDPString() const {
++  if (fParentSession == NULL) return NULL;
++  return fParentSession->sInfoSDPString();
++}
+diff -ru live.2013.03.07/Makefile live/Makefile
+--- live.2013.03.07/Makefile	2013-12-09 15:20:00.888653375 +0000
++++ live/Makefile	2013-12-09 15:24:21.443100868 +0000
+@@ -36,13 +36,12 @@
+ DESTDIR = ../../../../../../nexus/bin
+ # LIBDIR is used if you want the libraries to be in a subdirectory ... like /usr/local/lib
+ LIBDIR = 
+-PREFIX = 
+ 
+ B_REFSW_ARCH ?= mipsel-uclibc
+-ifeq ($(filter ${B_REFSW_ARCH}, mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
+-CROSS_COMPILE ?= mips-linux-uclibc-
++ifeq ($(filter ${B_REFSW_ARCH}, arm-linux mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
++CROSS_COMPILE ?= $(B_REFSW_ARCH)-
+ else
+-CROSS_COMPILE ?= mipsel-linux-uclibc-
++CROSS_COMPILE ?= mipsel-linux-
+ endif
+ 
+ COMPILE_OPTS =		$(INCLUDES) -I. -DSOCKLEN_T=socklen_t -DNO_STRSTREAM=1 -DNO_SSTREAM=1 $(B_REFSW_CFLAGS) -O2 -DXLOCALE_NOT_USED=1 -fPIC
+diff -ru live.2013.03.07/mediaServer/Makefile live/mediaServer/Makefile
+--- live.2013.03.07/mediaServer/Makefile	2013-12-09 15:20:00.880653210 +0000
++++ live/mediaServer/Makefile	2013-12-09 15:23:33.989926252 +0000
+@@ -42,13 +42,12 @@
+ DESTDIR = ../../../../../../nexus/bin
+ # LIBDIR is used if you want the libraries to be in a subdirectory ... like /usr/local/lib
+ LIBDIR = 
+-PREFIX = 
+ 
+ B_REFSW_ARCH ?= mipsel-uclibc
+-ifeq ($(filter ${B_REFSW_ARCH}, mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
+-CROSS_COMPILE ?= mips-linux-uclibc-
++ifeq ($(filter ${B_REFSW_ARCH}, arm-linux mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
++CROSS_COMPILE ?= $(B_REFSW_ARCH)-
+ else
+-CROSS_COMPILE ?= mipsel-linux-uclibc-
++CROSS_COMPILE ?= mipsel-linux-
+ endif
+ 
+ COMPILE_OPTS =		$(INCLUDES) -I. -DSOCKLEN_T=socklen_t -DNO_STRSTREAM=1 -DNO_SSTREAM=1 $(B_REFSW_CFLAGS) -O2 -DXLOCALE_NOT_USED=1 -fPIC
+@@ -79,7 +78,7 @@
+ 
+ MEDIA_SERVER = live555MediaServer$(EXE)
+ 
+-PREFIX = /usr/local
++
+ ALL = $(MEDIA_SERVER)
+ all: $(ALL)
+ 
+diff -ru live.2013.03.07/proxyServer/Makefile live/proxyServer/Makefile
+--- live.2013.03.07/proxyServer/Makefile	2013-12-09 15:20:00.884653262 +0000
++++ live/proxyServer/Makefile	2013-12-09 15:23:48.246278954 +0000
+@@ -42,13 +42,12 @@
+ DESTDIR = ../../../../../../nexus/bin
+ # LIBDIR is used if you want the libraries to be in a subdirectory ... like /usr/local/lib
+ LIBDIR = 
+-PREFIX = 
+ 
+ B_REFSW_ARCH ?= mipsel-uclibc
+-ifeq ($(filter ${B_REFSW_ARCH}, mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
+-CROSS_COMPILE ?= mips-linux-uclibc-
++ifeq ($(filter ${B_REFSW_ARCH}, arm-linux mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
++CROSS_COMPILE ?= $(B_REFSW_ARCH)-
+ else
+-CROSS_COMPILE ?= mipsel-linux-uclibc-
++CROSS_COMPILE ?= mipsel-linux-
+ endif
+ 
+ COMPILE_OPTS =		$(INCLUDES) -I. -DSOCKLEN_T=socklen_t -DNO_STRSTREAM=1 -DNO_SSTREAM=1 $(B_REFSW_CFLAGS) -O2 -DXLOCALE_NOT_USED=1 -fPIC
+@@ -79,7 +78,7 @@
+ 
+ PROXY_SERVER = live555ProxyServer$(EXE)
+ 
+-PREFIX = /usr/local
++
+ ALL = $(PROXY_SERVER)
+ all: $(ALL)
+ 
+diff -ru live.2013.03.07/testProgs/Makefile live/testProgs/Makefile
+--- live.2013.03.07/testProgs/Makefile	2013-12-09 15:20:00.876653199 +0000
++++ live/testProgs/Makefile	2013-12-09 15:24:05.834714544 +0000
+@@ -42,13 +42,12 @@
+ DESTDIR = ../../../../../../nexus/bin
+ # LIBDIR is used if you want the libraries to be in a subdirectory ... like /usr/local/lib
+ LIBDIR = 
+-PREFIX = 
+ 
+ B_REFSW_ARCH ?= mipsel-uclibc
+-ifeq ($(filter ${B_REFSW_ARCH}, mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
+-CROSS_COMPILE ?= mips-linux-uclibc-
++ifeq ($(filter ${B_REFSW_ARCH}, arm-linux mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
++CROSS_COMPILE ?= $(B_REFSW_ARCH)-
+ else
+-CROSS_COMPILE ?= mipsel-linux-uclibc-
++CROSS_COMPILE ?= mipsel-linux-
+ endif
+ 
+ COMPILE_OPTS =		$(INCLUDES) -I. -DSOCKLEN_T=socklen_t -DNO_STRSTREAM=1 -DNO_SSTREAM=1 $(B_REFSW_CFLAGS) -O2 -DXLOCALE_NOT_USED=1 -fPIC
+@@ -88,7 +87,7 @@
+ 
+ MISC_APPS = testMPEG1or2Splitter$(EXE) testMPEG1or2ProgramToTransportStream$(EXE) testH264VideoToTransportStream$(EXE) MPEG2TransportStreamIndexer$(EXE) testMPEG2TransportStreamTrickPlay$(EXE)
+ 
+-PREFIX = /usr/local
++
+ ALL = $(MULTICAST_APPS) $(UNICAST_APPS) $(MISC_APPS)
+ all: $(ALL)
+ 
+diff -ru live.2013.03.07/UsageEnvironment/Makefile live/UsageEnvironment/Makefile
+--- live.2013.03.07/UsageEnvironment/Makefile	2013-12-09 15:20:00.864652999 +0000
++++ live/UsageEnvironment/Makefile	2013-12-09 15:17:28.900894237 +0000
+@@ -1,6 +1,6 @@
+ INCLUDES = -Iinclude -I../groupsock/include
+-PREFIX = /usr/local
+-LIBDIR = $(PREFIX)/lib
++
++
+ ##### Change the following for your environment:
+ # 'CURRENT':'REVISION':'AGE' are updated - whenever a library changes - as follows:
+ # The library code changes, but without any changes to the API (i.e., interfaces) => increment REVISION
+@@ -39,13 +39,12 @@
+ DESTDIR = ../../../../../../nexus/bin
+ # LIBDIR is used if you want the libraries to be in a subdirectory ... like /usr/local/lib
+ LIBDIR = 
+-PREFIX = 
+ 
+ B_REFSW_ARCH ?= mipsel-uclibc
+-ifeq ($(filter ${B_REFSW_ARCH}, mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
+-CROSS_COMPILE ?= mips-linux-uclibc-
++ifeq ($(filter ${B_REFSW_ARCH}, arm-linux mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
++CROSS_COMPILE ?= $(B_REFSW_ARCH)-
+ else
+-CROSS_COMPILE ?= mipsel-linux-uclibc-
++CROSS_COMPILE ?= mipsel-linux-
+ endif
+ 
+ COMPILE_OPTS =		$(INCLUDES) -I. -DSOCKLEN_T=socklen_t -DNO_STRSTREAM=1 -DNO_SSTREAM=1 $(B_REFSW_CFLAGS) -O2 -DXLOCALE_NOT_USED=1 -fPIC
+@@ -58,20 +57,15 @@
+ CPLUSPLUS_FLAGS =	$(COMPILE_OPTS) -Wall -DBSD=1 -fexceptions $(CPPFLAGS) $(CXXFLAGS)
+ OBJ =			o
+ LINK =			$(B_REFSW_CROSS_COMPILE)c++ -o
+-LINK_OPTS =		-L. $(LDFLAGS) $(ANDROID_LDFLAGS)
++LINK_OPTS =		-L.
+ CONSOLE_LINK_OPTS =	$(LINK_OPTS)
+-LIBRARY_LINK =		$(B_REFSW_CROSS_COMPILE)gcc -o 
+-SHORT_LIB_SUFFIX =	so.$(shell expr $($(NAME)_VERSION_CURRENT) - $($(NAME)_VERSION_AGE))
+-LIB_SUFFIX =	 	$(SHORT_LIB_SUFFIX).$($(NAME)_VERSION_AGE).$($(NAME)_VERSION_REVISION)
+-LIBRARY_LINK_OPTS =	-shared $(LDFLAGS) -nostdlib -Wl,--no-undefined,--gc-sections -L$(ANDROID_LIB) \
+-                    $(ANDROID_LIB)/crtbegin_so.o $(ANDROID_LIB)/crtend_so.o \
+-                    -Wl,--no-whole-archive -Wl,-dy,-ldl,-lstdc++,-lcutils,-lc,-lm \
+-                    -Wl,--whole-archive -Wl,-lgcc,-lsupc++
+-
++LIBRARY_LINK =		$(B_REFSW_CROSS_COMPILE)ld -o
++LIBRARY_LINK_OPTS =	$(LINK_OPTS) -r -Bstatic
++LIB_SUFFIX =			a
+ LIBS_FOR_CONSOLE_APPLICATION =
+ LIBS_FOR_GUI_APPLICATION =
+ EXE =
+-INSTALL2 =		install_shared_libraries
++
+ ##### End of variables to change
+ 
+ NAME = libUsageEnvironment
+@@ -105,7 +99,7 @@
+ 	  install -m 644 include/*.hh $(DESTDIR)$(PREFIX)/include/UsageEnvironment
+ 	  install -m 644 $(USAGE_ENVIRONMENT_LIB) $(DESTDIR)$(LIBDIR)
+ install_shared_libraries: $(USAGE_ENVIRONMENT_LIB)
+-	  ln -s $(NAME).$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/$(NAME).$(SHORT_LIB_SUFFIX)
+-	  ln -s $(NAME).$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/$(NAME).so
++	  ln -fs $(NAME).$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/$(NAME).$(SHORT_LIB_SUFFIX)
++	  ln -fs $(NAME).$(LIB_SUFFIX) $(DESTDIR)$(LIBDIR)/$(NAME).so
+ 
+ ##### Any additional, platform-specific rules come here:

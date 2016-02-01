@@ -1,0 +1,112 @@
+############################################################################
+#     Copyright (c) 2009-2011, Broadcom Corporation
+#     All Rights Reserved
+#     Confidential Property of Broadcom Corporation
+#
+#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
+#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
+#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+#
+# $brcm_Workfile: $
+# $brcm_Revision: $
+# $brcm_Date: $
+#
+# Module Description:
+#
+# Revision History:
+#
+# $brcm_Log: $
+# 
+###########################################################################
+include ../../../api/build/tools.mak
+MAGNUM = $(BSEAV)/../magnum
+BSEAV = $(shell cd "../../.." && ${PWD})
+
+APP = profile
+CFLAGS += -W -Wall
+CFLAGS += -fstrict-aliasing -frename-registers
+CFLAGS += -Os  -Winline
+OPTIMIZER_LEVEL = s
+SRCS += profile_app.c profile_idct.c profile_extra.c
+SRCS += bunit_alu.c
+#SRCS += bunit_fpu.c
+
+CFLAGS += -I.. 
+#CFLAGS += -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE -DBDBG_DEBUG_BUILD=1
+#CFLAGS += ${CFLAGS_BPROFILE} 
+#CFLAGS += -DBCHP_CHIP=7405
+CFLAGS += -DBCHP_CHIP=7425 -DBCHP_VER=BCHP_VER_A0
+CFLAGS += ${OTHER_CFLAGS}
+
+
+include $(BSEAV)/build/refsw_inc.mak
+
+ifeq ($(SYSTEM),linuxkernel)
+ifeq ($(filter ${B_REFSW_ARCH}, mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
+B_REFSW_TOOLCHAIN_ARCH=mips-linux
+else
+B_REFSW_TOOLCHAIN_ARCH=mipsel-linux
+endif
+STD_INC ?= $(B_REFSW_TOOLCHAIN_DIR)/$(B_REFSW_TOOLCHAIN_ARCH)/include
+GCC_BASE ?= $(shell (test -d $(B_REFSW_TOOLCHAIN_DIR)/lib/gcc-lib && echo $(B_REFSW_TOOLCHAIN_DIR)/lib/gcc-lib/$(B_REFSW_TOOLCHAIN_ARCH)) || echo $(B_REFSW_TOOLCHAIN_DIR)/lib/gcc/$(B_REFSW_TOOLCHAIN_ARCH))
+GCC_VER ?= $(shell (ls $(GCC_BASE)))
+GCC_INC ?= $(GCC_BASE)/$(GCC_VER)/include
+else
+CFLAGS += -I${BSEAV}/linux/driver/usermode
+endif
+
+
+
+ODIR = $(B_REFSW_ARCH).$(DEBUG_SUFFIX)
+
+include $(MAGNUM)/basemodules/kni/bkni.inc
+include $(MAGNUM)/basemodules/dbg/bdbg.inc
+include ../bprofile.inc
+
+CFLAGS += $(B_REFSW_CFLAGS) $(B_REFSW_MAGNUM_INCLUDE_DIRS)
+CFLAGS += ${B_REFSW_C_ONLY_FLAGS} ${B_REFSW_LINUXKERNEL_CFLAGS}
+
+MODULES += BTRC 
+#MODULES += B_PROFILE_UNIT
+#MODULES += BPROFILE
+MODULES += ${MAGNUM_MODULES}
+
+CFLAGS += $(addprefix -I, $(foreach module, $(MODULES), $($(module)_INCLUDES)))
+CFLAGS += $(addprefix -D, $(foreach module, $(MODULES), $($(module)_DEFINES)))
+MODULE_SRC += $(notdir $(foreach module, $(MODULES), $($(module)_SOURCES)))
+OBJS = $(MODULE_SRC:%.c=${ODIR}/%.o)
+ifeq ($(SYSTEM),linuxkernel)
+SRCS += driver.mod.c
+BKNI_SOURCES += $(MAGNUM)/basemodules/kni/$(B_REFSW_OS)/bkni.c
+endif
+vpath %.c $(dir $(foreach module, $(MODULES), $($(module)_SOURCES)))
+
+ifeq (${B_REFSW_OS},linuxuser)
+LDFLAGS += -lpthread
+endif
+LDFLAGS += ${B_REFSW_LDFLAGS} ${EXTRA_LDFLAGS}
+
+
+#last include std
+CFLAGS += -Istd
+
+all: application
+
+include ${BSEAV}/api/build/rules.mak
+
+
+test: application
+	${APP_IMAGE}  ${ARG}
+
+debug: application
+	echo "set args ${ARG}" >.gdbinit
+	echo "r" >>.gdbinit
+	gdb ${APP_IMAGE}
+	rm .gdbinit
+
+
+install: application	
+	cp ${APP_IMAGE} ${DESTDIR}
+
+
+

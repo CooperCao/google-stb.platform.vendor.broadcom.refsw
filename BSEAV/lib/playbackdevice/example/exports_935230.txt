@@ -1,0 +1,10 @@
+export PLATFORM=935230
+export BCHP_VER=C0
+export TOOLCHAIN_ROOT=/opt/toolchains/crosstools_hf-linux-2.6.18.0_gcc-4.2-11ts_uclibc-nptl-0.9.29-20070423_20090508/bin
+export DEBUG=y
+export SC_PLATFORM=bcm935230nexus
+export PLAYBACKDEVICE_STAND_ALONE_APPLICATION=y
+export NEXUS_MGR_DIR=/projects/capps/mstoutch/mstoutch_tor_Applibs2.1/vobs/AppLibs/broadcom/playbackdevice
+export NEXUS=/projects/capps/mstoutch/fix_dtv_v3.0_SWDTV-7777/vobs/nexus
+export APPLIBS_TOOLCHAIN_ARCH=mipsel-linux
+export ARCH=mipsel-linux

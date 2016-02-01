@@ -1,0 +1,302 @@
+#/***************************************************************************
+# *     (c)2015 Broadcom Corporation
+# *
+# *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+# *  conditions of a separate, written license agreement executed between you and Broadcom
+# *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+# *  no license (express or implied), right to use, or waiver of any kind with respect to the
+# *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+# *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+# *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+# *
+# *  Except as expressly set forth in the Authorized License,
+# *
+# *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+# *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+# *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+# *
+# *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+# *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+# *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+# *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+# *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+# *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+# *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+# *  USE OR PERFORMANCE OF THE SOFTWARE.
+# *
+# *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+# *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+# *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+# *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+# *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+# *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+# *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+# *  ANY LIMITED REMEDY.
+# *
+# *
+# *
+# * Module Description: Playback application example
+# *
+# * Revision History:
+# *
+# *
+# *
+# **************************************************************************/
+
+NEXUS_PLATFORM ?= $(PLATFORM)
+ifndef NEXUS_PLATFORM
+$(error NEXUS_PLATFORM is not defined)
+endif
+
+ifeq ($(URSR_TOP),)
+URSR_TOP = $(shell pwd)/../../../../..
+$(warning URSR_TOP is not defined. Set it as default: $(URSR_TOP))
+endif
+
+NEXUS_TOP=$(URSR_TOP)/nexus
+BSEAV_TOP=$(URSR_TOP)/BSEAV
+B_REFSW_OBJ_ROOT = $(URSR_TOP)/obj.$(NEXUS_PLATFORM)
+
+ifeq ($(COMMON_DRM_TOP),)
+COMMON_DRM_TOP := $(BSEAV_TOP)/lib/security/common_drm
+$(warning COMMON_DRM_TOP is not defined! Set it as default: $(COMMON_DRM_TOP))
+endif
+
+WIDEVINE_CENC_DIR := $(BSEAV_TOP)/lib/security/third_party/widevine/CENC21
+ifeq ($(B_REFSW_DEBUG),y)
+BUILD_TYPE ?= debug
+FLAGS += -g
+else
+ifeq ($(B_REFSW_DEBUG),)
+BUILD_TYPE ?= debug
+FLAGS += -g
+else
+BUILD_TYPE ?= release
+BUILD_MODE ?= release
+FLAGS += -O2
+endif
+endif
+
+STANDALONE ?= n
+NXCLIENT_SUPPORT ?= y
+USE_CURL ?= y
+PLAYREADY_TEST := y
+
+# include cross-compiler definitions
+include $(NEXUS_TOP)/platforms/common/build/nexus_platforms.inc
+include $(NEXUS_TOP)/platforms/common/build/platform_app.inc
+include $(NEXUS_TOP)/build/nexus_defs.inc
+include $(BSEAV_TOP)/lib/openssl/openssl.inc
+include $(COMMON_DRM_TOP)/lib/prdy_libdir.inc
+include $(COMMON_DRM_TOP)/common_drm.inc
+include $(BSEAV_TOP)/lib/security/bcrypt/bcrypt_libdir.inc
+include $(BSEAV_TOP)/lib/drmrootfs/drmrootfs_libdir.inc
+include $(WIDEVINE_CENC_DIR)/oemcrypto_libdir.inc
+include $(BSEAV_TOP)/lib/security/dif/dif_libdir.inc
+-include $(BSEAV_TOP)/lib/protobuf/protobuf_ver.inc
+ifeq ($(NXCLIENT_SUPPORT),y)
+include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
+endif
+
+# variables for out of source builds
+B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
+B_REFSW_OBJ_ROOT ?= $(abspath ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR})
+DIF_OBJ_ROOT := ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/dif
+
+# set target dir
+OUT_ROOT_DIR := $(DIF_OBJ_ROOT)/examples/bin
+OEMCRYPTO_LIBDIR :=$(WIDEVINE_CENC_DIR)/oemcrypto/$(OEMCRYPTO_LIBDIR)
+WVCDM_LIBDIR :=$(WIDEVINE_CENC_DIR)/cdm/$(WVCDM_LIBDIR)
+
+# Convert include paths into single variable
+NEXUS_APP_INCLUDE_PATHS := $(foreach module, $(NEXUS_MODULES), $(NEXUS_$(module)_PUBLIC_INCLUDES))
+NEXUS_APP_DEFINES := $(foreach module, $(NEXUS_MODULES), $(NEXUS_$(module)_DEFINES))
+NEXUS_APP_DEFINES += $(foreach module, $(NEXUS_MODULES),NEXUS_HAS_$(module))
+
+# Convert magnum includes into the same variable
+NEXUS_APP_INCLUDE_PATHS += $(foreach module, $(MAGNUM_MODULES), $($(module)_INCLUDES))
+NEXUS_APP_DEFINES += $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINES))
+
+CFLAGS += -DPIC -fpic
+CFLAGS += -Wl,--exclude-libs,ALL
+CFLAGS += -Wno-variadic-macros
+ifeq ($(ARCH_DIR),arm)
+CFLAGS += -DARM_PLATFORM
+endif
+CFLAGS += $(B_OPENSSL_CFLAGS)
+
+ifeq ($(NXCLIENT_SUPPORT),y)
+CFLAGS += $(NXCLIENT_CFLAGS)
+endif
+
+CFLAGS += -Wall -fexceptions -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE
+CFLAGS += -D_FILE_OFFSET_BITS=64 -D_REENTRANT -fPIC -DPIC
+CFLAGS += -D_GNU_SOURCE=1
+CFLAGS += $(FLAGS) $(NEXUS_CFLAGS)  $(addprefix -D,$(NEXUS_APP_DEFINES))
+
+CFLAGS += $(COMMON_DRM_CFLAGS)
+
+CFLAGS := $(filter-out -std=c89 -Wstrict-prototypes, $(CFLAGS))
+
+ifeq ($(NXCLIENT_SUPPORT),y)
+PLAYBACK_SRCS := ./playback/playback.cpp
+else
+PLAYBACK_SRCS := ./playback/playback_single.cpp
+endif
+
+DEFINES := $(addprefix -D, $(DEFINES))
+
+INCLUDES += $(addprefix -I, ${NEXUS_APP_INCLUDE_PATHS})
+
+INCLUDES += $(addprefix -I, ${DIF_INCLUDES})
+
+# Filter out all non c/cpp files
+PLAYBACK_SRCS    := $(filter %.c %.cpp, $(PLAYBACK_SRCS))
+
+# Make object files to use as dependencies
+PLAYBACK_OBJS := $(patsubst %.cpp, %.o, $(PLAYBACK_SRCS))
+PLAYBACK_OBJS := $(patsubst %.c, %.o, $(PLAYBACK_OBJS))
+PLAYBACK_OBJS := $(patsubst ./%, $(OUT_ROOT_DIR)/%, $(PLAYBACK_OBJS))
+
+ifeq ($(USE_CURL),y)
+LDFLAGS := -lcurl $(CURL_LDFLAGS)
+endif
+
+ifeq ($(NXCLIENT_SUPPORT),y)
+LDFLAGS += $(NXCLIENT_LDFLAGS)
+endif
+
+LDFLAGS_THIRDPARTY_LIB := $(PROTOBUF_LDFLAGS) $(GTEST_LDFLAGS)
+ifeq ($(SAGE_SUPPORT),y)
+LDFLAGS_OEMCRYPTO_CDM_LIB :=  -lwvcdm -L$(OEMCRYPTO_LIBDIR) -loemcrypto_tl \
+                             -L$(NEXUS_BIN_DIR) -lsrai
+else
+LDFLAGS_OEMCRYPTO_CDM_LIB :=  -lwvcdm -L$(OEMCRYPTO_LIBDIR) -loemcrypto
+endif
+
+LDFLAGS += $(COMMON_DRM_LDFLAGS)
+LDFLAGS += $(B_OPENSSL_LDFLAGS)
+LDFLAGS += $(LDFLAGS_THIRDPARTY_LIB)
+
+LDFLAGS += $(COMMON_DRM_LDFLAGS)
+LDFLAGS += -L$(NEXUS_BIN_DIR) -lnexus
+LDFLAGS += -L$(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR) -lbcrypt \
+            -L$(BSEAV_TOP)/lib/drmrootfs/$(DRMROOTFS_LIBDIR) -ldrmrootfs
+LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm -lcmndrmprdy
+ifeq ($(SAGE_SUPPORT),y)
+LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm_tl
+endif
+PLAYBACK_LDFLAGS += $(LDFLAGS) -L$(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/dif/$(DIF_LIBDIR) -ldif
+
+.PHONY: clean all prep_nexus prep_openssl prep_bcrypt playback_dif copy
+
+.SUFFIXES: .cpp
+
+$(OUT_ROOT_DIR)/%.o: %.cpp
+	@test -d $(OUT_ROOT_DIR) || mkdir -pm 775 $(OUT_ROOT_DIR)
+	@test -d $(@D) || mkdir -pm 775 $(@D)
+	@echo [Compiling $<]
+	${CXX} -c $(FLAGS) $(CFLAGS) $(INCLUDES) $(DEFINES) $< -o $@
+
+all: prep_nexus prep_openssl prep_bcrypt prep_dif playback_dif copy
+
+prep_nexus:
+ifeq ($(NXCLIENT_SUPPORT),y)
+	@if [ ! -e $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/nexus/bin/nxserver ]; then \
+		echo [ building nxclient .... ]; \
+		$(MAKE) -C $(NEXUS_TOP)/nxclient >/dev/null; \
+	fi
+else
+	@if [ ! -e $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/nexus/bin/libnexus.so ]; then \
+		echo [ building nexus .... ]; \
+		$(MAKE) -C $(NEXUS_TOP)/build >/dev/null; \
+	fi
+endif
+
+prep_bcrypt:
+	@echo [..... prep_bcrypt target ]
+	@if [ ! -d $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR) ]; then \
+		echo [ building bcrypt .... ]; \
+		$(MAKE) -C $(BSEAV_TOP)/lib/security/bcrypt install >/dev/null; \
+	fi
+
+prep_openssl:
+	@echo [..... prep_openssl target];
+	@if [ ! -d $(B_OPENSSL_LIB_INSTALL_DIR) ]; then \
+		echo [ building openssl .... ]; \
+		$(MAKE) -C $(B_OPENSSL_BUILD_DIR) install >/dev/null; \
+	fi
+
+
+prep_dif:
+	@echo [..... prep_dif target ]
+	@if [ ! -d $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/BSEAV/lib/security/dif/$(DIF_LIBDIR) ]; then \
+		echo [ building dif .... ]; \
+		$(MAKE) -C $(BSEAV_TOP)/lib/security/dif  >/dev/null; \
+	fi
+	@echo [..... prep_dif target done ]
+
+report:
+	@echo "Reporting ..."
+
+	@echo NEXUS_BIN_DIR = "$(NEXUS_BIN_DIR)"
+	@echo WIDEVINE_CENC_DIR = "$(WIDEVINE_CENC_DIR)"
+	@echo NEXUS_TOP = "$(NEXUS_TOP)"
+	@echo
+	@echo INCLUDES = "$(INCLUDES)"
+	@echo
+	@echo CFLAGS = "$(CFLAGS)"
+	@echo
+	@echo LDFLAGS = "$(LDFLAGS)"
+	@echo
+	@echo bcrypt lib dir is   "$(BCRYPT_LIBDIR)	"
+	@echo drmrootfs lib dir is "$(DRMROOTFS_LIBDIR)"
+	@echo nexus bin dir="$(NEXUS_BIN_DIR)"
+	@echo STAND ALONE TEST = "$(STANDALONE)"
+	@echo NXCLIENT_SUPPORT = "$(NXCLIENT_SUPPORT)"
+	@echo
+	@echo WVCDM_LIBDIR = "$(WVCDM_LIBDIR)"
+	@echo OUT_ROOT_DIR = "$(OUT_ROOT_DIR)"
+	@echo PLAYBACK_OBJS = "$(PLAYBACK_OBJS)"
+	@echo CC = "${CC}"
+	@echo CXX = "${CXX}"
+	@echo ARCH_DIR = "${ARCH_DIR}"
+	@echo B_OPENSSL_CFLAGS = "$(B_OPENSSL_CFLAGS)"
+	@echo B_OPENSSL_LDFLAGS = "$(B_OPENSSL_LDFLAGS)"
+	@echo B_OPENSSL_BUILD_DIR = "$(B_OPENSSL_BUILD_DIR)"
+	@echo B_OPENSSL_LIB_INSTALL_DIR = "$(B_OPENSSL_LIB_INSTALL_DIR)"
+	@echo ...
+
+help:
+	@echo "######################################"
+	@echo " "
+	@echo "First 'export URSR_TOP=<directory to the top of URSR source tree >'"
+	@echo "Then  'make'"
+	@echo " "
+	@echo "######################################"
+
+clean:
+	@echo "Cleaning ..."
+	@rm -rf $(OUT_ROOT_DIR)
+
+playback_dif:  $(PLAYBACK_OBJS)
+	@echo "Building $@ ..."
+	@mkdir -p $(OUT_ROOT_DIR)/final/
+	$(CXX) $(CFLAGS) $(INCLUDES) $(DEFINES) $(PLAYBACK_OBJS) $(PLAYBACK_LDFLAGS) $(CDM_API_LDFLAGS) $(LDFLAGS_OEMCRYPTO_CDM_LIB)  -o $(OUT_ROOT_DIR)/final/$@
+	@cp -rf $(OUT_ROOT_DIR)/final/$@ $(NEXUS_BIN_DIR)
+
+copy: copy-security  copy-openssl
+
+
+copy-security:
+	@echo [Copying DRM rootfs lib version...]
+	@cp -f $(BSEAV_TOP)/lib/drmrootfs/$(DRMROOTFS_LIBDIR)/libdrmrootfs.so $(NEXUS_BIN_DIR)
+	@echo [Copying bcrypt lib version...]
+	@cp -f $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR)/libbcrypt.so $(NEXUS_BIN_DIR)
+
+
+copy-openssl:
+	@echo [Copying openssl libs...]
+	@cp -f $(B_OPENSSL_LIB_INSTALL_DIR)/lib* $(NEXUS_BIN_DIR)

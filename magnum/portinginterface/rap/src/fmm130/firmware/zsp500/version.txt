@@ -1,0 +1,20 @@
+/***************************************************************************
+ *     Copyright (c) 2006-2011, Broadcom Corporation
+ *     All Rights Reserved
+ *     Confidential Property of Broadcom Corporation
+ *
+ 
+
+element * CHECKEDOUT
+element * RAP_7400_RELEASE_7p3_20110817
+element * .../DSP_Raptor_Devel/LATEST
+load /AudioDSP
+
+
+/*PCMWAV 1p0 Release, DSOLA 1p1 Release & AACHEV2 1p2 Release(Nextgen)*/
+element * CHECKEDOUT
+element * RAP_SW7400-2688_20090601
+element * RAP_7400_PCMWAV_Release1p0_20100427
+element * /main/LATEST
+load \NextGenAudio
+

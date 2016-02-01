@@ -1,0 +1,358 @@
+##############################################################################
+#
+# Copyright (c) 2004-2011 Broadcom Corporation
+#
+# This program is the proprietary software of Broadcom Corporation and/or
+# its licensors, and may only be used, duplicated, modified or distributed
+# pursuant to the terms and conditions of a separate, written license
+# agreement executed between you and Broadcom (an "Authorized License").
+# Except as set forth in an Authorized License, Broadcom grants no license
+# (express or implied), right to use, or waiver of any kind with respect to
+# the Software, and Broadcom expressly reserves all rights in and to the
+# Software and all intellectual property rights therein.  IF YOU HAVE NO
+# AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
+# AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
+# SOFTWARE.  
+#
+# Except as expressly set forth in the Authorized License,
+#
+# 1.     This program, including its structure, sequence and organization,
+# constitutes the valuable trade secrets of Broadcom, and you shall use all
+# reasonable efforts to protect the confidentiality thereof, and to use this
+# information only in connection with your use of Broadcom integrated circuit
+# products.
+#
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+# "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+# OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+# RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+# IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+# A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+# ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+# THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+#
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+# OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+# INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+# RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+# HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+# EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+# WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+# FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+#
+##############################################################################
+# defs.bsp - bsp default makefile definitions
+#
+# Based loosely on the Tornado 2.0 defs.bsp and make.RC32364sfgnu
+#
+# DESCRIPTION
+# This file is included into bsp makefiles to define the default makefile
+# definitions.  After the include the Makefile may customize the definitions
+# found here to suit the circumstance.
+#
+# Redefinitions of make variables earlier than the include of this file will
+# have no affect.
+#
+
+ifeq ($(ARM_PLATFORM), yes)
+ifeq ($(LINUX_VERSION), 18)
+#CROSSDEV_ROOT = /opt/toolchains/uclibc
+#CROSS_COMPILE = /opt/toolchains/uclibc/bin/arm-linux
+#CROSSDEV_ROOT = /opt/toolchains/uclibc-crosstools-1.0.0-2.14
+#CROSSDEV_ROOT = $(GCC_BASE)
+#CROSS_COMPILE = $(CROSSDEV_ROOT)/bin/arm-linux
+endif
+ifeq ($(LINUX_VERSION), 5)
+CROSSDEV_ROOT = /opt/toolchains/uclibc
+CROSS_COMPILE = /opt/toolchains/uclibc/bin/arm-linux
+endif
+else
+ifeq ($(LINUX_VERSION), 18)
+#CROSSDEV_ROOT = /opt/toolchains/uclibc
+#CROSS_COMPILE = /opt/toolchains/uclibc/bin/mipsel-uclibc
+#CROSSDEV_ROOT = /opt/toolchains/uclibc-crosstools-1.0.0-2.14
+#CROSSDEV_ROOT = $(GCC_BASE)
+#CROSS_COMPILE = $(CROSSDEV_ROOT)/bin/mipsel-uclibc
+endif
+ifeq ($(LINUX_VERSION), 5)
+CROSSDEV_ROOT = /opt/toolchains/uclibc
+CROSS_COMPILE = /opt/toolchains/uclibc/bin/mipsel-uclibc
+endif
+endif
+
+## default flags
+
+CFLAGS          = $(CC_ARCH_SPEC) \
+                  $(CC_COMPILER) \
+                  $(CC_OPTIM) \
+                  $(CC_WARNINGS) \
+                  $(CC_INCLUDE) \
+                  $(CC_DEFINES) \
+                  $(ADDED_CFLAGS)  \
+                  $(CC_SOFT_FLOAT) 
+
+C++FLAGS        = $(CC_ARCH_SPEC) \
+                  $(C++_COMPILER) \
+                  $(CC_OPTIM) \
+                  $(C++_WARNINGS) \
+                  $(CC_INCLUDE) \
+                  $(CC_DEFINES) \
+                  $(ADDED_C++FLAGS) \
+                  $(CC_SOFT_FLOAT)
+
+CFLAGS_AS       = $(CC_ARCH_SPEC) \
+                  $(CC_COMPILER) \
+                  $(CC_OPTIM) \
+                  $(CC_INCLUDE) \
+                  $(CC_DEFINES) \
+                  $(ADDED_CFLAGS) \
+                  -P \
+                  -x assembler-with$(OPTION_OBJECT_ONLY)pp
+CC_WARNINGS     = $(CC_WARNINGS_ALL)
+CC_OPTIM        = $(CC_OPTIM_TARGET)
+ifeq ($(ARM_PLATFORM), yes)
+CC_INCLUDE      = $(OPTION_INCLUDE_DIR)$(UP)/h \
+                  $(INCLUDE_CC) \
+                  $(EXTRA_INCLUDE) \
+                  $(OPTION_INCLUDE_DIR). \
+                  $(OPTION_INCLUDE_DIR)$(CROSSDEV_ROOT)/include \
+                  $(OPTION_INCLUDE_DIR)$(CROSSDEV_ROOT)/lib \
+		  $(OPTION_INCLUDE_DIR)$(CROSSDEV_ROOT)/arm-linux-uclibcgnueabi/include/g++-v3 \
+		  $(OPTION_INCLUDE_DIR)$(CROSSDEV_ROOT)/arm-linux-uclibcgnueabi/include/g++-v3/backward
+else
+CC_INCLUDE      = $(OPTION_INCLUDE_DIR)$(UP)/h \
+                  $(INCLUDE_CC) \
+                  $(EXTRA_INCLUDE) \
+                  $(OPTION_INCLUDE_DIR). \
+                  $(OPTION_INCLUDE_DIR)$(CROSSDEV_ROOT)/include \
+                  $(OPTION_INCLUDE_DIR)$(CROSSDEV_ROOT)/lib \
+		  $(OPTION_INCLUDE_DIR)$(CROSSDEV_ROOT)/mipsel-linux-uclibc/include/g++-v3 \
+		  $(OPTION_INCLUDE_DIR)$(CROSSDEV_ROOT)/mipsel-linux-uclibc/include/g++-v3/backward
+endif
+
+CC_DEFINES      = $(OPTION_DEFINE_MACRO)CPU=$(CPU) \
+                  $(DEFINE_CC) \
+                  $(EXTRA_DEFINE)
+
+# Current cpp compiler generates symbols with $ signs.  Need -fdollars-in-identifiers
+# to accept such names as valid symbols. - dat, 6/96 (SPR #6517)
+COMPILE_SYMTBL	= $(CC) $(OPTION_OBJECT_ONLY) -fdollars-in-identifiers $(CFLAGS)
+
+OPTION_OBJECT_ONLY = -c
+OPTION_INCLUDE_DIR = -I
+# this line has a space at the end ("-o ")
+OPTION_OBJECT_NAME = -o 
+OPTION_DEFINE_MACRO = -D
+
+## only customize things below this point
+
+
+## toolchain flags
+
+CC_WARNINGS_ALL	= -Wall
+CC_WARNINGS_NONE=
+C++_WARNINGS    = $(CC_WARNINGS_NONE)
+
+# Define GCC_EXEC_PREFIX so that we can call the compiler with
+# the -B flag suggesting where support tools may be found.
+GCC_EXEC_PREFIX=$(CROSSDEV_ROOT)/lib/gcc-lib
+
+CC_OPTIM_DRIVER	=
+CC_OPTIM_NORMAL	= -O -fstrength-reduce -fcombine-regs
+CC_OPTIM_TARGET	= -O -fvolatile -fno-exceptions -fno-unroll-loops -fno-for-scope -fno-rtti
+
+# RW_MULTI_THREAD and _REENTRANT required for WFC
+C++_COMPILER	= $(OPTION_DEFINE_MACRO)RW_MULTI_THREAD $(OPTION_DEFINE_MACRO)_REENTRANT
+
+## toolchain binaries
+AR              = $(CROSS_COMPILE)-ar
+ifeq ($(ARM_PLATFORM), yes)
+AS              = $(CROSS_COMPILE)-as -EL   -non_shared 
+else
+AS              = $(CROSS_COMPILE)-as -EL -mgp32 -mips2 -non_shared 
+endif
+CC              = $(CROSS_COMPILE)-gcc -B$(GCC_EXEC_PREFIX)
+CPP             = $(CC) -E -P -xc
+CXX             = $(CROSS_COMPILE)-gcc -B$(GCC_EXEC_PREFIX)
+NM              = $(CROSS_COMPILE)-nm
+RANLIB          = $(CROSS_COMPILE)-ranlib
+LD              = $(CROSS_COMPILE)-ld
+
+# GNU_COMPILER is non-empty if we are using the GNU compiler/assembler
+# GNU_BINUTILS is non-empty if we are also using GNU ld/nm/ar etc.
+
+ifeq ($(subst sfgnu,gnu,$(TOOL)),gnu)
+# sfgnu and gnu both use the GNU tools
+GNU_COMPILER=true
+ifneq ($(CPU),SIMHPPA)
+GNU_BINUTILS=true
+else
+# but SIMHP doesn't use the GNU linker or nm
+GNU_BINUTILS=
+endif
+else 
+# everything else uses non-GNU tools
+GNU_COMPILER=
+GNU_BINUTILS=
+endif
+
+LDFLAGS         = -X -N
+LD_PARTIAL_FLAGS= -X -r
+
+# Wherever possible we use the compiler driver as a frontend to
+# the linker. In particular this facilitates the GNU -frepo
+# template repository system. Configurations using GNU Tools
+# but non-GNU linkers (such as SIMHPPA)  should define
+# LD_PARTIAL    = $(LD) $(LD_PARTIAL_FLAGS)
+
+ifneq ($(GNU_BINUTILS),)
+LD_PARTIAL      = $(CC) -nostdlib -r -Wl,-X
+else
+LD_PARTIAL      = $(LD) $(LD_PARTIAL_FLAGS)
+endif
+
+# MACH_DEP      = sysALib.o sysLib.o $(MACH_EXTRA) $(ADDED_MODULES)
+MACH_DEP      = $(MACH_EXTRA)
+
+## libraries
+
+LIBS            =  $(LIB_EXTRA)
+
+DEFINE_CC      = -DMIPSEL
+
+# libraries for software emulations
+ifeq ($(LINUX_VERSION), 18)
+GNULIBROOT     = $(CROSSDEV_ROOT)
+endif
+ifeq ($(LINUX_VERSION), 5)
+GNULIBROOT     = /opt/toolchains/uclibc
+endif
+
+ifeq ($(GCC_ALT_LIBROOT), 1)
+ifeq ($(ARM_PLATFORM), yes)
+LIBS_STATIC = \
+$(LIB_EXTRA) \
+$(GNULIBROOT)/arm-linux-uclibcgnueabi/sys-root/usr/lib/libpthread.a \
+$(GNULIBROOT)/arm-linux-uclibcgnueabi/lib/libstdc++.a \
+$(GNULIBROOT)/arm-linux-uclibcgnueabi/sys-root/usr/lib/libm.a \
+
+else
+LIBS_STATIC = \
+$(LIB_EXTRA) \
+$(GNULIBROOT)/mipsel-linux-uclibc/sys-root/usr/lib/libpthread.a \
+$(GNULIBROOT)/mipsel-linux-uclibc/lib/libstdc++.a \
+$(GNULIBROOT)/mipsel-linux-uclibc/sys-root/usr/lib/libm.a \
+
+endif
+
+ifeq ($(ARM_PLATFORM), yes)
+LIBS_DYNAMIC = \
+$(LIB_EXTRA) \
+-L $(GNULIBROOT)/arm-linux-uclibcgnueabi/sys-root/usr/lib -lpthread \
+-L $(GNULIBROOT)/arm-linux-uclibcgnueabi/lib -lstdc++ \
+-L $(GNULIBROOT)/arm-linux-uclibcgnueabi/sys-root/usr/lib -lm \
+
+else
+LIBS_DYNAMIC = \
+$(LIB_EXTRA) \
+-L $(GNULIBROOT)/mipsel-linux-uclibc/sys-root/usr/lib -lpthread \
+-L $(GNULIBROOT)/mipsel-linux-uclibc/lib -lstdc++ \
+-L $(GNULIBROOT)/mipsel-linux-uclibc/sys-root/usr/lib -lm \
+
+endif
+
+else
+
+ifeq ($(ARM_PLATFORM), yes)
+LIBS_STATIC = \
+$(LIB_EXTRA) \
+$(GNULIBROOT)/arm-linux/lib/libpthread.a \
+$(GNULIBROOT)/arm-linux/lib/libstdc++.a \
+$(GNULIBROOT)/arm-linux/lib/libm.a \
+
+else
+LIBS_STATIC = \
+$(LIB_EXTRA) \
+$(GNULIBROOT)/mipsel-linux/lib/libpthread.a \
+$(GNULIBROOT)/mipsel-linux/lib/libstdc++.a \
+$(GNULIBROOT)/mipsel-linux/lib/libm.a \
+
+endif
+
+ifeq ($(ARM_PLATFORM), yes)
+LIBS_DYNAMIC = \
+$(LIB_EXTRA) \
+-L $(GNULIBROOT)/arm-linux/lib -lpthread \
+-L $(GNULIBROOT)/arm-linux/lib -lstdc++ \
+-L $(GNULIBROOT)/arm-linux/lib -lm \
+
+else
+LIBS_DYNAMIC = \
+$(LIB_EXTRA) \
+-L $(GNULIBROOT)/mipsel-linux/lib -lpthread \
+-L $(GNULIBROOT)/mipsel-linux/lib -lstdc++ \
+-L $(GNULIBROOT)/mipsel-linux/lib -lm \
+
+endif
+
+endif
+
+ifeq ($(STATIC_LINK), 1)
+LIBS = $(LIBS_STATIC)
+endif
+
+ifeq ($(STATIC_LINK), 0)
+LIBS = $(LIBS_DYNAMIC)
+endif
+ 
+
+CC_OPTIM_DRIVER = -O2                                #-fno-builtin
+CC_OPTIM_NORMAL = -O2 -fno-for-scope # -fno-builtin  
+CC_OPTIM_TARGET = -O2 
+CC_SOFT_FLOAT   =
+ifeq ($(ARM_PLATFORM), yes)
+CC_ARCH_SPEC    =   
+else
+CC_ARCH_SPEC    = -mgp32 -mips2 -G 0
+endif
+
+AR              = $(CROSS_COMPILE)-ar
+ifeq ($(ARM_PLATFORM), yes)
+AS              = $(CROSS_COMPILE)-as -EL  -mcpu=r4000  -non_shared 
+else
+AS              = $(CROSS_COMPILE)-as -EL -mgp32 -mcpu=r4000 -mips2 -non_shared -G 0
+endif
+CC              = $(CROSS_COMPILE)-gcc -B$(GCC_EXEC_PREFIX)
+NM              = $(CROSS_COMPILE)-nm
+RANLIB          = $(CROSS_COMPILE)-ranlib
+LD              = $(CROSS_COMPILE)-ld
+
+# Linker options
+ifeq ($(STATIC_LINK), 1)
+LDFLAGS         = -static  
+else
+LDFLAGS         =
+endif
+
+ifeq ($(GCC_VERSION), 4)
+LDFLAGS        += -lrt
+endif
+
+LD_PARTIAL_FLAGS= -EL -r
+
+OBJCOPY=objcopymips
+
+ROM_ENTRY       = romInit
+USR_ENTRY       = usrInit
+SYS_ENTRY       = sysInit
+
+BINXSYM_NAME    = elfXsyms
+BINHEX_NAME     = elfHex
+EXTRACT_BIN_NAME= elfToBin
+
+# Don't build cfront directories
+MAKETAIL=
+CLEANTAIL=
+
+TOOLENV         = mips
+LX_CPU_FAMILY   = mips

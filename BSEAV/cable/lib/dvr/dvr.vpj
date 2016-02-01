@@ -1,0 +1,265 @@
+<!DOCTYPE Project SYSTEM "http://www.slickedit.com/dtd/vse/10.0/vpj.dtd">
+<Project
+	Version="10.0"
+	VendorName="SlickEdit"
+	TemplateName="GNU C/C++"
+	WorkingDir=".">
+	<Config
+		Name="Debug"
+		Type="gnuc"
+		DebugCallbackName="gdb"
+		Version="1"
+		OutputFile="%bddvr.so"
+		CompilerConfigName="Latest Version">
+		<Menu>
+			<Target
+				Name="Compile"
+				MenuCaption="&amp;Compile"
+				Dialog="_gnuc_options_form Compile"
+				CaptureOutputWith="ProcessBuffer"
+				Deletable="0"
+				OutputExts="*.o"
+				SaveOption="SaveCurrent"
+				RunFromDir="%rw">
+				<Exec CmdLine='gcc -c %xup  %defd -g -o "%bd%n%oe" %i "%f"'/>
+			</Target>
+			<Target
+				Name="Link"
+				MenuCaption="&amp;Link"
+				ShowOnMenu="Never"
+				Dialog="_gnuc_options_form Link"
+				CaptureOutputWith="ProcessBuffer"
+				Deletable="0"
+				SaveOption="SaveCurrent"
+				RunFromDir="%rw">
+				<Exec CmdLine='gcc %xup -g -o "%o" %f %libs -shared -fPIC'/>
+			</Target>
+			<Target
+				Name="Build"
+				MenuCaption="&amp;Build"
+				CaptureOutputWith="ProcessBuffer"
+				Deletable="0"
+				SaveOption="SaveWorkspaceFiles"
+				RunFromDir="%rw">
+				<Exec CmdLine="make"/>
+			</Target>
+			<Target
+				Name="Rebuild"
+				MenuCaption="&amp;Rebuild"
+				CaptureOutputWith="ProcessBuffer"
+				Deletable="0"
+				SaveOption="SaveWorkspaceFiles"
+				RunFromDir="%rw">
+				<Exec CmdLine=""/>
+			</Target>
+			<Target
+				Name="Debug"
+				MenuCaption="&amp;Debug"
+				Dialog="_gnuc_options_form Run/Debug"
+				BuildFirst="1"
+				CaptureOutputWith="ProcessBuffer"
+				Deletable="0"
+				SaveOption="SaveNone"
+				RunFromDir="%rw">
+				<Exec CmdLine=""/>
+			</Target>
+			<Target
+				Name="Execute"
+				MenuCaption="E&amp;xecute"
+				Dialog="_gnuc_options_form Run/Debug"
+				BuildFirst="1"
+				CaptureOutputWith="ProcessBuffer"
+				Deletable="0"
+				SaveOption="SaveWorkspaceFiles"
+				RunFromDir="%rw">
+				<Exec CmdLine=""/>
+			</Target>
+			<Target
+				Name="dash"
+				MenuCaption="-"
+				Deletable="0">
+				<Exec/>
+			</Target>
+			<Target
+				Name="GNU C Options"
+				MenuCaption="GNU C &amp;Options..."
+				ShowOnMenu="HideIfNoCmdLine"
+				Deletable="0"
+				SaveOption="SaveNone">
+				<Exec
+					CmdLine="gnucoptions"
+					Type="Slick-C"/>
+			</Target>
+		</Menu>
+		<List Name="GNUC Options">
+			<Item
+				Name="LinkerOutputType"
+				Value="SharedLibrary"/>
+		</List>
+	</Config>
+	<Config
+		Name="Release"
+		Type="gnuc"
+		DebugCallbackName="gdb"
+		Version="1"
+		OutputFile="%bddvr.so"
+		CompilerConfigName="Latest Version">
+		<Menu>
+			<Target
+				Name="Compile"
+				MenuCaption="&amp;Compile"
+				Dialog="_gnuc_options_form Compile"
+				CaptureOutputWith="ProcessBuffer"
+				Deletable="0"
+				OutputExts="*.o"
+				SaveOption="SaveCurrent"
+				RunFromDir="%rw">
+				<Exec CmdLine='gcc -c %xup %defd -o "%bd%n%oe" %i "%f"'/>
+			</Target>
+			<Target
+				Name="Link"
+				MenuCaption="&amp;Link"
+				ShowOnMenu="Never"
+				Dialog="_gnuc_options_form Link"
+				CaptureOutputWith="ProcessBuffer"
+				Deletable="0"
+				SaveOption="SaveCurrent"
+				RunFromDir="%rw">
+				<Exec CmdLine='gcc %xup -o "%o" %f %libs -shared -fPIC'/>
+			</Target>
+			<Target
+				Name="Build"
+				MenuCaption="&amp;Build"
+				CaptureOutputWith="ProcessBuffer"
+				Deletable="0"
+				SaveOption="SaveWorkspaceFiles"
+				RunFromDir="%rw">
+				<Exec CmdLine="make"/>
+			</Target>
+			<Target
+				Name="Rebuild"
+				MenuCaption="&amp;Rebuild"
+				CaptureOutputWith="ProcessBuffer"
+				Deletable="0"
+				SaveOption="SaveWorkspaceFiles"
+				RunFromDir="%rw">
+				<Exec CmdLine=""/>
+			</Target>
+			<Target
+				Name="Debug"
+				MenuCaption="&amp;Debug"
+				Dialog="_gnuc_options_form Run/Debug"
+				BuildFirst="1"
+				CaptureOutputWith="ProcessBuffer"
+				Deletable="0"
+				SaveOption="SaveNone"
+				RunFromDir="%rw">
+				<Exec CmdLine=""/>
+			</Target>
+			<Target
+				Name="Execute"
+				MenuCaption="E&amp;xecute"
+				Dialog="_gnuc_options_form Run/Debug"
+				BuildFirst="1"
+				CaptureOutputWith="ProcessBuffer"
+				Deletable="0"
+				SaveOption="SaveWorkspaceFiles"
+				RunFromDir="%rw">
+				<Exec CmdLine=""/>
+			</Target>
+			<Target
+				Name="dash"
+				MenuCaption="-"
+				Deletable="0">
+				<Exec/>
+			</Target>
+			<Target
+				Name="GNU C Options"
+				MenuCaption="GNU C &amp;Options..."
+				ShowOnMenu="HideIfNoCmdLine"
+				Deletable="0"
+				SaveOption="SaveNone">
+				<Exec
+					CmdLine="gnucoptions"
+					Type="Slick-C"/>
+			</Target>
+		</Menu>
+		<List Name="GNUC Options">
+			<Item
+				Name="LinkerOutputType"
+				Value="SharedLibrary"/>
+		</List>
+	</Config>
+	<Files>
+		<Folder
+			Name="Source Files"
+			Filters="*.c;*.C;*.cc;*.cpp;*.cp;*.cxx;*.c++;*.prg;*.pas;*.dpr;*.asm;*.s;*.bas;*.java;*.cs;*.sc;*.e;*.cob;*.html;*.rc;*.tcl;*.py;*.pl;*.d">
+			<F N="services/datainjection/src/b_dvr_datainjectionservice.c"/>
+			<F N="services/drm/src/b_dvr_drmservice.c"/>
+			<F N="utils/file/src/b_dvr_file.c"/>
+			<F N="utils/list/src/b_dvr_list.c"/>
+			<F N="utils/list/src/b_dvr_list_v2.c"/>
+			<F N="manager/src/b_dvr_manager.c"/>
+			<F N="manager/src/priv/b_dvr_manager_priv.c"/>
+			<F N="utils/media/src/b_dvr_mediafile.c"/>
+			<F N="utils/media_probe/src/b_dvr_mediaprobe.c"/>
+			<F N="manager/src/b_dvr_mediastorage.c"/>
+			<F N="services/playback/src/b_dvr_playbackservice.c"/>
+			<F N="utils/prof/src/b_dvr_prof.c"/>
+			<F N="services/record/src/b_dvr_recordservice.c"/>
+			<F N="utils/segmentedfile/src/b_dvr_segmentedfile.c"/>
+			<F N="services/transcode/src/b_dvr_transcodeservice.c"/>
+			<F N="services/tsb/src/b_dvr_tsbservice.c"/>
+			<F N="utils/msutil/src/msapp.c"/>
+			<F N="utils/msutil/src/msdiag.c"/>
+			<F N="utils/msutil/src/msutil.c"/>
+		</Folder>
+		<Folder
+			Name="Header Files"
+			Filters="*.h;*.H;*.hh;*.hpp;*.hxx;*.inc;*.sh;*.cpy;*.if">
+			<F N="manager/include/b_dvr_const.h"/>
+			<F N="services/datainjection/include/b_dvr_datainjectionservice.h"/>
+			<F N="manager/include/b_dvr_datatypes.h"/>
+			<F N="services/drm/include/b_dvr_drmservice.h"/>
+			<F N="utils/file/include/b_dvr_file.h"/>
+			<F N="b_dvr_lib.inc"/>
+			<F N="utils/list/include/b_dvr_list.h"/>
+			<F N="manager/include/b_dvr_manager.h"/>
+			<F N="manager/include/priv/b_dvr_manager_priv.h"/>
+			<F N="utils/media/include/b_dvr_mediafile.h"/>
+			<F N="utils/media_probe/include/b_dvr_mediaprobe.h"/>
+			<F N="manager/include/b_dvr_mediastorage.h"/>
+			<F N="services/playback/include/b_dvr_playbackservice.h"/>
+			<F N="utils/prof/include/b_dvr_prof.h"/>
+			<F N="services/record/include/b_dvr_recordservice.h"/>
+			<F N="utils/segmentedfile/include/b_dvr_segmentedfile.h"/>
+			<F N="services/transcode/include/b_dvr_transcodeservice.h"/>
+			<F N="services/tsb/include/b_dvr_tsbservice.h"/>
+			<F N="utils/msutil/include/msdiag.h"/>
+			<F N="utils/msutil/include/msutil.h"/>
+		</Folder>
+		<Folder
+			Name="Resource Files"
+			Filters="*.ico;*.cur;*.dlg"/>
+		<Folder
+			Name="Bitmaps"
+			Filters="*.bmp"/>
+		<Folder
+			Name="Other Files"
+			Filters="">
+			<F N="docs/DataInjection.vsd"/>
+			<F N="docs/DRMService_OCAP_RI.vsd"/>
+			<F N="docs/DRMService_Vendor_Specific.vsd"/>
+			<F N="dvr.vpj"/>
+			<F N="docs/DVRExtLibSequenceDiagrams.pdf"/>
+			<F N="docs/dvrlib.docx"/>
+			<F N="docs/dvrlib.pdf"/>
+			<F N="docs/Manager.vsd"/>
+			<F N="docs/MediaFileStreaming.vsd"/>
+			<F N="docs/mediaStorage.vsd"/>
+			<F N="docs/PlaybackService.vsd"/>
+			<F N="docs/RecordService.vsd"/>
+			<F N="docs/TSBService.vsd"/>
+		</Folder>
+	</Files>
+</Project>

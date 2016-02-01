@@ -1,0 +1,47 @@
+ifneq ($(NOISY_BUILD),y)
+Q_ =  @
+endif
+
+.PHONY: subdirs clean
+
+clean:
+	$(Q_)-rm -rf $(OBJDIR)
+
+cleanall:	clean
+ifneq ($(SUBDIRS),)
+	$(MAKE) -C $(patsubst %, %/build, $(SUBDIRS)) VARIANT=$(VARIANT) cleanall
+endif
+
+subdirs:
+ifneq ($(SUBDIRS),)
+	$(MAKE) -C $(patsubst %, %/build, $(SUBDIRS)) VARIANT=$(VARIANT)
+endif
+
+CFLAGS += $(INCDIR)
+AFLAGS += $(INCDIR)
+
+$(OBJDIR)/%.o: %.s
+	@echo Assembling $*
+	@ [ -d $(OBJDIR) ] || mkdir $(OBJDIR)
+	$(Q_)$(AS) $(AFLAGS) -o $@ $<
+
+$(OBJDIR)/%.o: %.S
+	@echo Assembling $*
+	@ [ -d $(OBJDIR) ] || mkdir $(OBJDIR)
+	$(Q_)$(AS) $(AFLAGS) -o $@ $<
+
+$(OBJDIR)/%.o: %.c
+	@echo Compiling $*
+	@ [ -d $(OBJDIR) ] || mkdir $(OBJDIR)
+	$(Q_)$(CC) $(CFLAGS) -o $@ $<
+
+$(OBJDIR)/%.o: %.cpp
+	@echo Compiling $*
+	@ [ -d $(OBJDIR) ] || mkdir $(OBJDIR)
+	$(Q_)$(CPP) $(CFLAGS) -o $@ $<
+
+$(OBJDIR)/%.d: %.c
+	@echo Depending $*
+	@ [ -d $(OBJDIR) ] || mkdir $(OBJDIR)
+	$(Q_)set -e; rm -f $@; $(CC) -M $(subst \,/,$(CFLAGS)) $< | sed 's,\($*\)\.o[ :]*,$(OBJDIR)/\1.o $@ : ,g'  > $@
+

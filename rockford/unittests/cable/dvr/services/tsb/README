@@ -1,0 +1,77 @@
+Please read following notes below before trying to run DVR TSB related testing 
+programs.
+
+1. What is it?
+
+  This directory contains DVR TSB testing programs utilizing DVR extension library 
+  or APIs. Programs are testing TSB services such as TSB playback, TSB conversion 
+  recording, data injection, and TSB record information and status.   
+
+2. Introduction of Test Programs
+
+- tsbservice.c: Basic TSB service testing program using a command option. Test items are 
+  TSB playback trick modes (rewind, play, fastforward), conversion to a record, switch 
+  between the live and TSB mode and displaying of TSB status. The command option can get
+  by pressing a '?' key (without apostrophe) and the program will exit by pressing a 'q'
+  key (without apostrophe).
+     
+- tsblongevity.c: One of TSB basic test items is generated randomly every 5 seconds and the
+  program is running continuously if there is no interruption. This program is for longevity
+  testing of the TSB service.   
+ 
+- tsbb2bconv.c: The program starts TSB buffering and kicks off two TSB conversion recordings
+  back to back. The name of two TSB conversion recordings are TSBPerm1 and TSBPerm2. After 
+  TSB conversion recordings are finished, interactive command option is available and you can
+  either start/stop playback of one of recordings, remove one of recordings or print out meta
+  data of one of recordings. 
+  The command option can get by pressing a '?' key (without apostrophe) and the program will 
+  exit by pressing a 'q' key (without apostrophe).
+
+- tsbdatainject.c: Once TSB service has started, PAT and PMT data are injected every 100 milli-
+  seconds and conversion of TSB buffering to a permanent recording is performed. Data injection
+  is exercised in a raw data format and separate PAT and PMT files are needed for the input of 
+  data injection. They should be placed in the /mnt/nfs directory and once the program is done,
+  data injected media segment files are copied to the /mnt/nfs directory to verify data 
+  injection. If the data injected media segment files are played with the VLC player, this means
+  data (PAT and PMT) are injected successfully.    
+
+- tsb8conv.c: This program runs 8 TSB conversion recordings for 10 minutes. It tunes to 8 
+  channels using 8 tuners, but there is no playback, decode or display. The purpose of this
+  program is measuring CPU utilization. On the 3383 side, it is necessary to run the command,
+  rsvd_videoch 8, to utilize 8 QAM channels. TSB conversion recordings are from TSBRecord0 to
+  TSBRecord7 under the tsbConv directory.  
+
+- tsb8convlistrecord.c: This program runs 8 TSB conversion recordings and displays information
+  of recordings such as program name, metadata files, media size/attribute/time and nav size
+  every 4 seconds until the 8 TSB conversion recordings are finished. Likewise tsb8conv.c, 
+  there is no playback, decode or display.  
+
+- tsb8conv2playback.c: This program runs 8 TSB conversion recordings, displays list of recordings
+  every 4 seconds and 2 TSB playbacks on the main and pip channel. TSB trick play commands are 
+  rewind, play and fastforward. These combinations are running until the 8 TSB conversion 
+  recordings are finished. 
+      
+- tsb8conv2playback_clearkey.c: tsb8conversion2playback plus clearkey encryption 
+
+- tsb8conv2playback_keyladder.c: tsb8conversion2playback plus keyladder encryption 
+
+- tsb8conv2playback_datainject.c: tsb8conversion2playback plus 8 TSB data injection. Likewise
+  tsbdatainject.c, the same PAT and PMT are injected to the 8 TSB conversion recordings and data
+  injected media segment files are copied to the /mnt/nfs directory to verify data injection with 
+  the VLC player.   
+
+3. How to build programs
+
+  Type make to build whole programs or make program-name to build a separate program. The built 
+  program is located under the nexus/bin directory automatically.
+
+ 
+4. How to run a program
+
+  On the STB console, type nexus program-name, where program-name is one of built programs.
+  In general, since these stand-alone programs are not removing converted recordings automatically 
+  when the program exits, running stand-alone program named removeall (located under the 
+  /utils/recordings directory) is recommended before re-starting of one of these TSB testing programs.  
+
+
+  Jaeho Lee (dalee@broadcom.com) 

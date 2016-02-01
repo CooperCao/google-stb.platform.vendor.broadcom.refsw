@@ -1,0 +1,2 @@
+BXXX_AUTH("vce_picarc", BVCE_IMAGE_FirmwareID_ePicArc, BVCE_DumpImage, MAX_PICARC_FW_SIZE_IN_BYTES)
+BXXX_AUTH("vce_mbarc",  BVCE_IMAGE_FirmwareID_eMBArc,  BVCE_DumpImage, MAX_MBARC_FW_SIZE_IN_BYTES)

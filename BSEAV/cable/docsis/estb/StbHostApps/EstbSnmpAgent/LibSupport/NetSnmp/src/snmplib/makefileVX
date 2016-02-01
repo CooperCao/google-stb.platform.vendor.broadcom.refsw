@@ -1,0 +1,101 @@
+#****************************************************************************
+#
+#  Copyright (c) 2008 Broadcom Corporation
+#  All Rights Reserved
+#  No portions of this material may be reproduced in any form without the
+#  written permission of:
+#          Broadcom Corporation
+#          16215 Alton Parkway
+#          Irvine, California 92618
+#  All information contained in this document is Broadcom Corporation
+#  company private, proprietary, and trade secret.
+#
+#****************************************************************************
+#
+#  Filename:       makefileVX
+#  Author:         T. Clack
+#  Creation Date:  10/27/03
+#
+#****************************************************************************
+#  Description:
+#      The makefile for the libnetsnmp_vxworks.a library.
+#
+#****************************************************************************
+
+TGT_DIR=$(WIND_BASE)/target
+include $(TGT_DIR)/h/make/defs.default
+include $(TGT_DIR)/h/make/make.RC32364sfgnu
+include $(TGT_DIR)/h/make/defs.$(WIND_HOST_TYPE)
+
+#SNMP_OBJS = $(subst .c,.o, $(wildcard *.c))
+
+SNMP_OBJS  =  snmp_client.o snmp.o 
+SNMP_OBJS +=  snmp_auth.o asn1.o md5.o snmp_parse_args.o 
+SNMP_OBJS +=  system.o vacm.o int64.o read_config.o 
+SNMP_OBJS +=  snmp_debug.o tools.o  snmp_logging.o
+SNMP_OBJS +=  snmpv3.o lcd_time.o keytools.o
+SNMP_OBJS +=  scapi.o callback.o default_store.o snmp_alarm.o
+SNMP_OBJS +=  data_list.o oid_stash.o
+SNMP_OBJS +=  mt_support.o snmp_enum.o snmp-tc.c
+SNMP_OBJS +=  snprintf.o strlcpy.o strtol.o strtoul.o
+SNMP_OBJS +=  snmp_transport.o
+SNMP_OBJS +=  snmpUDPDomain.o snmpCallbackDomain.o
+SNMP_OBJS +=  snmp_secmod.o snmp_version.o
+SNMP_OBJS +=  snmpusm.o
+SNMP_OBJS +=  check_varbind.o container.o container_binary_array.o
+SNMP_OBJS +=  cmu_compat.o ucd_compat.o
+SNMP_OBJS +=  mib.o parse.o snmp_api.o 
+
+#  getopt.o
+
+LIB_SUPPORT_DIR = ..\..\..\..\..\LibSupport
+LIBS_DIR = $(LIB_SUPPORT_DIR)\NetSnmp
+
+SNMP_LIB  = libnetsnmp_vxworks.a
+
+
+EXTRA_INCLUDE  = -I. \
+                 -IT:/Tornado-wm/target/h
+  
+EXTRA_INCLUDE += -I$(LIBS_DIR)\include
+EXTRA_INCLUDE += -I$(LIB_SUPPORT_DIR)\OpenSSL\include
+
+#EXTRA_INCLUDE += -I..\..\..\..
+#EXTRA_INCLUDE += -I..\..\..\..\..\cm_bsp_v2\bsp_common\common_inc
+#EXTRA_INCLUDE += -I..\..\..\..\..\Common\OperatingSystem
+#EXTRA_INCLUDE += -I..\..\..\..\..\Common
+
+ 
+EXTRA_DEFINE   = -DVXWORKS=1
+ 
+CFLAGS  += -DUSE_OPENSSL=1
+
+
+COPTS = 
+EXTRA_DEFINE += $(COPTS)
+
+
+$(SNMP_LIB) : $(SNMP_OBJS)	
+#	echo objs $(SNMP_OBJS)
+#	echo lib  $(SNMP_LIB)
+	armips cru $(SNMP_LIB) $?
+        
+	copy $(SNMP_LIB) $(LIBS_DIR)\$(SNMP_LIB)
+
+
+%.o : %.s
+	@ $(RM) $@
+	$(CC) $(CFLAGS_AS) -c -o $@ $< 
+
+%.o : %.c 
+	@ $(RM) $@
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+clean:
+	- $(RM) *.a
+	- $(RM) *.o
+	- $(RM) $(LIBS_DIR)\$(SNMP_LIB)
+
+
+
+

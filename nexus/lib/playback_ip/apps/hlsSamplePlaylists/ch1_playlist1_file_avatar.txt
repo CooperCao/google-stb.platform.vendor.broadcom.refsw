@@ -1,0 +1,1 @@
+/File=/data/videos/avatar_AVC_15M.ts;TranscodeEnabled=Yes;OutWidth=1280;OutHeight=720;OutVideoCodec=H264;OutFrameRate=30;OutAudio=Yes;OutAudioCodec=AAC;TransportBitrate=2500000;HlsEnabled=Yes;OutAspecRatio=16x9;NonRealTimeMode=Yes;

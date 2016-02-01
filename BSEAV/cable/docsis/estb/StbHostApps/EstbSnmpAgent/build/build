@@ -1,0 +1,153 @@
+#############################################################################
+# (c) 2003-2015 Broadcom Corporation
+#
+# This program is the proprietary software of Broadcom Corporation and/or its
+# licensors, and may only be used, duplicated, modified or distributed pursuant
+# to the terms and conditions of a separate, written license agreement executed
+# between you and Broadcom (an "Authorized License").  Except as set forth in
+# an Authorized License, Broadcom grants no license (express or implied), right
+# to use, or waiver of any kind with respect to the Software, and Broadcom
+# expressly reserves all rights in and to the Software and all intellectual
+# property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#
+# Except as expressly set forth in the Authorized License,
+#
+# 1. This program, including its structure, sequence and organization,
+#    constitutes the valuable trade secrets of Broadcom, and you shall use all
+#    reasonable efforts to protect the confidentiality thereof, and to use
+#    this information only in connection with your use of Broadcom integrated
+#    circuit products.
+#
+# 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+#    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+#    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+#    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+#    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+#    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+#
+# 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+#    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+#    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+#    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+#    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+#    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+#    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+#
+#############################################################################
+
+#!/bin/bash
+
+if [ "$ARM_PLATFORM" == "yes" ]; then
+CPU=arm
+CROSS_ROOT=`which arm-linux-gcc`
+export CROSSDEV_ROOT=${CROSS_ROOT%/bin/arm-linux-gcc}
+export CROSS_COMPILE=$CROSSDEV_ROOT/bin/arm-linux
+export GCC_VERSION=`arm-linux-gcc -dumpversion | awk -F. '{print $1}'`
+export GCC_MINOR_VERSION=`arm-linux-gcc -dumpversion | awk -F. '{print $2}'`
+else
+CPU=mipsel
+CROSS_ROOT=`which mipsel-linux-gcc`
+export CROSSDEV_ROOT=${CROSS_ROOT%/bin/mipsel-linux-gcc}
+export CROSS_COMPILE=$CROSSDEV_ROOT/bin/mipsel-linux
+export GCC_VERSION=`mipsel-linux-gcc -dumpversion | awk -F. '{print $1}'`
+export GCC_MINOR_VERSION=`mipsel-linux-gcc -dumpversion | awk -F. '{print $2}'`
+fi
+
+echo "  GCC_VERSION=$GCC_VERSION"
+echo "  GCC_MINOR_VERSION=$GCC_MINOR_VERSION"
+
+echo "  copying gcc$GCC_VERSION.$GCC_MINOR_VERSION files "
+
+libroot=../LibSupport
+
+libdir=MoCA
+lib_linux=libmoca.a
+
+if [ -e $libroot/$libdir/$lib_linux.$CPU ]; then
+  cp $libroot/$libdir/$lib_linux.$CPU $libroot/$libdir/$lib_linux
+else
+  echo "Error: $lib_linux not built for the current cpu"
+fi
+
+libdir=NetSnmp
+
+for lib_linux in libnetsnmp_linux libnetsnmpagent_linux libnetsnmpmibs_linux libnetsnmphelpers_linux
+do
+  if [ -e $libroot/$libdir/$lib_linux.a.gcc$GCC_VERSION.$GCC_MINOR_VERSION ]
+  then
+    cp $libroot/$libdir/$lib_linux.a.gcc$GCC_VERSION.$GCC_MINOR_VERSION $libroot/$libdir/$lib_linux.a
+  else
+    echo "Error: $lib_linux.a not built for the current toolchain" 
+    exit 1
+  fi
+done
+# cp $libroot/$libdir/include/net-snmp/net-snmp-config.h.gcc$GCC_VERSION.$GCC_MINOR_VERSION $libroot/$libdir/include/net-snmp/net-snmp-config.h
+
+libdir=OpenSSL
+
+for lib_linux in libOpenSSLLinux SecLibLinux
+do
+  if [ -e $libroot/$libdir/$lib_linux.a.gcc$GCC_VERSION.$GCC_MINOR_VERSION ]
+  then
+    cp $libroot/$libdir/$lib_linux.a.gcc$GCC_VERSION.$GCC_MINOR_VERSION $libroot/$libdir/$lib_linux.a
+  else
+    echo "Error: $lib_linux.a not built for the current toolchain" 
+    exit 1
+  fi
+done
+
+case $1 in 
+        help )
+		echo "This batch file is used to build the eSTB SNMP Agent for Linux."
+		echo
+		echo "Usage: build [clean]"
+		echo
+		echo "Parameters:"
+ 		echo "   clean           = clean all binaries"
+		echo "Examples:"
+		echo "    build - Builds eSTB SNMP Agent"
+		echo "    build clean - Removes everything except the source files for eSTB SNMP Agent"
+		;;
+
+	* )
+                builddir=../EstbApp_SnmpAgent/linux
+                outputdir=../EstbApp_SnmpAgent/linux/bcmLinux
+                outputfilename=Linux
+                outputfile=$outputdir/$outputfilename
+                targetdir=.
+                targetfilename=estbsnmpagent
+
+                echo "  Outputfile= $outputfile Outputdir= $outputdir"
+                echo "  Building for Linux"
+                echo "  Using TOOLCHAIN: '$CROSSDEV_ROOT/bin/$ARCH' "
+                #/bin/csh -c "cd $builddir; ./makeapp $1 $2" 
+                pushd . >& /dev/null
+                cd $builddir
+                bash ./makeapp $1 $2
+		popd >& /dev/null
+                if [ -e $outputfile ]; then
+                        cp -u $outputfile $targetdir/$targetfilename
+                else
+                        rm -f $targetdir/$targetfilename
+                fi
+
+                outputfile=$outputdir/estbsnmplib.a
+                if [ -e $outputfile ]; then
+                        cp -u $outputfile $targetdir/
+                else
+                        rm -f $targetdir/estbsnmplib.a
+                fi
+		
+                outputfile=$outputdir/core_estbsnmplib.a
+                if [ -e $outputfile ]; then
+                        cp -u $outputfile $targetdir/
+                else
+                        rm -f $targetdir/core_estbsnmplib.a
+                fi
+                ;;
+esac

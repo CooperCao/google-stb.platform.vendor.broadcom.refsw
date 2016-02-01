@@ -1,0 +1,78 @@
+// Broadcom BSG effect file
+
+OPTIONS
+{
+	SortOrder = FRONT_TO_BACK;
+}
+
+PASS 0
+{
+	SEMANTICS
+	{
+		u_mvpMatrix		= MATRIX4_MODEL_VIEW_PROJECTION;
+		a_position		= VATTR_POSITION;
+		a_tc			= VATTR_TEXCOORD1;
+	}
+
+	STATE
+	{
+		EnableDepthTest = true;
+	}
+
+	SAMPLER_2D u_tex
+	{
+		Unit = 0;
+		Wrap = CLAMP, CLAMP;
+		Filter = LINEAR_MIPMAP_NEAREST, LINEAR;
+	}
+
+	SAMPLER_2D u_noEntryTex
+	{
+		Unit = 1;
+		Wrap = CLAMP, CLAMP;
+		Filter = LINEAR_MIPMAP_NEAREST, LINEAR;
+	}
+
+	VERTEX_SHADER
+	{
+		uniform		mat4	u_mvpMatrix;
+		attribute	vec4	a_position;
+		attribute	vec2	a_tc;
+		varying		vec2	v_tc;
+
+		void main()
+		{
+			v_tc		= a_tc;
+			gl_Position	= u_mvpMatrix * a_position;
+		}
+	}
+
+	FRAGMENT_SHADER
+	{
+		precision mediump float;
+
+		uniform sampler2D	u_tex;
+		uniform sampler2D	u_noEntryTex;
+		varying vec2		v_tc;
+
+		void main()
+		{
+			vec3 borderCol = vec3(0.9, 0.9, 0.9);
+			vec3 col = texture2D(u_tex, v_tc).rgb;
+			vec4 overlay = texture2D(u_noEntryTex, v_tc);
+
+         // Convert to grey and compress range as we are disabled
+         float lum = 0.3 * col.r + 0.59 * col.g + 0.11 * col.b;
+         col = vec3(lum, lum, lum);
+         
+         col = mix(col, overlay.rgb, overlay.a);
+
+			col = mix(borderCol, col, smoothstep(0.01, 0.025, v_tc.x) * 
+									  smoothstep(0.01, 0.025, v_tc.y) * 
+									  smoothstep(0.99, 0.975, v_tc.x) * 
+									  smoothstep(0.99, 0.975, v_tc.y));
+
+			gl_FragColor = vec4(col, 1.0);
+		}
+	}
+}

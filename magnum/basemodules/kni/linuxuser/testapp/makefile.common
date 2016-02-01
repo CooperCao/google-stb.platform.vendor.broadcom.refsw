@@ -1,0 +1,20 @@
+# Assumes you've defined MAGNUM
+
+CFLAGS += -DLINUX
+CFLAGS += -Wall -O2
+CFLAGS += $(MAGNUM_INC)
+
+MAGNUM_INC=\
+	-I$(MAGNUM)/basemodules/kni/linuxuser \
+	-I$(MAGNUM)/basemodules/dbg \
+	-I$(MAGNUM)/commonutils/lst \
+	-I$(MAGNUM)/basemodules/err \
+	-I$(MAGNUM)/basemodules/std \
+	-I$(MAGNUM)/basemodules/std/config \
+	-I$(MAGNUM)/basemodules/std/types/linuxuser
+
+MAGNUM_OBJS=\
+	$(MAGNUM)/basemodules/kni/linuxuser/bkni.o \
+	$(MAGNUM)/basemodules/kni/linuxuser/bkni_iso_c.o \
+	$(MAGNUM)/basemodules/dbg/bdbg.o \
+	$(MAGNUM)/basemodules/dbg/bdbg_output.o

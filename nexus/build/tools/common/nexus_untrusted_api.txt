@@ -1,0 +1,40 @@
+# Untrusted client API
+# Only functions in these header files may be called by untrusted clients
+
+# general
+nexus_dma.h
+nexus_input_client.h
+nexus_playpump.h
+nexus_recpump.h
+nexus_security_client.h
+nexus_message.h
+nexus_pid_channel.h
+nexus_platform_client.h
+nexus_core_utils.h
+nexus_core_priv.h
+nexus_audio_capture.h
+nexus_parser_band.h
+
+# simple decoder
+nexus_simple_video_decoder.h
+nexus_simple_audio_decoder.h
+nexus_simple_audio_playback.h
+nexus_simple_stc_channel.h
+
+# graphics
+nexus_surface_client.h
+nexus_surface.h
+nexus_memory.h
+nexus_graphicsv3d.h
+nexus_graphics2d.h
+nexus_picture_decoder.h
+
+# front end
+nexus_frontend.h
+nexus_frontend_ofdm.h
+nexus_frontend_qam.h
+nexus_frontend_satellite.h
+nexus_frontend_isdbt.h
+nexus_frontend_dvbt.h
+nexus_frontend_dvb_t2.h
+nexus_frontend_dvb_c2.h

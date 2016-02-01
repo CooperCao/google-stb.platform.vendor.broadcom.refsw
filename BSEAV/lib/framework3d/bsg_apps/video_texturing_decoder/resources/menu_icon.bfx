@@ -1,0 +1,67 @@
+// Broadcom BSG effect file
+
+OPTIONS
+{
+	SortOrder = AUTO;
+}
+
+PASS 0
+{
+	SEMANTICS
+	{
+		u_mvpMatrix		= MATRIX4_MODEL_VIEW_PROJECTION;
+		u_opacity		= SCALAR_OPACITY;
+		a_position		= VATTR_POSITION;
+		a_tc			= VATTR_TEXCOORD1;
+	}
+
+	STATE
+	{
+		EnableDepthTest = true;
+		EnableBlend = true;
+		BlendFunc = SRC_ALPHA, ONE_MINUS_SRC_ALPHA;
+	}
+
+	SAMPLER_2D u_tex
+	{
+		Unit = 0;
+		Wrap = CLAMP, CLAMP;
+		Filter = LINEAR_MIPMAP_NEAREST, LINEAR;
+	}
+
+	VERTEX_SHADER
+	{
+		uniform		mat4	u_mvpMatrix;
+		attribute	vec4	a_position;
+		attribute	vec2	a_tc;
+		varying		vec2	v_tc;
+
+		void main()
+		{
+			v_tc		= a_tc;
+			gl_Position	= u_mvpMatrix * a_position;
+		}
+	}
+
+	FRAGMENT_SHADER
+	{
+		precision mediump float;
+
+		uniform sampler2D	u_tex;
+		uniform float		u_opacity;
+		varying vec2		v_tc;
+
+		void main()
+		{
+			vec4 borderCol = vec4(0.9, 0.9, 0.9, 1.0);
+			vec4 col = texture2D(u_tex, v_tc);
+
+			col = mix(borderCol, col, smoothstep(0.01, 0.025, v_tc.x) * 
+									  smoothstep(0.01, 0.025, v_tc.y) * 
+									  smoothstep(0.99, 0.975, v_tc.x) * 
+									  smoothstep(0.99, 0.975, v_tc.y));
+			col.a *= u_opacity;
+			gl_FragColor = col;
+		}
+	}
+}

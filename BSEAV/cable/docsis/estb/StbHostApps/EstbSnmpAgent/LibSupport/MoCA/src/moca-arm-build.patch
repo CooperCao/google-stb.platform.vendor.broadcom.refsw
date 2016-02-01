@@ -1,0 +1,25 @@
+diff -rupN old/lib/moca_linux.c new/lib/moca_linux.c
+--- old/lib/moca_linux.c	2012-03-05 11:25:35.000000000 -0800
++++ new/lib/moca_linux.c	2015-04-10 11:05:48.263540418 -0700
+@@ -46,6 +46,7 @@
+ #include <linux/sockios.h>
+ #include <linux/ethtool.h>
+ #include <linux/if.h>
++#include <linux/in6.h>
+ #include <linux/if_bridge.h>
+ #include <linux/netlink.h>
+ #include <linux/rtnetlink.h>
+diff -rupN old/Makefile new/Makefile
+--- old/Makefile	2012-03-05 11:25:47.000000000 -0800
++++ new/Makefile	2015-04-10 11:05:48.263540418 -0700
+@@ -1,6 +1,10 @@
+ ifndef CROSS
++ifeq ($(B_REFSW_ARCH), arm-linux)
++CROSS		:= arm-linux-
++else
+ CROSS		:= mipsel-linux-
+ endif
++endif
+ #CROSS		:= mips-linux-
+ 
+ DIRS		:= lib util GCAP soapserver 

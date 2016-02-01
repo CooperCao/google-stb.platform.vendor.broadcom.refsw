@@ -1,0 +1,86 @@
+#!/bin/sh
+case $1 in
+install)
+    # A symlink to /data/videos is preferred because it's a larger
+    # partition when using the default filesystem.
+    if [ ! -d videos ]; then
+        echo create atlas videos directory
+        if [ -d /data ]; then
+            # glibc filesystems
+            if [ ! -d /data/videos ]; then
+                mkdir /data/videos
+            fi
+            ln -sf /data/videos .
+        else
+        if [ -d /mnt/hd ]; then
+            # uclibc filesystems
+            if [ ! -d /mnt/hd/videos ]; then
+                mkdir /mnt/hd/videos
+            fi
+            ln -sf /mnt/hd/videos .
+        else
+            # default to create it right here
+            mkdir videos
+        fi
+        fi
+    fi
+
+    # A symlink to /data/audio is preferred because it's a larger
+    # partition when using the default filesystem.
+    if [ ! -d audio ]; then
+        echo create atlas audio directory
+        if [ -d /data ]; then
+            # glibc filesystems
+            if [ ! -d /data/audio ]; then
+                mkdir /data/audio
+            fi
+            ln -s /data/audio .
+        else
+        if [ -d /mnt/hd ]; then
+            # uclibc filesystems
+            if [ ! -d /mnt/hd/audio ]; then
+                mkdir /mnt/hd/audio
+            fi
+            ln -s /mnt/hd/audio .
+        else
+            # default to create it right here
+            mkdir audio
+        fi
+        fi
+    fi
+
+    # Create other subdirs
+    if [ ! -d pictures ]; then
+        echo create atlas pictures directory
+        mkdir pictures
+    fi
+    if [ ! -d scripts ]; then
+        echo create atlas scripts directory
+        mkdir scripts
+    fi
+    ;;
+
+*)
+    if [ -e atlas_netapp_prep.sh ]; then
+	source atlas_netapp_prep.sh `pwd`
+    else
+	if [ -e netapp_target_prep.sh ]; then
+	    source netapp_target_prep.sh `pwd`
+	fi
+    fi
+
+    if [ -e atlas_zigbee_prep.sh ]; then
+	source atlas_zigbee_prep.sh ..
+    fi
+
+    # use the nexus script
+	if ps ax | grep -v grep | grep "nxserver" > /dev/null
+	then
+		echo "--> Start Atlas in NxClient mode <--"
+		nexus.client $*
+	else
+		echo "--> Start Atlas in Nexus mode <--"
+		nexus $*
+	fi
+    ;;
+esac

@@ -1,0 +1,297 @@
+coreprefix VICE
+specversion 01
+
+privatedef VICE_priv_1
+privatedef VICE_priv_FW_ignore
+
+// START of IMPORTANT NOTES on editing this file
+//  - If mailbox changes:
+//    * enum MAILBOX_INTERFACE.BVN2VICE_DATA_1_START needs to be updated
+//    * BVN2VICE.DATA.SIZE needs to be updated
+//    * BVN2VICE_INTERFACE_DWORD needs to be updated with new fields
+//  - Versioning is as follows:
+//    * BVN2VICE.DATA.MAJORREVISION changes when
+//       * MBOX changes in a backwards incompatible way (E.g. existing fields change)
+//       * MBOX size increases
+//    * BVN2VICE.DATA.MINORRREVISION
+//       * resets to 0 when MAJORREVISION changes
+//       * All other changes E.g.
+//          * MBOX location changes
+//          * New fields are added in reserved MBOX DWORDs
+// END of IMPORTANT NOTES on editing this file
+
+//----------------------------------------------------------------------
+// Enums
+//----------------------------------------------------------------------
+
+enum MAILBOX_INTERFACE
+   value  HOST2VICE           0
+     desc "Host to ViCE command mailbox register offset. The mailbox register"
+     desc "at this offset is written by host with command to ViCE and the ViCE"
+     desc "FW will read from this register for the host command.\n"
+   value  VICE2HOST           4
+     desc "ViCE to host response mailbox register offset. The mailbox register"
+     desc "at this offset is written by ViCE FW with response to host command"
+     desc "and the host will read from this register for the response.\n"
+   value  BVN2VICE            8
+     desc "BVN to ViCE picture meta-data mailbox register offset. The mailbox"
+     desc "register at this offset is written by ViCE FW with the starting"
+     desc "offset of the BVN2ViCE picture meta-data structure that ViCE FW expects."
+     desc "NOTE, the value read from this offset must match with the BVN2VICE_DWORD_00_BVB_PIC_SIZE_OFFSET"
+     desc "value defined below.\n"
+   value  VICE_FW_SCRATCH     12
+     desc "ViCE FW Scratch location. This is used during boot to pass some boot"
+     desc "information to the ViCE FW."
+   value  BVN2VICE_DATA_0_START        16
+     desc "BVN to ViCE picture meta-data payload channel 0 offset. ViCE FW expects the register"
+     desc "at this location holds the dword 0 of transcoding channel 0.\n"
+   value  BVN2VICE_DATA_1_START        48
+     desc "BVN to ViCE picture meta-data payload channel 1 offset. ViCE FW expects the register"
+     desc "at this location holds the dword 0 of transcoding channel 1.\n"
+endenum
+
+enum BVN2VICE_INTERFACE_DWORD
+   value  00_BVB_PIC_SIZE_OFFSET        0
+     desc "BVN to ViCE picture meta-data payload dword 0 offset, relative offset to BVN2VICE_DATA_0/1_START."
+	 desc "ViCE FW expects the register at this location holds the dword 0 of the BVN2ViCE "
+	 desc "picture meta-data structure.\n"
+   value  01_SAMPLE_ASPECT_RATIO_OFFSET  4
+     desc "BVN to ViCE picture meta-data payload dword 1 offset. relative offset to BVN2VICE_DATA_0/1_START."
+	 desc "ViCE FW expects the register at this location holds the dword 1 of the BVN2ViCE "
+	 desc "picture meta-data structure.\n"
+   value  02_PIC_INFO_OFFSET             8
+     desc "BVN to ViCE picture meta-data payload dword 2 offset. relative offset to BVN2VICE_DATA_0/1_START."
+	 desc "ViCE FW expects the register at this location holds the dword 2 of the BVN2ViCE "
+	 desc "picture meta-data structure.\n"
+   value  03_ORIGINAL_PTS_OFFSET        12
+     desc "BVN to ViCE picture meta-data payload dword 3 offset. relative offset to BVN2VICE_DATA_0/1_START."
+	 desc "ViCE FW expects the register at this location holds the dword 3 of the BVN2ViCE "
+	 desc "picture meta-data structure.\n"
+   value  04_STG_PICTURE_ID_OFFSET      16
+     desc "BVN to ViCE picture meta-data payload dword 4 offset. relative offset to BVN2VICE_DATA_0/1_START."
+	 desc "ViCE FW expects the register at this location holds the dword 4 of the BVN2ViCE"
+	 desc " picture meta-data structure.\n"
+   value  05_BARDATA_INFO_OFFSET        20
+     desc "BVN to ViCE picture meta-data payload dword 5 offset. relative offset to BVN2VICE_DATA_0/1_START."
+     desc "ViCE FW expects the register at this location holds the dword 5 of the BVN2ViCE"
+     desc " bar data meta-data structure.\n"
+   value  06_FNRT_INFO_OFFSET           24
+     desc "BVN to ViCE picture meta-data payload dword 6 offset. relative offset to BVN2VICE_DATA_0/1_START."
+     desc "ViCE FW expects the register at this location holds the dword 6 of the BVN2ViCE"
+     desc "fast non real time (FNRT) meta-data structure.\n"
+   value  07_RESERVED_OFFSET            28
+     desc "BVN to ViCE picture meta-data payload dword 7 offset. relative offset to BVN2VICE_DATA_0/1_START."
+     desc "Reserved for future used.  Should be set to 0.\n"
+ endenum
+
+
+
+//----------------------------------------------------------------------------
+// Data structures
+//----------------------------------------------------------------------------
+datatype32 MBOX
+    private VICE_priv_FW_ignore              // hide this register
+    alias DCCM
+    title registers interface address offset in DCCM.
+    field OFFSET                       31:16 unsigned
+      desc "The mailbox registers interface address is the offset relative to VICE2_ARCSS_ESS_DCCM_0_DATA0.\n"
+      enum MAILBOX_INTERFACE
+    field REVISION                        15:00 unsigned
+      desc "The revision ID of this mailbox interface.\n"
+          value ID                        1
+endtype
+
+datatype32 BVN2VICE
+    private VICE_priv_FW_ignore              // hide this register
+    alias BVN2VICE_MBOX
+    title MBOX registers interface address offset.
+    field DATA_DWORD                      31:24 unsigned
+      desc "The mailbox registers interface address is the offset relative to BVN2VICE_DATA_0/1_START.\n"
+      enum BVN2VICE_INTERFACE_DWORD
+    field DATA                            23:16 unsigned
+      desc "BVN to ViCE picture meta-data payload overall size in DW unit. \n"
+          value SIZE                      8
+    field MAJORREVISION                   15:08 unsigned
+      desc "The major revision ID of this mailbox interface.\n"
+          value ID                        3
+    field MINORREVISION                   07:00 unsigned
+      desc "The minor revision ID of this mailbox interface.\n"
+          value ID                        2
+endtype
+
+datatype32 BVN2VICE_DWORD_00_BVB_PIC_SIZE
+    private VICE_priv_1              // hide this register
+    title BVB Picture Size
+      desc "This is dword 0 of the BVN2ViCE picture meta-data structure.\n"
+      desc "Note if the BVB picture size is not Macroblock-aligned, VIP block"
+      desc "should pad it up to MB-aligned.\n"
+    alias BVN2VICE_DWORD_00_BVB_PIC_SIZE
+    field H_SIZE                          31:16 unsigned
+      desc "Picture horizontal size in pixel unit.\n"
+    field V_SIZE                          15:00 unsigned
+      desc "Picture vertical size in pixel unit.\n"
+endtype
+
+datatype32 BVN2VICE_DWORD_01_SAMPLE_ASPECT_RATIO
+    private VICE_priv_1              // hide this register
+    title Sample Aspect Ratio
+      desc "This is dword 1 of the BVN2ViCE picture meta-data structure.\n"
+      desc "This describes the Sample Aspect Ratio (SAR) of the pciture."
+      desc "For example, if SAR H_SIZE = 8 and SAR V_SIZE = 9, then SAR = 8/9.\n"
+      desc "The picture display aspect ratio DAR = SAR * picture width / picture height."
+    alias BVN2VICE_DWORD_01_SAMPLE_ASPECT_RATIO
+    field H_SIZE                          31:16 unsigned
+      desc "Sample aspect ratio horizontal size.\n"
+    field V_SIZE                          15:00 unsigned
+      desc "Sample aspect ratio vertical size.\n"
+endtype
+
+datatype32 BVN2VICE_DWORD_02_PIC_INFO
+    private VICE_priv_1              // hide this register
+    title Picture Information
+      desc "This is dword 2 of the BVN2ViCE picture meta-data structure.\n"
+      desc "This describes some of the picture information for the video arrives at ViCE2.\n"
+    alias BVN2VICE_DWORD_02_PIC_INFO
+    field FRAME_RATE                      31:16 unsigned
+      desc "Frame rate in 1/100th Hz. For example, 29.97 fps = 2997, 30 fps = 3000.\n"
+      desc "In case application enables frame rate tracking that the display frame rate"
+      desc "tracks source frame rate at 59.94 or 60Hz, the encoder may need to frame-accurately"
+      desc "track the BVN frame rate to generate coded timestamps and coded frame rate"
+      desc "such that the end-to-end encode/decode system can avoid frame slip.\n"
+    field SRC_PIC_TYPE                    15:12 unsigned
+      desc "Original source I/P/B picture type. This may help encoder"
+      desc "for GOP structure tracking (i.e. matching the coded picture"
+      desc "type with original source picture type).\n"
+          value UNKNOWN     0
+            desc "Unknown picture type. For example, HDMI source may set"
+            desc "it as UNKNOWN.\n"
+          value I           1
+            desc "I picture.\n"
+          value P           2
+            desc "P picture.\n"
+          value B      	    3
+            desc "B picture.\n"
+    field POLARITY                        11:10 unsigned
+      desc "The picture polarity.\n"
+          value TOP         0
+            desc "Top field picture.\n"
+          value BOT         1
+            desc "Bottom field picture.\n"
+          value FRAME       2
+            desc "Progressive frame picture.\n"
+    field REPEAT                          09:09 unsigned
+      desc "This indicates the picture repeat due to cadence detection or frame"
+      desc "rate conversion etc any picture repeat known by BVN or upstream module.\n"
+      desc "This flag applies to both interlaced and progressive sequence."
+      desc "For interlaced sequence, repeated picture has the same POLARITY as"
+      desc "the previous picture.\n"
+          value DISABLE     0
+          value ENABLE      1
+    field IGNORE                          08:08 unsigned
+      desc "This flag indicates unintentional picture repeat due to decoder underflow"
+      desc "at non-realtime transcode mode. Encoder FW should simply drop this picture"
+      desc "with the IGNORE flag set. No timestamp needs to be adjusted, no effect in"
+      desc "the coded stream. This flag is generated by the display manager software.\n"
+      desc "Note the IGNORE should be 0 for all other cases.\n"
+          value DISABLE     0
+          value ENABLE      1
+    field LAST                            07:07 unsigned
+      desc "This flag indicates last picture from the source, passed from XVD/DM to "
+      desc "ViCE. For the mute color pictures afterwards, this flag should be true as well\n"
+      desc "Note the LAST should be 0 for all other cases.\n"
+          value FALSE       0
+          value TRUE      1
+    field CHANNELCHANGE                   06:06 unsigned
+      desc "This flag set to true for all pictures from XVD sent to VDC before the first"
+      desc "decoded picture is available AND after a channel is stopped (for both muted"
+      desc "or repeated hold last pic frames)\n"
+          value FALSE       0
+          value TRUE        1
+    field reserved                        05:05
+      //desc "Reserved bit field for future extension.\n"
+    field ACTIVEFORMATDATA                04:04 unsigned
+      desc "This flag set to true for valid AFD present in stream. if it is true, then "
+      desc "AFD mode can be used\n"
+          value FALSE       0
+          value TRUE        1
+    field ACTIVEFORMATDATAMODE            03:00 unsigned
+      desc "AFD values defined by User data registered by ITU-T Recommendation T.35 "
+      desc "SEI message (see ISO/IEC 14496-10:2005, Subclauses D.8.5 and D.9.5). \n"
+endtype
+
+datatype32 BVN2VICE_DWORD_03_ORIGINAL_PTS
+    private VICE_priv_1              // hide this register
+    title Source PTS Value
+      desc "This is dword 3 of the BVN2ViCE picture meta-data structure.\n"
+    alias BVN2VICE_DWORD_03_ORIGINAL_PTS
+    field VAL                             31:00 unsigned
+      desc "It's the most significant 32-bit of original (or interpolated)"
+      desc "PTS value of the decoder source video frame.\n"
+      desc "Non-decoder BVN source will set this as constant 0xFFFFFFFF.\n"
+endtype
+
+datatype32 BVN2VICE_DWORD_04_STG_PICTURE_ID
+    private VICE_priv_1              // hide this register
+    title STG Picture ID
+      desc "This is dword 4 of the BVN2ViCE picture meta-data structure.\n"
+    alias BVN2VICE_DWORD_04_STG_PICTURE_ID
+    field VAL                             31:00 unsigned
+      desc "The picture ID may be used by non-realtime file mode transcode"
+      desc "context switch etc. It's a 32-bit counter generated by VDC PI.\n"
+endtype
+
+datatype32 BVN2VICE_DWORD_05_BARDATA_INFO
+    private VICE_priv_1              // hide this register
+    title bar data Information
+      desc "This is dword 5 of the BVN2ViCE picture meta-data structure.\n"
+      desc "This describes bar data information for the video arrives at ViCE2.\n"
+    alias BVN2VICE_DWORD_05_BARDATA_INFO
+    field reserved                        31:30
+    field TOPLEFTBARVALUE                 29:16 unsigned
+      desc "either the top or left bar data value, as defined by BarDataType \n"
+    field BARDATATYPE                     15:14 unsigned
+      desc "specify top or bottom or left or right data\n"
+          value invalidBarData    0
+          value TopBottom         1
+          value LeftRight         2
+          value reserved          3
+    field BOTRIGHTBARVALUE                13:0  unsigned
+      desc "either the bottom or right bar data value, as defined by BarDataType \n"
+endtype
+
+datatype32 BVN2VICE_DWORD_06_FNRT_INFO
+    private VICE_priv_1              // hide this register
+    title fast non real time Information
+      desc "This is dword 6 of the BVN2ViCE picture meta-data structure.\n"
+      desc "This describes fast non real time information for the video arrives at ViCE2.\n"
+      desc "It also describes the orientation format which is used for 3D user data support.\n"
+    alias BVN2VICE_DWORD_06_FNRT_INFO
+    field reserved                         31:21
+    field FMT_ORIENTATION                  20:18 unsigned
+      desc "orientation format used for 3D user data support.\n"
+          value 2D                       0
+            desc "No 3D data.\n"
+          value 3D_LEFT_RIGHT            1
+          value 3D_OVER_UNDER            2
+          value 3D_LEFT                  3
+          value 3D_RIGHT                 4
+          value 3D_LEFT_RIGHT_ENHANCED   5
+            desc "This mode is not supprted.\n"
+    field ENDOFCHUNK                       17:17 boolean
+      desc "end of chunk indicator \n"
+    field PRECHARGEPICTURE                 16:16 boolean
+      desc "precharge picture indicator \n"
+    field reserved                         15:10
+    field CHUNKID                          9:0 unsigned
+      desc "specify chunk id of the current picture \n"
+endtype
+
+datatype32 DWORD_07_RESERVED
+    private VICE_priv_1              // hide this register
+    title reserved dword
+      desc "This is dword 7 of the BVN2ViCE picture meta-data structure.\n"
+      desc "This DWORD is reserved for allowing forward compatibility of S/W to test new features before.\n"
+      desc "F/W is released\n"
+    alias DWORD_07_RESERVED
+    field reserved                         31:00
+endtype

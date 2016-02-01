@@ -1,0 +1,19 @@
+Stack trace:
+Frame     Function  Args
+Exception: STATUS_ACCESS_VIOLATION at eip=61011F47
+eax=6103D9DD ebx=610C2684 ecx=00000000 edx=00000005 esi=00000000 edi=00010007
+ebp=0441FBB4 esp=0441FBB0 program=C:\cygwin\bin\rm.exe
+cs=001B ds=0023 es=0023 fs=0038 gs=0000 ss=0023
+Stack trace:
+Frame     Function  Args
+0441FBB4  61011F47  (610C2684, 0241FD20, 00000001, 00000000)
+0441FBD4  61012081  (0241FD20, 00000001, 00000001, 0441FC1C)
+0441FF04  61014433  (00000006, 00000001, 00000000, 00000000)
+0441FF84  61074431  (610C1628, FCE0FD80, 804FAA94, 00000000)
+0441FFB4  610055E8  (610C1628, 00000000, 0241FC14, 610C1628)
+      5 [sig] rm 8180 handle_exceptions: Error while dumping state (probably corrupted stack)
+59531251 [unknown (0xBC4)] rm 8180 sig_send: wait for sig_complete event failed, signal 6, rc 258, Win32 error 0
+59541257 [main] rm 8180 sig_send: wait for sig_complete event failed, signal -2, rc 258, Win32 error 0
+119677742 [main] rm 8180 sig_send: wait for sig_complete event failed, signal -2, rc 258, Win32 error 0
+179694075 [main] rm 8180 sig_send: wait for sig_complete event failed, signal -2, rc 258, Win32 error 0
+239715867 [main] rm 8180 sig_send: wait for sig_complete event failed, signal -2, rc 258, Win32 error 0

@@ -1,0 +1,39 @@
+// Broadcom BSG effect file
+
+OPTIONS
+{
+	SortOrder = NONE;
+}
+
+PASS 0
+{
+	SEMANTICS
+	{
+	}
+
+	STATE
+	{
+		EnableBlend     = false;
+		EnableDepthTest = false;
+	}
+
+	VERTEX_SHADER
+	{
+		void main()
+		{
+			gl_Position	= vec4(0.0, 0.0, 0.0, 1.0);
+		}
+	}
+
+	FRAGMENT_SHADER
+	{
+		precision mediump float;
+
+		void main()
+		{
+			discard;
+			gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+		}
+	}
+}
+

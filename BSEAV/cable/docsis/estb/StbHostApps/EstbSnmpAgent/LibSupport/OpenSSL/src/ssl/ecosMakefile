@@ -1,0 +1,160 @@
+#//**************************************************************************
+#//
+#//   Copyright (c) 2008 Broadcom Corporation
+#//   All Rights Reserved
+#//   No portions of this material may be reproduced in any form without the
+#//   written permission of:
+#//      Broadcom Corporation
+#//      16215 Alton Parkway
+#//      PO Box 57013
+#//      Irvine, CA 92619-7013
+#//   All information contained in this document is Broadcom Corporation
+#//   company private, proprietary, and trade secret.
+#//
+#//
+#//**************************************************************************
+#//   Filename:      ecosMakefile
+#//   Author:        Mike Sieweke (based on Tyler White's makefile for VxWorks)
+#//   Creation Date: February 4, 2004
+#//
+#//**************************************************************************
+#//   Description:
+#//
+#//   eCos makefile for OpenSSL ssl library
+#//
+#//**************************************************************************
+
+
+ARCH          = mipsisa32-elf
+CROSS_COMPILE = $(ARCH)
+CPU           = MIPS32
+
+CONFIG_DIR    = $(ECOS_CONFIG_ROOT)/$(ECOS_CONFIG_DIR)
+GNU_INC       = $(ECOS_DIR)/gnutools/$(ARCH)/$(ARCH)
+
+CC            = $(ARCH)-gcc 
+
+EXTRA_DEFINE = \
+        -DCPU=$(CPU) \
+        -DMIPSEB \
+        -DGETPID_IS_MEANINGLESS
+
+
+
+#--------------------------------------------------------------------------
+# Compiler flags:
+#        -EB            - big-endian
+#        -mips32        - MIPS32 CPU
+#        -G 0           - no "small global" area
+#        -O2            - extra optimization
+#        -fno-for-scope - make variables declared in "for" visible outside loop
+#        -msoft-float   - use soft floating point
+#        -Wall          - all warnings
+#        -c             - compile to .o
+#--------------------------------------------------------------------------
+CFLAGS  = \
+        -EB \
+        -mips32 \
+        -G 0 \
+        -O2 \
+        -fno-for-scope \
+        -ffunction-sections \
+        -msoft-float \
+        -Wall \
+        $(EXTRA_INCLUDE) \
+        $(EXTRA_DEFINE) \
+        -c
+
+COMPILE = $(CC) $(CFLAGS)
+ARCHIVE = ar cru $@
+
+LIBRARY_PATH = ..
+PROJECTLIB   = $(LIBRARY_PATH)/libOpenSSLtlsecos.a
+
+EXTRA_INCLUDE += \
+        -I. \
+        -I../include \
+        -I../include/openssl \
+        -I.. \
+	-I../crypto \
+	-I$(CONFIG_DIR)/include \
+        -I$(GNU_INC)/include/backward \
+        -I$(GNU_INC)/include \
+        -I$(GNU_INC)/include/$(ARCH)
+
+
+########################################################################
+# It shouldn't be necessary to change anything below this point.
+########################################################################
+
+#//======================================================================
+#// SSL Files
+#//======================================================================
+SSL_DIR=.
+BIO_DIR=../crypto/bio
+SSL_C=$(SSL_DIR)/bio_ssl.c  $(SSL_DIR)/d1_both.c  $(SSL_DIR)/d1_clnt.c  $(SSL_DIR)/d1_enc.c\
+      $(SSL_DIR)/d1_lib.c   $(SSL_DIR)/d1_meth.c  $(SSL_DIR)/d1_pkt.c   $(SSL_DIR)/d1_srvr.c\
+      $(SSL_DIR)/kssl.c     $(SSL_DIR)/s2_clnt.c  $(SSL_DIR)/s2_enc.c   $(SSL_DIR)/s2_lib.c\
+      $(SSL_DIR)/s2_meth.c  $(SSL_DIR)/s2_pkt.c   $(SSL_DIR)/s2_srvr.c  $(SSL_DIR)/s3_both.c\
+      $(SSL_DIR)/s3_clnt.c  $(SSL_DIR)/s3_enc.c   $(SSL_DIR)/s3_lib.c   $(SSL_DIR)/s3_meth.c\
+      $(SSL_DIR)/s3_pkt.c   $(SSL_DIR)/s3_srvr.c  $(SSL_DIR)/s23_clnt.c $(SSL_DIR)/s23_lib.c\
+      $(SSL_DIR)/s23_meth.c $(SSL_DIR)/s23_pkt.c  $(SSL_DIR)/s23_srvr.c $(SSL_DIR)/ssl_algs.c\
+      $(SSL_DIR)/ssl_asn1.c $(SSL_DIR)/ssl_cert.c $(SSL_DIR)/ssl_ciph.c $(SSL_DIR)/ssl_err2.c\
+      $(SSL_DIR)/ssl_err.c  $(SSL_DIR)/ssl_lib.c  $(SSL_DIR)/ssl_rsa.c  $(SSL_DIR)/ssl_sess.c\
+      $(SSL_DIR)/ssl_stat.c                       $(SSL_DIR)/ssl_txt.c  $(SSL_DIR)/t1_clnt.c\
+      $(SSL_DIR)/t1_enc.c   $(SSL_DIR)/t1_lib.c   $(SSL_DIR)/t1_meth.c  $(SSL_DIR)/t1_srvr.c 
+
+      #$(SSL_DIR)/ssltest.c $(SSL_DIR)/ssl_task.c   
+      
+#//======================================================================
+#// Source Files
+#//======================================================================
+SOURCE_C=$(SSL_C)
+
+#//======================================================================
+#// Generic rule for generating dependencies files
+#//======================================================================
+%.d : %.c
+	$(COMPILE_DEPENDS) -M $< > $(@F)
+   
+#//======================================================================
+#// Generic rule for generating *.o object files
+#//======================================================================
+%.o: %.c
+	$(COMPILE) $< -o $@
+   
+#//======================================================================
+%.dir: 
+	$(MAKE) -C $* 
+
+#//======================================================================
+%.cln: 
+	$(MAKE) -C $* clean
+   
+#//======================================================================
+#// Internal definitions
+#//======================================================================
+allcfiles      = $(SOURCE_C)
+c_objects      = $(allcfiles:.c=.o)
+
+all_objects   := $(c_objects) 
+
+#//======================================================================
+#// Build targets
+#//======================================================================
+target : project
+
+project : $(all_objects) $(PROJECTLIB)
+
+$(PROJECTLIB): $(all_objects)
+	$(ARCHIVE) $?
+
+all : 
+	@$(MAKE) clean
+	@$(MAKE) target
+
+clean : $(c_subdirs)
+	rm -f *.o
+	rm -f $(PROJECTLIB)
+
+

@@ -1,0 +1,158 @@
+#
+# 7366 power resources
+#
+
+# HVD0 (AVD0)
+AVD -> AVD0
+AVD0 -> {AVD0_CLK, AVD0_PWR}
+AVD0_CLK -> {HW_HVD0_CORE_CLK, HW_HVD0_CPU_CLK, HW_HVD0_SCB_CLK, HW_HVD0_GISB_CLK, HW_HVD0_108_54_CLK}
+AVD0_PWR -> HW_HVD0_SRAM      # HVD0 SRAM
+
+
+# VICE
+VICE -> VICE0
+VICE0 -> {VICE0_CLK, VICE0_PWR}
+VICE0_CLK -> {HW_VICE0_CORE_CLK, HW_VICE0_GISB_CLK, HW_VICE0_CLK}
+VICE0_PWR -> HW_VICE0_SRAM
+
+
+# Audio
+AUD_AIO    -> {HW_AIO, HW_VEC_AIO_54, HW_AIO_SRAM}
+HW_AIO     -> {HW_RAAGA0_GISB_CLK, HW_RAAGA0_CLK, HW_RAAGA0_DSP}
+AUD_DAC    -> HW_AUD_DAC
+HW_AUD_DAC -> HW_AIO
+
+# RAAGA
+RAAGA       -> {RAAGA0_CLK, RAAGA0_DSP, RAAGA0_SRAM}
+RAAGA0_CLK  -> {HW_RAAGA0_GISB_CLK, HW_RAAGA0_CLK}
+RAAGA0_DSP  -> HW_RAAGA0_DSP
+RAAGA0_SRAM -> HW_RAAGA0_SRAM
+
+
+# Display
+VDC              -> {BVN, VDC_DAC, VDC_VEC, VDC_656_OUT}
+BVN              -> {HW_BVN, HW_BVN_BVB_GISB, HW_BVN_SRAM}                  # BVN clocks
+VDC_DAC          -> HW_VDC_DAC                                              # DAC clocks
+VDC_VEC          -> {HW_VEC, HW_VEC_BVB_216, HW_VEC_AIO_54, HW_BVN_BVB_GISB, HW_VEC_SRAM}    #VEC clocks
+VDC_656_OUT      -> {HW_VDC_656_OUT, HW_VEC_BVB_216}                        # 656 clocks
+
+VDC_STG0 -> VICE0_CLK
+VDC_STG1 -> VICE0_CLK
+VDC_HDMI_TX_PHY0 -> HW_HDMI_TX0_PHY
+
+
+# Transport
+XPT -> {XPT_PARSER, XPT_PLAYBACK, XPT_RAVE, XPT_PACKETSUB, XPT_REMUX, XPT_WAKEUP}
+XPT_PARSER    -> XPT_XMEMIF                 # input parsers
+XPT_PLAYBACK  -> XPT_XMEMIF                 # playback channels
+XPT_RAVE      -> XPT_XMEMIF                 # RAVE contexts
+XPT_PACKETSUB -> XPT_XMEMIF                 # packet substitution channels
+XPT_REMUX     -> {XPT_XMEMIF, HW_XPT_RMX}   # remux
+XPT_XMEMIF    -> {HW_XPT_CORE_GISB, HW_XPT_XMEMIF}
+XPT_WAKEUP    -> HW_XPT_WAKEUP
+
+
+# HDMI TX
+HDMI_TX          -> {HDMI_TX_CLK, HDMI_TX_PHY}                            # entire HDMI block
+HDMI_TX_CLK      -> {HW_HDMI_TX_CLK, HW_HDMI_IIC_CLK, HW_BVN_BVB_GISB}    # HDMI Clocks
+HDMI_TX_PHY      -> HW_HDMI_TX0_PHY 		            	                  # HDMI PHY
+HW_HDMI_TX0_PHY   -> {HW_HDMI_TX_CLK, HW_BVN_BVB_GISB}
+
+
+
+# Graphics 2D
+M2MC -> {M2MC0, M2MC1}                      # Graphics2D
+M2MC0 -> {HW_M2MC0, HW_M2MC_54}
+M2MC1 -> {HW_M2MC1, HW_M2MC_54}
+M2MC_SRAM ->{M2MC0_SRAM, M2MC1_SRAM}        # Graphics 2D SRAM
+M2MC0_SRAM -> HW_M2MC0_SRAM
+M2MC1_SRAM -> HW_M2MC1_SRAM
+
+
+# Graphics 3D
+GRAPHICS3D -> HW_V3D                         # Graphics3D
+GRAPHICS3D_SRAM -> HW_V3D_SRAM               # Graphics 3D SRAM
+
+
+# Security, DMA
+HSM -> DMA                                   # HSM depends on DMA and XPT
+DMA -> XPT_XMEMIF
+
+
+# SmartCard
+SMARTCARD -> {SMARTCARD0, SMARTCARD1}        # Smartcard
+SMARTCARD0 -> HW_SCD0
+SMARTCARD1 -> HW_SCD1
+
+
+# Picture Decoder
+SID    -> {HW_HVD0_SID, HW_HVD0_SCB_CLK, HW_HVD0_GISB_CLK}
+SID_SRAM -> HW_SID_SRAM
+
+
+#
+# Top Level PLLs and VCXOs
+#
+
+# AVD PLLs
+HW_HVD0_CORE_CLK -> HW_PLL_HVD_CH0
+HW_HVD0_CPU_CLK  -> HW_PLL_HVD_CH1
+HW_PLL_HVD_CH0   -> DV_PLL_HVD_CH0
+HW_PLL_HVD_CH1   -> DV_PLL_HVD_CH1
+
+# AUD PLL
+AUD_PLL0 -> HW_AUD_PLL0
+AUD_PLL1 -> HW_AUD_PLL1
+{HW_AUD_PLL0, HW_AUD_PLL1} -> HW_AIO
+
+# VCXO PLL0
+{HW_VDC_656_OUT} -> HW_PLL_VCXO_PLL0_CH0
+{HW_AUD_PLL0, HW_AUD_PLL1} -> HW_PLL_VCXO_PLL0_CH2
+#{HW_PLL_VCXO_PLL0_CH0, HW_PLL_VCXO_PLL0_CH2} -> HW_PLL_VCXO_PLL0
+
+# VCXO PLL1
+{HW_VDC_656_OUT} -> HW_PLL_VCXO_PLL1_CH0
+{HW_AUD_PLL0, HW_AUD_PLL1} -> HW_PLL_VCXO_PLL1_CH2
+#{HW_PLL_VCXO_PLL1_CH0, HW_PLL_VCXO_PLL1_CH2} -> HW_PLL_VCXO_PLL1
+
+# V3D Pll
+HW_V3D -> HW_PLL_V3D_CH0
+HW_PLL_V3D_CH0 -> DV_PLL_V3D_CH0
+
+# MOCA Pll
+{HW_M2MC0, HW_M2MC1} -> HW_PLL_MOCA_CH4
+HW_PLL_MOCA_CH4 -> DV_PLL_MOCA_CH4
+
+# SCD PLL
+HW_SCD0 -> HW_PLL_SCD0_CH0
+HW_PLL_SCD0_CH0 -> HW_PLL_SCD0
+HW_SCD1 -> HW_PLL_SCD1_CH0
+HW_PLL_SCD1_CH0 -> HW_PLL_SCD1
+
+# RAAGA PLL
+HW_RAAGA0_DSP -> HW_PLL_RAAGA_PLL_CH0
+HW_VICE0_CORE_CLK -> HW_PLL_RAAGA_PLL_CH3
+HW_PLL_RAAGA_PLL_CH0 -> DV_PLL_RAAGA_PLL_CH0
+HW_PLL_RAAGA_PLL_CH3 -> DV_PLL_RAAGA_PLL_CH3
+{DV_PLL_RAAGA_PLL_CH0, DV_PLL_RAAGA_PLL_CH3} -> HW_PLL_RAAGA
+
+
+# BINT_Open requires access to L2 interrupt registers after BCHP_PWR_Open turns off the CLOCK_GEN clocks.
+# BPWR_Open used to guarantee this initial power requirement, but BPWR is being phased-out.
+# The BINT_OPEN node will handle this instead, by being acquired and released around the BINT_Open call.
+
+BINT_OPEN -> {AVD, RAAGA, AUD_AIO, VDC, XPT, HDMI_TX, M2MC, VICE, GRAPHICS3D, SID}
+
+
+# MAGNUM_CONTROLLED is a special node that keeps track of resources whose power management is done in Magnum (as opposed to upper-level SW, e.g. Nexus)
+# During BCHP_PWR_Open, all HW resources that are dependants of MAGNUM_CONTROLLED will be initialized (i.e. powered down)
+# Upper-level SW is responsible for initializing all other HW resources
+
+MAGNUM_CONTROLLED -> {AVD, VICE, AUD_PLL0, AUD_PLL1, AUD_AIO, AUD_DAC, RAAGA}
+MAGNUM_CONTROLLED -> {VDC, VDC_STG0, VDC_STG1, VDC_HDMI_TX_PHY0}
+MAGNUM_CONTROLLED -> {XPT, HDMI_TX, M2MC, M2MC_SRAM, GRAPHICS3D, GRAPHICS3D_SRAM}
+MAGNUM_CONTROLLED -> {DMA, SMARTCARD, SID, SID_SRAM}
+
+SECURE_ACCESS -> {HW_HVD0_GISB_CLK, HW_XPT_CORE_GISB}
+SECURE_ACCESS -> {HW_VICE0_CORE_CLK, HW_VICE0_GISB_CLK}
+SECURE_ACCESS -> {HW_RAAGA0_GISB_CLK, HW_RAAGA0_DSP}

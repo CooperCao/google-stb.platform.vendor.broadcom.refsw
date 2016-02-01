@@ -1,0 +1,52 @@
+Iolaus Requirements
+By David Erickson
+
+---------------------------------------
+Must support the following:
+
+1. Multiple instances can run in the same app.
+2. An instance can support multiple framebuffers.
+3. Full windowing support, including:
+3a. Parent/child relationships
+3b. No drawing outside of your window (clipping for drawing integrity)
+3c. No drawing outside of the framebuffer (clipping for memory protection)
+3d. Zorder for siblings
+4. Event queue for painting, including support for:
+4a. Timeout (in milliseconds)
+4b. Input devices.
+5. Support for multiple input devices.
+6. PNG rendering (compile time option)
+7. JPEG rendering (compile time option)
+8. Truetype antialiased fonts (compile time option)
+9. Must support all features required by microwindows (see BSEAV/linux/lib/mlibs)
+10. Must support all features required by Brutus (see BSEAV/app/brutus)
+11. Multiple pixel formats supported at runtime
+12. Hardware accelerated draw operations and default CPU-based draw operations.
+13. All pixel formats supported by settop api, including palettized color.
+14. Opaque and transparent window support
+15. Combining of paint events for minimal repainting
+
+---------------------------------------
+Must not support:
+
+This list is important because the features aren't needed and would increase code size.
+Some options might be ok to develop later as long as the aren't compiled in by default.
+
+1. Unicode
+2. Desktop metaphor
+3. Non-rectangular clipping
+4. Drawing circles
+5. Drawing diagonal lines
+6. Different pen and brush styles
+7. Client/server architecture (i.e. x server)
+8. Direct support for keyboard devices.
+9. Tabbing
+
+---------------------------------------
+Unknown if it should or shouldn't:
+
+1. Keeping track of focus
+
+---------------------------------------
+Internal notes:
+Iolaus was created using PR 9107.

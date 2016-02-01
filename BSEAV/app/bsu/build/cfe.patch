@@ -1,0 +1,318 @@
+diff -rupN ../original/CFE_15_2/cfe/include/bsu-api.h CFE_15_2/cfe/include/bsu-api.h
+--- ../original/CFE_15_2/cfe/include/bsu-api.h	2015-01-21 11:51:58.000000000 -0800
++++ CFE_15_2/cfe/include/bsu-api.h	2015-03-30 16:26:15.000000000 -0700
+@@ -31,8 +31,11 @@
+ #include "lib_malloc.h"
+ #include "lib_printf.h"
+ 
+-//#include "common.h"
+-//#include "bolt.h"
++#define min(a, b) \
++	({ __typeof__(a) _a = (a); \
++	   __typeof__(b) _b = (b); \
++	   _a < _b ? _a : _b; })
++
+ #include "cfe_fileops.h"
+ #include "cfe_console.h"
+ #include "ui_command.h"
+@@ -68,7 +71,7 @@ struct bsu_meminfo {
+ 	uint32_t	top;
+ };
+ 
+-struct bsu_api
++struct bsu_api 
+ {
+ 	uint32_t xfd_signature;
+ 	uint32_t xfd_api_version;
+@@ -123,14 +126,14 @@ struct bsu_api
+ 	int (*xfn_console_readline_noedit)(char *prompt, char *str, int len);
+ 
+ 	/* fileops */
+-	int (*xfn_fs_init)(char *fsname, fileio_ctx_t ** fsctx, void *device);
++	int (*xfn_fs_init)(char *fsname, fileio_ctx_t **fsctx, void *device);
+ 	int (*xfn_fs_uninit)(fileio_ctx_t *);
+-	int (*xfn_fs_open)(fileio_ctx_t *, void **ref, char *filename, int mode);
+-	int (*xfn_fs_close)(fileio_ctx_t *, void *ref);
+-	int (*xfn_fs_read)(fileio_ctx_t *, void *ref, uint8_t * buffer, int len);
+-	int (*xfn_fs_write)(fileio_ctx_t *, void *ref, uint8_t * buffer, int len);
+-	int (*xfn_fs_seek)(fileio_ctx_t *, void *ref, int offset, int how);
+-	int (*xfn_fs_hook)(fileio_ctx_t * fsctx, char *fsname);
++	int (*xfn_fs_open)(fileio_ctx_t*, void **ref, char *filename, int mode);
++	int (*xfn_fs_close)(fileio_ctx_t*, void *ref);
++	int (*xfn_fs_read)(fileio_ctx_t*, void *ref, uint8_t *buffer, int len);
++	int (*xfn_fs_write)(fileio_ctx_t*, void *ref, uint8_t *buffer, int len);
++	int (*xfn_fs_seek)(fileio_ctx_t*, void *ref, int offset, int how);
++	int (*xfn_fs_hook)(fileio_ctx_t *fsctx, char *fsname);
+ 
+ 	/* net */
+ 	int  (*xfn_net_init)(char *devname);
+@@ -154,6 +157,12 @@ struct bsu_api
+ 
+ 	/* error */
+ 	const char *(*xfn_cfe_errortext)(int err); /* cfe_errortext */
++
++	/* WARNING: Do *NOT* use realloc with a umalloc'd ptr. */
++	void *(*xfn_realloc)(void *ptr, size_t size);
++	void (*xfn_msleep)(int ms); /* cfe_timer.h defines the parameter as int */
++	int (*xfn_snprintf)(char *str, int size, const char *format, ...);
++        int (**xfn_xprinthook) (const char *);
+ };
+ 
+ #endif /* __BSU_API_H__ */
+diff -rupN ../original/CFE_15_2/cfe/include/lib_malloc.h CFE_15_2/cfe/include/lib_malloc.h
+--- ../original/CFE_15_2/cfe/include/lib_malloc.h	2015-01-21 11:51:58.000000000 -0800
++++ CFE_15_2/cfe/include/lib_malloc.h	2015-03-30 16:19:21.000000000 -0700
+@@ -68,6 +68,7 @@ extern mempool_t kmempool;
+ void *kmempoolbase(mempool_t *pool);
+ int kmempoolsize(mempool_t *pool);
+ int kmemstats(mempool_t *pool,memstats_t *stats);
++size_t kmalloc_usable_size(mempool_t *pool, void *ptr);
+ 
+ #define KMEMINIT(buffer,length) kmeminit(&kmempool,(buffer),(length))
+ #define KMEMPOOLBASE() kmempoolbase(&kmempool)
+@@ -75,5 +76,6 @@ int kmemstats(mempool_t *pool,memstats_t
+ #define KMALLOC(size,align) kmalloc(&kmempool,(size),(align))
+ #define KFREE(ptr) kfree(&kmempool,(ptr))
+ #define KMEMSTATS(s) kmemstats(&kmempool,(s))
++#define KMALLOC_USABLE_SIZE(s) kmalloc_usable_size(&kmempool, (s))
+ 
+ #endif
+diff -rupN ../original/CFE_15_2/cfe/include/lib_string.h CFE_15_2/cfe/include/lib_string.h
+--- ../original/CFE_15_2/cfe/include/lib_string.h	2015-01-21 11:51:58.000000000 -0800
++++ CFE_15_2/cfe/include/lib_string.h	2015-04-17 10:01:02.000000000 -0700
+@@ -58,7 +58,7 @@ char *lib_strrchr(const char *dest,int c
+ int lib_memcmp(const void *dest,const void *src,size_t cnt);
+ void *lib_memcpy(void *dest,const void *src,size_t cnt);
+ void *lib_memset(void *dest,int c,size_t cnt);
+-char *lib_strdup(char *str);
++char *lib_strdup(const char *str);
+ void lib_strupr(char *s);
+ char lib_toupper(char c);
+ char *lib_strcat(char *dest,const char *src);
+@@ -70,7 +70,7 @@ int lib_lookup(const cons_t *list,char *
+ int lib_setoptions(const cons_t *list,char *str,unsigned int *flags);
+ int lib_xtoi(const char *dest);
+ uint64_t lib_xtoq(const char *dest);
+-char *lib_strstr(const char *dest,char * src);
++char *lib_strstr(const char *dest, const char *find);
+ int lib_strncmp(const char *dest,const char *src, size_t cnt);
+ #if defined(CFG_HC_FLASH)
+ uint64_t lib_atoi64(const char *dest);
+diff -rupN ../original/CFE_15_2/cfe/lib/lib_malloc.c CFE_15_2/cfe/lib/lib_malloc.c
+--- ../original/CFE_15_2/cfe/lib/lib_malloc.c	2015-01-21 11:51:58.000000000 -0800
++++ CFE_15_2/cfe/lib/lib_malloc.c	2015-03-26 16:26:30.000000000 -0700
+@@ -250,6 +250,46 @@ void kfree(mempool_t *pool,void *ptr)
+     kmemcompact(pool);
+ }
+ 
++
++/*  *********************************************************************
++    *  kmalloc_usable_size(ptr)
++    *
++    *  Return the number of bytes associated with this previously malloc'd
++    * pointer.
++    *
++    *  Input parameters:
++    *	ptr - pointer to something allocated via bmalloc()
++    *
++    *  Return value:
++    *	size of allocation, may include extra alignment bytes.
++    ********************************************************************* */
++size_t kmalloc_usable_size(mempool_t *pool, void *ptr)
++{
++	memnode_t **backptr, *m;
++
++	if (!ptr ||
++		((unsigned char *)ptr < pool->base) ||
++		((unsigned char *)ptr >= (pool->base + pool->length))) {
++#ifdef TESTPROG
++		printf("Pointer %08X does not belong to pool %08X\n", ptr,
++		       pool);
++#endif
++		return 0;
++	}
++
++	backptr = (memnode_t **) (((unsigned char *)ptr) - sizeof(memnode_t *));
++	m = *backptr;
++
++	if (m->seal != MEMNODE_SEAL) {
++#ifdef TESTPROG
++		printf("Invalid node: %08X\n", m);
++#endif
++		return 0;
++	}
++
++	return m->length;
++}
++
+ /*  *********************************************************************
+     *  lib_outofmemory()
+     *  
+diff -rupN ../original/CFE_15_2/cfe/lib/lib_string.c CFE_15_2/cfe/lib/lib_string.c
+--- ../original/CFE_15_2/cfe/lib/lib_string.c	2015-01-21 11:51:58.000000000 -0800
++++ CFE_15_2/cfe/lib/lib_string.c	2015-04-17 10:01:40.000000000 -0700
+@@ -166,7 +166,7 @@ char *lib_strchr(const char *dest,int c)
+     return NULL;
+ }
+ 
+-char * lib_strstr(const char *dest, char * find)
++char *lib_strstr(const char *dest, const char *find)
+ {
+ 	char c, sc;
+ 	size_t len;
+diff -rupN ../original/CFE_15_2/cfe/lib/lib_string2.c CFE_15_2/cfe/lib/lib_string2.c
+--- ../original/CFE_15_2/cfe/lib/lib_string2.c	2015-01-21 11:51:58.000000000 -0800
++++ CFE_15_2/cfe/lib/lib_string2.c	2015-03-26 16:26:43.000000000 -0700
+@@ -55,7 +55,7 @@
+ #include "lib_string.h"
+ 
+ 
+-char *lib_strdup(char *str)
++char *lib_strdup(const char *str)
+ {
+     char *buf;
+ 
+diff -rupN ../original/CFE_15_2/cfe/main/bsu.c CFE_15_2/cfe/main/bsu.c
+--- ../original/CFE_15_2/cfe/main/bsu.c	2015-01-21 11:51:58.000000000 -0800
++++ CFE_15_2/cfe/main/bsu.c	2015-03-30 16:13:36.000000000 -0700
+@@ -33,7 +33,7 @@ extern void clear_d_cache(unsigned char 
+ */
+ 
+ /* ------------------------------------------------------------------------- */
+-/* support wrappers */
++/* libc like functions */
+ 
+ static void *bsu_malloc(size_t size)
+ {
+@@ -41,27 +41,79 @@ static void *bsu_malloc(size_t size)
+ }
+ 
+ 
+-static void bsu_free(void *ptr) {
++static void bsu_free(void *ptr) 
++{
+ 	KFREE(ptr);
+ }
+ 
+ 
+ static void *bsu_umalloc(size_t size)
+ {
+-//	return KUMALLOC(size, 0 /* align */);
+ 	return KMALLOC(size, 0 /* align */);
+ }
+ 
+ 
+-static void bsu_ufree(void *ptr) {
++static void bsu_ufree(void *ptr) 
++{
+ //	KUFREE(ptr);
+ 	KFREE(ptr);
+ }
+ 
++static void *bsu_realloc(void *ptr, size_t size)
++{
++	void *q;
++	size_t oldsz;
++
++	if (NULL == ptr)
++		return KMALLOC(size, 0);
++
++	if (0 == size) { /* && ptr != NULL */
++		KFREE(ptr);
++		return NULL;
++	}
++
++	/* get malloc'd data size. 0 = bad ptr, or not in our pool.
++	NOTE: It may be more than the original malloc requested
++	size if any alignment bytes have been added. */
++	oldsz = KMALLOC_USABLE_SIZE(ptr);
++	if (0 == oldsz)
++		return NULL;
++
++	if (size == oldsz)
++		return ptr;
++
++	q = KMALLOC(size, 0);
++	if (NULL == q)
++		return NULL;
++
++	lib_memcpy(q, ptr, min(size, oldsz));
++
++	KFREE(ptr);
++
++	return q;
++}
++
++static int bsu_xsnprintf(char *str, int size, const char *format, ...)
++{
++	va_list marker;
++	int count;
++
++	va_start(marker, format);
++	count = xvsnprintf(str, size, format, marker);
++	va_end(marker);
++
++	return count;
++}
++
++
++/* ------------------------------------------------------------------------- */
++/* misc support wrappers */
++
+ /* You need to call this (~100mSec) to
+  keep BOLT drivers sane.
+ */
+-static void bsu_poll_task(void) {
++static void bsu_poll_task(void) 
++{
+ 	POLL();
+ }
+ 
+@@ -114,7 +166,6 @@ static struct bsu_api bsu_xapi = {
+ 	.xfn_vsprintf = xvsprintf,
+ 	.xfn_vsnprintf = vsnprintf,
+ 	.xfn_strcpy = lib_strcpy,
+-	.xfn_strncpy = lib_strncpy,
+ 	.xfn_strcmp = lib_strcmp,
+ 	.xfn_strlen = lib_strlen,
+ 	.xfn_memcmp = lib_memcmp,
+@@ -164,6 +215,16 @@ static struct bsu_api bsu_xapi = {
+ 	.xfn_nvram_close = nvram_close,
+ 	.xfn_nvram_erase = nvram_erase,
+ 
++	/* v4 */
++	.xfn_strncpy = lib_strncpy,
++
++	/* v5 */
++
++	.xfn_realloc = bsu_realloc,
++	.xfn_msleep = cfe_msleep,
++	.xfn_snprintf = bsu_xsnprintf,
++	.xfn_xprinthook = &xprinthook,
++
+ 	.xfn_cfe_set_envdevname = cfe_set_envdevname,
+ 	.xfn_cfe_free_envdevname = cfe_free_envdevname,
+ 
+diff -rupN ../original/CFE_15_2/cfe/zlib/inftrees.c CFE_15_2/cfe/zlib/inftrees.c
+--- ../original/CFE_15_2/cfe/zlib/inftrees.c	2015-01-21 11:51:58.000000000 -0800
++++ CFE_15_2/cfe/zlib/inftrees.c	2015-04-21 09:37:20.000000000 -0700
+@@ -5,6 +5,7 @@
+ 
+ #include "zutil.h"
+ #include "inftrees.h"
++#include "lib_printf.h"
+ 
+ #if !defined(BUILDFIXED) && !defined(STDC)
+ #  define BUILDFIXED   /* non ANSI compilers may not accept inffixed.h */
+@@ -230,8 +231,10 @@ uIntf *v;               /* working area:
+         z = 1 << j;             /* table entries for j-bit table */
+ 
+         /* allocate new table */
+-        if (*hn + z > MANY)     /* (note: doesn't matter for fixed) */
++        if (*hn + z > MANY)     /* (note: doesn't matter for fixed) */ {
++xprintf("1000\n");
+           return Z_MEM_ERROR;   /* not enough memory */
++        }
+         u[h] = q = hp + *hn;
+         *hn += z;
+ 

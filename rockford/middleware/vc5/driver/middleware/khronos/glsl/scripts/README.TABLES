@@ -1,0 +1,14 @@
+The tables used by these scripts are in a simple, whitespace delimited
+format. Blank lines are ignored, the comment character is #, which
+must be the first character on the line. Each line is split by
+whitespace.  The first non-blank line defines the names of the fields,
+where each token is taken as a field name. The subsequent lines are
+taken as data entries in these fields. One of four types is given to
+each entry:
+
+* '-' and 'None' are the nil or none value.
+* 'y', 'Y', 't' and 'T' are boolean true
+* 'n', 'N', 'f' and 'F' are boolean false
+* Any element with a comma in it is a set. The empty set is ',',
+  and a set of length one is 'item,'.
+* Otherwise the element is a string.

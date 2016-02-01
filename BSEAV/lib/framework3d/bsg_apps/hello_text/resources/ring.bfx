@@ -1,0 +1,71 @@
+OPTIONS
+{
+   SortOrder = BACK_TO_FRONT;
+}
+
+PASS 0
+{
+   SEMANTICS
+   {
+      a_position    = VATTR_POSITION;
+      a_tc          = VATTR_TEXCOORD1;
+      u_textColor   = VECTOR4_USER;
+      u_mvp         = MATRIX4_MODEL_VIEW_PROJECTION;
+   }
+
+   STATE
+   {
+      EnableBlend = true;
+      BlendFunc = SRC_ALPHA, ONE_MINUS_SRC_ALPHA;
+      EnableDepthTest = true;
+   }
+
+   SAMPLER_2D u_textSampler
+   {
+      Unit = 0;
+      Wrap = CLAMP, CLAMP;
+      Filter = LINEAR_MIPMAP_LINEAR, LINEAR;
+   }
+
+   VERTEX_SHADER
+   {
+      uniform    mat4  u_mvp;
+      attribute  vec4  a_position;
+      attribute  vec2  a_tc;
+      varying    vec2  v_tc;
+      varying    vec2  v_pos;
+
+      void main()
+      {
+         gl_Position = u_mvp * a_position;
+         v_tc        = a_tc;
+         v_pos       = a_position.xy;
+      }
+   }
+
+   FRAGMENT_SHADER
+   {
+      precision mediump float;
+
+      uniform sampler2D   u_textSampler;
+      uniform vec4        u_textColor;
+      varying vec2        v_tc;
+      varying vec2        v_pos;
+
+      void main()
+      {
+         vec3 c1 = vec3(0.0, 1.0, 0.0);
+         vec3 c2 = vec3(1.0, 0.0, 0.0);
+
+         float alpha = texture2D(u_textSampler, v_tc).r;
+
+         if (alpha < 0.01)
+            discard;
+
+         float dist   = 1.0 - sin(length(v_pos));
+         alpha       *= u_textColor.a;
+         vec3 color   = mix(c1, c2, dist);
+         gl_FragColor = vec4(color, alpha);
+      }
+   }
+}

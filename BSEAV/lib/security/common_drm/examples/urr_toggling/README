@@ -1,0 +1,66 @@
+How to build and use the URR Toggling application
+
+0. Pre requisites
+
+  1 - This application requires a DRM Binfile loaded with a Valid Playready licence and valid HDCP keys.
+    This Binfile MUST be bounded to the chipset it is running on.
+    Please contact a SAGE representative if you do not have one.
+  2 - You will also need a Playready encrypted stream . We use the following file from Microsoft Playready Test server
+    URI       : http://playready.directtaps.net/smoothstreaming/
+    Search for: SSW 720p H264 PLAYREADY (SuperSpeedWay, 720p, H264 AAC, with encryption)
+    File Name : SuperSpeedway_720_2962_enc.ismv
+    MD5SUM    : f876f95e8450644466817ccf2651c68d
+  3 - Finally, this application assumes that you have a copy of the cnnticker.mpg. Please contact Broadcom to get a copy
+  of this file.
+
+I. Build
+
+  On the build server:
+
+  1 - define URSR_TOP to point at the root folder of your URSR sources, for example:
+    export URSR_TOP=/projects/stbdev/$USER/repos/URSR_baseline
+    cd $URSR_TOP
+  2 - Prepare environment
+    #export your regular nexus build exports, for 97252 D0, SV board
+    . ${URSR_TOP}/BSEAV/tools/build/plat 97252 D0 SV
+    export NEXUS_BIN_DIR=/projects/stbdev/$USER/bin
+    mkdir -p $NEXUS_BIN_DIR
+    export SAGE_SUPPORT=y
+    export NEXUS_MODE=proxy
+    export NEXUS_COMMON_CRYPTO_SUPPORT=y
+    export MSDRM_PRDY_SUPPORT=y
+    export MSDRM_PRDY_SDK_VERSION=2.5
+  export BMRC_ALLOW_XPT_TO_ACCESS_KERNEL=y
+  3 - Build nxserver/nxclient libs
+    make -C nexus/nxclient/ clean
+    make -C nexus/nxclient/
+  4 - Build URR Toggling Applicaiton:
+    make -C BSEAV/lib/security/common_drm/examples/ target=urr_toggling
+  5 - Prepare the test streams
+    mkdir -p $NEXUS_BIN_DIR/videos
+    cp -a SuperSpeedway_720_2962_enc.ismv $NEXUS_BIN_DIR/videos
+  cp -a cnnticker.mpg $NEXUS_BIN_DIR/videos
+  6 - Copy the DRM Binfile, it MUST be named playready.bin AND accessible inside NEXUS_BIN_DIR
+    cp -a playready.bin $NEXUS_BIN_DIR
+  7 - Set premissions
+    chmod -R 777 $NEXUS_BIN_DIR
+
+II. Run
+
+  First plug your STB hdmi output cable and power up your TV
+
+  On the Set Top Box:
+
+  1 - Get the ip address of the set top box
+  2 - Mount the binaries from $NEXUS_BIN_DIR in the build server to /mnt/nfs on the set top box:
+    mount -t nfs -o nolock <hostname>:<PATH TO NEXUS_BIN_DIR> /mnt/nfs
+  3 - Launch nxserver with -svp
+    cd /mnt/nfs
+    ./nexus nxserver -svp
+  4 - Open a telnet on the set top box using the IP retrieved in II.1.
+  5 - On the telnet window, launch the test application
+    cd /mnt/nfs
+    export LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH}
+    export PATH=.:${PATH}
+    ./urr_toggling /mnt/nfs/videos/SuperSpeedway_720_2962_enc.ismv
+  6 - A video shall start with smooth Video and Audio playback of SuperSpeedway_720_2962_enc.ismv followed by cnnticker.mpg. If you don't have HDCP keys in your bin file, playback of SuperSpeedway_720_2962_enc.ismv will not work proplerly.

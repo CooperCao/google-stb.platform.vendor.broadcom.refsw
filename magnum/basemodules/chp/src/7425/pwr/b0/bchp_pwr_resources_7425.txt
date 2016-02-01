@@ -1,0 +1,151 @@
+#
+# 7425 power resources
+#
+
+# SVD (AVD0) and AVD (AVD1)
+AVD -> {AVD0, AVD1}
+AVD0 -> {AVD0_CLK, AVD0_PWR}
+AVD0_CLK -> HW_SVD0_CLK
+AVD0_PWR -> HW_SVD0_PWR     # SVD0 SRAM
+AVD1 -> {AVD1_CLK, AVD1_PWR}
+AVD1_CLK -> HW_AVD1_CLK
+AVD1_PWR -> HW_AVD1_PWR     # AVD1 SRAM
+
+# VICE
+VICE -> VICE0
+VICE0 -> {VICE0_CLK, VICE0_PWR}
+VICE0_CLK -> HW_VICE0_CLK
+VICE0_PWR -> HW_VICE0_PWR
+
+# AIO
+AUD_AIO -> {HW_AIO, HW_AIO_SRAM, HW_RAAGA0_CLK, HW_RAAGA0_DSP}  # VEC_AIO and RAAGA is required for register access.
+
+# RAAGA
+RAAGA -> {RAAGA0_CLK, RAAGA0_DSP, RAAGA0_SRAM}
+RAAGA0_CLK  -> HW_RAAGA0_CLK
+RAAGA0_DSP  -> HW_RAAGA0_DSP
+RAAGA0_SRAM -> HW_RAAGA0_SRAM
+
+
+# Display
+VDC -> {BVN, VDC_DAC, VDC_VEC, VDC_656_OUT}                    # entire BVN and VEC blocks
+BVN -> {HW_BVN, HW_BVN_108M, HW_BVN_SRAM}                      # entire BVN block.
+VDC_DAC -> HW_VDC_DAC                                          # DAC clocks
+VDC_VEC -> {HW_VEC, HW_VEC_SRAM}                               # VEC_AIO 108M, VEC_AIO_324, 216M, and SCB clocks.
+VDC_656_OUT -> HW_VDC_656_OUT                                  # 656 output clock
+VDC_STG0 -> HW_VICE0_CLK                                       # Required only for video encoder
+VDC_STG1 -> HW_VICE0_CLK                                       # Required only for video encoder
+VDC_HDMI_TX_PHY0 -> HW_HDMI_TX_PHY
+VDC_HDMI_RX_CLK0 -> HW_HDMI_RX0_CLK
+
+#
+# Transport
+#
+XPT -> {HW_XPT_108M, HW_XPT_XMEMIF, HW_XPT_RMX}             # entire XPT block
+
+XPT_PARSER    -> {HW_XPT_108M, HW_XPT_XMEMIF}               # input parsers
+XPT_PLAYBACK  -> {HW_XPT_108M, HW_XPT_XMEMIF}               # playback channels
+XPT_RAVE      -> {HW_XPT_108M, HW_XPT_XMEMIF}               # RAVE contexts
+XPT_PACKETSUB -> {HW_XPT_108M, HW_XPT_XMEMIF}               # packet substitution channels
+XPT_REMUX     -> {HW_XPT_108M, HW_XPT_XMEMIF, HW_XPT_RMX}   # remux
+
+XPT_108M   -> {HW_XPT_108M, HW_XPT_SRAM}
+XPT_XMEMIF -> HW_XPT_XMEMIF
+XPT_SRAM   -> HW_XPT_SRAM
+XPT_WAKEUP -> HW_XPT_WAKEUP
+
+# HDMI TX
+HDMI_TX         -> {HDMI_TX_CLK, HDMI_TX_PHY}                       # entire HDMI block
+HDMI_TX_CLK     -> {HW_HDMI_TX_CLK, HW_BVN_108M, HW_HDMI_TX_SRAM}   # HDMI Clocks
+HDMI_TX_PHY     -> HW_HDMI_TX_PHY   			                    # HDMI PHY
+HW_HDMI_TX_PHY  -> {HW_HDMI_TX_CLK, HW_BVN_108M}
+
+
+# HDMI RX
+HDMI_RX          -> HDMI_RX0
+HDMI_RX0         -> {HDMI_RX0_CLK, HDMI_RX0_PHY}
+HDMI_RX0_CLK     -> {HW_HDMI_RX0_CLK, HW_BVN_108M}
+HDMI_RX0_PHY     -> {HW_HDMI_RX0_PHY, HW_HDMI_RX0_SRAM}
+HW_HDMI_RX0_PHY  -> {HW_HDMI_RX0_CLK, HW_BVN_108M}
+
+
+# Graphics 2D
+M2MC -> HW_M2MC                              # Graphics2D
+M2MC_SRAM  -> HW_M2MC_SRAM                   # Graphics 2D SRAM
+
+# Graphics 3D
+GRAPHICS3D -> HW_V3D                         # Graphics3D
+GRAPHICS3D_SRAM -> HW_V3D_SRAM               # Graphics 3D SRAM
+{HW_M2MC, HW_V3D} -> HW_GFX_108M             # Graphics 2D and V3D both depend on 108M and SCB clock
+
+# Security, DMA
+HSM -> DMA                                   # HSM depends on DMA and XPT
+DMA -> {HW_DMA, HW_XPT_108M, HW_XPT_XMEMIF}
+
+# SmartCard
+SMARTCARD -> {SMARTCARD0, SMARTCARD1}        # Smartcard
+SMARTCARD0 -> HW_SCD0
+SMARTCARD1 -> HW_SCD1
+
+# UHF
+UHF_INPUT -> HW_UHF_INPUT		     # UHF Input
+
+# Picture Decoder
+SID -> HW_GFX_108M
+SID_SRAM -> HW_M2MC_SRAM
+
+#
+# Top Level PLLs and VCXOs
+#
+
+# AVD PLLs
+HW_SVD0_CLK -> {HW_PLL_AVD1_CH2, HW_PLL_AVD1_CH3}
+HW_AVD1_CLK -> {HW_PLL_AVD1_CH0, HW_PLL_AVD1_CH1}
+{HW_PLL_AVD1_CH0, HW_PLL_AVD1_CH1, HW_PLL_AVD1_CH2, HW_PLL_AVD1_CH3} -> HW_PLL_AVD
+
+# AUD PLL
+AUD_PLL0 -> HW_AUD_PLL0
+AUD_PLL1 -> HW_AUD_PLL1
+AUD_PLL2 -> HW_AUD_PLL2
+
+
+# VCXO PLL0
+{HW_VEC, HW_AIO, HW_VDC_656_OUT} -> HW_PLL_VCXO_PLL0_CH0
+{HW_AUD_PLL0, HW_AUD_PLL1, HW_AUD_PLL2, HW_PLL_SCD} -> HW_PLL_VCXO_PLL0_CH2
+{HW_PLL_VCXO_PLL0_CH0, HW_PLL_VCXO_PLL0_CH2} -> HW_PLL_VCXO_PLL0
+
+# VCXO PLL1
+{HW_VEC, HW_AIO, HW_VDC_656_OUT} -> HW_PLL_VCXO_PLL1_CH0
+{HW_AUD_PLL0, HW_AUD_PLL1, HW_AUD_PLL2} -> HW_PLL_VCXO_PLL1_CH2
+{HW_PLL_VCXO_PLL1_CH0, HW_PLL_VCXO_PLL1_CH2} -> HW_PLL_VCXO_PLL1
+
+# VCXO PLL1
+{HW_VEC, HW_AIO, HW_VDC_656_OUT} -> HW_PLL_VCXO_PLL2_CH0
+{HW_AUD_PLL0, HW_AUD_PLL1, HW_AUD_PLL2, HW_PLL_SCD} -> HW_PLL_VCXO_PLL2_CH2
+{HW_PLL_VCXO_PLL2_CH0, HW_PLL_VCXO_PLL2_CH2} -> HW_PLL_VCXO_PLL2
+
+# SCD PLL
+HW_SCD0 -> HW_PLL_SCD_CH0
+HW_SCD1 -> HW_PLL_SCD_CH1
+{HW_PLL_SCD_CH0, HW_PLL_SCD_CH1} -> HW_PLL_SCD
+
+HW_VICE0_CLK -> HW_PLL_RAAGA_PLL_CH0
+HW_RAAGA0_DSP -> HW_PLL_RAAGA_PLL_CH1
+{HW_PLL_RAAGA_PLL_CH0, HW_PLL_RAAGA_PLL_CH1} -> HW_PLL_RAAGA
+
+
+
+# BINT_Open requires access to L2 interrupt registers after BCHP_PWR_Open turns off the CLOCK_GEN clocks.
+# BPWR_Open used to guarantee this initial power requirement, but BPWR is being phased-out.
+# The BINT_OPEN node will handle this instead, by being acquired and released around the BINT_Open call.
+
+BINT_OPEN -> {AVD, RAAGA, AUD_AIO, VDC, XPT, HDMI_TX, HDMI_RX, M2MC, VICE, UHF_INPUT, GRAPHICS3D}
+
+
+# MAGNUM_CONTROLLED is a special node that keeps track of resources whose power management is done in Magnum (as opposed to upper-level SW, e.g. Nexus)
+# During BCHP_PWR_Open, all HW resources that are dependants of MAGNUM_CONTROLLED will be initialized (i.e. powered down)
+# Upper-level SW is responsible for initializing all other HW resources
+
+MAGNUM_CONTROLLED -> {AVD, VICE, AUD_AIO, RAAGA}
+MAGNUM_CONTROLLED -> {VDC, VDC_STG0, VDC_STG1, VDC_HDMI_TX_PHY0, VDC_HDMI_RX_CLK0}
+MAGNUM_CONTROLLED -> {XPT, HDMI_TX, HDMI_RX, GRAPHICS3D, GRAPHICS3D_SRAM, DMA, SMARTCARD, UHF_INPUT, SID, SID_SRAM}

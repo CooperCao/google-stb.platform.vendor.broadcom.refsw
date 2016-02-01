@@ -1,0 +1,1 @@
+Copy the files in the 'resources' subdirectory onto a USB memory stick

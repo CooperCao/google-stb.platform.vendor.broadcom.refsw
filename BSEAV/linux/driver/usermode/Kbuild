@@ -1,0 +1,28 @@
+############################################################################
+#     Copyright (c) 2011 Broadcom Corporation
+#     All Rights Reserved
+#     Confidential Property of Broadcom Corporation
+#
+#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
+#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
+#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+#
+# $brcm_Workfile: $
+# $brcm_Revision: $
+# $brcm_Date: $
+#
+# Module Description:
+#
+# Revision History:
+#
+# $brcm_Log: $
+# 
+############################################################################
+
+ifndef BCM_PRINT_KBUILD_ENV_ONLY
+obj-m += bcmdriver.o
+bcmdriver-y += bcmdriver.o_shipped
+else
+$(shell echo BCM_KBUILD_CFLAGS:=$(KBUILD_CFLAGS) $(KBUILD_CFLAGS_MODULE) >&2 )
+$(shell echo BCM_KBUILD_LDFLAGS:=$(LDFLAGS) $(LDFLAGS_MODULE) $(KBUILD_LDFLAGS_MODULE) >&2)
+endif

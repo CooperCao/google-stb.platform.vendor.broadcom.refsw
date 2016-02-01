@@ -1,0 +1,31 @@
+#!/bin/sh
+
+#
+# File:   makeecos
+# Author: Mike Sieweke
+# 
+# This script is used to build the OpenSSL Crypto library for eCos.
+# Options can be entered in ANY order or not present;
+# 
+# Usage: makeecos <options>
+#
+# Options:
+#     clean - clean object files instead of building
+
+# Place default parameters here...   
+
+# Check all the incoming parameters
+if [ "$1" = "help" ] ; then
+   echo "Usage: makeecos <options>"
+   echo ""
+   echo "Options:"
+   echo "      clean - clean object files instead of building"
+   exit
+fi
+
+make -fecosMakefile $1
+
+
+
+
+

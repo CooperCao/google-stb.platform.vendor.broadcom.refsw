@@ -1,0 +1,695 @@
+#############################################################################
+# (c) 2003-2015 Broadcom Corporation
+#
+# This program is the proprietary software of Broadcom Corporation and/or its
+# licensors, and may only be used, duplicated, modified or distributed pursuant
+# to the terms and conditions of a separate, written license agreement executed
+# between you and Broadcom (an "Authorized License").  Except as set forth in
+# an Authorized License, Broadcom grants no license (express or implied), right
+# to use, or waiver of any kind with respect to the Software, and Broadcom
+# expressly reserves all rights in and to the Software and all intellectual
+# property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#
+# Except as expressly set forth in the Authorized License,
+#
+# 1. This program, including its structure, sequence and organization,
+#    constitutes the valuable trade secrets of Broadcom, and you shall use all
+#    reasonable efforts to protect the confidentiality thereof, and to use
+#    this information only in connection with your use of Broadcom integrated
+#    circuit products.
+#
+# 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+#    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+#    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+#    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+#    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+#    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+#
+# 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+#    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+#    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+#    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+#    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+#    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+#    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+#
+#############################################################################
+
+#!/bin/sh
+# File:       makeapp
+# Author:     Mike Sieweke
+
+function usage {
+   echo "This batch file is used to build the DSG-CC Linux application."
+   echo "Options can be entered in any order or not present. "
+   echo
+   echo "Usage: makeapp [options...]"
+   echo
+   echo "Parameters:"
+   echo "    debug      = Linux GDB support"
+   echo "    slim       = build reduced-size image without message logging"
+   echo "    show       = show build parameters, but don't build"
+   echo "    c2         = use MiniLZO compression"
+   echo "    c3         = use best (slowest) NRV2D99 compression"
+   echo "    c6         = use fastest NRV2D99 compression          ( default )"
+   echo "    sto   REV  = Specify revision string for programstore in 2.4.0a format."
+   echo "    clean      = clean build directory"
+   echo
+}
+
+function success {
+   echo "#########################################"
+   echo "  DSGCC built successfully!"
+   echo "#########################################"
+   timer_end
+}
+
+function failure {
+   echo "#########################################"
+   echo "  DSGCC build failed!"
+   echo "#########################################"
+   timer_end
+}
+
+# Save the current time for the elapsed build time.
+function timer_start {
+   # To provide the elapsed time for a build, first save the current time.
+   s_time=`date '+%j %H %M %S'`
+}
+
+# Compute and print the elapsed build time.
+#    Input - s_time must be set by timer_start
+function timer_end {
+   # Get and print the elapsed time for this build job.
+   e_time=`date '+%j %H %M %S'`
+
+   echo "$e_time $s_time" | awk '{et=((($1*24+$2)*60+$3)*60+$4)-((($5*24+$6)*60+$7)*60+$8);es=et%60;em=int(et/60);printf ("\n---> Elapsed time  %dm %02ds\n\n",em,es)}'
+}
+
+# Parse the command line and set variables.
+#     Input:
+#        option_no_list      - options which default to "0"
+#        option_yes_list     - options which default to "1"
+#        option_default_list - options which default to "default"
+#        option_parm_list    - options which take required parameters
+#     Output:
+#        variables starting "opt_" for each option
+#        variables named "opt_*_parm" for options with parameters
+#        variables named "country" for us/eu selection
+function parse {
+   # Set the defaults for all options.
+   for opt in $option_no_list ; do
+      eval opt_$opt=0
+   done
+
+   for opt in $option_yes_list ; do
+      eval opt_$opt=1
+   done
+
+   for opt in $option_default_list ; do
+      eval opt_$opt=default
+   done
+
+   for opt in $option_parm_list ; do
+      eval opt_$opt=0
+   done
+
+   target=""
+   country="us"
+
+   # For each parameter
+   while [ $# != 0 ] ; do
+      parm=$1
+      shift
+      valid=0
+      # Compare the parameter to each valid option.
+      for opt in $option_no_list $option_yes_list $option_default_list ; do
+         # If it matches, turn on the option.
+         if [ $parm == $opt ] ; then
+            eval opt_$opt=1
+            valid=1
+            break
+         fi
+         # If it matches in a negated form (nohpna), turn off the option.
+         if [ $parm == no$opt ] ; then
+            eval opt_$opt=0
+            valid=1
+            break
+         fi
+      done
+      if [ $valid == 0 ] ; then
+         # Check for an option which requires a parameter.
+	     for opt in $option_parm_list ; do
+	        if [ $parm == $opt ] ; then
+		       if [ $# != 0 ] ; then
+			      eval opt_${opt}=1
+      		      eval opt_${opt}_parm=$1
+        		  valid=1
+			      shift
+			      break
+			   else
+			      echo "Error: Option $opt requires a parameter."
+			      exit
+		       fi
+            fi
+         done
+      fi
+      if [ $valid == 0 ] ; then
+         if [ "$target" == "" ] ; then
+	        target="$parm"
+
+	     else
+	        echo "Error: Invalid parameter(s): $target $parm"
+		    exit
+	     fi
+      fi
+   done
+}
+
+# ========================================================================
+# Set up for parsing.
+# ========================================================================
+
+help_list="/help -help --help help"
+
+# See if the user typed a help command.
+for h in $help_list ; do
+   if [ "$1" == "$h" ] ; then
+      usage
+      exit
+   fi
+done
+
+# Options which default to "no", "yes", or "default".
+option_no_list="c0 c1 c2 c3 c6 slim applib dualcpu noclient staticlink estbsystemdsgcclib recover"
+option_no_list="${option_no_list} show vendor debug bsafe oms 16m cs"
+option_no_list="${option_no_list} links chnolib check verbose cablecard dcasbt ecmstub eth2 davic_api g8davic_api seb_api g8seb_api tagging_check"
+option_yes_list="bpi snmp hh rswdload cdl20 pvnet"
+option_default_list="factory"
+
+# Options which take a required parameter.
+option_parm_list="sto c pid"
+
+# Parse command options and set corresponding variables.
+parse $app_options $*
+
+# Now verify the parameter values.
+
+# If a target was not specified, use "Linux"
+if [ "$target" == "" ] ; then
+   target=Linux
+fi
+echo " # If a target was not specified, use target=  $target "
+
+# Verify parameters for options that take parameters.
+
+# The default compression level for ProgramStore is 36 (NRV2D99, level 6).
+ps_compression=36
+if [ "$opt_c0" == "1" ] ; then
+   ps_compression=0
+elif [ "$opt_c1" == "1" ] ; then
+   ps_compression=1
+elif [ "$opt_c2" == "1" ] ; then
+   ps_compression=2
+elif [ "$opt_c3" == "1" ] ; then
+   ps_compression=3
+elif [ "$opt_c6" == "1" ] ; then
+   ps_compression=36
+fi
+
+# Check if user typed "c #" to set compression type.
+if [ "$opt_c" == "1" ] ; then
+   ps_compression=$opt_c_parm
+   c_ok=no
+   for c in 0 1 2 3 31 32 33 34 35 36 37 38 39 ; do
+      if [ "$c" == "$opt_c_parm" ] ; then
+         c_ok=yes
+      fi
+   done
+   if [ "$c_ok" == "no" ] ; then
+      echo "Error: Compression type ($opt_c_parm) must be an integer from 0-3 or 31-39."
+      exit
+   fi
+fi
+
+# Check programstore revision.
+if [ $opt_sto == 1 ] ; then
+#   . ../../check_rev.ksh $opt_sto_parm
+#   if [ $rev_ok == yes ] ; then
+      sto=$opt_sto_parm
+      rev_std=$opt_sto_parm
+#   else
+#      exit
+#   fi
+else
+   sto=002.000
+   rev_std=1.1.0y
+fi
+
+# ========================================================================
+# All command-line parameters are verified, so configure build settings.
+# ========================================================================
+
+# Set all following definitions to be exported.  Any definitions above this
+# point won't show up in make.
+set -a
+
+BCM_VERBOSE=$opt_verbose
+
+# Place default parameters here...   All local variables should be lower
+# case.  Variables used in the make files should be upper case.
+
+# - Linux defaults
+TARGET_OS=Linux
+CPU=RC32364
+LINUX_VERSION=18
+
+if [ $ARM_PLATFORM == "yes" ]; then
+	echo "  makeapp ARM_PLATFORM = $ARM_PLATFORM"
+GCC_VERSION=`arm-linux-gcc -dumpversion | awk -F. '{print $1}'`
+GCC_MINOR_VERSION=`arm-linux-gcc -dumpversion | awk -F. '{print $2}'`
+else
+	echo "  makeapp ARM_PLATFORM = $ARM_PLATFORM"
+GCC_VERSION=`mipsel-linux-gcc -dumpversion | awk -F. '{print $1}'`
+GCC_MINOR_VERSION=`mipsel-linux-gcc -dumpversion | awk -F. '{print $2}'`
+fi
+
+
+
+
+if [ "$GCC_VERSION" -ge "4" ] && [ "$GCC_MINOR_VERSION" -ge "4" ]; then
+    GCC_ALT_LIBROOT=1
+else
+    GCC_ALT_LIBROOT=0
+fi
+
+BCM_PACKET_LOGGING=0
+BCM_REDUCED_IMAGE_SIZE=0
+BCM_BOOT_LOADER_SUPPORT=0
+unset BCM_BALIB_CHANGE
+BCM_VENDOR_SUPPORT=0
+BCM_VENDOR_NONVOL_RESET=0
+BFC_INCLUDE_EDOCSIS_SLED_SUPPORT=0
+BCM_OLD_BOARDREV=0
+BCM_VENDOR_OMS=0
+BCM_RAM_SIZE=8
+
+BPI_SUPPORT=0
+
+#  SNMP_SUPPORT= (0) MEANS NO SNMP  (2) SNMPv2 & (3) SNMPv3
+SNMP_SUPPORT=0
+
+# include factory MIB support by default
+BCM_FACTORY_SUPPORT=0
+
+# SOFTWARE_CRYPTO_LIB = OPENSSL (OpenSSL library), BSAFE (Bsafe library)
+SOFTWARE_CRYPTO_LIB=OPENSSL
+OPENSSL_LIBNAME=libOpenSSLLinux.MIPS64.a
+SEC_LIBNAME=SecLibLinux.MIPS64.a
+
+GDB_DEBUGGING=0
+XTALFREQ=28000000
+
+#ESTB Defaults
+USE_PRIVATE_NETWORK=0
+USE_INTERFACE_ETH2=0
+BCM_NONVOL_SUPPORT=1
+BCM_CONSOLE_SUPPORT=0
+DSGCC_BUILT_AS_LIB=0
+BCM_DSG_DUAL_PROCESSOR_INTERFACE=0
+BCM_DSG_DUAL_PROCESS_INTERFACE=1
+BCM_DSGCC_ECM_USE_SHARED_MEMORY_IPC=0
+BCM_DSGCC_CLIENTS_USE_SHARED_MEMORY_IPC=0
+CLIENT_INTERFACE_SUPPORT=1
+CABLECARD_SUPPORT=0
+ESTB_SWDLOAD_SUPPORT=0
+DCAS_BT_SUPPORT=0
+ECM_STUB_API=0
+APPNAME_SUPPORT=0
+BCM_DUAL_DOWNLOAD_SUPPORT=0
+UPGRADE_ECM_AFTER_REBOOT=0
+STATIC_LINK=0
+NPTL_SUPPORT=0
+BCM_CDL_LIB_SUPPORT=0
+BCM_CANNED_SNMP_SUPPORT=1
+DSGCC_BUILT_AS_LIB_FOR_ESTBOPENCABLESYSTEM=0
+BCM_ESTB_STANDALONE_APP_SUPPORT=1
+DSG_RECOVER_SUPPORT=0
+BFC_INCLUDE_DAVIC_API_SUPPORT=0
+BFC_INCLUDE_G8DAVIC_API_SUPPORT=0
+
+BFC_INCLUDE_SEB_API_SUPPORT=0
+BFC_INCLUDE_G8SEB_API_SUPPORT=0
+
+BFC_INCLUDE_TAGGING_CHECK=0
+
+
+BUILD_DIR=`pwd`
+cd ../../../../../../../../
+B_REFSW_OBJ_DIR=obj.${NEXUS_PLATFORM}
+REFSW_TOP=`pwd`
+if [[ ! -z $B_REFSW_OBJ_ROOT ]]; then
+echo "B_REFSW_OBJ_ROOT is predefined"
+B_REFSW_OBJ_ROOT=$B_REFSW_OBJ_ROOT
+else
+B_REFSW_OBJ_ROOT=$REFSW_TOP/$B_REFSW_OBJ_DIR
+fi
+
+cd $BUILD_DIR/../
+StbApp_DsgCC_Dir=`pwd`
+cd $BUILD_DIR/../../Common
+Common_Dir=`pwd`
+cd $BUILD_DIR/../../DsgCC
+DsgCC_Dir=`pwd`
+cd $BUILD_DIR/../../Custom
+Custom_Dir=`pwd`
+cd $BUILD_DIR
+
+TARGETDIR=${B_REFSW_OBJ_ROOT}/BSEAV/cable/docsis/estb/StbHostApps/DsgCC/StbApp_DsgCC/linux/bcm
+
+#echo "BUILD_DIR = $BUILD_DIR REFSW_TOP=$REFSW_TOP  B_REFSW_OBJ_ROOT = $B_REFSW_OBJ_ROOT TARGETDIR = $TARGETDIR"
+
+# ------------------------------------------------
+# Override defaults with command-line parameters.
+# ------------------------------------------------
+
+if [ $opt_dualcpu == 1 ] ; then
+   BCM_DSG_DUAL_PROCESSOR_INTERFACE=1
+   BCM_DSG_DUAL_PROCESS_INTERFACE=0
+fi
+
+if [ $opt_rswdload == 1 ] ; then
+   ESTB_RSWDLOAD_SUPPORT=$opt_rswdload
+fi
+
+if [ $opt_cdl20 == 1 ] ; then
+   COMMON_DOWNLOAD_SUPPORT=1
+fi
+
+if [ $opt_applib == 1 ] ; then
+   DSGCC_BUILT_AS_LIB=1
+   target=${TARGETDIR}/"dsgcclib.a"
+fi
+
+if [ $opt_noclient == 1 ] ; then
+   CLIENT_INTERFACE_SUPPORT=0
+fi
+
+if [ $opt_pvnet == 1 ] ; then
+   USE_PRIVATE_NETWORK=1
+fi
+
+if [ $opt_eth2 == 1 ] ; then
+   USE_INTERFACE_ETH2=1
+fi
+
+if [ $opt_dcasbt == 1 ] ; then
+   DCAS_BT_SUPPORT=1
+fi
+
+if [ $opt_ecmstub == 1 ] ; then
+   ECM_STUB_API=1
+fi
+
+if [ $opt_bsafe == 1 ] ; then
+   SOFTWARE_CRYPTO_LIB=BSAFE
+fi
+if [ $opt_snmp == 0 ] ; then
+   SNMP_SUPPORT=0
+fi
+
+if [ $opt_estbsystemdsgcclib == 1 ] ; then
+   DSGCC_BUILT_AS_LIB_FOR_ESTBOPENCABLESYSTEM=1
+   target="dsgcc_estbsystem_lib.a"
+
+   BCM_NONVOL_SUPPORT=0
+fi
+
+if [ $opt_recover == 1 ] ; then
+   DSG_RECOVER_SUPPORT=1
+fi
+
+if [ $opt_davic_api == 1 ] ; then
+   BFC_INCLUDE_DAVIC_API_SUPPORT=1
+fi
+
+if [ $opt_g8davic_api == 1 ] ; then
+   BFC_INCLUDE_G8DAVIC_API_SUPPORT=1
+fi
+
+if [ $opt_seb_api == 1 ] ; then
+   BFC_INCLUDE_SEB_API_SUPPORT=1
+fi
+
+if [ $opt_g8seb_api == 1 ] ; then
+   BFC_INCLUDE_G8SEB_API_SUPPORT=1
+fi
+
+if [ $opt_tagging_check == 1 ]; then
+   BFC_INCLUDE_TAGGING_CHECK=1
+fi
+
+BPI_SUPPORT=$opt_bpi
+BCM_VENDOR_SUPPORT=$opt_vendor
+GDB_DEBUGGING=$opt_debug
+BCM_REDUCED_IMAGE_SIZE=$opt_slim
+BCM_PACKET_LOGGING=$opt_logging
+BCM_VENDOR_OMS=$opt_oms
+BCM_OLD_BOARDREV=$opt_links
+DSGCC_BUILT_AS_LIB=$opt_applib
+STATIC_LINK=$opt_staticlink
+
+PROGRAM_STORE_SIGNATURE=0x${board}
+BSP_DIR=bsp_bcm9${board}
+#LIB_EXT=Linux${board}_BSP_${country}.a
+LIB_EXT=
+
+# The default target (build) directory is named after the chip ID.  If the
+# user specified a "board" parameter, this supersedes the directory name.
+#TARGETDIR=bcm
+
+# - Set TARGETDIR appropriately for different build types
+if [ $opt_slim == 1 ] ; then
+   TARGETDIR=${TARGETDIR}_slim
+fi
+
+if [ $opt_dualcpu == 1 ] ; then
+   TARGETDIR=${TARGETDIR}_dualcpu
+fi
+
+if [ ! -d ${TARGETDIR} ] ; then
+   echo "Build directory $TARGETDIR does not exist. Creating with mkdir."
+   mkdir -p ${TARGETDIR}
+fi
+
+BCM_SETTOP_SUPPORT=1
+BCM_DSG_DUAL_PROCESSOR_INTERFACE=1
+BCM_DSG_DUAL_PROCESS_INTERFACE=0
+CLIENT_INTERFACE_SUPPORT=1
+DSG_RPC_INCLUDED=1
+BCM_DSGCC_CLIENTS_USE_SHARED_MEMORY_IPC=1
+
+if [ "$opt_cablecard" == "1" ] ; then
+   CABLECARD_SUPPORT=1
+   CLIENT_INTERFACE_SUPPORT=1
+   BCM_DSGCC_CLIENTS_USE_SHARED_MEMORY_IPC=0
+fi
+
+if [ "opt_dualprocess" == "1" ]; then
+    BCM_DSG_DUAL_PROCESSOR_INTERFACE=0
+    BCM_DSG_DUAL_PROCESS_INTERFACE=1
+fi
+
+# ====================================================================
+# Report build parameters and go.
+# ====================================================================
+
+# To provide the elapsed time for a build, first save the current time.
+timer_start
+
+if [ "$target" == "clean" ] ; then
+   # - Clean build directory.
+   cd $TARGETDIR
+   rm -f *.o *.rpo  Linux*  bootrom*  ctdt.c  symTbl.c depend.* *.map *.a *.klp ram*.* username.h
+   cd ..
+   exit
+fi
+
+if [ "$opt_cs" == "1" ] ; then
+   #echo on
+   cd $TARGETDIR
+   if [ -e buildsettings.txt ] ; then
+      rm -f buildsettings.old
+      mv buildsettings.txt buildsettings.old
+   fi
+   for o in $option_no_list $option_yes_list $option_default_list ; do
+      eval "echo \"\$opt_$o\"" >>buildsettings.txt
+   done
+   if [ -e buildsettings.old ] ; then
+      cmp buildsettings.txt buildsettings.old >/dev/null
+      if [ $? != 0 ] ; then
+         echo
+         echo "***** Build settings have changed.  You may want to clean and rebuild. *****"
+      fi
+   fi
+   cd ..
+   echo off
+fi
+
+title_string="Building Application ${board} ${country} SNMP=${SNMP_SUPPORT} SLIM=${BCM_REDUCED_IMAGE_SIZE} ${BCM_RAM_SIZE}M LIB=${DSGCC_BUILT_AS_LIB}"
+if [ $opt_cablecard == 1 ] ; then
+   title_string="$title_string CableCard"
+fi
+
+# - Here we go...start the build..
+
+# Write to the screen for those building remotely.
+echo
+echo "$title_string"
+echo
+
+# - This is for batch file debugging purposes.
+# - It will display all the environment variable before they're cleared
+if [ $opt_show  == 1 ] ; then
+   set
+   exit
+fi
+
+# Just create a depend.bcmXXXX file; otherwise, Win98 compile will
+# have a hard time since a make clean deletes the depends file.
+# ***** may not be necessary for Linux *****
+echo > ${TARGETDIR}/depend.bcm
+
+# Cleanup previous build files...
+rm -f $TARGETDIR/ram*.*
+rm -f $TARGETDIR/Linux*.*
+rm -f $TARGETDIR/*.log
+
+# Delete version info file to get new build date.
+rm -f $TARGETDIR/CmAppVersionInfo.o
+
+# Define USERNAME macro for banner.
+#echo "#define USERNAME \"$USER\""> $TARGETDIR/username.h
+echo "#define USERNAME \"$USER\""> $TARGETDIR/username.h
+
+# Clean up first
+#cd $TARGETDIR
+rm -f $TARGETDIR/MergedNonVolDefaults.h.new
+# Copy the defaults file to the build directory.
+cp ${BUILD_DIR}/../CustomerNonvolDefaults.h $TARGETDIR/MergedNonVolDefaults.h.new
+chmod u+w $TARGETDIR/MergedNonVolDefaults.h.new
+
+# Surround added text with #if/#endif statements.
+echo "#ifndef MERGEDNONVOLDEFAULTS_H">>$TARGETDIR/MergedNonVolDefaults.h.new
+echo "#define MERGEDNONVOLDEFAULTS_H">>$TARGETDIR/MergedNonVolDefaults.h.new
+
+# Define the SNMP system descriptor string.
+echo "#undef  kDefaultValue_SysDescr">>$TARGETDIR/MergedNonVolDefaults.h.new
+echo "#define kDefaultValue_SysDescr \"V2 cablemodem reference design <<HW_REV: V1.0; VENDOR: Broadcom; BOOTR: 1.0.10; SW_REV: $rev_std; MODEL: BCM9$board>>\"" >>$TARGETDIR/MergedNonVolDefaults.h.new
+
+# Define the current software revision.
+echo "#undef  kDefaultValue_DocsDevSwCurrentVers">>$TARGETDIR/MergedNonVolDefaults.h.new
+echo "#define kDefaultValue_DocsDevSwCurrentVers \"$rev_std\"">>$TARGETDIR/MergedNonVolDefaults.h.new
+
+# This is the definition make uses to find the board-specific defaults file.
+# It will be merged with the master file at make time.
+defaultfile=NonvolDefaults.h
+
+# Make sure the file exists
+if [ ! -e ${BUILD_DIR}/../../Custom/$defaultfile ] ; then
+   echo "Error: Non-vol defaults file not found: Custom/${defaultfile}"
+   failure
+   exit
+fi
+
+sed -f ${BUILD_DIR}/undefines.sed ${BUILD_DIR}/../../Custom/${defaultfile} >> $TARGETDIR/MergedNonVolDefaults.h.new
+
+# Surround added text with #if/#endif statements.
+echo "#endif">>$TARGETDIR/MergedNonVolDefaults.h.new
+
+# Now compare the settings file with the previous one, if it exists.
+if [ -e $TARGETDIR/MergedNonVolDefaults.h ] ; then
+   # Compare the files.
+   cmp $TARGETDIR/MergedNonVolDefaults.h $TARGETDIR/MergedNonVolDefaults.h.new >/dev/null
+   # If they are different, replace the old one.
+   if [ $? != 0 ] ; then
+      rm -f $TARGETDIR/MergedNonVolDefaults.h
+      mv $TARGETDIR/MergedNonVolDefaults.h.new $TARGETDIR/MergedNonVolDefaults.h
+   fi
+# There was no old file, so just rename the new one.
+else
+   mv $TARGETDIR/MergedNonVolDefaults.h.new $TARGETDIR/MergedNonVolDefaults.h
+fi
+
+# Get out of the build directory.
+cd ..
+# This is the definition make uses to find the board-specific defaults file.
+#unset BOARDNONVOLDEFAULTS
+
+
+
+
+
+
+# If packet logging enabled, remove logging-related files so they will be re-made.
+if [ "$opt_logging" == "1" ] ; then
+   rm -f $TARGETDIR/Forwarder.o
+   rm -f $TARGETDIR/DocsisForwarder.o
+   if [ "$opt_vendor" == "1" ] ; then
+      rm -f $TARGETDIR/RgNatCmHalif.o
+   fi
+fi
+
+# If we're just checking the environment, skip make.
+if [ $target == check ] ; then
+   exit
+fi
+
+rm -f ${TARGETDIR}/$target
+make --makefile=${BUILD_DIR}/Makefile --directory=$TARGETDIR -w ${TARGETDIR}/MergedNonVolDefaults.h $target
+if [ $? != 0 ] ; then
+   failure
+   exit
+fi
+
+if [[ $opt_applib == 1 && $target != dsgcclib.a ]] ; then
+	exit
+
+elif [[ $target != Linux && $target != oldlink ]] ; then
+   exit
+fi
+
+cd $TARGETDIR
+if [ ! -e $target ] ; then
+   cd ..
+   failure
+   exit
+fi
+
+if [ -e linux.map ] ; then
+   if [ -e lxram.map ] ; then
+      rm -f lxram.map
+   fi
+   mv linux.map lxram.map
+   # Split and sort the linker map file.
+   sh ../sortmap.ksh 2>/dev/null
+   # If the sorted map exists, demangle the names.
+   if [ -e lxram.map.s ] ; then
+      /opt/toolchains/mips/bin/mips-linux-c++filt <lxram.map.s >lxram.map.d
+   else
+      # Otherwise, demangle the unsorted names.
+      /opt/toolchains/mips/bin/mips-linux-c++filt <lxram.map   >lxram.map.d
+   fi
+   # If there were no errors, delete the original map file.
+   if [ $? == 0 ] ; then
+      rm -f lxram.map
+   fi
+   rm -f lxram.map.s
+fi
+
+success

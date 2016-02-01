@@ -1,0 +1,22 @@
+diff -rupN bolt_v1.06/include/bsu-api.h bolt_v1.06_new/include/bsu-api.h
+--- bolt_v1.06/include/bsu-api.h	2015-07-23 15:01:08.000000000 -0700
++++ bolt_v1.06_new/include/bsu-api.h	2015-08-07 14:28:57.000000000 -0700
+@@ -103,6 +103,7 @@ struct bsu_api {
+ 	uint32_t (*xfn_arch_get_timer_freq_hz)(void);
+ 	uint32_t (*xfn_arch_getticks)(void);
+ 	void (*xfn_clear_d_cache)(void *addr, unsigned int len);
++	void (*xfn_invalidate_d_cache)(void *addr, unsigned int len);
+ 
+ 	/* lib */
+ 	int  (*xfn_printf)(const char *template, ...);
+diff -rupN bolt_v1.06/ssbl/main/bsu.c bolt_v1.06_new/ssbl/main/bsu.c
+--- bolt_v1.06/ssbl/main/bsu.c	2015-07-23 15:01:08.000000000 -0700
++++ bolt_v1.06_new/ssbl/main/bsu.c	2015-08-07 14:29:21.000000000 -0700
+@@ -172,6 +172,7 @@ static struct bsu_api bsu_xapi = {
+ 	.xfn_arch_get_timer_freq_hz = arch_get_timer_freq_hz,
+ 	.xfn_arch_getticks = arch_getticks,
+ 	.xfn_clear_d_cache = clear_d_cache,
++	.xfn_invalidate_d_cache = invalidate_d_cache,
+ 
+ 	.xfn_printf = printf,
+ 	.xfn_sprintf = sprintf,

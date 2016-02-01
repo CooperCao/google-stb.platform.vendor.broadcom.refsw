@@ -1,0 +1,3 @@
+tar -cvf loadLinux.tar estbsnmpagent	
+cp loadLinux.tar /projects/settops/turcotte/proj294
+ls -sla /projects/settops/turcotte/proj294/*.tar

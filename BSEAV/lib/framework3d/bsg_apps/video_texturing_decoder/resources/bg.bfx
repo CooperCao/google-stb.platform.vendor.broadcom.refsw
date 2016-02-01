@@ -1,0 +1,57 @@
+// Broadcom BSG effect file
+
+OPTIONS
+{
+	SortOrder = FRONT_TO_BACK;
+}
+
+PASS 0
+{
+	SEMANTICS
+	{
+		u_mvpMatrix		= MATRIX4_MODEL_VIEW_PROJECTION;
+		u_leftColor		= VECTOR3_USER;
+		u_rightColor	= VECTOR3_USER;
+		a_position		= VATTR_POSITION;
+		a_tc				= VATTR_TEXCOORD1;
+	}
+
+	STATE
+	{
+		EnableBlend     = false;
+		EnableDepthTest = true;
+	}
+
+	VERTEX_SHADER
+	{
+		uniform		mat4	u_mvpMatrix;
+		attribute	vec4	a_position;
+		attribute	vec3	a_normal;
+		attribute	vec2	a_tc;
+		varying		vec2	v_tc;
+
+		void main()
+		{
+			v_tc = a_tc;
+			gl_Position	= u_mvpMatrix * a_position;
+		}
+	}
+
+	FRAGMENT_SHADER
+	{
+		precision mediump float;
+
+		uniform vec3		u_leftColor;
+		uniform vec3		u_rightColor;
+		varying vec2		v_tc;
+
+		void main()
+		{
+			float x = clamp((v_tc.x - 0.0823529) * 4.0, 0.0, 1.0);
+			float y = clamp((v_tc.y - 0.8) * 4.0, 0.0, 1.0);
+
+			gl_FragColor = vec4(mix(mix(u_rightColor, u_leftColor, x), vec3(0.0, 0.0, 0.0), y), 1.0);
+		}
+	}
+}
+

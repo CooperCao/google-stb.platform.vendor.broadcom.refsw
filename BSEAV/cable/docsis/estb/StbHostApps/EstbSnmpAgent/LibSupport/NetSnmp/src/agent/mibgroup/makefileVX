@@ -1,0 +1,104 @@
+#****************************************************************************
+#
+#  Copyright (c) 2008 Broadcom Corporation
+#  All Rights Reserved
+#  No portions of this material may be reproduced in any form without the
+#  written permission of:
+#          Broadcom Corporation
+#          16215 Alton Parkway
+#          Irvine, California 92618
+#  All information contained in this document is Broadcom Corporation
+#  company private, proprietary, and trade secret.
+#
+#****************************************************************************
+#
+#  Filename:       makefileVX
+#  Author:         T. Clack
+#  Creation Date:  10/27/03
+#
+#****************************************************************************
+#  Description:
+#      The makefile for the libnetsnmpmibs_vxworks.a library.
+#
+#****************************************************************************
+
+TGT_DIR=$(WIND_BASE)/target
+include $(TGT_DIR)/h/make/defs.default
+include $(TGT_DIR)/h/make/make.RC32364sfgnu
+include $(TGT_DIR)/h/make/defs.$(WIND_HOST_TYPE)
+
+#MIB_OBJS = $(subst .c,.o, $(wildcard *.c))
+
+MIB_OBJS  = header_complex.o util_funcs.o
+MIB_OBJS += bcmV2/bcmV2glue.o 
+MIB_OBJS += mibII/vacm_context.o mibII/vacm_vars.o mibII/snmp_mib.o
+MIB_OBJS += notification/snmpNotifyFilterProfileTable.o notification/snmpNotifyFilterTable.o notification/snmpNotifyTable.o
+MIB_OBJS += snmpv3/snmpEngine.o snmpv3/snmpMPDStats.o snmpv3/usmStats.o snmpv3/usmUser.o  
+MIB_OBJS += target/snmpTargetAddrEntry.o target/snmpTargetParamsEntry.o target/target.o target/target_counters.o
+
+#MIB_OBJS += dot1d/dot1dBase.o dot1d/dot1dBasePortTable.o dot1d/dot1dTp.o 
+#MIB_OBJS += dot1d/dot1dTpFdbTable.o dot1d/dot1dTpPortTable.o 
+#MIB_OBJS += docsis/docsDevBase.o docsis/docsDevNmAccessTable.o docsis/docsDevSoftware.o
+#MIB_OBJS += docsis/docsDevServer.o docsis/docsDevEvent.o docsis/docsDevEvControlTable.o 
+#MIB_OBJS += docsis/docsDevEventTable.o docsis/docsDevFilter.o docsis/docsDevFilterLLCTable.o 
+#MIB_OBJS += docsis/docsDevFilterIpTable.o docsis/docsDevFilterPolicyTable.o docsis/docsDevFilterTosTable.o 
+#MIB_OBJS += docsis/docsDevCpe.o docsis/docsDevCpeTable.o docsis/docsIfDownstreamChannelTable.o 
+#MIB_OBJS += docsis/docsIfUpstreamChannelTable.o docsis/docsIfQosProfileTable.o 
+#MIB_OBJS += docsis/docsIfSignalQualityTable.o docsis/docsIfCmMacTable.o 
+#MIB_OBJS += docsis/docsIfCmStatusTable.o docsis/docsIfCmServiceTable.o docsis/docsBpiCmBaseTable.o 
+#MIB_OBJS += docsis/docsBpiCmTEKTable.o 
+
+#MIB_OBJS += mibII/system.o 
+#MIB_OBJS += mibII/at.o mibII/icmp.o mibII/interfaces.o mibII/ip.o mibII/ipAddr.o
+#MIB_OBJS += mibII/ipv6.o mibII/kernel_linux.o mibII/route_write.o mibII/setSerialNo.o
+#MIB_OBJS += mibII/tcp.o mibII/tcpTable.o mibII/udp.o mibII/udpTable.o
+#MIB_OBJS += mibII/sysORTable.o mibII/var_route.o
+ 
+
+LIB_SUPPORT_DIR = ..\..\..\..\..\..\LibSupport
+LIBS_DIR = $(LIB_SUPPORT_DIR)\NetSnmp
+
+MIB_LIB = libnetsnmpmibs_vxworks.a
+
+
+EXTRA_INCLUDE   = -I. \
+                  -IT:/Tornado-wm/target/h
+		  
+	  		   
+EXTRA_INCLUDE += -I$(LIBS_DIR)\include
+EXTRA_INCLUDE += -I../..
+#EXTRA_INCLUDE += -I..\..\..\..\..
+#EXTRA_INCLUDE += -I..\..\..\..\..\..\cm_bsp_v2\bsp_common\common_inc
+
+EXTRA_DEFINE   = -DVXWORKS=1
+
+COPTS = 
+EXTRA_DEFINE += $(COPTS)
+
+CFLAGS  += -DUSE_OPENSSL=1
+
+
+$(MIB_LIB) : $(MIB_OBJS)
+#	echo objs $(MIB_OBJS)
+#	echo lib  $(MIB_LIB)
+	armips cru $(MIB_LIB) $?
+        
+	copy $(MIB_LIB) $(LIBS_DIR)\$(MIB_LIB)
+
+
+%.o : %.s
+	@ $(RM) $@
+	$(CC) $(CFLAGS_AS) -c -o $@ $< 
+
+%.o : %.c 
+	@ $(RM) $@
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+clean:
+	- $(RM) *.a
+	- $(RM) *.o
+	- $(RM) $(LIBS_DIR)\$(MIB_LIB)
+
+
+
+

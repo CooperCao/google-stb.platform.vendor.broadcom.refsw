@@ -1,0 +1,156 @@
+#****************************************************************************
+#
+# Copyright (c) 2008-2011 Broadcom Corporation
+#
+# This program is the proprietary software of Broadcom Corporation and/or
+# its licensors, and may only be used, duplicated, modified or distributed
+# pursuant to the terms and conditions of a separate, written license
+# agreement executed between you and Broadcom (an "Authorized License").
+# Except as set forth in an Authorized License, Broadcom grants no license
+# (express or implied), right to use, or waiver of any kind with respect to
+# the Software, and Broadcom expressly reserves all rights in and to the
+# Software and all intellectual property rights therein.  IF YOU HAVE NO
+# AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
+# AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
+# SOFTWARE.
+#
+# Except as expressly set forth in the Authorized License,
+#
+# 1.     This program, including its structure, sequence and organization,
+# constitutes the valuable trade secrets of Broadcom, and you shall use all
+# reasonable efforts to protect the confidentiality thereof, and to use this
+# information only in connection with your use of Broadcom integrated circuit
+# products.
+#
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+# "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+# OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+# RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+# IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+# A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+# ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+# THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+#
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+# OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+# INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+# RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+# HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+# EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+# WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+# FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+#
+#****************************************************************************
+#**************************************************************************
+#    Filename: mipselLinuxMakefile
+#    Author:   Sasa Vucenovic
+#    Creation Date: AUGUST 29, 2000
+#    Modifed:  Mike Sieweke (for Linux)
+#    Modified: Maurice Turcotte (for mips little endian STB)
+#
+#**************************************************************************
+#    Description:
+#
+#      Linux makefile for the SecLib library
+#
+#**************************************************************************
+
+ARCH          = mipsel-linux
+CPU           = MIPS32
+
+# Find the directory where the cross-compiler is installed.
+CROSSDEV_INC := $(dir $(shell which $(ARCH)-gcc))
+
+# Get rid of the "/bin/", and add the architecture directory.  This is where
+# all the include files will be found.
+CROSSDEV_INC := $(subst /bin/,,$(CROSSDEV_INC))/$(ARCH)/include
+
+CC            = $(ARCH)-gcc
+
+EXTRA_DEFINE =\
+        -mgp32          \
+        -mips2          \
+        -G 0            \
+        -pedantic       \
+        -O2             \
+        -funroll-loops  \
+        -Wall           \
+        -DGETPID_IS_MEANINGLESS
+
+EXTRA_INCLUDE += -I.
+EXTRA_INCLUDE += -I$(OPENSSL_DIR)/include/
+EXTRA_INCLUDE += -I$(OPENSSL_DIR)/include/openssl/
+EXTRA_INCLUDE += -I$(OPENSSL_SRC_DIR)/apps/
+EXTRA_INCLUDE += -I$(CROSSDEV_INC)
+
+CFLAGS = $(EXTRA_INCLUDE) $(EXTRA_DEFINE) -c
+
+ARCHIVE=mipsel-linux-ar cru $@
+COMPILE=$(CC) $(CFLAGS)
+
+# global definitions
+LIBRARY_PATH=../..
+PROJECTLIB  = $(LIBRARY_PATH)/SecLibLinux.a.gcc$(GCC_VERSION).$(GCC_MINOR_VERSION)
+OPENSSL_DIR  = $(LIBRARY_PATH)
+OPENSSL_SRC_DIR  = $(OPENSSL_DIR)/src
+
+#//======================================================================
+#// Source Objects
+#//======================================================================
+SECLIB_DIR=.
+SECLIB_C=$(SECLIB_DIR)/SecCert.c $(SECLIB_DIR)/SecCrypto.c
+
+#//======================================================================
+#// Source Files
+#//======================================================================
+SOURCE_C=$(SECLIB_C)
+
+#//======================================================================
+#// Generic rule for generating dependencies files
+#//======================================================================
+%.d : %.c
+	$(COMPILE_DEPENDS) -M $< > $(@F)
+   
+#//======================================================================
+#// Generic rule for generating *.o object files
+#//======================================================================
+%.o: %.c
+	@ echo ==== Making $@ from $(subst \,/,$<)
+	$(COMPILE) $< -o $@
+   
+#//======================================================================
+%.dir: 
+	$(MAKE) -C $* 
+
+#//======================================================================
+%.cln: 
+	$(MAKE) -C $* clean
+   
+#//======================================================================
+#// Internal definitions
+#//======================================================================
+allcfiles      = $(SOURCE_C)
+c_objects      = $(allcfiles:.c=.o)
+
+all_objects   := $(c_objects) 
+
+#//======================================================================
+#// Build targets
+#//======================================================================
+target : project
+
+project : $(all_objects) $(PROJECTLIB)
+
+$(PROJECTLIB): $(all_objects)
+	$(ARCHIVE) $?
+
+all : 
+	@$(MAKE) clean
+	@$(MAKE) target
+
+clean : $(c_subdirs)
+	rm -f *.o
+	rm -f $(PROJECTLIB)
+
+
+

@@ -1,0 +1,76 @@
+<html>
+<head>
+    <title>Xcode Channel List</title>
+</head>
+
+<style>
+    a {
+        font-size: 48px;
+        padding-top: 70px;
+        display: block;
+    }
+    video {
+        position: absolute;
+    }
+</style>
+
+
+<body style="background-color:#FFFFFF; ">
+<video id="video" controls> </video>
+<center>
+</center>
+</body>
+<script type="text/javascript">
+
+var numChannels = 0;
+function add(file) {
+    //var body = document.getElementsByTagName("body")[0];
+    var body = document.getElementsByTagName("center")[0];
+    var a = document.createElement("a");
+    numChannels++;
+    a.innerHTML = file;
+    //a.innerHTML = "Channel " + numChannels;
+    a.href = file;
+    a.onclick = play;
+    body.appendChild(a);
+}
+
+function play(e) {
+    var video = document.getElementById("video");
+    video.innerHTML = "";
+    var source = document.createElement("source");
+    source.src = this.href;
+    source.type = "application/x-mpegurl";
+    video.appendChild(source);
+    //video.src = this.href;
+    video.load();
+    video.play();
+    e.preventDefault();
+}
+
+var video = document.getElementById("video");
+
+function endVideo() {
+    location.reload();
+}
+function pauseVideo() {
+    if(!video.webkitDisplayingFullscreen) {
+        endVideo();
+     }
+}
+
+
+video.addEventListener('ended', endVideo, false);
+video.addEventListener('pause', pauseVideo, false);
+
+
+add("");
+add("");
+add("apple_master.m3u8");
+add("HboMpeg2HD_master.m3u8");
+add("colr720p_master.m3u8");
+add("macysParade_Tivo_master.m3u8");
+add("AbcMpeg2HD_master.m3u8");
+
+</script>
+</html>

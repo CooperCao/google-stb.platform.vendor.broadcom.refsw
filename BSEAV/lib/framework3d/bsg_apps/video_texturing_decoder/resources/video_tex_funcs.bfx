@@ -1,0 +1,46 @@
+
+// If the data is already in RGB format, we expect that RGB_ALREADY is #defined
+
+vec3 yuv_709_to_rgb(vec3 yuv)
+{
+#ifdef RGB_ALREADY
+	return yuv;
+#else
+	vec3 rgb;
+	yuv.r = 1.164 * (yuv.r - 0.0625);
+	yuv.g -= 0.5;
+	yuv.b -= 0.5;
+
+	rgb.g = yuv.r - 0.213 * yuv.g - 0.534 * yuv.b;
+	rgb.b = yuv.r + 1.793 * yuv.g;
+	rgb.r = yuv.r + 2.115 * yuv.b;
+
+	return rgb;
+#endif
+}
+
+vec3 yuv_601_to_rgb(vec3 yuv)
+{
+#ifdef RGB_ALREADY
+	return yuv;
+#else
+	mat3 conv = mat3(	1.164,	1.164,	1.164,
+							0.0,		-0.391,	2.018,
+							1.596,	-0.813,	0.0);
+
+	vec3 add = vec3(-0.0625, -0.5, -0.5);
+
+	yuv = yuv + add;
+	return conv * yuv;
+#endif
+}
+
+vec3 rgb_to_sepia(vec3 rgb)
+{
+	mat3 conv = mat3(	0.393,	0.349,	0.272,
+							0.769,	0.686,	0.534,
+							0.189,	0.168,	0.131);
+
+	return conv * rgb;
+}
+

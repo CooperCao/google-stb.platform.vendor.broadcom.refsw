@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# This script repeatedly launches the logo_menu application and then runs the
+# script (demorun.sh) that it creates.
+#
+# The arguments are passed directly to the logo_menu program and could be e.g.
+#
+# Take default behavior:
+# runme
+#
+# Use a different config file:
+# runme config=menu_config_multi.txt
+#
+# Override resolution
+# runme d=1920x1080
+#
+
+# Decide what resolution to run according to chip variant
+
+PLATFORM_CPUINFO=$(more /proc/cpuinfo | grep "system type" | awk '{print $4}')
+
+RES_720="d=1280x720 +m +s"
+RES_1080="d=1920x1080 +m"
+
+case $PLATFORM_CPUINFO in
+        BCM7231*|BCM7344*|BCM7429*|BCM7241*)
+                LOADER_ARGUMENTS=$RES_720 ;;
+
+        *)
+		LOADER_ARGUMENTS=$RES_1080 ;;
+esac
+
+logo_menu $LOADER_ARGUMENTS $*
+while [ $? -ne 255 ]; do
+sh demorun.sh
+logo_menu $LOADER_ARGUMENTS $*
+done

@@ -1,0 +1,153 @@
+Submitted By:            Steve Rae <srae@broadcom.com>
+Date:                    2014-12-26
+Initial Package Version: 1.0.1j
+Upstream Status:         Unknown
+Origin:                  Unknown
+Description:             fix "jobserver" warning messages
+
+--- a/Makefile.org	2014-10-22 19:03:13.000000000 +0000
++++ b/Makefile.org   	2014-12-27 00:03:34.356905724 +0000
+@@ -407,7 +407,7 @@
+ 
+ clean:	libclean
+ 	rm -f shlib/*.o *.o core a.out fluff rehash.time testlog make.log cctest cctest.c
+-	@set -e; target=clean; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=clean; $(RECURSIVE_BUILD_CMD)
+ 	rm -f $(LIBS)
+ 	rm -f openssl.pc libssl.pc libcrypto.pc
+ 	rm -f speed.* .pure
+@@ -423,12 +423,12 @@
+ 
+ files:
+ 	$(PERL) $(TOP)/util/files.pl Makefile > $(TOP)/MINFO
+-	@set -e; target=files; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=files; $(RECURSIVE_BUILD_CMD)
+ 
+ links:
+ 	@$(PERL) $(TOP)/util/mkdir-p.pl include/openssl
+ 	@$(PERL) $(TOP)/util/mklink.pl include/openssl $(EXHEADER)
+-	@set -e; target=links; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=links; $(RECURSIVE_BUILD_CMD)
+ 
+ gentests:
+ 	@(cd test && echo "generating dummy tests (if needed)..." && \
+@@ -436,7 +436,7 @@
+ 
+ dclean:
+ 	rm -rf *.bak include/openssl certs/.0
+-	@set -e; target=dclean; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=dclean; $(RECURSIVE_BUILD_CMD)
+ 
+ rehash: rehash.time
+ rehash.time: certs apps
+@@ -460,10 +460,10 @@
+ 	@$(PERL) util/selftest.pl
+ 
+ depend:
+-	@set -e; target=depend; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=depend; $(RECURSIVE_BUILD_CMD)
+ 
+ lint:
+-	@set -e; target=lint; $(RECURSIVE_BUILD_CMD)
++	+@set -e; target=lint; $(RECURSIVE_BUILD_CMD)
+ 
+ tags:
+ 	rm -f TAGS
+--- a/crypto/Makefile	2014-10-22 19:03:13.000000000 +0000
++++ b/crypto/Makefile	2014-12-27 00:04:02.356905724 +0000
+@@ -100,7 +100,7 @@
+ 	@$(PERL) $(TOP)/util/mklink.pl ../include/openssl $(EXHEADER)
+ 	@$(PERL) $(TOP)/util/mklink.pl ../test $(TEST)
+ 	@$(PERL) $(TOP)/util/mklink.pl ../apps $(APPS)
+-	@target=links; $(RECURSIVE_MAKE)
++	+@target=links; $(RECURSIVE_MAKE)
+ 
+ # lib: $(LIB): are splitted to avoid end-less loop
+ lib:	$(LIB)
+@@ -128,24 +128,24 @@
+ 	+@target=install; $(RECURSIVE_MAKE)
+ 
+ lint:
+-	@target=lint; $(RECURSIVE_MAKE)
++	+@target=lint; $(RECURSIVE_MAKE)
+ 
+ depend:
+ 	@[ -z "$(THIS)" -o -f buildinf.h ] || touch buildinf.h # fake buildinf.h if it does not exist
+ 	@[ -z "$(THIS)" ] || $(MAKEDEPEND) -- $(CFLAG) $(INCLUDE) $(DEPFLAG) -- $(PROGS) $(LIBSRC)
+ 	@[ -z "$(THIS)" -o -s buildinf.h ] || rm buildinf.h
+-	@[ -z "$(THIS)" ] || (set -e; target=depend; $(RECURSIVE_MAKE) )
++	+@[ -z "$(THIS)" ] || (set -e; target=depend; $(RECURSIVE_MAKE) )
+ 	@if [ -z "$(THIS)" ]; then $(MAKE) -f $(TOP)/Makefile reflect THIS=$@; fi
+ 
+ clean:
+ 	rm -f buildinf.h *.s *.o */*.o *.obj lib tags core .pure .nfs* *.old *.bak fluff
+-	@target=clean; $(RECURSIVE_MAKE)
++	+@target=clean; $(RECURSIVE_MAKE)
+ 
+ dclean:
+ 	$(PERL) -pe 'if (/^# DO NOT DELETE THIS LINE/) {print; exit(0);}' $(MAKEFILE) >Makefile.new
+ 	mv -f Makefile.new $(MAKEFILE)
+ 	rm -f opensslconf.h
+-	@target=dclean; $(RECURSIVE_MAKE)
++	+@target=dclean; $(RECURSIVE_MAKE)
+ 
+ # DO NOT DELETE THIS LINE -- make depend depends on it.
+ 
+--- a/engines/Makefile	2014-10-22 19:03:13.000000000 +0000
++++ b/engines/Makefile	2014-12-27 00:04:48.424903655 +0000
+@@ -93,10 +93,10 @@
+ 
+ files:
+ 	$(PERL) $(TOP)/util/files.pl Makefile >> $(TOP)/MINFO
+-	@target=files; $(RECURSIVE_MAKE)
++	+@target=files; $(RECURSIVE_MAKE)
+ 
+ links:
+-	@target=links; $(RECURSIVE_MAKE)
++	+@target=links; $(RECURSIVE_MAKE)
+ 
+ # XXXXX This currently only works on systems that use .so as suffix
+ # for shared libraries as well as for Cygwin which uses the
+@@ -144,23 +144,23 @@
+ 
+ lint:
+ 	lint -DLINT $(INCLUDES) $(SRC)>fluff
+-	@target=lint; $(RECURSIVE_MAKE)
++	+@target=lint; $(RECURSIVE_MAKE)
+ 
+ depend:
+ 	@if [ -z "$(THIS)" ]; then \
+ 	    $(MAKE) -f $(TOP)/Makefile reflect THIS=$@; \
+ 	fi
+ 	@[ -z "$(THIS)" ] || $(MAKEDEPEND) -- $(CFLAG) $(INCLUDES) $(DEPFLAG) -- $(PROGS) $(LIBSRC)
+-	@[ -z "$(THIS)" ] || (set -e; target=depend; $(RECURSIVE_MAKE) )
++	+@[ -z "$(THIS)" ] || (set -e; target=depend; $(RECURSIVE_MAKE) )
+ 
+ dclean:
+ 	$(PERL) -pe 'if (/^# DO NOT DELETE THIS LINE/) {print; exit(0);}' $(MAKEFILE) >Makefile.new
+ 	mv -f Makefile.new $(MAKEFILE)
+-	@target=dclean; $(RECURSIVE_MAKE)
++	+@target=dclean; $(RECURSIVE_MAKE)
+ 
+ clean:
+ 	rm -f *.o *.obj lib tags core .pure .nfs* *.old *.bak fluff
+-	@target=clean; $(RECURSIVE_MAKE)
++	+@target=clean; $(RECURSIVE_MAKE)
+ 
+ # DO NOT DELETE THIS LINE -- make depend depends on it.
+ 
+--- a/test/Makefile	2014-10-22 19:03:13.000000000 +0000
++++ b/test/Makefile	2014-12-27 00:04:56.628903287 +0000
+@@ -489,10 +489,10 @@
+ 	+@target=$(SRPTEST); $(BUILD_CMD)
+ 
+ $(HEARTBEATTEST)$(EXE_EXT): $(HEARTBEATTEST).o $(DLIBCRYPTO)
+-	@target=$(HEARTBEATTEST); $(BUILD_CMD_STATIC)
++	+@target=$(HEARTBEATTEST); $(BUILD_CMD_STATIC)
+ 
+ $(CONSTTIMETEST)$(EXE_EXT): $(CONSTTIMETEST).o
+-	@target=$(CONSTTIMETEST) $(BUILD_CMD)
++	+@target=$(CONSTTIMETEST) $(BUILD_CMD)
+ 
+ #$(AESTEST).o: $(AESTEST).c
+ #	$(CC) -c $(CFLAGS) -DINTERMEDIATE_VALUE_KAT -DTRACE_KAT_MCT $(AESTEST).c

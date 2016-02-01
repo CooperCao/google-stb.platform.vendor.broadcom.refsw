@@ -1,0 +1,70 @@
+// Broadcom BSG effect file
+
+OPTIONS
+{
+	SortOrder = NONE;
+}
+
+PASS 0
+{
+	SEMANTICS
+	{
+		u_mvpMatrix		= MATRIX4_MODEL_VIEW_PROJECTION;
+		u_mvMatrix		= MATRIX4_MODEL_VIEW;
+		u_imvtMatrix	= MATRIX3_INVT_MODEL_VIEW;
+		a_position		= VATTR_POSITION;
+		a_normal		= VATTR_NORMAL;
+		u_color			= VECTOR4_USER;
+	}
+
+	STATE
+	{
+		EnableBlend     = false;
+		EnableDepthTest = true;
+	}
+
+	VERTEX_SHADER
+	{
+		uniform		mat4	u_mvpMatrix;
+		uniform		mat3	u_imvtMatrix;
+		uniform		mat4	u_mvMatrix;
+		uniform		vec4	u_color;
+		attribute	vec4	a_position;
+		attribute	vec3	a_normal;
+		varying		vec4	v_color;
+
+		#include basic_lighting.bfx
+
+		void main()
+		{
+			vec3 specCol = vec3(0.2, 0.2, 0.2);
+			float specularHardness = 5.0;
+
+			vec4 pos = u_mvMatrix * a_position;
+			vec3 normal = normalize(u_imvtMatrix * a_normal);
+			vec3 lightPos = vec3(0.0, 0.5, 0.0);
+
+			// Diffuse
+			vec3 col = u_color.rgb * PointLightDiffuseComp(lightPos, pos.xyz, normal);
+
+			// Specular
+			col += specCol * PointLightSpecularComp(lightPos, pos.xyz, vec3(0.0, 0.0, 0.0), normal, specularHardness);
+
+			v_color = vec4(col, 1.0);
+			gl_Position	= u_mvpMatrix * a_position;
+		}
+	}
+
+	FRAGMENT_SHADER
+	{
+		precision mediump float;
+
+		varying	vec4 v_color;
+
+		void main()
+		{
+			gl_FragColor = v_color;
+		}
+	}
+}
+

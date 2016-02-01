@@ -1,0 +1,125 @@
+############################################################################
+#     (c)2011-2013 Broadcom Corporation
+#  
+#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  and may only be used, duplicated, modified or distributed pursuant to the terms and
+#  conditions of a separate, written license agreement executed between you and Broadcom
+#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+#  no license (express or implied), right to use, or waiver of any kind with respect to the
+#  Software, and Broadcom expressly reserves all rights in and to the Software and all
+#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
+#   
+#  Except as expressly set forth in the Authorized License,
+#   
+#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+#  and to use this information only in connection with your use of Broadcom integrated circuit products.
+#   
+#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
+#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
+#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
+#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
+#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
+#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
+#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+#  USE OR PERFORMANCE OF THE SOFTWARE.
+#  
+#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
+#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
+#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
+#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
+#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
+#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
+#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+#  ANY LIMITED REMEDY.
+# 
+# $brcm_Workfile: $
+# $brcm_Revision: $
+# $brcm_Date: $
+#
+# Module Description:
+#
+# Revision History:
+#
+# $brcm_Log: $
+# 
+###########################################################################
+
+ifdef COMSPEC
+# Any DOS environment
+NEXUS_TOP := $(shell cd ../.. && cd)
+else
+NEXUS_TOP := $(shell cd ../../; pwd)
+endif
+NEXUS_PLATFORM ?= $(PLATFORM)
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+
+
+
+include ${NEXUS_TOP}/build/os/${B_REFSW_OS}/os_flags.inc
+
+ifeq ($(B_REFSW_DEBUG),n)
+NEXUS_CFLAGS += -O${OPTIMIZER_LEVEL}
+else
+NEXUS_CFLAGS += -g -O${OPTIMIZER_LEVEL}
+endif
+
+B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
+B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
+
+ODIR := ${B_REFSW_OBJ_ROOT}/nexus/utils/logger/$(B_REFSW_ARCH)
+override APP := logger
+
+SRCS := logger.c
+
+# Need some Magnum basemodules
+include $(MAGNUM)/basemodules/kni/bkni.inc
+include $(MAGNUM)/basemodules/dbg/bdbg.inc
+include $(MAGNUM)/commonutils/lst/blst.inc
+CFLAGS += $(addprefix -I, ${NEXUS_APP_INCLUDE_PATHS} $(foreach module, $(MAGNUM_MODULES), $($(module)_INCLUDES)))
+CFLAGS += $(addprefix -D, ${NEXUS_APP_DEFINES} $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINES)))
+#SRCS += $(filter-out bchp% breg%, $(notdir $(foreach module, $(MAGNUM_MODULES), $($(module)_SOURCES))))
+SRCS += $(notdir $(foreach module, BKNI BDBG BLST, $($(module)_SOURCES)))
+SOURCE_DIRS := $(foreach module,$(MAGNUM_MODULES),$(dir $($(module)_SOURCES)))
+vpath %.c $(dir $(foreach module, $(MAGNUM_MODULES), $($(module)_SOURCES)))
+CFLAGS += -I. -I$(NEXUS_TOP)/platforms/common/src/linuxuser.proxy -I$(NEXUS_TOP)/platforms/common/src/linuxkernel/common -I$(NEXUS_TOP)/base/include
+LDFLAGS += ${NEXUS_EXTRA_LDFLAGS}
+
+ifeq (${B_REFSW_OS},linuxuser)
+LDFLAGS += -lpthread -lrt
+endif
+
+APP_OBJS = $(SRCS:%.c=${ODIR}/%.o)
+ODIR_FLAG = ${ODIR}/flag
+APP_IMAGE = ${ODIR}/${APP}
+
+all:	install
+
+OTHER_CLEANS = backup_clean
+
+vpath %.c $(SOURCE_DIRS)
+
+$(ODIR)/%.o : %.c ${ODIR_FLAG}
+		@echo "[Compile... $(notdir $<) (${APP})]"
+		${Q_}$(CC) ${CDEP_FLAG} ${CFLAGS} ${NEXUS_CFLAGS} -c $< -o $@
+
+
+${APP_IMAGE}: ${APP_OBJS}
+	@echo "[Link...... $(notdir $@)]"
+	${Q_}$(CC) $^ ${CFLAGS} ${NEXUS_CFLAGS} $(LDFLAGS)  -o $@
+
+application: ${APP_IMAGE}
+
+install: application
+	@echo "[Install... ${APP}]"
+	${Q_}${MKDIR} ${NEXUS_BIN_DIR}
+	${Q_}$(CP) ${APP_IMAGE} ${NEXUS_BIN_DIR}
+
+$(ODIR_FLAG):
+	${Q_}$(MKDIR) "$(ODIR)"
+	${Q_}${TOUCH} "${ODIR_FLAG}"
+
+clean:
+	${Q_}${RM} -r ${ODIR}

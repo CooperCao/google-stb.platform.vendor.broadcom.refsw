@@ -1,0 +1,58 @@
+<html><head>
+    <title>Memory Config GUI</title>
+    <script type="text/javascript" src="bmemconfig.js" ></script>
+    </head>
+<body onload="MyLoad();" id=bodymemconfig link=blue vlink=blue alink=blue >
+<table cols=2 border=0 >
+    <tr><td><img src="brcm-logo-white.jpg" width="100" id="brcmlogo" onclick="MyClick(event);" /></td><td>
+        <table cols=1 border=0 >
+            <tr><td><h1><span id=h2broadcom onclick="MyClick(event);" >Broadcom </span><span id=h2memory onclick="MyClick(event);" >Memory </span>Configuration GUI</h1></td></tr>
+        </table></td></tr>
+        <tr><td colspan=2><hr></td></tr>
+            <tr><td colspan=2 >Platform: <span id=platform >xxxxx</span>&nbsp;<span id=platver>YY</span>&nbsp;&nbsp;
+            <select id="boxmode" onchange="MyClick(event);" ></select><!-- onselect does not work for some reason -->
+            </td></tr>
+    <tr><th valign=top ><span id=stbtime >00:00:00</span><br><br>
+        <form method="get" action="/cgi/bmemconfig.cgi" >
+        <input type=submit value="Save State" ><input type=hidden name=variable value=saveState ></form>
+        <form method="get" action="/cgi/bmemconfig.cgi" >
+        <input type=button value="Restore State" id=restoreState onclick="RestoreClick(event);" >
+        </th></form>
+        <th valign=top id="tdheapmem" ><!-- right hand column for MEM0/MEM1/MEM0 summary--><!-- put heap table here--></td></tr>
+    <tr><td colspan=2><hr></td></tr>
+    <tr><th valign=top ><!-- left hand column navigation links -->
+        <table cols=1 border=0 >
+            <tr><th align=left ><a href=# id=pageHome onclick="MyClick(event);" style="font-weight:bold;background:lightgray;" >Home</a></th><tr>
+            <tr><th align=left ><a href=# id=pageTransport onclick="MyClick(event);" >Transport</a></th><tr>
+            <tr><th align=left ><a href=# id=pageVideoDecoder onclick="MyClick(event);" >Video&nbsp;Decoder</a></th><tr>
+            <tr><th align=left ><a href=# id=pageAudioDecoder onclick="MyClick(event);" >Audio&nbsp;Decoder</a></th><tr>
+            <tr><th align=left ><a href=# id=pageDisplay onclick="MyClick(event);" >Display</a></th><tr>
+            <tr><th align=left ><a href=# id=pageGraphics onclick="MyClick(event);" >Graphics</a></th><tr>
+            <tr><th align=left ><a href=# id=pageEncoder onclick="MyClick(event);" >Encoder</a></th><tr>
+            <tr><th align=left ><a href=# id=pagePictureDecoder onclick="MyClick(event);" >Picture&nbsp;Decoder&nbsp(SID)</a></th><tr>
+            <tr><th align=left ><a href=# id=pageVideoInput onclick="MyClick(event);" >Video&nbsp;Input</a></th><tr>
+            <tr><th align=left ><a href=# id=pageGenerateCode onclick="MyClick(event);" >File&nbsp;Management</a></th><tr>
+            <tr><th align=left ><a href=# id=pageHelp onclick="MyClick(event);" >Help</a></th><tr>
+        </table>
+        </th>
+        <th valign=top align=left ><!-- right hand column page-specific stuff -->
+        <div id=pagecontents><!-- put page specific stuff here ... transport page, display page, gfx page, etc --></div>
+        </th>
+        </tr>
+</table>
+<textarea id=debugoutputbox cols=150 rows=200 style="visibility:hidden;" ></textarea>
+<div id="uploadmain" style="visibility:hidden;position:absolute;left=400px;top=100px;border:2px solid gray;background:white;opacity:0.9;filter:alpha(opacity=60);border-radius:25px;" class=overlay >
+    <form id=formdownload method="post" enctype="multipart/form-data"  action="/cgi/bmemconfig.cgi" onsubmit="return validateForm(event);" >
+    <table cols=4 border=0 >
+        <tr><td style=width:50px >&nbsp;</td><td><h3>Send Your File To STB</h3></td><td style=width:50px >&nbsp;</td></tr>
+        <tr><td colspan=4 align=center >&nbsp;</td></tr>
+        <tr><td style=width:50px >&nbsp;</td><td>
+        <input type="file" name="btnstatefile" id="btnstatefile" size=65 />
+        </td><td style=width:50px >&nbsp;</td></tr>
+        <tr><td colspan=4 align=center >&nbsp;</td></tr>
+        <tr><td style=width:50px >&nbsp;</td><td align=left ><input type="submit" id="btnupload" value="Upload File!" ></td><td align=right ></form><input type="submit" id="btncancel" value="Cancel" onclick="RestoreClick(event);" ></td> <td style=width:50px >&nbsp;</td></tr>
+        <tr><td colspan=4 align=center >&nbsp;</td></tr>
+    </table>
+</div>
+</body>
+</html>

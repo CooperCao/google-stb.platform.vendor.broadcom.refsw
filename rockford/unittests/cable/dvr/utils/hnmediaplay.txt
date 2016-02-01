@@ -1,0 +1,28 @@
+SubFolderName bgrec
+StreamPathIndex 0
+DRMDisable
+TrickModeEnable
+TrickModeValue SlowForward
+ProgramName dvrtest_hn
+#######################################
+#   
+# Input parameters usage
+#
+#######################################
+#SubFolderName ssss
+#ProgramName ssss
+#StreamPathIndex  dddd
+#DRMDisable 
+#DRMEnableClearKey 
+#DRMEnableKeyladder
+#TrickModeDisable
+#TrickModeEnable
+#TrickModeValue Play
+#TrickModeValue Pause
+#TrickModeValue FastRewind
+#TrickModeValue FastForward
+#TrickModeValue SlowRewind
+#TrickModeValue SlowForward
+#TrickModeValue FrameAdvance
+#TrickModeValue FrameReverse
+#######################################

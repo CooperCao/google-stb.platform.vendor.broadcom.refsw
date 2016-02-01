@@ -1,0 +1,69 @@
+OVERVIEW
+This "bpiff" module is a standalone library that converts an unencrypted media ES(mpeg2 TS) into an well-formed encrypted MS PlayReady PIFF file. PIFF stands for "Protected Interoperable File Format", which is a Microsoft's proprietary file format that extends the ISO Base Media File Format, please refer to the standard "ISO 14496-12: Information technology - Coding of audio-visual objects - Part 12".
+
+RELEASE NOTES
+RefSW 13.2 (April 19, 2013):
+- http://jira.broadcom.com/browse/SWSECURITY-310. This module was first included in Unified RefSW 13.2 release.
+
+RefSW 13.3 (July 12, 2013):
+- http://jira.broadcom.com/browse/SW7435-878. This module was modified to use Playready 2.5 SDK through the commom_drmn/playready API, which was introduced in Unified RefSW 13.3.
+
+
+SPECIFICATION
+The bpiff module is an self-contains PIFF creation module that implements all the necessary encodings based on the Microsoft's PIFF specification and ISO standard. Since RefSW 1.3.3, PIFF creator has used the Playready 2.5 SDK through the common_drm playready APIs to encrypt unprotected contents. One of the major benefits of using Playready 2.5 is the new PRND (Network Device) support. With the PRND, PIFF creator is able to encrypt contents by creating a local license without any direct manipulation of the content key. 
+
+The library (libbpiff) is located under:
+
+	BSEAV/lib/bpiff/lib/[debug|retail]/libbpiff.[so|a]
+
+
+The public header files are located under:
+
+	BSEAV/lib/bpiff/include
+
+
+The source file is located under:
+
+	BSEAV/lib/bpiff/src
+
+
+This module comes with an example program to demostrate how the interfaces are used, which is located under:
+
+	BSEAV/lib/bpiff/examples/encode_playback_piff.c
+    This example comprises two parts:
+    1. shows the detailed steps on how a media is encoded into a well-formed PIFF file.
+    2  shows the detailed steps on how to parse the PIFF file, decrypt and playback.
+
+To build the library:
+=====================
+1. change the directory to the BSEAV/lib/bpiff
+2. make clean
+3. make install
+
+The "libbpiff.so" will be created and copied to obj.<chip>/nexus/bin directory.
+
+
+To build the examples:
+======================
+1. change the directory to the BSEAV/lib/bpiff/examples
+2. make clean
+3. make all
+
+The "encode_playback_piff" binary will be created and copied to obj.<chip>/nexus/bin directory.
+
+
+To setup and run the example:
+==============================
+1. make sure you have the compiled libbpiff.so and the encode_piff binaries in the target install path*.
+
+2. get the mpeg2 sample stream from:  
+\\fs-mon-02\stbdev\bfung\7435\vobs\nexus\bin\videos\avatar_AVC_15M.ts and put it in the target install path under \videos.
+Create the directory "videos" if your target install path doesn't have one. In order for this example to work, you have to use this sample stream for which the corresponding video and audio encoding parameters are hard-coded in the example code. If for some reason, this mpeg2 sample is unavailable, please send an e-mail to bfung@broadcom.com. If you want to encode other mpep2 streams, you will need to modify the encode_playback_piff.c to set the corresponding video's and audio's parameters accordingly.
+
+3. Logon to the target and change the directory to the install path. At the command prompt, type:
+
+./nexus encode_playback_piff  
+
+This will start PIFF's conversion and encryption for the sample stream ".\videos\avatar_AVC_15M.ts". The program will take some times to complete since the sample stream has more than 700MB in size and lasts for about 5 minutes of video/audio playback. However, if you want to produce a smaller PIFF file with only partial processing, just press "Enter" on the console at any time.  Once the encoding is either done completely or a "Enter" is pressed, a well-formed PIFF file ("piff.mp4" located under the same directory) is created and the run-time PIFF decoding ( MP4/PIFF parsing, decryption and media playback ) will start. Because the content is encrypted using a local created license when the PIFF file is created, that the protected content can be decrypted directly through the PD APIs Drm_Reader_Bind and Drm_Reader_Decrypt. If there is no other error, the media will be playback on the connected display device.
+
+*The install path usually refers to the location on the target where contains all the Broadcom's binaries such as libnexus.so, bcmdriver.ko, libcomndrm.so and so on...

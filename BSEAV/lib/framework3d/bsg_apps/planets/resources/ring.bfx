@@ -1,0 +1,83 @@
+// Broadcom BSG effect file
+//
+// Render a ring system based on distance from centre of planet
+//
+
+OPTIONS
+{
+	SortOrder = BACK_TO_FRONT;
+}
+
+PASS 0
+{
+	SEMANTICS
+	{
+		u_mvpMatrix		= MATRIX4_MODEL_VIEW_PROJECTION;
+		a_position		= VATTR_POSITION;
+		a_tc			= VATTR_TEXCOORD1;
+		u_inner			= USER_FLOAT;
+	}
+
+	STATE
+	{
+		EnableBlend     = true;
+		EnableDepthTest = true;
+		BlendFunc       = SRC_ALPHA, ONE_MINUS_SRC_ALPHA;
+	}
+
+	SAMPLER_2D u_ringTex
+	{
+		Unit = 0;
+		Wrap = CLAMP, CLAMP;
+		Filter = LINEAR_MIPMAP_NEAREST, LINEAR;
+	}
+
+	VERTEX_SHADER
+	{
+		uniform		mat4	u_mvpMatrix;
+		uniform		mediump float	u_inner;
+
+		attribute	vec4	a_position;
+		attribute	vec2	a_tc;
+
+		varying		vec2	v_tc;
+		varying		float	v_innerScale;
+
+		void main()
+		{
+			v_tc		 = a_tc * 2.0 - 1.0;
+			v_innerScale = 1.0 / (1.0 - u_inner);
+
+			gl_Position	 = u_mvpMatrix * a_position;
+		}
+	}
+
+	FRAGMENT_SHADER
+	{
+		precision mediump float;
+
+		uniform sampler2D	u_ringTex;
+		uniform float		u_inner;
+		varying vec2		v_tc;
+		varying float		v_innerScale;
+
+		void main()
+		{
+			float dist = length(v_tc);
+
+			if (dist < u_inner || dist > 1.0)
+				discard;
+
+			float shadow = 1.0;
+			float threshold = 0.435 - v_tc.y * 0.025;
+			float n = abs(v_tc.x);
+
+			if (v_tc.y > 0.0) shadow = 0.1 + 0.9 * smoothstep(0.0, 1.0, (n - threshold) * 15.0);
+
+			dist = (dist - u_inner) * v_innerScale;
+			vec4 color = texture2D(u_ringTex, vec2(dist, 0.5));
+			gl_FragColor = vec4(shadow * color.xyz, color.a);
+		}
+	}
+}
+

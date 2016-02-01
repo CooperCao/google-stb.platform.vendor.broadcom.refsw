@@ -1,0 +1,14 @@
+
+float PointLightDiffuseComp(vec3 lightPos, vec3 vertPos, vec3 normal)
+{
+	vec3 v2l = normalize(lightPos - vertPos);
+	return max(0.0, dot(v2l, normal));
+}
+
+float PointLightSpecularComp(vec3 lightPos, vec3 vertPos, vec3 eyePos, vec3 normal, float specularHardness)
+{
+	vec3 v2l = normalize(lightPos - vertPos);
+	vec3 v2e = normalize(eyePos - vertPos);
+	vec3 h = normalize(v2l + v2e);
+	return pow(max(0.0, dot(normal, h)), specularHardness);
+}

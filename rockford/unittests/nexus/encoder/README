@@ -1,0 +1,191 @@
+        ***********************************************************************************************
+        ********** Please read these notes below before trying out the NEXUS Transcode Example Apps **********
+        ***********************************************************************************************
+
+This directory contains sample test apps for demonstrating NEXUS transcode functionality.
+
+==========
+transcode_ts:
+==========
+"transcode_ts" app can transcode file/qam/hdmi source stream into MPEG TS stream and record the TS with Broadcom NAV index file.
+The app also loopback plays the transcoded TS file to the HDMI/YPrPb display output with NEXUS playback in timeshift fashion.
+The app supports multi-channel transcodes, closed-caption, TS user data, in realtime (RT) and/or non-realtime (NRT) modes. 
+It supports script and interactive operation mode to test NEXUS transcoder's various functionalities and dynamic behaviors.
+
+1. Build the transcode unit tests by "make clean;make" in the directory rockford/unittests/nexus/encoder/.
+2. Connect and disk format a hard disk drive for 97425 transcode tests. This can be done by stbutil tool after you boot the linux:
+# stbutil 10.17.210.82:<path_to_rootfs>, where 10.17.210.82 is the TFTP server IP address, and <path_to_rootfs> is the path of where the linux kernel and rootfs are stored on the TFTP server.
+  Select 5 to format and install rootfs on the HDD.
+  # mount /dev/sda4 /mnt/hd
+  # mkdir /mnt/hd/videos
+  # cd nexus/bin; ln -s /mnt/hd/videos .; ln -s /mnt/hd/videos /data/BAT; ln -s /mnt/hd/videos /data/.
+  # ./nexus transcode_ts
+
+3.  The transcode unittest "transcode_ts" has the following features:
+Transcode an MPEG TS File, QAM tuner, or HDMI input to an MPEG TS file as well as a navigation file. 
+The input TS file name, or QAM channel frequency/QAM mode, and TS stream's A/V PIDs and codecs can be specified upon prompts. 
+The output TS record file name, A/V codecs, profile, level, bit rate, resolution, frame rate, GOP structure etc can also be specified by user upon prompts. 
+Given the user configurations, once transcoder starts, it will timeshift the transcoder output TS stream to display on the local HDMI/Component output.
+There will be a user menu provided after that, which allows user to dynamically change the transcoder resolution, bit rate and frame rate. (Note, the encoder FW in this release does not support switch between interlaced and progressive resolution)
+It also allow dynamic change of transcoder deinterlacer (default OFF) and DNR settings.
+The user menu also allows full-featured timeshift trick mode control of the transcoder output stream's playback on local HDMI/Component display, as well as HDMI/Component display format switch.
+It has automatic test mode if the command line does not provide option. If provided command line option, it'll run in interactive mode.
+The transcode_ts has '-fifo' command line option for long term interactive real-time mode transcode test (transcoder output is recorded to a 60-second long timeshift fifo file instead of linear file).
+It also supports dual transcodes user menu options to bring up dual transcodes feature on B0 platforms.
+This release supports CEA-608 and 708 Closed Caption user data transcode. To enable it with transcode_ts, add '-cc' command line option. The source decoder and loopback decoder (loopback from the transcoder output stream) would log the Closed Caption user data info into separate spreadsheet files (*.csv) for verification.
+This release added ANSI/SCTE 127 2007 and ETSI EN 301 775 v1.1.1 TS layer VBI user data transcoding pass-through. To enable it with transcode_ts, add '-tsud' command line option, then follow prompt to configure the TS layer user data PIDs etc for transcoder.
+ 
+ 
+4. Command line options
+ 
+./nexus transcode_ts [Options]
+
+transcode_ts usage:
+  Without options, it transcodes default stream file /data/videos/avatar_AVC_15M.ts into TS file: /data/BAT/encode.ts
+  To run the transcode_ts test in interactive mode, use one or more of following options.
+
+Options:
+  -h        - to print the usage info
+  -cxt N    - to select xcoder N
+  -scr N    - to run in script mode and quit in N seconds
+  -cfg      - to set the test configuration
+  -fifo     - to use FIFO file record instead of unbounded file record for long term test
+  -NRTwrap|loop  - to loop source file for long term file transcode test
+  -autoquit - to quit the test automatically when all transcoders are stopped
+  -cc       - to enable Closed Caption user data transcode
+  -tsud     - to enable TS layer user data passthrough.
+  -nodspmix - to disable audio DSP fw mixer.
+  -multichan - to enable audio multi-channel mode setting.
+  -msaudio  - to enable audio multi-stream decode mode.
+  -nrtRate N - to set stream mux NRT rate as N times fast as RT mode.
+  -delayTolerance MSEC - to set TS mux SW service latency tolerance in miliseconds (bigger value = more mux delay.
+  -msp MSEC - to set TS mux service period in miliseconds.
+  -rsp MSEC - to set record service period in miliseconds.
+  -tts_in binary|mod300  - Input TTS transport packets prepended with 4-byte timestamps in binary or mod300 mode.
+  -tts_out binary|mod300  - Output TTS transport packets prepended with 4-byte timestamps in binary or mod300 mode.
+  -madoff   - to start transcoder with MADR disabled.
+  -vbr      - to enable VBR video encode.
+  -type {single|multi|multiNRT}
+     Note: 1) single type supports single encode, low delay mode and up to 1080p30 realtime encode
+           2) multiNRT type supports up to 1080p30 with dual NRT encodes
+           3) multi type is the default, supports up to 2 encodes with combined throughput up to 1080p30
+  -3d       - enable 3D encode
+  -seamless 1080p|720p - seamless transcode format switch up to 1080p or 720p
+  -vfr      - enable variable frame rate transcode
+  -sd       - enable CVBS debug display for source decoder.
+ 
+5. Usage examples
+
+ To run the transcode_ts test in interactive mode:
+   # cd nexus/bin
+   # ./nexus transcode_ts [-h] [-cfg] [-fifo] [-autoquit] [-NRTwrap] [type] [-cc] [tsud]
+ Then follow the menu to provide input source and output encode configurations. The runtime user menu will show up once transcoder and timeshifted loopback is started. 
+ 
+1) Here is an example transcode_ts test configuration settings for real time transcoding from QAM256, channel frequency 777 MHz, video/pcr PID 257, H.264 codec, AC3 audio (Note: licence required) PID 260, to output TS file /mnt/hd/videos/qam777.ts with audio AC3 passthrough and video H.264 encode, 6 Mbps, baseline profile, level 3.1, 720p30 with IP GOP size of 30 frames (29 P-frame with no B-frame):
+
+	2 777 4 5 257 257 1 260 7 /mnt/hd/videos/qam777.ts 0 34 4 3000000 29 0 5 9 11 0 0 0
+
+2)  Here is another example transcode_ts test configuration settings for non-real time (NRT) transcoding from TS file /mnt/hd/videos/avatar_AVC_15M.ts, with video/pcr PID 257, H.264 codec, AC3 audio (Note: licence required) PID 260, to output TS file /mnt/hd/videos/ nrt480pAAC.ts with audio AAC transcode and video H.264 encode, 2 Mbps, baseline profile, level 3.1, 480p60 with IP GOP size of 30 frames (29 P-frame with no B-frame):
+
+	0 /mnt/hd/videos/avatar_AVC_15M.ts 2 5 257 257 1 260 7 /mnt/hd/videos/nrt480pAAC.ts 0 24 7 2000000 29 0 5 9 11 1 3 1
+
+3) Here is an example transcode_ts test configuration settings for real time low delay mode transcoding from QAM256, channel frequency 777 MHz, video/pcr PID 257, H.264 codec, AC3 audio (Note: licence required) PID 260, to output TS file /mnt/hd/videos/qam777.ts with audio AC3->AAC+ transcode and video H.264 encode, 6 Mbps, baseline profile, level 3.1, 720p30 with IP GOP size of 30 frames (29 P-frame with no B-frame), inverse telecine disabled, video encode rate buffer delay set as 50 ms, minimum encoder input and output frame rate 29.97 FPS, max encode resolution as 720p, video encoder HW pipeline low delay mode enabled:
+
+	2 777 4 5 257 257 1 260 7 /mnt/hd/videos/qam777.ts 0 34 4 3000000 29 0 5 9 11 1 5 1 0 50 4 4 1280 720 1
+
+4) Here is another example transcode_ts test configuration settings for non-real time (NRT) transcoding from TS file /mnt/hd/videos/scte20only.ts, with video/pcr PID 16, MPEG2 codec, AC3 audio (Note: licence required) PID 17, to output TS file /mnt/hd/videos/ cc608.ts with audio AC3 pass-through and video H.264 encode, 2 Mbps, main profile, level 4.0, 480p30 with IP GOP size of 30 frames (29 P-frame with no B-frame), with Closed Caption user data transcoding:
+
+	./nexus transcode_ts -cc -cfg
+	0 /mnt/hd/videos/scte20only.ts 2 2 16 16 1 17 7 /mnt/hd/videos/cc608.ts 0 24 4 2000000 29 0 5 2 13 0 1
+
+5) Here is another example transcode_ts test configuration settings for non-real time (NRT) transcoding from TS file /mnt/hd/videos/ TELETEXT_SAMPLE.TRP, with video/pcr PID 49, MPEG2 codec, MPEG audio PID 52, to output TS file /mnt/hd/videos/tsud1.ts with audio pass-through and video H.264 encode, 2 Mbps, high profile, level 3.0, 5760p25 with IP GOP size of 30 frames (29 P-frame with no B-frame), with all TS layer user data PIDs (found in PMT of the program) transcoding pass-through, the test will automatically quit at end of the non-realtime file transcoding:
+
+	./nexus transcode_ts -autoquit -tsud
+	0 /mnt/hd/videos/TELETEXT_SAMPLE.TRP 2 2 49 49 1 52 1 /mnt/hd/videos/tsud1.ts 0 25 3 2000000 29 0 2 2 22 0 1 0 1
+
+6) Here is an example transcode_ts test configuration settings for real time dual transcoding 1st context from TS file /mnt/hd/videos/avatar_AVC_15M.ts, with video/pcr PID 257, H.264 codec, AC3 audio (Note: licence required) PID 260, to output TS file /mnt/hd/videos/ 720p30avc.ts with audio AAC+ transcode and video H.264 encode, 6 Mbps, high profile, level 3.0, 720p30 with IP GOP size of 24 frames (23 P-frame with no B-frame) and 2nd context from TS file /mnt/hd/videos/ Dragon_Wildchina.ts, with video/pcr PID 513, H.264 codec, AC3 audio (Note: licence required) PID 516, to output TS file /mnt/hd/videos/ 720p30avc2.ts with audio AAC+ transcode and video H.264 encode, 10 Mbps, high profile, level 3.0, 720p30 with IP GOP size of 24 frames (23 P-frame with no B-frame):
+
+	0 /mnt/hd/videos/avatar_AVC_15M.ts 2 5 257 257 1 260 7 /mnt/hd/videos/720p30avc.ts 0 34 4 3000000 23 0 5 3 10 1 5 0 0
+	15 1 20
+	0 /mnt/hd/videos/Dragon_Wildchina.ts 2 5 513 513 1 516 7 /mnt/hd/videos/720p30avc2.ts 0 34 4 3000000 23 0 5 3 10 1 5 0 0
+
+7) Here is an example transcode_ts test configuration settings for non-real time (NRT) dual transcoding 1st context from TS file /mnt/hd/videos/avatar_AVC_15M.ts, with video/pcr PID 257, H.264 codec, AC3 audio (Note: licence required) PID 260, to output TS file /mnt/hd/videos/ 720p30avc.ts with audio AAC+ transcode and video H.264 encode, 6 Mbps, high profile, level 3.0, 720p30 with IP GOP size of 24 frames (23 P-frame with no B-frame) and 2nd context from TS file /mnt/hd/videos/ Dragon_Wildchina.ts, with video/pcr PID 513, H.264 codec, AC3 audio (Note: licence required) PID 516, to output TS file /mnt/hd/videos/ 720p30avc2.ts with audio AAC+ transcode and video H.264 encode, 10 Mbps, high profile, level 3.0, 720p30 with IP GOP size of 24 frames (23 P-frame with no B-frame):
+
+	0 /mnt/hd/videos/avatar_AVC_15M.ts 2 5 257 257 1 260 7 /mnt/hd/videos/720p30avc.ts 0 34 4 3000000 23 0 5 3 10 1 5 1
+	15 1 20
+	0 /mnt/hd/videos/Dragon_Wildchina.ts 2 5 513 513 1 516 7 /mnt/hd/videos/720p30avc2.ts 0 34 4 3000000 23 0 5 3 10 1 5 1
+
+8) Here is another example transcode_ts test configuration settings for non-real time (NRT) transcoding from TS file /mnt/hd/videos/avatar_AVC_15M.ts, with video/pcr PID 257, H.264 codec, AC3 audio (Note: licence required) PID 260, to output TS file /mnt/hd/videos/ nrt480pAAC.ts with audio AAC transcode and video H.264 encode, 2 Mbps (max) and 1.5Mbps average (VBR bitrateTarget), baseline profile, level 3.1, 480p60 with IP GOP size of 30 frames (29 P-frame with no B-frame):
+
+	./nexus transcode_ts -vbr
+	0 /mnt/hd/videos/avatar_AVC_15M.ts 2 5 257 257 1 260 7 /mnt/hd/videos/nrt480pAAC.ts 0 24 7 4000000 2000000 29 0 5 9 11 1 3 1
+
+==========
+transcode_mp4:
+==========
+  The example "nexus transcode_mp4" will transcode a source TS stream file (1080p24 AVC video, AC3 audio - Note: licence required) into a MP4 container file named videos/stream.mp4 (AVC 720p24, baseline profile, level 3.1, 6 Mbps; AAC audio 32 Kbps); 
+  Hitting ENTER when it's running, it will test stop/restart of the transcoder with a different video codec/format/bitrate combinations. Type 'q' to close the transcoder cleanly. 
+Usage:
+# ./nexus transcode_mp4 [-h] [other options]
+Options:
+  -h          - to print the usage info
+  -pd         - to enable progressive download mp4 file mux. Default OFF.
+  -rbs BYTEs  - to specify relocation buffer size in bytes.
+     Note: for progressive download mp4 file mux, relocation buffer is
+     used to relocate mdat box at finalization stage for mp4 file mux.
+     The larger reloc buffer size, the quicker mp4 file mux can finish.
+     for example, 1MB reloc buffer finishes much faster than default 128 KB.
+
+
+==========
+transcode_hls:
+==========
+"transcode_hls" app can transcode a file source stream into HLS compliant segment-based TS stream format as fast as possible in NRT mode. It requires the input TS file have corresponding .nav index file.
+The default test configuration takes /data/videos/avatar_AVC_15M.ts/nav as input file, output /data/videos/stream.ts and .nav file. In addition, the HLS segments info is logged in /data/videos/stream.hls text file.
+Usage:
+# ./nexus transcode_hls [-h] [other options]
+Options:
+  -h        - to print the usage info
+  -cfg      - to set the test configuration
+  -chunktime MSEC - to set video chunk duration in miliseconds.
+  -probe      - to probe the source PIDs and codecs.
+  -bitrate N  - to specify video encode bitrate in bps.
+  -audio      - to enable audio transcode.
+  -RT         - to enable Real Time mode transcode.
+
+===========
+encode_video_es:
+===========
+"encode_video_es" can transcode a file/QAM/HDMI source into a video elementary stream file, with configurations via prompts.
+
+===========
+encode_audio_es:
+===========
+"encode_audio_es" can transcode a file/QAM/HDMI source into an audio elementary stream file, with configurations via prompts.
+
+
+======================
+Other NEXUS transcode examples
+======================
+Other simple examples are under /nexus/examples/encoder/.
+
+1. Building and running NEXUS transcode examples
+  Build the transcode unit tests by running "make" in the directory /nexus/examples/encoder/.
+
+2. Usage of examples
+
+1)  The example "nexus transcode_playback_to_ts" will transcode a source TS stream file (1080p24 AVC video, AC3 audio - Note: licence required) into another MPEG TS file named videos/stream.mpg (AVC 720p24, baseline profile, level 3.1, 6 Mbps; AAC audio 32 Kbps) with the video navigation file videos/stream.nav; Hitting ENTER when it's running, it will test stop/restart of the transcoder with a different video codec/format/bitrate combinations. Type 'q' to shutdown the transcoder cleanly.
+
+2)  The example "nexus transcode_playback_to_ts_ afap" is a new Non-Real-Time transcode example that will transcode a source TS stream file (1080p24 AVC video, AC3 audio - Note: licence required) into another MPEG TS file named videos/stream.mpg (AVC 720p24, baseline profile, level 3.1, 6 Mbps; AAC audio 32 Kbps) with the video navigation file videos/stream.nav in as fast as possible (AFAP mode); Hitting ENTER when it's running, it will test stop/restart of the transcoder with a different video codec/format/bitrate combinations. Type 'q' to shutdown the transcoder cleanly. Without hitting any key, transcoder will pause when the end of source stream is detected; type 'q' to clean shutdown.
+
+3)  The example "nexus transcode_playback_to_ts_ dual" is a Real-Time dual transcode example that will transcode two source TS stream files (1080p24 AVC video, AC3 audio - Note: licence required) into two other MPEG TS files named videos/stream0.mpg and stream1.mpg (AVC 720p30, baseline profile, level 3.1, 6 Mbps; AAC audio 32 Kbps) with the video navigation file videos/stream0.nav and stream1.nav in realtime; Hitting ENTER when it's running, it will test stop/restart of the transcoder with a different video codec/format/bitrate combinations. Type 'q' to shutdown the transcoder cleanly. Without hitting any key, transcoder will pause when the end of source stream is detected; type 'q' to clean shutdown.
+
+4)  The example "nexus transcode_playback_to_ts_ 6xaudio" is an example that will transcode a source TS stream files (with one video program and 6x audio programs all based on the same PCR) into another MPEG TS files named videos/stream.mpg with AVC 480p30, baseline profile, level 3.1, 6 Mbps and 6xAC3 audio pass-throughs with the video navigation file videos/stream.nav; it supports both real-time and non-real-time (option '-nrt') mode; it also supports 1x audio program transcode (to AAC) + 5x audio programs pass-throughs (option '-1x+5p NUM'). The command line options are:
+./nexus transcode_playback_to_ts_6xaudio [-h] [-nrt] [-1x+5p NUM]
+
+
+==========================
+Audio speech codecs and echo canceller
+==========================
+NEXUS also supports the audio speech codecs G.711/723/729 encoding and echo cancellation feature for conferencing usage. The test example is under /rockford/unittests/nexus/audio/echo_canceller.c.
+

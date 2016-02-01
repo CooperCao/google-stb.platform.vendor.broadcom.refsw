@@ -1,0 +1,5 @@
+ifeq ($(ARM_PLATFORM), yes)
+arm-linux-gcc -I ../Drivers/VirtualEthernetDriver -O2 hostboot.c -o hostboot7125
+else
+mipsel-linux-gcc -I ../Drivers/VirtualEthernetDriver -O2 hostboot.c -o hostboot7125
+endif

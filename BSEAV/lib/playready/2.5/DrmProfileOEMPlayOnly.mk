@@ -1,0 +1,99 @@
+#**@@@+++@@@@******************************************************************
+#*
+#* Microsoft PlayReady
+#* Copyright (c) Microsoft Corporation. All rights reserved.
+#*
+#**@@@---@@@@******************************************************************
+
+!if "$(DRM_BUILD_PROFILE)" != "OEMPLAYONLY"
+!error DRM_BUILD_PROFILE must be OEMPLAYONLY to use DrmProfileOEMPlayOnly.mk
+!endif
+
+!INCLUDE "DrmProfileSHARED.mk"
+
+DRM_ACTIVATION_PLATFORM_VIA_PROFILE=0
+_DRM_BUILD_PROFILE_INT_VIA_PROFILE=11
+DRM_SUPPORT_ACTIVATION_VIA_PROFILE=0
+DRM_SUPPORT_ANTIROLLBACK_CLOCK_VIA_PROFILE=0
+DRM_SUPPORT_APP_POLICY_VIA_PROFILE=0
+DRM_SUPPORT_APPREVOCATION_VIA_PROFILE=0
+DRM_SUPPORT_ASSEMBLY_VIA_PROFILE=1
+DRM_SUPPORT_BBXLEGACY_VIA_PROFILE=0
+DRM_SUPPORT_BBXSLK_VIA_PROFILE=0
+DRM_SUPPORT_CERTCACHE_VIA_PROFILE=1
+DRM_SUPPORT_CERTPARSERCACHE_VIA_PROFILE=0
+DRM_SUPPORT_CLEANSTORE_VIA_PROFILE=1
+DRM_SUPPORT_COPYOPL_VIA_PROFILE=0
+DRM_SUPPORT_CRT_VIA_PROFILE=1
+DRM_SUPPORT_DEVCERTKEYGEN_VIA_PROFILE=1
+DRM_SUPPORT_DEVICE_SIGNING_KEY_VIA_PROFILE=0
+DRM_SUPPORT_DEVICEASSETS_VIA_PROFILE=1
+DRM_SUPPORT_DEVICEREVOCATION_VIA_PROFILE=1
+DRM_SUPPORT_DEVICESTORE_VIA_PROFILE=1
+DRM_SUPPORT_DLA_VIA_PROFILE=0
+DRM_SUPPORT_DOMAIN_VIA_PROFILE=1
+DRM_SUPPORT_ECCPROFILING_VIA_PROFILE=1
+DRM_SUPPORT_EMBEDDED_CERTS_VIA_PROFILE=0
+DRM_SUPPORT_FORCE_ALIGN_VIA_PROFILE=0
+DRM_SUPPORT_HDSBLOCKHEADERCACHE_VIA_PROFILE=0
+DRM_SUPPORT_INLINEDWORDCPY_VIA_PROFILE=0
+DRM_SUPPORT_LICENSE_SYNC_VIA_PROFILE=0
+DRM_SUPPORT_LICGEN_VIA_PROFILE=0
+DRM_SUPPORT_LOCKING_VIA_PROFILE=0
+DRM_SUPPORT_M2TSENCRYPTOR_VIA_PROFILE=0
+DRM_SUPPORT_METERING_VIA_PROFILE=1
+DRM_SUPPORT_MODELREVOCATION_VIA_PROFILE=0
+DRM_SUPPORT_MOVE_VIA_PROFILE=0
+DRM_SUPPORT_MULTI_THREADING_VIA_PROFILE=0
+DRM_SUPPORT_NONVAULTSIGNING_VIA_PROFILE=1
+DRM_SUPPORT_PERFORMANCE_VIA_PROFILE=1
+DRM_SUPPORT_PERSTREAMKEYS_VIA_PROFILE=0
+DRM_SUPPORT_PRECOMPUTE_GTABLE_VIA_PROFILE=0
+DRM_SUPPORT_PRIVATE_KEY_CACHE_VIA_PROFILE=0
+DRM_SUPPORT_PRNDTX_VIA_PROFILE=0
+DRM_SUPPORT_PRNDRX_VIA_PROFILE=1
+DRM_SUPPORT_REACTIVATION_VIA_PROFILE=0
+DRM_SUPPORT_SECURE_CLOCK_VIA_PROFILE=1
+
+################################################################################
+#
+# Enabling DRM_SUPPORT_SECUREOEMHAL has the following effects.
+# 1. Key-material functionality that cannot be supported by the secure HAL is completely removed from the HAL (via #if / #endif).
+# 2. Feature areas which cannot be supported with a secure HAL will fail to compile.
+# These will put your system into a more "secure" mode where there is a smaller attack surface area in exchange for fewer supported features.
+# Note: You may need to explicitly remove the failing feature areas from your build system to compile successfully.
+# Note: Microsoft makes no guarantees about the security of the "secure" HAL.
+# Note: The PK licensee is still responsible for following the PlayReady Compliance and Robustness Rules.
+#
+################################################################################
+DRM_SUPPORT_SECUREOEMHAL_VIA_PROFILE=1
+
+################################################################################
+#
+# Enabling DRM_SUPPORT_SECUREOEMHAL_PLAY_ONLY_VIA_PROFILE has the following effect.
+# 1. Key-material functionality that is not required by the secure HAL is completely removed from the HAL (via #if / #endif).
+# This will put your system into a more "secure" mode where there is a smaller attack surface area in exchange for fewer supported features.
+# Note: Microsoft makes no guarantees about the security of the "secure" HAL.
+# Note: The PK licensee is still responsible for following the PlayReady Compliance and Robustness Rules.
+#
+################################################################################
+DRM_SUPPORT_SECUREOEMHAL_PLAY_ONLY_VIA_PROFILE=1
+
+DRM_SUPPORT_SECUREOEMHAL_PLAY_ONLY_VIA_PROFILE=1
+DRM_SUPPORT_SYMOPT_VIA_PROFILE=0
+DRM_SUPPORT_THUMBNAIL_VIA_PROFILE=0
+DRM_SUPPORT_VIEWRIGHTS_VIA_PROFILE=1
+DRM_SUPPORT_WMDRM_VIA_PROFILE=0
+DRM_SUPPORT_WMDRMNET_VIA_PROFILE=0
+DRM_SUPPORT_XMLHASH_VIA_PROFILE=1
+
+DRM_USE_IOCTL_HAL_GET_DEVICE_INFO_VIA_PROFILE=0
+
+DRM_SUPPORT_TEST_SETTINGS_VIA_PROFILE=0
+DRM_TEST_SUPPORT_NET_IO_VIA_PROFILE=0
+DRM_TEST_SUPPORT_ACTIVATION_VIA_PROFILE=0
+USE_PK_NAMESPACES_VIA_PROFILE=0
+DRM_INCLUDE_PK_NAMESPACE_USING_STATEMENT_VIA_PROFILE=0
+
+_ADDLICENSE_WRITE_THRU_VIA_PROFILE=0
+DRM_KEYFILE_VERSION_VIA_PROFILE=3

@@ -1,0 +1,1038 @@
+/******************************************************************************
+ * (c) 2003-2015 Broadcom Corporation
+ *
+ * This program is the proprietary software of Broadcom Corporation and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *
+ *****************************************************************************/
+
+
+#include "bstd.h"
+#include "bxpt_priv.h"
+#include "bxpt_packetsub.h"
+#include "bkni.h"
+
+#if BCHP_PWR_SUPPORT
+#include "bchp_pwr.h"
+#endif
+
+#include "bchp_xpt_fe.h"
+#include "bchp_int_id_xpt_bus_if.h"
+#include "bchp_xpt_psub.h"
+
+/* Size of an individual packetsub module register space, in bytes */
+#ifdef BCHP_XPT_PSUB_PSUB1_CTRL0
+#define PACKET_SUB_REGISTER_STEP    ( BCHP_XPT_PSUB_PSUB1_CTRL0 - BCHP_XPT_PSUB_PSUB0_CTRL0 )
+#else
+#define PACKET_SUB_REGISTER_STEP    ( BCHP_XPT_PSUB_PSUB0_STAT2 - BCHP_XPT_PSUB_PSUB0_CTRL0 )
+#endif
+
+#define BXPT_P_PSUB_DEFAULT_PACKET_LEN      ( 188 )
+#define BXPT_P_PSUB_DEFAULT_BAND_NUM        ( 0 )
+#define BXPT_P_PSUB_DEFAULT_DMA_PRIORITY    BXPT_PacketSubDmaPriority_eLow
+#define BXPT_P_MAX_PSUB_OUTPUT_RATE ( 1000000 )
+
+BDBG_MODULE( xpt_packetsub );
+
+
+static void BXPT_PacketSub_P_WriteReg(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    uint32_t Reg0Addr,
+    uint32_t RegVal
+    );
+
+static uint32_t BXPT_PacketSub_P_ReadReg_isrsafe(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    uint32_t Reg0Addr
+    );
+
+#define BXPT_PacketSub_P_ReadReg BXPT_PacketSub_P_ReadReg_isrsafe
+
+BERR_Code BXPT_PacketSub_GetTotalChannels(
+    BXPT_Handle hXpt,           /* [in] Handle for this transport */
+    unsigned int *TotalChannels     /* [out] The number of PacketSub channels. */
+    )
+{
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hXpt, bxpt_t);
+
+    *TotalChannels = hXpt->MaxPacketSubs;
+
+    return( ExitCode );
+}
+
+BERR_Code BXPT_PacketSub_GetChannelDefaultSettings(
+    BXPT_Handle hXpt,           /* [in] Handle for this transport */
+    unsigned int ChannelNo,         /* [in] Which channel to get defaults from. */
+    BXPT_PacketSub_ChannelSettings *ChannelSettings /* [out] The defaults */
+    )
+{
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hXpt, bxpt_t);
+    BDBG_ASSERT( ChannelSettings );
+
+    if( ChannelNo >= hXpt->MaxPacketSubs )
+    {
+        /* Bad PID channel number. Complain. */
+        BDBG_ERR(( "ChannelNo %lu is out of range!", ( unsigned long ) ChannelNo ));
+        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+    else
+    {
+        ChannelSettings->PacketLen = BXPT_P_PSUB_DEFAULT_PACKET_LEN;
+
+#if BXPT_HAS_FIXED_PSUB_DMA_PRIORITY
+        ChannelSettings->ForcedInsertionEn = false;
+#else
+        ChannelSettings->DmaPriority = BXPT_P_PSUB_DEFAULT_DMA_PRIORITY;
+#endif
+    }
+
+    ChannelSettings->OutputRate = 0xBC * 1649; /* this will produce a register value of 0xBC the hardware default */
+
+    return( ExitCode );
+}
+
+BERR_Code BXPT_PacketSub_OpenChannel(
+    BXPT_Handle hXpt,                           /* [in] Handle for this transport */
+    BXPT_PacketSub_Handle *hPSub,               /* [out] Handle for opened packet sub channel */
+    unsigned int ChannelNo,                         /* [in] Which channel to open. */
+    BXPT_PacketSub_ChannelSettings *ChannelSettings /* [in] The defaults to use */
+    )
+{
+    BERR_Code ExitCode = BERR_SUCCESS;
+    BXPT_PacketSub_Handle hLocal = ( BXPT_PacketSub_Handle ) NULL;
+
+    BDBG_OBJECT_ASSERT(hXpt, bxpt_t);
+    BDBG_ASSERT( ChannelSettings );
+
+    if( ChannelNo >= BXPT_P_MAX_PACKETSUBS )
+    {
+        /* Bad playback channel number. Complain. */
+        BDBG_ERR(( "ChannelNo %lu is out of range!", ( unsigned long ) ChannelNo ));
+        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+    else if( hXpt->PacketSubHandles[ ChannelNo ].Opened )
+    {
+        BDBG_ERR(( "PacketSub channel %u already opened.", ChannelNo ));
+        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+    else
+    {
+        uint32_t Reg;
+
+        /*
+        ** Use the address of the first register in the packet sub block as the
+        ** base address of the entire block.
+        */
+        uint32_t BaseAddr = BCHP_XPT_PSUB_PSUB0_CTRL0 + ( ChannelNo * PACKET_SUB_REGISTER_STEP );
+
+        /* Create the packet sub channel handle. */
+        hLocal = &hXpt->PacketSubHandles[ ChannelNo ];
+        hLocal->hChip = hXpt->hChip;
+        hLocal->hRegister = hXpt->hRegister;
+        hLocal->hMemory = hXpt->hMemory;
+        hLocal->BaseAddr = BaseAddr;
+        hLocal->ChannelNo = ChannelNo;
+        hLocal->LastDescriptor = 0;
+        hLocal->Running = false;
+        hLocal->vhXpt = (void *) hXpt;
+
+        BDBG_OBJECT_SET(hLocal, bxpt_t);
+
+        /* Do a sanity check on the defaults they passed in, then load them. */
+        if( ChannelSettings->PacketLen > 255 )
+        {
+            BDBG_ERR(( "PacketLen %lu is out of range!. Clamped to 255.",
+                ( unsigned long ) ChannelSettings->PacketLen ));
+            ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+            ChannelSettings->PacketLen = 255;
+        }
+
+        /* Use their value for a default output rate.  Don't fail if this value is out of range */
+        BXPT_PacketSub_SetOutputRate( hLocal, ChannelSettings->OutputRate );
+
+        Reg = BXPT_PacketSub_P_ReadReg( hLocal, BCHP_XPT_PSUB_PSUB0_CTRL0 );
+        Reg &= ~(
+            BCHP_MASK( XPT_PSUB_PSUB0_CTRL0, PACKET_LENGTH ) |
+            BCHP_MASK( XPT_PSUB_PSUB0_CTRL0, DATA_ENDIAN_CTRL ) |
+#if BXPT_HAS_FIXED_PSUB_DMA_PRIORITY
+            BCHP_MASK( XPT_PSUB_PSUB0_CTRL0, FORCED_INSERTION_EN )
+#else
+            BCHP_MASK( XPT_PSUB_PSUB0_CTRL0, DMA_PRIORITY )
+#endif
+            );
+        Reg |= (
+            BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL0, PACKET_LENGTH, ChannelSettings->PacketLen ) |
+            BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL0, DATA_ENDIAN_CTRL, hXpt->IsLittleEndian == true ? 1 : 0 ) |
+#if BXPT_HAS_FIXED_PSUB_DMA_PRIORITY
+            BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL0, FORCED_INSERTION_EN, ChannelSettings->ForcedInsertionEn == true ? 1 : 0 )
+#else
+            BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL0, DMA_PRIORITY, ChannelSettings->DmaPriority )
+#endif
+            );
+        BXPT_PacketSub_P_WriteReg( hLocal, BCHP_XPT_PSUB_PSUB0_CTRL0, Reg );
+
+        hLocal->Opened = true;
+    }
+
+    *hPSub = hLocal;
+    return( ExitCode );
+}
+
+void BXPT_PacketSub_CloseChannel(
+    BXPT_PacketSub_Handle hPSub /* [in] Handle for the channel to close*/
+    )
+{
+    uint32_t Reg;
+
+    BDBG_OBJECT_ASSERT(hPSub, bxpt_t);
+
+    if (hPSub->Running) {
+        BDBG_WRN(("Stopping packetsub channel %d before closing", hPSub->ChannelNo));
+        BXPT_PacketSub_StopChannel(hPSub);
+    }
+
+    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0 );
+    Reg &= ~(
+        BCHP_MASK( XPT_PSUB_PSUB0_STAT0, WAKE_MODE ) |
+        BCHP_MASK( XPT_PSUB_PSUB0_STAT0, RUN ) |
+        BCHP_MASK( XPT_PSUB_PSUB0_STAT0, WAKE )
+        );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_PSUB_PSUB0_STAT0, WAKE_MODE, 0 ) |
+        BCHP_FIELD_DATA( XPT_PSUB_PSUB0_STAT0, RUN, 0 ) |
+        BCHP_FIELD_DATA( XPT_PSUB_PSUB0_STAT0, WAKE, 0 )
+    );
+    BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0, Reg );
+
+    hPSub->Opened = false;
+    BDBG_OBJECT_UNSET(hPSub, bxpt_t);
+}
+
+
+unsigned int BXPT_PacketSub_GetPidChanNum(
+    BXPT_PacketSub_Handle hPSub     /* [in] Handle for the channel. */
+    )
+{
+    unsigned int PidChannelNum;
+    BXPT_Handle hXpt;                           /* [in] Handle for this transport */
+
+    BDBG_OBJECT_ASSERT(hPSub, bxpt_t);
+
+#if BXPT_PSUB_PID_TABLE_WORKAROUND
+    BSTD_UNUSED( hXpt );
+    PidChannelNum = hPSub->ChannelNo + BXPT_PSUB_PID_TABLE_WORKAROUND_MIN_PID_CHAN;
+#else
+    hXpt = (BXPT_Handle) hPSub->vhXpt;
+    BXPT_AllocPidChannel( hXpt, false, &PidChannelNum );
+#endif
+
+    return PidChannelNum;
+}
+
+BERR_Code BXPT_PacketSub_SetPidChanNum(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    unsigned int PidChanNum,        /* [in] Which PID channel to assign the output to. */
+    unsigned int BandNum            /* [in] Which band number to assign the output to */
+    )
+{
+    uint32_t Reg;
+
+    BERR_Code ExitCode = BERR_SUCCESS;
+    bool IsPbBand = BXPT_P_IS_PB( BandNum );
+
+    BDBG_OBJECT_ASSERT(hPSub, bxpt_t);
+
+    BXPT_P_CLEAR_PB_FLAG( BandNum );
+
+#if BXPT_PSUB_PID_TABLE_WORKAROUND
+    if( PidChanNum != BXPT_PacketSub_GetPidChanNum( hPSub ) )
+    {
+        /* The workaround forces certain channels.  */
+        BDBG_ERR(( "PidChanNum %lu is not valid for this packetsub channel!", ( unsigned long ) PidChanNum ));
+        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+    else
+#endif
+
+    if( PidChanNum >= BXPT_P_MAX_PID_CHANNELS )
+    {
+        /* Bad PID channel number. Complain. */
+        BDBG_ERR(( "PidChanNum %lu is out of range!", ( unsigned long ) PidChanNum ));
+        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+    else if( !IsPbBand && BandNum > BXPT_P_MAX_PID_PARSERS )
+    {
+        BDBG_ERR(( "Input band BandNum %lu is out of range!", ( unsigned long ) BandNum ));
+        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+    else if( IsPbBand && BandNum > BXPT_P_MAX_PLAYBACKS )
+    {
+        BDBG_ERR(( "Playback band BandNum %lu is out of range!", ( unsigned long ) BandNum ));
+        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+    else
+    {
+        /* For playbacks, band numbers are mapped beginning at 16 */
+        BandNum = IsPbBand ? (BandNum + 16) : BandNum;
+
+        Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0 );
+        Reg &= ~(
+            BCHP_MASK( XPT_PSUB_PSUB0_CTRL0, BAND_SEL ) |
+            BCHP_MASK( XPT_PSUB_PSUB0_CTRL0, OUTPUT_CH_NUM )
+            );
+        Reg |= (
+            BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL0, BAND_SEL, BandNum ) |
+            BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL0, OUTPUT_CH_NUM, PidChanNum )
+            );
+        BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0, Reg );
+    }
+
+    return( ExitCode );
+}
+
+BERR_Code BXPT_PacketSub_SetForcedOutput(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    bool Enable         /* [in] Force output immediately if TRUE */
+    )
+{
+    uint32_t Reg;
+
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hPSub, bxpt_t);
+
+    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0 );
+    Reg &= ~(
+        BCHP_MASK( XPT_PSUB_PSUB0_CTRL0, FORCED_OUTPUT_ENABLE )
+        );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL0, FORCED_OUTPUT_ENABLE, Enable == true ? 1 : 0 )
+        );
+    BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0, Reg );
+
+    return( ExitCode );
+}
+
+#if BXPT_HAS_PACKETSUB_FORCED_INSERTION
+BERR_Code BXPT_PacketSub_SetForcedInsertion(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    bool Enable         /* [in] Force output immediately if TRUE */
+    )
+{
+    uint32_t Reg;
+
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_ASSERT( hPSub );
+
+    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0 );
+    Reg &= ~(
+        BCHP_MASK( XPT_PSUB_PSUB0_CTRL0, FORCED_INSERTION_EN )
+        );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL0, FORCED_INSERTION_EN, Enable == true ? 1 : 0 )
+        );
+    BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0, Reg );
+    return( ExitCode );
+}
+#endif
+
+BERR_Code BXPT_PacketSub_SetFullRateOutput(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    bool Enable         /* [in] Use full rate if TRUE */
+    )
+{
+    uint32_t Reg;
+
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hPSub, bxpt_t);
+
+    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0 );
+    Reg &= ~(
+        BCHP_MASK( XPT_PSUB_PSUB0_CTRL0, FULL_RATE_OUTPUT_ENABLE )
+        );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL0, FULL_RATE_OUTPUT_ENABLE, Enable == true ? 1 : 0 )
+        );
+    BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0, Reg );
+
+    return( ExitCode );
+}
+
+BERR_Code BXPT_PacketSub_SetOutputRate(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    uint32_t OutputRate /* [in] The output rate, in bits/second */
+    )
+{
+    uint32_t Reg;
+    uint32_t NewRate;
+
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hPSub, bxpt_t);
+
+    /*
+        See SW7420-879 for details. The time between each packet substitution (sec) = 0.912 / OUTPUT_RATE.
+        We are given the insertion rate in (the OutputRate argument) bits/sec, and we need to solve for
+        the OUTPUT_RATE register setting.
+            packets/sec = OUTPUT_RATE/0.912
+            bits/sec = (188*8) bits/packet * OUTPUT_RATE/0.912
+            OUTPUT_RATE = bits/sec * 0.912/1504
+            OUTPUT_RATE = OutputRate / 1649
+    */
+
+    if( OutputRate > BXPT_P_MAX_PSUB_OUTPUT_RATE )
+    {
+        BDBG_ERR(( "OutputRate %lu is out of range! Clamped to %lu",
+            ( unsigned long ) OutputRate, BXPT_P_MAX_PSUB_OUTPUT_RATE ));
+        NewRate = 65535;    /* Max value this bitfield can hold */
+        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+    else
+    {
+        NewRate = (uint32_t) OutputRate / 1649;
+    }
+    if( NewRate == 0 )
+        NewRate = 1;    /* Handle round-down condition */
+
+    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL1 );
+    Reg &= ~(
+        BCHP_MASK( XPT_PSUB_PSUB0_CTRL1, OUTPUT_RATE )
+        );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL1, OUTPUT_RATE, NewRate )
+        );
+    BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL1, Reg );
+
+    return( ExitCode );
+}
+
+BERR_Code BXPT_PacketSub_PauseChannel(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    bool Pause          /* [in] Pause channel if TRUE, continue if FALSE */
+    )
+{
+    uint32_t Reg;
+
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hPSub, bxpt_t);
+
+    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0 );
+    Reg &= ~(
+        BCHP_MASK( XPT_PSUB_PSUB0_CTRL0, PAUSE )
+        );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL0, PAUSE, Pause == true ? 1 : 0 )
+        );
+    BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0, Reg );
+
+    return( ExitCode );
+}
+
+BERR_Code BXPT_PacketSub_CreateDesc(
+    BXPT_PacketSub_Handle hPSub,                /* [in] packetsub handle */
+    BXPT_PacketSub_Descriptor * const Desc,     /* [in] Descriptor to initialize */
+    BMMA_DeviceOffset BufferOffset,             /* [in] physical address of buffer */
+    uint32_t BufferLength,                      /* [in] Size of buffer (in bytes). */
+    bool IntEnable,                             /* [in] Interrupt when done? */
+    BXPT_PacketSub_Descriptor * const NextDesc  /* [in] Next descriptor, or NULL */
+    )
+{
+    uint32_t BufferPhysicalAddr;
+    uint32_t ThisDescPhysicalAddr;
+
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_ASSERT( hPSub );
+    BDBG_ASSERT( Desc );
+    BDBG_ASSERT( BufferOffset );
+
+    /* Get the physical address for this buffer. Verify its on a 4-byte boundary*/
+    BufferPhysicalAddr = BufferOffset;
+    if( BufferPhysicalAddr % 4 )
+    {
+        BDBG_ERR(( "Buffer is not 32-bit aligned!" ));
+        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+
+        /* Force the alignment. */
+        BufferPhysicalAddr += ( BufferPhysicalAddr % 4 );
+    }
+
+    /* Verify that the buffer length is multiple of 4 bytes (i.e. a word). */
+    if( BufferLength % 4 )
+    {
+        BDBG_ERR(( "BufferLength is not 32-bit aligned!" ));
+        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+
+        /* Force the alignment. */
+        BufferLength += ( BufferLength % 4 );
+    }
+
+    /* Verify that the descriptor we're creating sits on a 16-byte boundary. */
+    BMEM_ConvertAddressToOffset( hPSub->hMemory, ( void * ) Desc, &ThisDescPhysicalAddr );
+    if( ThisDescPhysicalAddr % 16 )
+    {
+        BDBG_ERR(( "Desc is not 32-bit aligned!" ));
+        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+
+    BMEM_FlushCache(hPSub->hMemory, Desc, sizeof (*Desc) );
+
+    /* Load the descriptor's buffer address, length, and flags. */
+    Desc->BufferStartAddr = BufferPhysicalAddr;
+    Desc->BufferLength = BufferLength;
+
+    /* Clear everything, then set the ones we want below. */
+    Desc->Flags = 0;
+
+    if( IntEnable == true )
+        Desc->Flags |= TRANS_DESC_INT_FLAG;
+
+    /* Load the pointer to the next descriptor in the chain, if there is one. */
+    if( NextDesc != 0 )
+    {
+        /* There is a another descriptor in the chain after this one. */
+        uint32_t NextDescPhysAddr;
+
+        BMEM_ConvertAddressToOffset( hPSub->hMemory, ( void * ) NextDesc, &NextDescPhysAddr );
+        if( NextDescPhysAddr % 16 )
+        {
+            BDBG_ERR(( "NextDescDesc is not 32-bit aligned!" ));
+            ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+        }
+
+        /* Next descriptor address must be 16-byte aligned. */
+        NextDescPhysAddr &= ~( 0xF );
+        Desc->NextDescAddr = NextDescPhysAddr;
+    }
+    else
+    {
+        /* There is NOT another descriptor. Set the Last Descriptor bit. */
+        Desc->NextDescAddr = TRANS_DESC_LAST_DESCR_IND;
+    }
+
+    BMEM_FlushCache(hPSub->hMemory, Desc, sizeof (*Desc) );
+    return( ExitCode );
+}
+
+BERR_Code BXPT_PacketSub_AddDescriptors(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    BXPT_PacketSub_Descriptor *LastDesc,    /* [in] Last descriptor in new chain */
+    BXPT_PacketSub_Descriptor *FirstDesc    /* [in] First descriptor in new chain */
+    )
+{
+    uint32_t ChanFinished, Reg;
+    uint32_t RunBit;
+
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hPSub, bxpt_t);
+    BDBG_ASSERT( LastDesc );
+    BDBG_ASSERT( FirstDesc );
+
+    BDBG_MSG(("Adding Desc Addr 0x%08lX to Packet Sub Channel %d", ( unsigned long ) FirstDesc,
+        hPSub->ChannelNo ));
+
+    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0 );
+    ChanFinished = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT0, FINISHED );
+
+    if( ChanFinished )
+    {
+        /* Channel has finished, so start over at the beginning of the chain. */
+        Reg &= ~ ( BCHP_MASK( XPT_PSUB_PSUB0_STAT0, WAKE_MODE ) );
+        Reg |= BCHP_FIELD_DATA( XPT_PSUB_PSUB0_STAT0, WAKE_MODE, 1 );
+        hPSub->LastDescriptor = 0;
+    }
+    else
+    {
+        /* Channel has NOT finished, so start over at the end of the chain. */
+        Reg &= ~ ( BCHP_MASK( XPT_PSUB_PSUB0_STAT0, WAKE_MODE ) );
+        Reg |= BCHP_FIELD_DATA( XPT_PSUB_PSUB0_STAT0, WAKE_MODE, 0 );
+    }
+    BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0, Reg );
+
+    /* Do we already have a list going? */
+    if( hPSub->LastDescriptor )
+    {
+        uint32_t DescPhysAddr;
+
+        /*
+        ** Yes, there is list already. Append this descriptor to the last descriptor,
+        ** then set the wake bit.
+        */
+        BXPT_PacketSub_Descriptor *LastDescriptor = ( BXPT_PacketSub_Descriptor * ) hPSub->LastDescriptor;
+
+        Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0 );
+        RunBit = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT0, RUN );
+
+        /* Set the last descriptor in the chain to point to the descriptor we're adding. */
+        BMEM_FlushCache(hPSub->hMemory, LastDescriptor, sizeof (BXPT_PacketSub_Descriptor) );
+        BMEM_ConvertAddressToOffset( hPSub->hMemory, ( void * ) FirstDesc, &DescPhysAddr );
+        LastDescriptor->NextDescAddr = ( uint32_t ) DescPhysAddr;
+        BMEM_FlushCache(hPSub->hMemory, LastDescriptor, sizeof (BXPT_PacketSub_Descriptor) );
+
+        /* If the channel is running, we need to set the wake bit to let the hardware know we added a new buffer */
+        if( RunBit )
+        {
+            /* PR 16985: Need to write 0 after writing a 1 */
+            Reg |= BCHP_FIELD_DATA( XPT_PSUB_PSUB0_STAT0, WAKE, 1 );
+            BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0, Reg );
+
+            Reg |= BCHP_FIELD_DATA( XPT_PSUB_PSUB0_STAT0, WAKE, 0 );
+            BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0, Reg );
+        }
+    }
+    else
+    {
+        /*
+        ** If this is the first descriptor (the channel has not been started)
+        ** then load the address into the first descriptor register
+        */
+        uint32_t DescPhysAddr;
+
+        /* This is our first descriptor, so we must load the first descriptor register */
+        BMEM_ConvertAddressToOffset( hPSub->hMemory, ( void * ) FirstDesc, &DescPhysAddr );
+
+        Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2 );
+
+        Reg &= ~( BCHP_MASK( XPT_PSUB_PSUB0_CTRL2, FIRST_DESC_ADDR ) );
+
+        /*
+        ** The descriptor address field in the hardware register is wants the address
+        ** in 16-byte blocks. See the RDB HTML for details. So, we must shift the
+        ** address 4 bits to the right before writing it to the hardware. Note that
+        ** the RDB macros will shift the value 4 bits to the left, since the address
+        ** bitfield starts at bit 4. Confusing, but thats what the hardware and the
+        ** RDB macros require to make this work.
+        */
+        DescPhysAddr >>= 4;
+        Reg |= BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL2, FIRST_DESC_ADDR, DescPhysAddr );
+        BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2, Reg );
+
+        /*
+        ** If this channel has been started, we need to kick off the hardware
+        ** by setting the RUN bit.
+        */
+        if( hPSub->Running == true )
+        {
+            Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0 );
+            RunBit = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT0, RUN );
+
+            if( RunBit )
+            {
+                /*
+                ** Since the channel was already running in hardware, this means that we
+                ** are reloading the first descriptor address due to the channel
+                ** finishing before a new descriptor was added.  Therefore
+                ** we use the wake bit (as we previously set the WAKE_MODE above.
+                */
+                Reg &= ~( BCHP_MASK( XPT_PSUB_PSUB0_STAT0, WAKE ) );
+                Reg |= BCHP_FIELD_DATA( XPT_PSUB_PSUB0_STAT0, WAKE, 1 );
+            }
+            else
+            {
+                Reg &= ~( BCHP_MASK( XPT_PSUB_PSUB0_STAT0, RUN ) );
+                Reg |= BCHP_FIELD_DATA( XPT_PSUB_PSUB0_STAT0, RUN, 1 );
+            }
+
+            BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0, Reg );
+        }
+    }
+
+    /* This descriptor is always the new last descriptor */
+    hPSub->LastDescriptor = ( uint32_t ) LastDesc;
+
+    return( ExitCode );
+}
+
+BERR_Code BXPT_PacketSub_GetCurrentDescriptorAddress_isrsafe(
+    BXPT_PacketSub_Handle hPSub,            /* [in] Handle for the channel. */
+    BXPT_PacketSub_Descriptor **LastDesc        /* [in] Address of the current descriptor. */
+    )
+{
+    uint32_t Reg, CurrentDescAddr;
+    void *UserDescAddr;
+
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hPSub, bxpt_t);
+
+    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT1 );
+    CurrentDescAddr = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT1, CURR_DESC_ADDR );
+    CurrentDescAddr <<= 4;  /* Convert to byte-address. */
+    BERR_TRACE( BMEM_ConvertOffsetToAddress( hPSub->hMemory, CurrentDescAddr, ( void ** ) &UserDescAddr ) );
+    BMEM_ConvertAddressToCached(hPSub->hMemory, UserDescAddr, &UserDescAddr);
+    *LastDesc = ( BXPT_PacketSub_Descriptor * ) UserDescAddr;
+
+    return( ExitCode );
+}
+
+BERR_Code BXPT_PacketSub_CheckHeadDescriptor(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    BXPT_PacketSub_Descriptor *Desc,    /* [in] Descriptor to check. */
+    bool *InUse,                        /* [out] Is descriptor in use? */
+    uint32_t *BufferSize                /* [out] Size of the buffer (in bytes). */
+    )
+{
+    uint32_t Reg, ChanBusy, CurrentDescAddr, CandidateDescPhysAddr;
+
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hPSub, bxpt_t);
+
+    /*
+    ** Check if the current descriptor being processed by the
+    ** playback hardware is the first on our hardware list
+    ** (which means this descriptor is still being used)
+    */
+    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT1 );
+
+    CurrentDescAddr = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT1, CURR_DESC_ADDR );
+    CurrentDescAddr <<= 4;  /* Convert to byte-address. */
+
+    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0 );
+    ChanBusy = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT0, BUSY );
+
+    BMEM_ConvertAddressToOffset( hPSub->hMemory, ( void * ) Desc, &CandidateDescPhysAddr );
+
+    if( CurrentDescAddr == CandidateDescPhysAddr )
+    {
+        if( ChanBusy )
+        {
+            /* The candidate descriptor is being used by hardware. */
+            *InUse = true;
+        }
+        else
+        {
+            *InUse = false;
+        }
+    }
+    else
+    {
+        /*
+        ** The candidate descriptor isn't being processed. If this is the head descriptor
+        ** we can conclude that the hardware is finished with the descriptor.
+        */
+        *InUse = false;
+    }
+
+    if( *InUse == false )
+    {
+        if( ChanBusy )
+        {
+            *BufferSize = Desc->BufferLength;
+        }
+        else
+        {
+            /*
+            ** Since there is valid data in the record channel even after it is stopped,
+            ** we are unable to detect if we are done or not with a specific descriptor
+            ** after the record channel has been halted.
+            ** This check needs to be performed at a higher level
+            */
+            *BufferSize = 0;
+            *InUse = true;
+        }
+    }
+    else
+    {
+        *BufferSize = 0;
+    }
+
+    return( ExitCode );
+}
+
+BERR_Code BXPT_PacketSub_StartChannel(
+    BXPT_PacketSub_Handle hPSub /* [in] Handle for the channel. */
+    )
+{
+    uint32_t Reg;
+
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hPSub, bxpt_t);
+
+    BDBG_MSG(( "Starting Packet Sub channel %d", ( unsigned long ) hPSub->ChannelNo ));
+
+    if( hPSub->Running == true )
+    {
+        BDBG_ERR(( "Packet Sub channel %d cannot be started because it's already running!",
+            ( unsigned long ) hPSub->ChannelNo ));
+        ExitCode = BERR_TRACE( BXPT_ERR_CHANNEL_ALREADY_RUNNING );
+    }
+
+#ifdef BCHP_PWR_RESOURCE_XPT_PACKETSUB
+    if( hPSub->Running == false )
+    {
+        BCHP_PWR_AcquireResource(hPSub->hChip, BCHP_PWR_RESOURCE_XPT_PACKETSUB);
+    }
+#endif
+
+    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0 );
+    Reg |= BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL0, PSUB_ENABLE, 1 );
+    BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0, Reg );
+
+    /* Check if we have buffers already loaded for this channel */
+    if( hPSub->LastDescriptor )
+    {
+        /* Since we already have some buffers loaded, we can start the pvr channel */
+        Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0 );
+        Reg |= BCHP_FIELD_DATA( XPT_PSUB_PSUB0_STAT0, RUN, 1 );
+        BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0, Reg );
+    }
+
+    hPSub->Running = true;
+
+    return( ExitCode );
+}
+
+BERR_Code BXPT_PacketSub_StopChannel(
+    BXPT_PacketSub_Handle hPSub /* [in] Handle for the channel. */
+    )
+{
+    uint32_t Reg, ChanBusy, WaitCount;
+
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hPSub, bxpt_t);
+
+    BDBG_MSG(( "Stopping Packet Sub channel %d", ( unsigned long ) hPSub->ChannelNo ));
+
+    if( hPSub->Running == false )
+    {
+        BDBG_ERR(( "Packet Sub channel %d cannot be stopped because it's not running!",
+            ( unsigned long ) hPSub->ChannelNo ));
+        ExitCode = BERR_TRACE( BXPT_ERR_CHANNEL_ALREADY_STOPPED );
+    }
+
+    /* Stop the channel hardware */
+    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0 );
+    Reg &= ~( BCHP_MASK( XPT_PSUB_PSUB0_STAT0, RUN ) );
+    BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0, Reg );
+
+    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0 );
+    Reg &= ~( BCHP_MASK( XPT_PSUB_PSUB0_CTRL0, PSUB_ENABLE ) );
+    BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0, Reg );
+
+    BKNI_Sleep( 1 );
+
+    /* Clear the first desc addr (for cleaner debugging) */
+    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2 );
+    Reg &= ~( BCHP_MASK( XPT_PSUB_PSUB0_CTRL2, FIRST_DESC_ADDR ) );
+    BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2, Reg );
+
+    WaitCount = 100;
+    do
+    {
+        Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0 );
+        ChanBusy = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT0, BUSY );
+        if( ChanBusy )
+        {
+            WaitCount--;
+            if( !WaitCount )
+            {
+                BDBG_ERR(("Busy is still set when Packet Sub chan %d has been stopped!",
+                    ( unsigned long ) hPSub->ChannelNo ));
+                ExitCode = BERR_TRACE(BERR_TIMEOUT);
+                goto done;
+            }
+
+            BKNI_Sleep( 1 );
+        }
+    }
+    while( ChanBusy );
+
+    hPSub->LastDescriptor = 0;
+
+done:
+
+#ifdef BCHP_PWR_RESOURCE_XPT_PACKETSUB
+    if (hPSub->Running==true)
+    {
+        BCHP_PWR_ReleaseResource(hPSub->hChip, BCHP_PWR_RESOURCE_XPT_PACKETSUB);
+    }
+#endif
+
+    hPSub->Running = false;
+    return( ExitCode );
+}
+
+BERR_Code BXPT_PacketSub_GetChannelStatus_isrsafe(
+    BXPT_PacketSub_Handle hPSub,            /* [in] Handle for the channel. */
+    BXPT_PacketSub_ChannelStatus *Status    /* [out] Channel status. */
+    )
+{
+    uint32_t Reg;
+
+    BERR_Code ExitCode = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(hPSub, bxpt_t);
+    BDBG_ASSERT( Status );
+
+    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT0 );
+    Status->Finished = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT0, FINISHED ) ? true : false;
+    Status->Busy = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT0, BUSY ) ? true : false;
+    Status->Run = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT0, RUN ) ? true : false;
+
+    return( ExitCode );
+}
+
+static void BXPT_PacketSub_P_WriteReg(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    uint32_t Reg0Addr,
+    uint32_t RegVal
+    )
+{
+    /*
+    ** The address is the offset of the register from the beginning of the
+    ** block, plus the base address of the block ( which changes from
+    ** channel to channel ).
+    */
+    uint32_t RegAddr = Reg0Addr - BCHP_XPT_PSUB_PSUB0_CTRL0 + hPSub->BaseAddr;
+
+    BREG_Write32( hPSub->hRegister, RegAddr, RegVal );
+}
+
+
+static uint32_t BXPT_PacketSub_P_ReadReg_isrsafe(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    uint32_t Reg0Addr
+    )
+{
+    /*
+    ** The address is the offset of the register from the beginning of the
+    ** block, plus the base address of the block ( which changes from
+    ** channel to channel ).
+    */
+    uint32_t RegAddr = Reg0Addr - BCHP_XPT_PSUB_PSUB0_CTRL0 + hPSub->BaseAddr;
+
+    return( BREG_Read32( hPSub->hRegister, RegAddr ));
+}
+
+
+#if BXPT_HAS_PACKETSUB && BXPT_PSUB_PID_TABLE_WORKAROUND
+
+uint32_t GetRegAddr(
+    uint32_t ChannelNo,
+    uint32_t Reg
+    )
+{
+    return Reg + ( ChannelNo * PACKET_SUB_REGISTER_STEP );
+}
+
+void BXPT_PacketSub_P_SaveCfg(
+    BXPT_Handle hXpt,
+    unsigned int PidChannelNum,
+    BXPT_P_PacketSubCfg *PsubCfg
+    )
+{
+    BDBG_OBJECT_ASSERT(hXpt, bxpt_t);
+    BSTD_UNUSED( PidChannelNum );
+    BSTD_UNUSED( PsubCfg );
+
+/*
+    BREG_Write32( hXpt->hRegister, BCHP_XPT_FE_MAX_PID_CHANNEL, BXPT_PSUB_PID_TABLE_WORKAROUND_MIN_PID_CHAN - 1 );
+*/
+    BREG_Write32( hXpt->hRegister, BCHP_XPT_FE_MAX_PID_CHANNEL, 248 );
+
+    /* Wait 1mS for the PID table broadcast to cycle through all the channels at least once. */
+}
+
+void BXPT_PacketSub_P_RestoreCfg(
+    BXPT_Handle hXpt,
+    unsigned int PidChannelNum,
+    BXPT_P_PacketSubCfg *PsubCfg
+    )
+{
+    BDBG_OBJECT_ASSERT(hXpt, bxpt_t);
+    BSTD_UNUSED( PidChannelNum );
+    BSTD_UNUSED( PsubCfg );
+
+    BREG_Write32( hXpt->hRegister, BCHP_XPT_FE_MAX_PID_CHANNEL, BXPT_PSUB_PID_TABLE_WORKAROUND_MAX_PID_CHAN );
+    BREG_Write32( hXpt->hRegister, BCHP_XPT_FE_MAX_PID_CHANNEL, BXPT_PSUB_PID_TABLE_WORKAROUND_MAX_PID_CHAN );
+}
+
+#endif
+
+BERR_Code BXPT_PacketSub_GetEobIntId(
+    BXPT_PacketSub_Handle hPSub,            /* [in] Handle for the channel. */
+    BINT_Id *IntId
+    )
+{
+    BDBG_ASSERT( hPSub );
+    BDBG_ASSERT( IntId );
+
+    switch( hPSub->ChannelNo )
+    {
+        case 0: *IntId = BCHP_INT_ID_PSUB0_EOB_INT; break;
+        case 1: *IntId = BCHP_INT_ID_PSUB1_EOB_INT; break;
+        case 2: *IntId = BCHP_INT_ID_PSUB2_EOB_INT; break;
+
+#ifdef BCHP_INT_ID_PSUB3_EOB_INT
+        case 3: *IntId = BCHP_INT_ID_PSUB3_EOB_INT; break;
+#endif
+
+#ifdef BCHP_INT_ID_PSUB4_EOB_INT
+        case 4: *IntId = BCHP_INT_ID_PSUB4_EOB_INT; break;
+#endif
+
+#ifdef BCHP_INT_ID_PSUB5_EOB_INT
+        case 5: *IntId = BCHP_INT_ID_PSUB5_EOB_INT; break;
+#endif
+
+#ifdef BCHP_INT_ID_PSUB6_EOB_INT
+        case 6: *IntId = BCHP_INT_ID_PSUB6_EOB_INT; break;
+#endif
+
+#ifdef BCHP_INT_ID_PSUB7_EOB_INT
+        case 7: *IntId = BCHP_INT_ID_PSUB7_EOB_INT; break;
+#endif
+
+        default:
+            return BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+
+    return BERR_SUCCESS;
+}
+
+/* end of file */

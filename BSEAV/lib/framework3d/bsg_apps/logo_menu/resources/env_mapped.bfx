@@ -1,0 +1,98 @@
+// Broadcom BSG effect file
+
+OPTIONS
+{
+	SortOrder = FRONT_TO_BACK;
+}
+
+PASS 0
+{
+	SEMANTICS
+	{
+		u_mvpMatrix		= MATRIX4_MODEL_VIEW_PROJECTION;
+		u_mvMatrix		= MATRIX4_MODEL_VIEW;
+		u_color			= VECTOR4_USER;
+		u_dimScale		= FLOAT_USER;
+		a_position		= VATTR_POSITION;
+		a_normal		= VATTR_NORMAL;
+		a_tc			= VATTR_TEXCOORD1;
+	}
+
+	STATE
+	{
+		EnableDepthTest = true;
+	}
+
+	SAMPLER_CUBE u_tex
+	{
+		Unit = 0;
+		Wrap = CLAMP, CLAMP;
+		Filter = LINEAR, LINEAR;
+	}
+
+	SAMPLER_CUBE u_refl_tex
+	{
+		Unit = 1;
+		Wrap = CLAMP, CLAMP;
+		Filter = LINEAR, LINEAR;
+	}
+
+	SAMPLER_2D u_occlusion
+	{
+		Unit = 2;
+		Wrap = CLAMP, CLAMP;
+		Filter = LINEAR, LINEAR;
+	}
+
+	VERTEX_SHADER
+	{
+		uniform		mat4	u_mvpMatrix;
+		uniform		mat4	u_mvMatrix;
+		attribute	vec4	a_position;
+		attribute	vec3	a_normal;
+		attribute	vec2	a_tc;
+		varying		vec3	v_normal;
+		varying		vec3	v_position;
+		varying		vec2	v_tc;
+
+		void main()
+		{
+			vec4 normal		= u_mvMatrix * vec4(a_normal, 0.0);
+			vec4 position	= u_mvMatrix * a_position;
+
+			v_position		= position.xyz;
+			v_normal		= normal.xyz;
+			v_tc			= a_tc;
+
+			gl_Position		= u_mvpMatrix * a_position;
+		}
+	}
+
+	FRAGMENT_SHADER
+	{
+		precision mediump float;
+
+		uniform	vec4		u_color;
+		uniform	float		u_dimScale;
+		uniform sampler2D	u_occlusion;
+		uniform samplerCube	u_tex;
+		uniform samplerCube	u_refl_tex;
+		varying vec3		v_normal;
+		varying vec3		v_position;
+		varying	vec2		v_tc;
+
+		void main()
+		{
+			float gloss   = 0.4;
+			vec3 incident = normalize(v_position);
+			vec3 normal = normalize(v_normal);
+			vec3 refl = reflect(incident, normal);
+
+			vec4 diffuse = u_color * textureCube(u_tex, normal) * 0.6 * u_dimScale;
+			vec4 reflect = u_color * textureCube(u_refl_tex, refl) * gloss * u_dimScale * u_dimScale;
+			float occlude = (texture2D(u_occlusion, v_tc).r * 0.7) + 0.3;
+
+			gl_FragColor = occlude * (diffuse + (reflect * occlude * occlude));
+		}
+	}
+}

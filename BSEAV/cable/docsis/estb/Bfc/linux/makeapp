@@ -1,0 +1,211 @@
+#!/bin/bash
+##############################################################################
+#
+# Copyright (c) 2007-2012 Broadcom Corporation
+#
+# This program is the proprietary software of Broadcom Corporation and/or
+# its licensors, and may only be used, duplicated, modified or distributed
+# pursuant to the terms and conditions of a separate, written license
+# agreement executed between you and Broadcom (an "Authorized License").
+# Except as set forth in an Authorized License, Broadcom grants no license
+# (express or implied), right to use, or waiver of any kind with respect to
+# the Software, and Broadcom expressly reserves all rights in and to the
+# Software and all intellectual property rights therein.  IF YOU HAVE NO
+# AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
+# AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
+# SOFTWARE.  
+#
+# Except as expressly set forth in the Authorized License,
+#
+# 1.     This program, including its structure, sequence and organization,
+# constitutes the valuable trade secrets of Broadcom, and you shall use all
+# reasonable efforts to protect the confidentiality thereof, and to use this
+# information only in connection with your use of Broadcom integrated circuit
+# products.
+#
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+# "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+# OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+# RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+# IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+# A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+# ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+# THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+#
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+# OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+# INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+# RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+# HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+# EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+# WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+# FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+#
+##############################################################################
+# Common build script for all eCos BFC projects.  This will be called by the
+# system-specific build script after it has done it's own setup.
+#
+# THIS SCRIPT IS NOT MEANT TO BE RUN DIRECTLY!!!  ALWAYS USE THE PROJECT-
+# SPECIFIC makeapp.bat TO RUN THIS SCRIPT!
+#
+# The first parameter is the target platform for the build (i.e. 3348);
+# the second optional parameter is the build target (i.e. clean).
+
+# Export all variables to sub-scripts.
+set -a
+
+# Load common function definitions from our own directory.
+scriptDir=${0%/*}
+source ${scriptDir}/functions.bash
+
+# Verify that the makefile exists.
+if [[ ! -e "Makefile.mak" ]] ; then
+    echo
+    echo "The makefile 'Makefile.mak' doesn't exist!  Can't build!"
+    echo
+    echo "If you're running this script directly, don't do that.  There is a top level"
+    echo "makeapp script for each project that sets up the environment correctly so"
+    echo "that this script can run."
+    echo
+
+#    exit 1
+
+fi
+
+# Calculate the lib path based on path
+if [ $ARM_PLATFORM == "yes" ]; then
+CROSSCOMPILE=`which arm-linux-gcc`
+CROSSCOMPILE=${CROSSCOMPILE%bin/arm-linux-gcc}
+LIBROOT=$CROSSCOMPILE/arm-linux-uclibcgnueabi/lib
+else
+CROSSCOMPILE=`which mipsel-linux-gcc`
+CROSSCOMPILE=${CROSSCOMPILE%bin/mipsel-linux-gcc}
+LIBROOT=$CROSSCOMPILE/mipsel-linux-uclibc/lib
+fi
+
+echo CROSSCOMPILE is $CROSSCOMPILE
+
+#GCC_VERSION=`echo $CROSSCOMPILE | awk -F- '{print $4}' | awk -F. '{print $1}'`
+GCC_VERSION=`echo $CROSSCOMPILE | awk -Fgcc '{print $2}' | awk -F- '{print $2}' | awk -F. '{print $1}'`
+echo GCC_VERSION is $GCC_VERSION
+
+
+# Calculate the relative path to the root BFC directory.  This is used in
+# several places, and we don't want to assume anything about the user's
+# directory structure.
+rootDirPath=""
+SystemCustomDir=""
+iteration=0
+
+for i in 1 2 3 4 5 6 7 8 9 10 ; do
+
+    # Check for system-specific Custom directory, and select it.
+    if [[ -e  ${rootDirPath}Custom ]] ; then
+        SystemCustomDir=${rootDirPath}Custom
+    fi
+
+    # Check for the existence of myself with the correct path.
+    if [[ -e ${rootDirPath}Bfc/linux/makeapp ]] ; then
+        break
+    fi
+
+    # Adjust the relative path back one level.
+    rootDirPath=../$rootDirPath
+
+done
+
+if [[ ! -e ${rootDirPath}Bfc/linux/makeapp ]] ; then
+
+    # If we get here, then we didn't find the path to the root dir, so we need to
+    # bail.
+    echo
+    echo "ERROR - Failed to find the root BFC directory!  Can't set up relative path for"
+    echo "        environment; can't build!"
+    echo
+
+    exit 1
+fi
+
+
+# Set the path to the BFC Custom directories.
+BfcOsCustomDir=${rootDirPath}Bfc/linux/Custom
+BfcCustomDir=${rootDirPath}Bfc/Custom
+
+# Configure the valid parameter values that we will parse.  This may involve
+# calling out to an external script to add more values.  This can only be done
+# once.
+SetValidParameters
+
+# The first parameter is mandatory; if not specified, display usage stuff.
+# Also, check for typical parameters that indicate the user is requesting
+# usage help.
+case "$1" in
+    ""|"-?"|"/?"|"-h"|"help"|"--help")
+        PrintUsage
+        exit 0
+        ;;
+esac
+
+# Parse the command line parameters, using the valid parameters that were just
+# configured.
+ParseParameters $*
+
+# The user must specify at least one product or processor to build.
+if [[ "$products$processors" == "" ]] ; then
+
+    echo
+    echo "ERROR - You must specify at least one product or processor parameter!"
+    echo 'Type "makeapp help" for more info.'
+    echo
+
+    exit 1
+
+fi
+
+
+# If no build targets were specified, then set the default.
+if [[ "$buildTargets" == "" ]] ; then
+    buildTargets=Linux
+fi
+
+# Store the start time for all builds; this is used later to display the
+# elapsed time.
+GetBuildStartTime
+
+# For each product that was specified, do a build.
+for p in $products ; do
+
+    bash $scriptDir/build.bash product $p
+    BfcBuildResult=$?
+
+    # If the build failed, exit the script (skipping other builds).
+    if [[ $BfcBuildResult != 0 ]] ; then
+        exit $BfcBuildResult
+    fi
+
+done
+
+# For each processor that was specified, do a build.
+for p in $processors ; do
+
+    bash $scriptDir/build.bash processor $p
+    BfcBuildResult=$?
+
+    # If the build failed, exit the script (skipping other builds).
+    if [[ $BfcBuildResult != 0 ]] ; then
+        exit $BfcBuildResult
+    fi
+
+done
+
+# Now calculate and display the elapsed time for all builds.
+echo
+echo "Total elapsed time for all builds:"
+
+DisplayElapsedBuildTime
+
+# We finished!  Exit from the script with success.
+
+exit 0
+
+

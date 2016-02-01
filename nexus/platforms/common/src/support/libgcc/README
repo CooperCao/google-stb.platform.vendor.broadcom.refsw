@@ -1,0 +1,12 @@
+The files in this directory implement subroutines for GCC to use even when in freestanding mode.
+
+These files are taken from FreeBSD and are preserved with their copyright headers and licensing terms:
+quad.h
+qdivrem.c
+moddi3.c
+divdi3.c
+udivdi3.c
+umoddi3.c
+
+Original source: FreeBSD 9.1 release: http://svn.freebsd.org/base/releng/9.1/lib/libc/quad/
+

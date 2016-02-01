@@ -1,0 +1,24 @@
+<comment>This file uses tags to separate the various questions and answers. Add questions and answers at the bottom of the file. Make the id numbers unique.</comment>
+<comment>If you want to put line breaks in the answers, use the tag <br></comment>
+<question id=501 >What is the "Additional" column used for?</question>
+<answer>The "Additional" column is the amount of extra megabytes of heap memory that you want to reserve in addition to the amount that is computed to be required. This number is initally set to the size returned from NEXUS_Heap_GetStatus() minus the initial default usage amount. This initial amount is only computed this way when the box mode is changed or when the web page is first loaded. Once the value is initialized, the algorithm then changes and the Additional Memory amount becomes a user-changeable entry and is added to the computed usage amount to arrive at the total Heap size.<br><br>If the user does not want any additional heap memory for a particular heap, simply set this value to zero. </answer>
+<question id=2 >What is the "Mapping" column used for?</question>
+<answer>It specifies the heap memory mapping for CPU access. The most common mappings are:<br>
+NEXUS_MemoryType_eFull:<br>
+CPU access from the driver and user space. This is the most expensive mapping and should be used sparingly.<br><br>
+NEXUS_MemoryType_eApplication:<br>
+CPU access in application (user space). No CPU access in the driver. Can be used for graphics surfaces, record buffers, etc. HW access is still allowed with an eApplication heap. For instance, you can allocate a graphics framebuffer from an eApplication heap because only the app needs CPU access; the driver simply needs to program the offset to the GFD.<br><br>
+NEXUS_MemoryType_eSecure:<br>
+Restricted access heap for secure processor. limited device access and no CPU access.<br><br>
+NEXUS_MemoryType_eDeviceOnly:<br>
+No memory mapping because no CPU access is needed.
+</answer>
+<question id=3 >What is meaning of "Linux Total"?</question>
+<answer>The meaning of "Linux Total" is the difference between the total amount of physical system memory installed on the board and the computed heap memory used in all MEMC regions combined. The Linux Total is the memory owned by Linux Kernel.<br>
+Linux kernel-owned memory is available for application code and data, Linux kernel and device drivers, networking buffers, etc.</answer>
+<question id=502 >What is the "Additional" column used for with Main and Secure?</question>
+<answer>These heaps are typically used for runtime dynamic allocation by applications. To avoid out-of-memory failures due to fragmentation, some amount of overhead is required. Also some small memory allocations in the system are not accounted for by this tool. We recommend sizing this heap at least 25% higher than all accounted allocations. Also, the correct size must be verified by system test transitioning through all application features.</answer>
+<question id=503 >What is the "Additional" column used for with Sage?</question>
+<answer>You need Sage memory; we suggest you reserve 32 MB for Sage.</answer>
+<question id=504 >How is the "Graphics" memory size determined?</question>
+<answer>This is determined by the customer application. This tool has no knowledge of the graphics memory requirements. It can only estimate the space needed for frame buffers.</answer>

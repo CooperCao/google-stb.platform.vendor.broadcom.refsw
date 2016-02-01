@@ -1,0 +1,52 @@
+// Broadcom BSG effect file
+
+OPTIONS
+{
+    SortOrder = BACK_TO_FRONT;
+}
+
+PASS 0
+{
+    SEMANTICS
+    {
+        #include mvp_semantics.bfx
+
+        a_position  = VATTR_POSITION;
+        a_tc        = VATTR_TEXCOORD1;
+    }
+
+    STATE
+    {
+        EnableDepthTest = false;
+        EnableBlend     = true;
+        //EnableStencil   = true;
+        //StencilFunc     = INCR, INCR, INCR;
+        BlendFunc       = SRC_ALPHA, ONE_MINUS_SRC_ALPHA;
+    }
+
+    VERTEX_SHADER
+    {
+        attribute   vec4    a_position;
+        attribute   vec2    a_tc;
+        varying     vec2    v_tc;
+
+        #include mvp.bfx
+
+        void main()
+        {
+            v_tc = a_tc;
+            gl_Position = calc_mvp() * a_position;
+        }
+    }
+
+    FRAGMENT_SHADER
+    {
+        precision mediump float;
+        varying   vec2    v_tc;
+
+        void main()
+        {
+            gl_FragColor = vec4(0.0, 0.0, 0.0, v_tc.x * 0.3);
+        }
+    }
+}

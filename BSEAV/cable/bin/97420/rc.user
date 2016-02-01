@@ -1,0 +1,31 @@
+# enable memory overcommit
+echo 0 > /proc/sys/vm/overcommit_memory
+
+insmod mtdocap.ko debug=1
+mknod /dev/mtdocap0 c 98 0
+mknod /dev/mtdocap1 c 98 1
+mknod /dev/mtdocap2 c 98 2
+mknod /dev/mtdocap3 c 98 3
+mknod /dev/mtdocap4 c 98 4
+mknod /dev/mtdocap5 c 98 5
+mknod /dev/mtdocap6 c 98 6
+mknod /dev/mtdocap7 c 98 7
+rm ./DynamicNonVolSettings.bin ./PermanentNonVolSettings.bin
+ln -s /dev/mtdocap1 ./DynamicNonVolSettings.bin
+ln -s /dev/mtdocap2 ./PermanentNonVolSettings.bin
+rm ecram_sto.bin.3255
+ln -s /dev/mtdocap3 ./ecram_sto.bin.3255
+rm signedsecure3255.bin
+ln -s /dev/mtdocap0 ./signedsecure3255.bin
+
+insmod bcmpcieth.ko
+ipcfg eth2:0 static 192.168.17.10 255.255.255.0
+ifup eth2:0
+udhcpc -i eth2 -p /tmp/udhcpc.eth2.pid &
+
+./rnonvolhost eth2 192.168.17.10 192.168.17.1 ./PermanentNonVolSettings.bin ./DynamicNonVolSettings.bin &
+./hostboot eth2 signedsecure3255.bin &
+
+mknod /dev/pod c 38 8
+
+insmod pod97420.ko

@@ -1,0 +1,72 @@
+############################################################################
+#     Copyright (c) 2003-2006, Broadcom Corporation
+#     All Rights Reserved
+#     Confidential Property of Broadcom Corporation
+#
+#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
+#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
+#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+#
+# $brcm_Workfile: $
+# $brcm_Revision: $
+# $brcm_Date: $
+#
+# Module Description:
+#
+# Revision History:
+#
+# $brcm_Log: $
+# 
+###########################################################################
+
+ifneq ($(VERBOSE),)
+Q_ :=
+RMOPTS := -v
+else
+Q_ := @
+RMOPTS :=
+endif
+
+# Implicit C Compile Rule
+$(ODIR)/%.o : %.c
+		@echo [Compile... $(notdir $<)];
+		${Q_}$(CC) $(CFLAGS) -c $< -o $@
+
+# Implicit C++ Compile Rule
+$(ODIR)/%.o : %.cpp
+	@echo [Compile... $(notdir $<)];
+	${Q_}$(CC) $(CFLAGS) -c $< -o $@
+
+ifdef APP
+$(APP): $(ODIR) $(LIB) $(OBJS)
+	@echo [Linking... $(notdir $<)];
+	${Q_}$(CCPP) $(OBJS) $(LIB) $(LFLAGS) -lpthread -o $@
+endif
+
+# Dependency file checking (created with gcc -M command)
+-include $(ODIR)/*.d
+
+# Clean Rules
+.PHONY: clean veryclean _ODIR
+clean:
+ifdef APP
+	${Q_}$(RM) $(RMOPTS) $(APP)
+endif
+ifdef OBJS
+	${Q_}$(RM) $(RMOPTS) $(OBJS:%.o=%.d)
+	${Q_}$(RM) $(RMOPTS) $(OBJS)
+endif
+
+veryclean:
+	${Q_}$(RM) $(RMOPTS) $(ODIR)/*
+	${Q_}$(RM) $(RMOPTS) -r $(ODIR)
+
+# Create output directories
+$(ODIR): 
+	${Q_}$(MKDIR) $(ODIR) 
+
+$(_ODIR): 
+	@[ -e $(ODIR) ] || $(MKDIR) $(ODIR) 
+	${Q_}$(TOUCH) $@
+
+

@@ -1,0 +1,73 @@
+// Broadcom BSG effect file
+//
+// Render an atmosphere glow
+//
+
+OPTIONS
+{
+	SortOrder = BACK_TO_FRONT;
+}
+
+PASS 0
+{
+	SEMANTICS
+	{
+		u_mvpMatrix		= MATRIX4_MODEL_VIEW_PROJECTION;
+		a_position		= VATTR_POSITION;
+		a_tc			= VATTR_TEXCOORD1;
+		u_color			= USER_VEC3;
+		u_inner			= USER_SCALAR;
+	}
+
+	STATE
+	{
+		EnableBlend     = true;
+		EnableDepthTest = true;
+		BlendFunc       = SRC_ALPHA, ONE_MINUS_SRC_ALPHA;
+		DepthMask       = false;
+	}
+
+	VERTEX_SHADER
+	{
+		uniform		mat4	u_mvpMatrix;
+		uniform		mediump float	u_inner;
+
+		attribute	vec4	a_position;
+		attribute	vec2	a_tc;
+
+		varying		vec2	v_tc;
+		varying		float	v_innerScale;
+
+		void main()
+		{
+			v_tc		 = a_tc * 2.0 - 1.0;
+			v_innerScale = 1.0 / (1.0 - u_inner);
+			gl_Position	 = u_mvpMatrix * a_position;
+		}
+	}
+
+	FRAGMENT_SHADER
+	{
+		precision mediump float;
+
+		uniform vec3    u_color;
+		uniform float	u_inner;
+
+		varying vec2	v_tc;
+		varying float	v_innerScale;
+
+		void main()
+		{
+			float dist = length(v_tc);
+
+			dist = clamp((dist - u_inner) * v_innerScale, 0.0, 1.0);
+
+			vec3 color = mix(u_color, vec3(0.0), dist);
+
+			float trans = 1.0 - dist;
+
+			gl_FragColor = vec4(color, trans * trans);
+		}
+	}
+}
+

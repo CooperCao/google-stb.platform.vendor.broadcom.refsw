@@ -1,0 +1,218 @@
+/******************************************************************************
+ * (c) 2014 Broadcom Corporation
+ *
+ * This program is the proprietary software of Broadcom Corporation and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *
+ *****************************************************************************/
+
+static int nexusVideoFormatIds[NEXUS_VideoFormat_eMax+4] /* 4 enums are duplicates */ = {
+    NEXUS_VideoFormat_eUnknown,
+    NEXUS_VideoFormat_eNtsc,
+    NEXUS_VideoFormat_eNtsc443,
+    NEXUS_VideoFormat_eNtscJapan,
+    NEXUS_VideoFormat_ePalM,
+    NEXUS_VideoFormat_ePalN,
+    NEXUS_VideoFormat_ePalNc,
+    NEXUS_VideoFormat_ePalB,
+    NEXUS_VideoFormat_ePalB1,
+    NEXUS_VideoFormat_ePalD,
+    NEXUS_VideoFormat_ePalD1,
+    NEXUS_VideoFormat_ePalDK1,
+    NEXUS_VideoFormat_ePalDK2,
+    NEXUS_VideoFormat_ePalDK3,
+    NEXUS_VideoFormat_ePalG,
+    NEXUS_VideoFormat_ePal,
+    NEXUS_VideoFormat_ePalH,
+    NEXUS_VideoFormat_ePalK,
+    NEXUS_VideoFormat_ePalI,
+    NEXUS_VideoFormat_ePal60hz,
+    NEXUS_VideoFormat_eSecamL,
+    NEXUS_VideoFormat_eSecam,
+    NEXUS_VideoFormat_eSecamB,
+    NEXUS_VideoFormat_eSecamG,
+    NEXUS_VideoFormat_eSecamD,
+    NEXUS_VideoFormat_eSecamK,
+    NEXUS_VideoFormat_eSecamH,
+    NEXUS_VideoFormat_e480p,
+    NEXUS_VideoFormat_e576p,
+    NEXUS_VideoFormat_e1080i,
+    NEXUS_VideoFormat_e1080i50hz,
+    NEXUS_VideoFormat_e1080p24hz,
+    NEXUS_VideoFormat_e1080p25hz,
+    NEXUS_VideoFormat_e1080p30hz,
+    NEXUS_VideoFormat_e1080p50hz,
+    NEXUS_VideoFormat_e1080p60hz,
+    NEXUS_VideoFormat_e1080p,
+    NEXUS_VideoFormat_e1250i50hz,
+    NEXUS_VideoFormat_e720p,
+    NEXUS_VideoFormat_e720p50hz,
+    NEXUS_VideoFormat_e720p24hz,
+    NEXUS_VideoFormat_e720p25hz,
+    NEXUS_VideoFormat_e720p30hz,
+    NEXUS_VideoFormat_e240p60hz,
+    NEXUS_VideoFormat_e288p50hz,
+    NEXUS_VideoFormat_e1440x480p60hz,
+    NEXUS_VideoFormat_e1440x576p50hz,
+    NEXUS_VideoFormat_e3840x2160p24hz,
+    NEXUS_VideoFormat_e3840x2160p25hz,
+    NEXUS_VideoFormat_e3840x2160p30hz,
+    NEXUS_VideoFormat_e3840x2160p50hz,
+    NEXUS_VideoFormat_e3840x2160p60hz,
+    NEXUS_VideoFormat_e4096x2160p24hz,
+    NEXUS_VideoFormat_e4096x2160p25hz,
+    NEXUS_VideoFormat_e4096x2160p30hz,
+    NEXUS_VideoFormat_e4096x2160p50hz,
+    NEXUS_VideoFormat_e4096x2160p60hz,
+    NEXUS_VideoFormat_eCustomer1440x240p60hz,
+    NEXUS_VideoFormat_eCustomer1440x288p50hz,
+    NEXUS_VideoFormat_eCustomer1366x768p60hz,
+    NEXUS_VideoFormat_eCustomer1366x768p50hz,
+    NEXUS_VideoFormat_eVesa640x480p60hz,
+    NEXUS_VideoFormat_eVesa800x600p60hz,
+    NEXUS_VideoFormat_eVesa1024x768p60hz,
+    NEXUS_VideoFormat_eVesa1280x768p60hz,
+    NEXUS_VideoFormat_eVesa1280x768p60hzRed,
+    NEXUS_VideoFormat_eVesa1280x720p50hz,
+    NEXUS_VideoFormat_eVesa1280x720p60hz,
+    NEXUS_VideoFormat_eVesa1280x720pReducedBlank,
+    NEXUS_VideoFormat_eVesa640x350p60hz,
+    NEXUS_VideoFormat_eVesa640x350p70hz,
+    NEXUS_VideoFormat_eVesa640x350p72hz,
+    NEXUS_VideoFormat_eVesa640x350p75hz,
+    NEXUS_VideoFormat_eVesa640x350p85hz,
+    NEXUS_VideoFormat_eVesa640x400p60hz,
+    NEXUS_VideoFormat_eVesa640x400p70hz,
+    NEXUS_VideoFormat_eVesa640x400p72hz,
+    NEXUS_VideoFormat_eVesa640x400p75hz,
+    NEXUS_VideoFormat_eVesa640x400p85hz,
+    NEXUS_VideoFormat_eVesa640x480p66hz,
+    NEXUS_VideoFormat_eVesa640x480p70hz,
+    NEXUS_VideoFormat_eVesa640x480p72hz,
+    NEXUS_VideoFormat_eVesa640x480p75hz,
+    NEXUS_VideoFormat_eVesa640x480p85hz,
+    NEXUS_VideoFormat_eVesa720x400p60hz,
+    NEXUS_VideoFormat_eVesa720x400p70hz,
+    NEXUS_VideoFormat_eVesa720x400p72hz,
+    NEXUS_VideoFormat_eVesa720x400p75hz,
+    NEXUS_VideoFormat_eVesa720x400p85hz,
+    NEXUS_VideoFormat_eVesa800x600p56hz,
+    NEXUS_VideoFormat_eVesa800x600p59hzRed,
+    NEXUS_VideoFormat_eVesa800x600p70hz,
+    NEXUS_VideoFormat_eVesa800x600p72hz,
+    NEXUS_VideoFormat_eVesa800x600p75hz,
+    NEXUS_VideoFormat_eVesa800x600p85hz,
+    NEXUS_VideoFormat_eVesa848x480p60hz,
+    NEXUS_VideoFormat_eVesa1024x768p66hz,
+    NEXUS_VideoFormat_eVesa1024x768p70hz,
+    NEXUS_VideoFormat_eVesa1024x768p72hz,
+    NEXUS_VideoFormat_eVesa1024x768p75hz,
+    NEXUS_VideoFormat_eVesa1024x768p85hz,
+    NEXUS_VideoFormat_eVesa1064x600p60hz,
+    NEXUS_VideoFormat_eVesa1280x720p70hz,
+    NEXUS_VideoFormat_eVesa1280x720p72hz,
+    NEXUS_VideoFormat_eVesa1280x720p75hz,
+    NEXUS_VideoFormat_eVesa1280x720p85hz,
+    NEXUS_VideoFormat_eVesa1024x768i87hz,
+    NEXUS_VideoFormat_eVesa1152x864p75hz,
+    NEXUS_VideoFormat_eVesa1280x768p75hz,
+    NEXUS_VideoFormat_eVesa1280x768p85hz,
+    NEXUS_VideoFormat_eVesa1280x800p_60Hz,
+    NEXUS_VideoFormat_eVesa1280x960p60hz,
+    NEXUS_VideoFormat_eVesa1280x960p85hz,
+    NEXUS_VideoFormat_eVesa1280x1024p60hz,
+    NEXUS_VideoFormat_eVesa1280x1024p69hz,
+    NEXUS_VideoFormat_eVesa1280x1024p75hz,
+    NEXUS_VideoFormat_eVesa1280x1024p85hz,
+    NEXUS_VideoFormat_eVesa832x624p75hz,
+    NEXUS_VideoFormat_eVesa1360x768p60hz,
+    NEXUS_VideoFormat_eVesa1366x768p60hz,
+    NEXUS_VideoFormat_eVesa1400x1050p60hz,
+    NEXUS_VideoFormat_eVesa1400x1050p60hzReducedBlank,
+    NEXUS_VideoFormat_eVesa1400x1050p75hz,
+    NEXUS_VideoFormat_eVesa1440x900p60hz,
+    NEXUS_VideoFormat_eVesa1600x1200p60hz,
+    NEXUS_VideoFormat_eVesa1920x1080p60hzReducedBlank,
+    NEXUS_VideoFormat_e720p_3DOU_AS,
+    NEXUS_VideoFormat_e720p50hz_3DOU_AS,
+    NEXUS_VideoFormat_e720p30hz_3DOU_AS,
+    NEXUS_VideoFormat_e720p24hz_3DOU_AS,
+    NEXUS_VideoFormat_e1080p24hz_3DOU_AS,
+    NEXUS_VideoFormat_e1080p30hz_3DOU_AS,
+    NEXUS_VideoFormat_eVesa1680x1050p_60Hz,
+    NEXUS_VideoFormat_eVesa1280x800p_60Hz_Red,
+    NEXUS_VideoFormat_eVesa1600x1200p_75Hz,
+    NEXUS_VideoFormat_eVesa1600x900p_60Hz_Red,
+    NEXUS_VideoFormat_eVesa1680x1050p_60Hz_Red,
+    NEXUS_VideoFormat_eVesa1920x1200p_60Hz,
+    NEXUS_VideoFormat_eVesa1920x1200p_60Hz_Red,
+    NEXUS_VideoFormat_eVesa1152x720p_60Hz,
+    NEXUS_VideoFormat_eVesa1152x720p_75Hz,
+    NEXUS_VideoFormat_eVesa1152x720p_85Hz,
+    NEXUS_VideoFormat_eVesa1152x864p_60Hz,
+    NEXUS_VideoFormat_eVesa1152x864p_85Hz,
+    NEXUS_VideoFormat_eVesa1152x870p_75Hz,
+    NEXUS_VideoFormat_eVesa1152x900p_66Hz,
+    NEXUS_VideoFormat_eVesa1152x900p_76Hz,
+    NEXUS_VideoFormat_eVesa1170x584p_50Hz,
+    NEXUS_VideoFormat_eVesa1280x1024p_70Hz,
+    NEXUS_VideoFormat_eVesa1280x1024p_72Hz,
+    NEXUS_VideoFormat_eVesa1280x1024p_76Hz,
+    NEXUS_VideoFormat_eVesa1280x768p_50Hz,
+    NEXUS_VideoFormat_eVesa1280x960p_75Hz,
+    NEXUS_VideoFormat_eVesa1600x1024p_60Hz,
+    NEXUS_VideoFormat_eVesa1600x1024p_76Hz,
+    NEXUS_VideoFormat_eVesa1728x1080p_60Hz,
+    NEXUS_VideoFormat_eVesa800x600p_100Hz,
+    NEXUS_VideoFormat_eVesa800x600p_90Hz,
+    NEXUS_VideoFormat_eVesa848x480p_75Hz,
+    NEXUS_VideoFormat_eVesa848x480p_85Hz,
+    NEXUS_VideoFormat_eVesa852x480p_60Hz,
+    NEXUS_VideoFormat_e720x482_NTSC,
+    NEXUS_VideoFormat_e720x482_NTSC_J,
+    NEXUS_VideoFormat_e720x483p,
+    NEXUS_VideoFormat_eCustom0,
+    NEXUS_VideoFormat_eCustom1,
+    NEXUS_VideoFormat_eCustom2,
+    NEXUS_VideoFormat_eCustom1920x2160i_48Hz,
+    NEXUS_VideoFormat_eCustom_3D_720p,
+    NEXUS_VideoFormat_eCustom_3D_720p_50hz,
+    NEXUS_VideoFormat_eCustom_3D_720p_30hz,
+    NEXUS_VideoFormat_eCustom_3D_720p_24hz,
+    NEXUS_VideoFormat_eCustom_3D_1080p_24hz,
+    NEXUS_VideoFormat_eCustom_3D_1080p_30hz
+} ;

@@ -1,0 +1,151 @@
+/******************************************************************************
+* (c) 2004-2015 Broadcom Corporation
+*
+* This program is the proprietary software of Broadcom Corporation and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+******************************************************************************/
+
+#ifndef BSID_ERR_H__
+#define BSID_ERR_H__
+
+#include "berr_ids.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/****NOTE: any changes to this must result in corresponding change to
+     error code checking in bsid_dbg.c ****/
+
+/*#define BSID_ERR_ZERO                      BERR_MAKE_CODE(BERR_SID_ID, 0x0000)*/
+
+/* NOTE: 0x00xx -> 0x1Fxx are reserved for PI usage */
+
+/* The following error codes originate from the SID Firmware */
+#define BSID_ERR_GIF_BAD_FORMAT            BERR_MAKE_CODE(BERR_SID_ID, 0x2000)
+#define BSID_ERR_GIF_NO_COLOR_MAP          BERR_MAKE_CODE(BERR_SID_ID, 0x2001)
+#define BSID_ERR_GIF_INTERLACE             BERR_MAKE_CODE(BERR_SID_ID, 0x2002)
+#define BSID_ERR_GIF_NO_IMG_START          BERR_MAKE_CODE(BERR_SID_ID, 0x2003)
+#define BSID_ERR_GIF_BAD_ID                BERR_MAKE_CODE(BERR_SID_ID, 0x2004)
+#define BSID_ERR_GIF_ILLEGAL_SIZE          BERR_MAKE_CODE(BERR_SID_ID, 0x2005)
+#define BSID_ERR_GIF_BAD_EXTENSION         BERR_MAKE_CODE(BERR_SID_ID, 0x2006)
+#define BSID_ERR_GIF_EARLY_FILE_END        BERR_MAKE_CODE(BERR_SID_ID, 0x2007)
+
+#define BSID_ERR_PNG_BAD_HEADER            BERR_MAKE_CODE(BERR_SID_ID, 0x3000)
+#define BSID_ERR_PNG_BAD_COMP_METHOD       BERR_MAKE_CODE(BERR_SID_ID, 0x3001)
+#define BSID_ERR_PNG_BAD_HUFFMAN           BERR_MAKE_CODE(BERR_SID_ID, 0x3002)
+#define BSID_ERR_PNG_BAD_BLK_TYPE_0        BERR_MAKE_CODE(BERR_SID_ID, 0x3003)
+#define BSID_ERR_PNG_BAD_INTERLACE         BERR_MAKE_CODE(BERR_SID_ID, 0x3004)
+#define BSID_ERR_PNG_ILLEGAL_SIZE          BERR_MAKE_CODE(BERR_SID_ID, 0x3005)
+#define BSID_ERR_PNG_BAD_BPP               BERR_MAKE_CODE(BERR_SID_ID, 0x3006)
+#define BSID_ERR_PNG_BAD_CUST_HUFFMAN      BERR_MAKE_CODE(BERR_SID_ID, 0x3007)
+#define BSID_ERR_PNG_TOO_WIDE              BERR_MAKE_CODE(BERR_SID_ID, 0x3008)
+#define BSID_ERR_PNG_BAD_CRC               BERR_MAKE_CODE(BERR_SID_ID, 0x3009)
+#define BSID_ERR_PNG_BAD_TRANSPARENCY      BERR_MAKE_CODE(BERR_SID_ID, 0x300a)
+#define BSID_ERR_PNG_BAD_PALETTE           BERR_MAKE_CODE(BERR_SID_ID, 0x300b)
+#define BSID_ERR_PNG_BAD_GAMA_CHUNK_SIZE   BERR_MAKE_CODE(BERR_SID_ID, 0x300c)
+
+#define BSID_ERR_JPEG_BAD_HEADER           BERR_MAKE_CODE(BERR_SID_ID, 0x4000)
+#define BSID_ERR_JPEG_BAD_MARKER           BERR_MAKE_CODE(BERR_SID_ID, 0x4001)
+#define BSID_ERR_JPEG_NO_SOF_HUFF          BERR_MAKE_CODE(BERR_SID_ID, 0x4002)
+#define BSID_ERR_JPEG_UNKNOWN_FMT          BERR_MAKE_CODE(BERR_SID_ID, 0x4003)
+#define BSID_ERR_JPEG_BAD_NUM_COMPS        BERR_MAKE_CODE(BERR_SID_ID, 0x4004)
+#define BSID_ERR_JPEG_TOO_MANY_DEQUANT     BERR_MAKE_CODE(BERR_SID_ID, 0x4005)
+#define BSID_ERR_JPEG_UNKNOWN_HUFF_TC      BERR_MAKE_CODE(BERR_SID_ID, 0x4006)
+#define BSID_ERR_JPEG_UNKNOWN_HUFF_TH      BERR_MAKE_CODE(BERR_SID_ID, 0x4007)
+#define BSID_ERR_JPEG_BAD_HUFF_TABLE       BERR_MAKE_CODE(BERR_SID_ID, 0x4008)
+#define BSID_ERR_JPEG_BAD_QUANT            BERR_MAKE_CODE(BERR_SID_ID, 0x4009)
+#define BSID_ERR_JPEG_UNSUPP_TYPE          BERR_MAKE_CODE(BERR_SID_ID, 0x400a)
+#define BSID_ERR_JPEG_BAD_FRM_HEAD         BERR_MAKE_CODE(BERR_SID_ID, 0x400b)
+#define BSID_ERR_JPEG_BAD_RST_MARKER       BERR_MAKE_CODE(BERR_SID_ID, 0x400c)
+#define BSID_ERR_JPEG_BAD_SIZE             BERR_MAKE_CODE(BERR_SID_ID, 0x400d)
+#define BSID_ERR_JPEG_BAD_MARKER_SEGMENT   BERR_MAKE_CODE(BERR_SID_ID, 0x400e)
+#define BSID_ERR_JPEG_PROG_BAD_DC          BERR_MAKE_CODE(BERR_SID_ID, 0x400f)
+#define BSID_ERR_JPEG_PROG_BAD_AL_AH       BERR_MAKE_CODE(BERR_SID_ID, 0x4010)
+#define BSID_ERR_JPEG_PROG_BAD_HUFF_LOOKUP BERR_MAKE_CODE(BERR_SID_ID, 0x4011)
+#define BSID_ERR_JPEG_B_STREAM_OVER_READ   BERR_MAKE_CODE(BERR_SID_ID, 0x4012)
+
+#define BSID_ERR_RLE_BAD_FILE              BERR_MAKE_CODE(BERR_SID_ID, 0x5000)
+#define BSID_ERR_RLE_NO_COMMAND_7          BERR_MAKE_CODE(BERR_SID_ID, 0x5001)
+#define BSID_ERR_RLE_UNKNOWN_COMMAND       BERR_MAKE_CODE(BERR_SID_ID, 0x5002)
+#define BSID_ERR_RLE_BAD_SUBFMT            BERR_MAKE_CODE(BERR_SID_ID, 0x5003)
+#define BSID_ERR_RLE_BAD_HEADER            BERR_MAKE_CODE(BERR_SID_ID, 0x5004)
+#define BSID_ERR_RLEB_BAD_PALETTE          BERR_MAKE_CODE(BERR_SID_ID, 0x5005)
+#define BSID_ERR_RLEB_BAD_SEG_TYPE         BERR_MAKE_CODE(BERR_SID_ID, 0x5006)
+#define BSID_ERR_RLE_DCSQT_TOO_BIG         BERR_MAKE_CODE(BERR_SID_ID, 0x5007)
+#define BSID_ERR_RLE_BAD_SIZE              BERR_MAKE_CODE(BERR_SID_ID, 0x5008)
+#define BSID_ERR_RLE_BAD_DCSQT             BERR_MAKE_CODE(BERR_SID_ID, 0x5009)
+#define BSID_ERR_RLE_ILLEGAL_SIZE          BERR_MAKE_CODE(BERR_SID_ID, 0x500a)
+
+#define BSID_ERR_MIFRM_BAD_HEADER          BERR_MAKE_CODE(BERR_SID_ID, 0x5800)
+#define BSID_ERR_MIFRM_BAD_PICT_HEAD       BERR_MAKE_CODE(BERR_SID_ID, 0x5801)
+#define BSID_ERR_MIFRM_BAD_SLICE           BERR_MAKE_CODE(BERR_SID_ID, 0x5802)
+#define BSID_ERR_MIFRM_BAD_MBLOCK_1        BERR_MAKE_CODE(BERR_SID_ID, 0x5803)
+#define BSID_ERR_MIFRM_BAD_MBLOCK_2        BERR_MAKE_CODE(BERR_SID_ID, 0x5804)
+#define BSID_ERR_MIFRM_BAD_MBLOCK_3        BERR_MAKE_CODE(BERR_SID_ID, 0x5805)
+#define BSID_ERR_MIFRM_BAD_MBLOCK_4        BERR_MAKE_CODE(BERR_SID_ID, 0x5806)
+#define BSID_ERR_MIFRM_PICT_TOO_BIG        BERR_MAKE_CODE(BERR_SID_ID, 0x5807)
+#define BSID_ERR_MIFRM_BAD_MBTYPE          BERR_MAKE_CODE(BERR_SID_ID, 0x5808)
+#define BSID_ERR_MIFRM_FE_ERROR_FOUND      BERR_MAKE_CODE(BERR_SID_ID, 0x5809)
+#define BSID_ERR_MIFRM_NO_COLOR_TAB        BERR_MAKE_CODE(BERR_SID_ID, 0x580a)
+
+#define BSID_ERR_BE_ERROR_FOUND            BERR_MAKE_CODE(BERR_SID_ID, 0x6000)
+
+#define BSID_ERR_SETUP_ERR                 BERR_MAKE_CODE(BERR_SID_ID, 0x7000)
+#define BSID_ERR_UNSUPPORTED_FEATURE       BERR_MAKE_CODE(BERR_SID_ID, 0x7001)
+#define BSID_ERR_ILLEGAL_STRIDE            BERR_MAKE_CODE(BERR_SID_ID, 0x7002)
+#define BSID_ERR_NO_STATE_BUFFER           BERR_MAKE_CODE(BERR_SID_ID, 0x7003)
+#define BSID_ERR_BAD_PARAMS                BERR_MAKE_CODE(BERR_SID_ID, 0x7004)
+#define BSID_ERR_IMG_TOO_BIG               BERR_MAKE_CODE(BERR_SID_ID, 0x7005)
+
+#define BSID_ERR_BAD_PIX_CNT               BERR_MAKE_CODE(BERR_SID_ID, 0xe000)
+
+#define BSID_ERR_UNKNOWN_FMT               BERR_MAKE_CODE(BERR_SID_ID, 0xf000)
+#define BSID_ERR_CMD_TOO_BIG               BERR_MAKE_CODE(BERR_SID_ID, 0xf00f)
+#define BSID_ERR_WATCHDOG                  BERR_MAKE_CODE(BERR_SID_ID, 0xffff)
+
+/****NOTE: any changes to this must result in corresponding change to
+     error code checking in bsid_dbg.c ****/
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* #ifndef BSID_ERR_H__ */
+
+/* end of file */

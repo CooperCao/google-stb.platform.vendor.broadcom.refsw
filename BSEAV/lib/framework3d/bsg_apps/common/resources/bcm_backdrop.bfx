@@ -1,0 +1,80 @@
+// Broadcom BSG effect file
+
+OPTIONS
+{
+    SortOrder = NONE;
+}
+
+PASS 0
+{
+    SEMANTICS
+    {
+        a_position   = VATTR_POSITION;
+        a_index      = VATTR_USER1;
+        a_tc         = VATTR_TEXCOORD1;
+    }
+
+    STATE
+    {
+        EnableBlend     = false;
+        EnableDepthTest = true;
+        DepthMask       = false;
+    }
+    
+    SAMPLER_2D u_tex
+    {
+        Unit   = 0;
+        Wrap   = REPEAT, REPEAT;
+        Filter = LINEAR, LINEAR;
+    }
+
+    VERTEX_SHADER
+    {
+        attribute  vec4           a_position;
+        attribute  float          a_index;
+        attribute  vec2           a_tc;
+        varying    vec3           v_color;
+        varying    vec3           v_squareColor;
+        varying    vec2           v_tc;
+        uniform    vec3           u_colors[4];
+        uniform    mediump float  u_animParam;
+
+        void main()
+        {
+            float triangleWave = abs(2.0 * fract(u_animParam * 0.06) - 1.0);
+            v_squareColor = mix(u_colors[2], u_colors[1], triangleWave);
+
+            v_color = u_colors[int(a_index + 0.5)];
+            v_tc = a_tc;
+
+            gl_Position = a_position;
+        }
+    }
+
+    FRAGMENT_SHADER
+    {
+        precision mediump float;
+
+        varying vec3      v_color;
+        varying vec3      v_squareColor;
+        varying vec2      v_tc;
+        uniform sampler2D u_tex;
+        uniform float     u_animParam;
+        uniform vec2      u_windowSizeDiv;
+        uniform vec2      u_windowClip;
+
+        void main()
+        {
+            float onOff = texture2D(u_tex, vec2(v_tc.x + u_animParam, v_tc.y)).r;
+
+            if (v_tc.y < u_windowClip.x)
+                onOff = 0.0;
+            else if (v_tc.y > u_windowClip.y)
+                onOff = 0.0;
+
+            vec3 col = mix(v_color, v_squareColor, onOff);
+            gl_FragColor = vec4(col, 1.0);
+        }
+    }
+}
+

@@ -1,0 +1,88 @@
+<!--
+ * (c) 2014 Broadcom Corporation
+ *
+ * This program is the proprietary software of Broadcom Corporation and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *
+                                                                             -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 1.0 Strict//EN"
+<html><head><title>Bmemperf Capture</title><script  type="text/javascript" src="bmemperf_capture.js" ></script></head>
+<body lang=EN-US onload="MyLoad();" >
+<table border=0 >
+    <tr><td><img src="brcm-logo-white.jpg" width="100" id="brcmlogo" onclick="MyClick(event);" /></td>
+        <td valign=middle style="font-size:28pt;" ><b id=h1bmemperf onclick="MyClick(event);" >Bmemperf Capture</b></td>
+        <td valign=middle style="width:20px;" >&nbsp;</td> <!-- spacer -->
+        <th align=left valign=top ><table cols=6 border=0 >
+            <tr>
+                <td >Platform: <span id=platform >xxxxx</span>&nbsp;<span id=platver>YY</span>&nbsp;&nbsp;
+                <td valign=middle style="width:50px;" >&nbsp;</td> <!-- spacer -->
+                <td id=stbtime valign=middle ></td>
+                <td valign="middle" style="width:20px;" >&nbsp;</td> <!-- spacer -->
+                <td id="version" align="left" valign="middle" >&nbsp;</td>
+                <td id="cgicount" valign="middle" ></td>
+            </tr>
+            <tr><td colspan=6 id="tdboxmode" ></td></tr>
+        </table></th>
+    </tr>
+</table>
+<hr />
+<form method="get" action="/cgi/bmemperf_capture.cgi" onsubmit="return FetchSubmit(event)" >
+<table border=0 >
+   <tr>
+       <td><table><tr><td><input type=button id=startstopbutton style="background-color:lightgreen;" onclick="MyClick(event)" value="Start Capture" ></td>
+       <td style="width:10px;" >&nbsp;</td>
+       <td><input type=button id=pauseresumebutton style="background-color:gold;" onclick="MyClick(event)" value="Pause" disabled="disabled" ></td>
+       <td style="width:10px;" >&nbsp;</td>
+       <td><input type=submit id=fetchsubmit value="Download File" disabled="disabled" ><input type=hidden name=variable value=fetchfile ><input type=hidden id=capturefile name=capturefile value="" ></td>
+       <td style="width:20px;" >&nbsp;</td>
+       <td id=capturedesciptor align=right >&nbsp;</td>
+       <td id=capturesize ></td>
+  </tr></table></td></tr>
+    <!-- 3rd row has input entry box and DIV for top 10 -->
+    <tr><td colspan=7 align=left width=700 >
+        The Performance Capture tool will gather general BW information on all 256 memory clients. Please work with your Broadcom FAE or
+        Software support person to determine if additional details are needed for specific clients. Up to 10 memory clients may be selected
+        below for more detailed data gathering.
+        </td></tr>
+    <!-- 4th row has input entry box and DIV for top 10 -->
+    <tr><td colspan=7 align=left ><div id=top10 ></div></td></tr>
+</table></form>
+<div id=hrefdiv ></div>
+<textarea id=debugoutputbox rows=200 cols=150 readonly style="visibility:hidden;border:solid 1px black;" ></textarea>
+</body>
+</html>

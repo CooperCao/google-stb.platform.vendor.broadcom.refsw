@@ -1,0 +1,492 @@
+/* #############################################################################
+#    (c)2011 Broadcom Corporation
+# 
+# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# and may only be used, duplicated, modified or distributed pursuant to the terms and
+# conditions of a separate, written license agreement executed between you and Broadcom
+# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+# no license (express or implied), right to use, or waiver of any kind with respect to the
+# Software, and Broadcom expressly reserves all rights in and to the Software and all
+# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
+#  
+# Except as expressly set forth in the Authorized License,
+#  
+# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+# and to use this information only in connection with your use of Broadcom integrated circuit products.
+#  
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
+# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
+# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
+# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
+# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
+# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
+# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+# USE OR PERFORMANCE OF THE SOFTWARE.
+# 
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
+# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
+# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
+# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
+# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
+# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
+# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+# ANY LIMITED REMEDY.
+#
+##############################################################################
+*/
+/*
+// IMPORTANT:  This file should be included EXCLUSIVELY by drm_data.cpp.
+*/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+/******************************************************************************
+** VARIABLE:
+**   pr_certs_dir
+**
+** DESCRIPTION:
+**   This configuration variable holds the path where all the PLAYREADY certificates are stored. Customers
+**   can changes the value of this variable to meet their needs.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve a certificate path,
+**   a customer application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_cert_dir
+**     - bdrm_get_cert_dir_lgth
+
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+#ifdef ANDROID
+_DRM_SHORT_WCHAR_ pr_certs_dir[] =L"/data/mediadrm/playready/";
+#else
+_DRM_SHORT_WCHAR_ pr_certs_dir[] =L"";
+#endif
+
+/******************************************************************************
+** VARIABLE:
+**   pr_revoke_info
+**
+** DESCRIPTION:
+**   This configuration variable holds name of the file where the revocation state is stored.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the revocation filename,
+**   a customer application must link with the drmrootfs library. Then it can use the followings functions to
+**   retrieve information.
+**     - bdrm_get_revocation_fname
+**     - bdrm_get_revocation_fname_lgth
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+#ifdef ANDROID
+_DRM_SHORT_WCHAR_ pr_revoke_info[] =L"/data/mediadrm/playready/pr_srm_data.bin";
+#else
+_DRM_SHORT_WCHAR_ pr_revoke_info[] =L"pr_srm_data.bin";
+#endif
+
+/******************************************************************************
+** VARIABLE:
+**   pr_bin_filename
+**
+** DESCRIPTION:
+**   This configuration variable holds filename of the playready drm bin file generated by Broadcom's DRM utility.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the playready drm bin file,
+**   an application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_pr_bin_fname
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+#ifdef ANDROID
+_DRM_SHORT_WCHAR_ pr_bin_filename[] = L"/mnt/hwcfg/drm.bin";
+#else
+_DRM_SHORT_WCHAR_ pr_bin_filename[] = L"./playready.bin";
+#endif
+
+/******************************************************************************
+** VARIABLE:
+**   key_history_filename
+**
+** DESCRIPTION:
+**   This configuration variable holds filename of the key history file.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the playready drm bin file,
+**   an application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_key_history_fname
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+#ifdef ANDROID
+_DRM_SHORT_WCHAR_ key_history_filename[] = L"/data/mediadrm/playready/keyhistory.dat";
+#else
+_DRM_SHORT_WCHAR_ key_history_filename[] = L"./keyhistory.dat";
+#endif
+
+/******************************************************************************
+** VARIABLE:
+**   key_file_filename
+**
+** DESCRIPTION:
+**   This configuration variable holds filename of the key file.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the playready drm bin file,
+**   an application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_key_file_fname
+**     - bdrm_get_key_file_lgth
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+_DRM_SHORT_WCHAR_ key_file_filename[] = L"keyfile.dat";
+
+/******************************************************************************
+** VARIABLE:
+**   pr_key_file_dir
+**
+** DESCRIPTION:
+**   This configuration variable holds the path where the key file is stored. Customers
+**   can changes the value of this variable to meet their needs.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve a template path,
+**   a customer application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_key_file_dir
+**     - bdrm_get_key_file_lgth
+
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+#ifdef ANDROID
+_DRM_SHORT_WCHAR_ pr_key_file_dir[] =L"/data/mediadrm/playready/";
+#else
+_DRM_SHORT_WCHAR_ pr_key_file_dir[] =L"";
+#endif
+
+
+/******************************************************************************
+** VARIABLE:
+**   model_information
+**
+** DESCRIPTION:
+**   This configuration variable holds model information.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the playready drm bin file,
+**   an application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_model_info
+**     - bdrm_get_model_info_lgth
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+_DRM_SHORT_WCHAR_ model_information[] = L"XR-700";
+
+/******************************************************************************
+** VARIABLE:
+**   pr_cert_templates_dir
+**
+** DESCRIPTION:
+**   This configuration variable holds the path where all the PLAYREADY certificates TEMPPLATES are stored. Customers
+**   can changes the value of this variable to meet their needs.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve a template path,
+**   a customer application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_cert_templates_dir
+**     - bdrm_get_certzs_templates_dir_lgth
+
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+#ifdef ANDROID
+_DRM_SHORT_WCHAR_ pr_cert_templates_dir[] =L"/data/mediadrm/playready/";
+#else
+_DRM_SHORT_WCHAR_ pr_cert_templates_dir[] =L"";
+#endif
+
+
+/******************************************************************************
+** VARIABLE:
+**   pr_hds_dir
+**
+** DESCRIPTION:
+**   This configuration variable holds the path where the PLAYREADY hds related files are stored. Customers
+**   can changes the value of this variable to meet their needs.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the hds path,
+**   a customer application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_hds_dir
+**     - bdrm_get_hds_dir_lgth
+
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+#ifdef ANDROID
+_DRM_SHORT_WCHAR_ pr_hds_dir[] =L"/data/mediadrm/playready/";
+#else
+_DRM_SHORT_WCHAR_ pr_hds_dir[] =L"";
+#endif
+
+
+/******************************************************************************
+** VARIABLE:
+**   pr_zgpriv_sig_key
+**
+** DESCRIPTION:
+**   This configuration variable holds the filename of the device signing public key. The SDK will 
+**   concatenate it with the pr_certs_dir string to form the path of the file. Customers
+**   can changes the value of this variable to meet their needs.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the device certificate filename,
+**   an application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_zgpriv_sig_key_fname
+**     - bdrm_get_zgpriv_sig_key_fname_lgth
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+_DRM_SHORT_WCHAR_ pr_zgpriv_sig_key[] = L"/zprivsig.dat";
+
+
+/******************************************************************************
+** VARIABLE:
+**   pr_zgpriv_enc_key
+**
+** DESCRIPTION:
+**   This configuration variable holds the filename of the device encryption key. The SDK will 
+**   concatenate it with the pr_certs_dir string to form the path of the file. Customers
+**   can changes the value of this variable to meet their needs.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the device certificate filename,
+**   an application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_zgpriv_enc_key_fname
+**     - bdrm_get_zgpriv_enc_key_fname_lgth
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+_DRM_SHORT_WCHAR_ pr_zgpriv_enc_key[] = L"/zprivencr.dat";
+
+/******************************************************************************
+** VARIABLE:
+**   pr_ndr_priv_key
+**
+** DESCRIPTION:
+**   This configuration variable holds the filename of the NDR private key. The SDK will 
+**   concatenate it with the pr_certs_dir string to form the path of the file. Customers
+**   can changes the value of this variable to meet their needs.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the device certificate filename,
+**   an application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_ndr_priv_key_fname
+**     - bdrm_get_ndr_priv_key_fname_lgth
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+_DRM_SHORT_WCHAR_ pr_ndr_priv_key[] = L"/ndrpriv.dat";
+
+
+/******************************************************************************
+** VARIABLE:
+**   pr_dev_cert
+**
+** DESCRIPTION:
+**   This configuration variable holds the filename of the WMDRM device certificate. The SDK will 
+**   concatenate it with the pr_certs_dir string to form the path of the certificate file. Customers
+**   can changes the value of this variable to meet their needs.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the device certificate filename,
+**   an application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_dev_cert_fname
+**     - bdrm_get_dev_cert_fname_lgth
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+_DRM_SHORT_WCHAR_ pr_dev_cert[] = L"/devcert.dat";
+
+
+/******************************************************************************
+** VARIABLE:
+**   pr_zdev_cert
+**
+** DESCRIPTION:
+**   This configuration variable holds the filename of the binary format device certificate chain.  
+**   The SDK will concatenate it with the pr_certs_dir string to form the path of the certificate file. 
+**   Customers can changes the value of this variable to meet their needs.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the device certificate filename,
+**   an application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_zdev_cert_fname
+**     - bdrm_get_zdev_cert_fname_lgth
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+_DRM_SHORT_WCHAR_ pr_zdev_cert[] = L"/bdevcert.dat";
+
+
+/******************************************************************************
+** VARIABLE:
+**   pr_ndr_cert
+**
+** DESCRIPTION:
+**   This configuration variable holds the filename of the NDR certificate chain. The SDK will 
+**   concatenate it with the pr_certs_dir string to form the path of the certificate file. Customers
+**   can changes the value of this variable to meet their needs.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the device certificate filename,
+**   an application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_ndr_cert_fname
+**     - bdrm_get_ndr_cert_fname_lgth
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+_DRM_SHORT_WCHAR_ pr_ndr_cert[] = L"/ndrcert.dat";
+
+
+
+/******************************************************************************
+** VARIABLE:
+**   pr_ndr_cert_template
+**
+** DESCRIPTION:
+**   This configuration variable holds the filename of the NDR certificate template certificate. The SDK will 
+**   concatenate it with the pr_cert_templates_dir string to form the path of the certificate template file. 
+**   Customers can changes the value of this variable to meet their needs.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the device certificate filename,
+**   an application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_ndr_cert_template_fname
+**     - bdrm_get_ndr_cert_template_fname_lgth
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+_DRM_SHORT_WCHAR_ pr_ndr_cert_template[] = L"/ndrcerttemplate.dat";
+
+
+/******************************************************************************
+** VARIABLE:
+**   pr_hds_pw_file
+**
+** DESCRIPTION:
+**   This configuration variable holds the filename of the password seed for the secure store. The SDK will 
+**   concatenate it  with the pr_hds_dir string to form the path of the password filefile. Customers
+**   can changes the value of this variable to meet their needs.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the data store password path,
+**   a customer application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_hds_pwd_fname
+**     - bdrm_get_hds_pwd_fname_lgth
+**  Refer to drm_data.h for more details.
+**
+**  The wmdrm libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+_DRM_SHORT_WCHAR_ pr_hds_pw_file[] = L"datastore_pwd.dat";
+
+/******************************************************************************
+** VARIABLE:
+**   pr_hds_file
+**
+** DESCRIPTION:
+**   This configuration variable holds the filename of the data store. The SDK will concatenate it
+**   with the pr_hds_dir string to form the path of the data store file. Customers
+**   can changes the value of this variable to meet their needs.
+**
+** NOTES:
+**   This file must only be included in drm_data.h. To retrieve the data store path,
+**   a customer application must link with the drmrootfs library. Then they can use the followings functions to
+**   retrieve the string.
+**     - bdrm_get_hds_fname
+**     - bdrm_get_hds_fname_lgth
+**  Refer to drm_data.h for more details.
+**
+**  The playready libraries and drmrootfs are compiled using -fshort-wchar. Make sure that your application uses
+**  the same compilation flags to avoid unexpected behaviors.
+**
+******************************************************************************/
+_DRM_SHORT_WCHAR_ pr_hds_file[] = L"datastore.hds";
+
+
+#ifdef __cplusplus
+}
+#endif

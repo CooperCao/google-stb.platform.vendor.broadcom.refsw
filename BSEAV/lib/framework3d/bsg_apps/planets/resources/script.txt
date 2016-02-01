@@ -1,0 +1,60 @@
+0: move_abs 2 0 120 0
+0: goto_offset 5 Saturn 20 0 100 0
+0: move_abs 10 0 -200 0
+0: wait 2
+0: sync 1
+0: goto_offset 5 Neptune 20 0 10 0
+0: wait 4
+0: sync 2
+0: goto_offset 5 Sun 30 0 10 0
+0: goto_offset 5 Earth 10 0 5 0
+0: wait 2
+0: sync 3
+0: goto_offset 5 Jupiter 30 0 10 0
+0: wait 5
+0: sync 4
+0: goto_offset 2 Venus 40 0 5 0
+0: goto_offset 3 Mars 10 0 5 0
+0: wait 3
+0: sync 5
+0: goto_offset 5 Mercury 20 0 5 0
+0: goto_offset 3 Venus 20 0 5 0
+0: wait 2
+0: sync 6
+0: goto_offset 3 Sun 70 0 10 0 
+0: sync 7
+1: lookAt 4 Saturn
+1: info 1 Saturn
+1: sync 1
+1: info 0
+1: lookAt 4 Neptune
+1: info 1 Neptune
+1: sync 2
+1: info 0
+1: lookAt 4 Earth
+1: info 1 Earth
+1: wait 8
+1: info 0
+1: lookAt 4 Moon
+1: info 1 Moon
+1: wait 4
+1: sync 3
+1: info 0
+1: lookAt 4 Jupiter
+1: info 1 Jupiter
+1: wait 5
+1: sync 4
+1: info 0
+1: lookAt 4 Mars
+1: info 1 Mars
+1: sync 5
+1: info 0
+1: lookAt 3 Venus
+1: info 1 Venus
+1: sync 6
+1: info 0
+1: lookAt 5 Sun
+1: info 1 Sun
+1: wait 3
+1: sync 7
+1: info 0

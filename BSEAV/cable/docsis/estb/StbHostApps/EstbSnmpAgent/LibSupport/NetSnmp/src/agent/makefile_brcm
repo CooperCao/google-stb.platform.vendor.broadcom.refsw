@@ -1,0 +1,213 @@
+#****************************************************************************
+#
+#  Copyright (c) 2008 Broadcom Corporation
+#  All Rights Reserved
+#  No portions of this material may be reproduced in any form without the
+#  written permission of:
+#          Broadcom Corporation
+#          16215 Alton Parkway
+#          Irvine, California 92618
+#  All information contained in this document is Broadcom Corporation
+#  company private, proprietary, and trade secret.
+#
+#****************************************************************************
+#
+#  Filename:       makefile_brcm
+#  Author:         T. Clack
+#  Creation Date:  11/10/03
+#
+#****************************************************************************
+#  Description:
+#      The makefile for the libnetsnmpagent_[OS].a library.
+#
+#****************************************************************************
+
+#####################################################################
+# Check to see if we are a BFC or V2 sandbox
+#####################################################################
+
+
+TOP_DIR   = ../../../../../../..
+TEST_FILE =  $(wildcard $(TOP_DIR)/Bfc/V2Main.h)
+LIB_SUPPORT_DIR = $(TOP_DIR)/Bfc/LibSupport
+NETSNMP_INC_DIR = $(LIB_SUPPORT_DIR)/NetSnmp/NetSnmp/include
+NETSNMP_LIB_DIR = $(LIB_SUPPORT_DIR)/NetSnmp/NetSnmp
+BFC_CODE = 1
+
+
+# see if we are V2 or BFC by finding the test file
+# 
+ifeq ($(TEST_FILE),)
+  # could not find BFC test file 
+  BFC_CODE = 0
+  
+  # try to find a V2 file and fail if we can't 
+  TEST_FILE =  $(wildcard ../../../../../CmApp_Docsis1.0/CmAppMain.h)
+  ifeq ($(TEST_FILE),)
+    junk := $(shell echo BFC_CODE=$(BFC_CODE)=>&2)
+    could not determine if we are BFC or V2 - STOP
+  endif
+endif
+   
+
+# overwrite our paths if not BFC
+ifeq ($(BFC_CODE), 0)
+  
+  TOP_DIR   = ../../../../..
+  LIB_SUPPORT_DIR = $(TOP_DIR)/LibSupport
+  NETSNMP_INC_DIR = $(LIB_SUPPORT_DIR)/NetSnmp/include
+  NETSNMP_LIB_DIR = $(LIB_SUPPORT_DIR)/NetSnmp
+  
+endif
+
+ 
+ifdef WIND_BASE
+#####################################################################
+# VxWorks build
+#####################################################################
+
+TGT_DIR=$(WIND_BASE)/target
+include $(TGT_DIR)/h/make/defs.default
+include $(TGT_DIR)/h/make/make.RC32364sfgnu
+include $(TGT_DIR)/h/make/defs.$(WIND_HOST_TYPE)
+
+EXTRA_INCLUDE  = -I. \
+                 -IT:/Tornado-wm/target/h
+
+EXTRA_DEFINE   = -DVXWORKS=1
+
+AGT_LIB  = libnetsnmpagent_vxworks.a
+
+MY_AR = armips
+
+CFLAGS  +=  -DTARGETOS_vxWorks
+
+endif
+## end of VxWorks specific stuff ####################################
+
+
+ifdef ECOS_DIR
+#####################################################################
+# eCos build
+#####################################################################
+
+DEFS_FILE =  ../../../../../../../cm_bsp_v2/bsp_common/os/ecos/makeinc/defs.bsp
+
+ifeq ($(BFC_CODE), 0)
+  DEFS_FILE =  ../../../../../cm_bsp_v2/bsp_common/os/ecos/makeinc/defs.bsp
+endif
+
+include $(DEFS_FILE)
+
+
+EXTRA_INCLUDE += -I.
+EXTRA_INCLUDE += -I$(ECOS_CONFIG_ROOT)/$(ECOS_CONFIG_DIR)/include
+
+AGT_LIB  = libnetsnmpagent_ecos.a
+ 
+MY_AR = $(AR)
+CFLAGS  +=  -DTARGETOS_eCos -ffunction-sections
+
+
+endif
+## end of eCos specific stuff #######################################
+
+ifdef QNX_TARGET
+#####################################################################
+# QNX
+#####################################################################
+
+
+AGT_LIB        = libnetsnmpagent_Qnx6.a
+ 
+MY_AR          = $(AR)
+ARCH           = mips-unknown-nto-qnx6.3.0
+CPU            = MIPS32
+
+# Find the directory where the Gnu compiler is installed.
+GNU_INC := $(dir $(shell which $(ARCH)-gcc))
+
+# Get rid of the "/bin/", and add the architecture directory.  This is where
+# all the include files will be found.
+GNU_INC := $(subst /bin/,,$(GNU_INC))/$(ARCH)
+
+CC             = $(ARCH)-gcc 
+
+EXTRA_INCLUDE += -I$(QNX_TARGET)/usr/include
+EXTRA_INCLUDE += -I.
+
+EXTRA_DEFINE  += \
+        -DCPU=$(CPU) \
+        -DMIPSEB \
+        -DGETPID_IS_MEANINGLESS
+  
+CFLAGS        += -DTARGETOS_Qnx6 
+#--------------------------------------------------------------------------
+# Compiler flags:
+#        -EB            - big-endian
+#        -mips32        - MIPS32 CPU
+#        -G 0           - no "small global" area
+#        -O2            - extra optimization
+#        -fno-for-scope - make variables declared in "for" visible outside loop
+#        -msoft-float   - use soft floating point
+#        -Wall          - all warnings
+#        -c             - compile to .o
+#--------------------------------------------------------------------------
+CFLAGS  += \
+        -EB \
+        -mips32 \
+        -G 0 \
+        -O2 \
+        -ffunction-sections \
+        -msoft-float \
+        -Wall \
+        $(EXTRA_INCLUDE) \
+        $(EXTRA_DEFINE) \
+        -c
+
+endif
+## end of QNX specific stuff #######################################
+
+####################################################################
+####################################################################
+
+
+
+#AGT_OBJS = $(subst .c,.o, $(wildcard *.c))
+
+AGT_OBJS  =  snmp_agent.o snmp_vars.o agent_registry.o 
+AGT_OBJS +=  agent_index.o agent_trap.o agent_handler.o 
+AGT_OBJS +=  mib_modules.o
+#AGT_OBJS +=  agent_read_config.o kernel.o
+
+
+
+EXTRA_INCLUDE += -I$(NETSNMP_INC_DIR)
+EXTRA_INCLUDE += -Imibgroup
+
+
+COPTS = 
+EXTRA_DEFINE  += $(COPTS)
+
+
+$(AGT_LIB) : $(AGT_OBJS)
+#	echo objs $(AGT_OBJS)
+#	echo lib  $(AGT_LIB)
+	$(MY_AR) cru $(AGT_LIB) $?
+        
+	cp $(AGT_LIB) $(NETSNMP_LIB_DIR)/$(AGT_LIB)
+
+%.o : %.s
+	@ $(RM) $@
+	$(CC) $(CFLAGS_AS) -c -o $@ $< 
+
+%.o : %.c 
+	@ $(RM) $@
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+clean:
+	- $(RM) $(AGT_LIB)
+	- $(RM) *.o
+	- $(RM) $(NETSNMP_LIB_DIR)/$(AGT_LIB)
+
+

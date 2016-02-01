@@ -1,0 +1,855 @@
+OC-HOME-NETWORK-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+   OBJECT-GROUP,
+   MODULE-COMPLIANCE
+       FROM SNMPv2-CONF              -- RFC 2580
+   Integer32,
+   Unsigned32,
+   Counter32,
+   OBJECT-TYPE,
+   MODULE-IDENTITY
+       FROM SNMPv2-SMI               -- RFC 2578
+   TruthValue,
+   RowStatus,
+   MacAddress,
+   TEXTUAL-CONVENTION
+       FROM SNMPv2-TC                -- RFC 2579
+   SnmpAdminString
+       FROM SNMP-FRAMEWORK-MIB       -- RFC 3411
+   InetAddressType,
+   InetPortNumber,
+   InetAddress
+       FROM INET-ADDRESS-MIB         -- RFC 4001
+   clabProjOpenCable
+       FROM CLAB-DEF-MIB
+   ifIndex
+       FROM IF-MIB
+       ;
+
+ocHnMibModule MODULE-IDENTITY
+   LAST-UPDATED "201009100000Z"        -- September 10, 2010
+   ORGANIZATION "Cable Television Laboratories, Inc."
+   CONTACT-INFO
+        "Postal: Cable Television Laboratories, Inc.
+        858 Coal Creek Circle
+        Louisville, Colorado 80027-9750
+        U.S.A.
+        Phone: +1 303-661-9100
+        Fax:     +1 303-661-9199
+        E-mail: mibs@cablelabs.com"
+   DESCRIPTION
+           "This MIB module contains the objects for the
+           management of an OpenCable Home Network. The
+           MIB resides on the OpenCable Host Device if the
+           Home Network Extension is implemented."
+   REVISION "201009100000Z"            -- September 10, 2010
+   DESCRIPTION
+           "Added static PQoS configuration parameter and
+           associated table."
+   REVISION "201005070000Z"            -- May 7, 2010
+   DESCRIPTION
+           "Added device properties group."
+   REVISION "200909210000Z"            -- September 21, 2009
+   DESCRIPTION
+           "This version is being published as part of the
+           OpenCable Home Networking MIB specification I01."
+   ::= { clabProjOpenCable 2 }
+
+Tenths ::= TEXTUAL-CONVENTION
+   DISPLAY-HINT "d-1"
+   STATUS      current
+   DESCRIPTION
+           "This data type represents generic decimal units
+            in Tenths. For example, a value of 5.1 will be
+            represented as 51."
+    SYNTAX      Integer32
+
+PowerUnit ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+            "Represents a well-known RSD power unit of
+            measurement."
+    SYNTAX      INTEGER {
+                         other(1),
+                         dBmV(2),
+                         dBm(3),
+                         mW(4)
+                        }
+
+--
+-- Node definitions
+--
+
+ocHnNotifications OBJECT IDENTIFIER ::= { ocHnMibModule 1 }
+ocHnMibObjects    OBJECT IDENTIFIER ::= { ocHnMibModule 2 }
+
+ocHnHomeNetStatus OBJECT IDENTIFIER ::= { ocHnMibObjects 1 }
+
+--
+-- Reserved Services Domain Status
+--
+
+ocHnRsdManagerStatus OBJECT IDENTIFIER ::= { ocHnHomeNetStatus 1 }
+
+ocHnRsdManagerImportanceNumber OBJECT-TYPE
+    SYNTAX      Unsigned32 (0..255)
+    MAX-ACCESS read-write
+    STATUS      current
+    DESCRIPTION
+            "Configurable importance number for the RSDManager in
+            this device. Used to determine the preferred RSDManager
+            on the home network."
+    ::= { ocHnRsdManagerStatus 1 }
+
+ocHnRsdManagerPreferredStatus OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS read-only
+    STATUS      current
+    DESCRIPTION
+            "True indicates this is the preferred RSD Manager
+            on the home network."
+    ::= { ocHnRsdManagerStatus 2 }
+
+--
+-- UPnP Services Status information
+--
+
+ocHnDevUpnpServiceTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF OcHnDevUpnpServiceEntry
+    MAX-ACCESS not-accessible
+    STATUS      current
+    DESCRIPTION
+            "This table defines each service offered
+            by this device. One row should be created
+            for each supported service."
+    ::= { ocHnHomeNetStatus 2 }
+
+ocHnDevUpnpServiceEntry OBJECT-TYPE
+    SYNTAX      OcHnDevUpnpServiceEntry
+    MAX-ACCESS not-accessible
+   STATUS      current
+   DESCRIPTION
+           "Each entry defines a UPnP service."
+   INDEX { ocHnDevUpnpServiceIndex }
+   ::= { ocHnDevUpnpServiceTable 1 }
+
+OcHnDevUpnpServiceEntry ::=
+   SEQUENCE {
+       ocHnDevUpnpServiceIndex
+           Unsigned32,
+       ocHnDevUpnpServiceType
+           INTEGER,
+       ocHnDevUpnpServiceAvailable
+           TruthValue
+       }
+
+ocHnDevUpnpServiceIndex OBJECT-TYPE
+   SYNTAX      Unsigned32 (1..4294967295)
+   MAX-ACCESS not-accessible
+   STATUS      current
+   DESCRIPTION
+           "Table Index."
+   ::= { ocHnDevUpnpServiceEntry 1 }
+
+ocHnDevUpnpServiceType OBJECT-TYPE
+   SYNTAX      INTEGER {
+                        cds(1),
+                        srs(2),
+                        qosManager(3),
+                        qosDevice(4),
+                        qosPolicyHolder(5),
+                        avt(6),
+                        cm(7),
+                        rcs(8)
+                        }
+   MAX-ACCESS read-only
+   STATUS      current
+   DESCRIPTION
+           "Service options currently available."
+   ::= { ocHnDevUpnpServiceEntry 2 }
+
+ocHnDevUpnpServiceAvailable OBJECT-TYPE
+   SYNTAX      TruthValue
+   MAX-ACCESS read-only
+   STATUS      current
+   DESCRIPTION
+           "Service is available (true) or unavailable (false)."
+   ::= { ocHnDevUpnpServiceEntry 3 }
+
+--
+-- Supported Channels Table
+--
+
+ocHnDevSupportedChannelTable OBJECT-TYPE
+   SYNTAX      SEQUENCE OF OcHnDevSupportedChannelEntry
+   MAX-ACCESS not-accessible
+   STATUS      current
+   DESCRIPTION
+           "This table identifies the RSD Technology channels
+           for each interface supported by a particular RSD node.
+           This table is required for RF-based technologies."
+   ::= { ocHnHomeNetStatus 3 }
+
+ocHnDevSupportedChannelEntry OBJECT-TYPE
+   SYNTAX      OcHnDevSupportedChannelEntry
+   MAX-ACCESS not-accessible
+   STATUS      current
+    DESCRIPTION
+            "Each entry defines an offered channel by interface."
+    INDEX { ifIndex, ocHnDevSupportedChannelIndex }
+    ::= { ocHnDevSupportedChannelTable 1 }
+
+OcHnDevSupportedChannelEntry ::=
+    SEQUENCE {
+        ocHnDevSupportedChannelIndex
+            Unsigned32,
+        ocHnDevSupportedChannelLastOperatingFreq
+            TruthValue,
+        ocHnDevSupportedChannelInUse
+            TruthValue,
+        ocHnDevSupportedChannelFrequency
+            Unsigned32,
+        ocHnDevSupportedChannelEligible
+            TruthValue
+        }
+
+ocHnDevSupportedChannelIndex OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..4294967295)
+    MAX-ACCESS not-accessible
+    STATUS      current
+    DESCRIPTION
+            "Index for each channel supported by the
+            interface indicated by the ifIndex."
+    ::= { ocHnDevSupportedChannelEntry 1 }
+
+ocHnDevSupportedChannelLastOperatingFreq OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS read-only
+    STATUS      current
+    DESCRIPTION
+            "Indicates this channel/frequency
+            was tuned when last in the LinkUp state.
+            The value is persistent through reboots."
+    ::= { ocHnDevSupportedChannelEntry 2 }
+
+ocHnDevSupportedChannelInUse OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS read-write
+    STATUS      current
+    DESCRIPTION
+            "This channel is currently being used by
+            this interface."
+    ::= { ocHnDevSupportedChannelEntry 3 }
+
+ocHnDevSupportedChannelFrequency OBJECT-TYPE
+    SYNTAX      Unsigned32 (0..2000000000)
+    UNITS       "hertz"
+    MAX-ACCESS read-only
+    STATUS      current
+    DESCRIPTION
+            "Channel center frequency. This channel must be available
+            for selection as the operating frequency."
+    ::= { ocHnDevSupportedChannelEntry 4 }
+
+ocHnDevSupportedChannelEligible OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS read-write
+    STATUS      current
+    DESCRIPTION
+            "This channel is currently eligible for use."
+    ::= { ocHnDevSupportedChannelEntry 5 }
+
+--
+-- Device Properties: Lists various UPnP Device properties
+--
+
+ocHnDevProperties OBJECT IDENTIFIER ::= { ocHnHomeNetStatus 4 }
+
+ocHnDevPropertiesFriendlyName OBJECT-TYPE
+   SYNTAX      SnmpAdminString
+   MAX-ACCESS read-only
+   STATUS      current
+   DESCRIPTION
+           "Value from the <friendlyName> element in the OCAP Root
+           Device Description of the device as defined in Annex A
+           of [HNP2.0]."
+   ::= { ocHnDevProperties 1 }
+
+--
+-- Device addressing and operational status information
+--
+
+ocHnDevInterfaceStatus OBJECT IDENTIFIER ::= { ocHnMibObjects 4 }
+
+ocHnDevInterfaceConfigTable OBJECT-TYPE
+   SYNTAX      SEQUENCE OF OcHnDevInterfaceConfigEntry
+   MAX-ACCESS not-accessible
+   STATUS      current
+   DESCRIPTION
+           "This table augments the ifTable for each HN interface.
+           It provides the mechanism for modifying and displaying
+           interface characteristics not addressed by the IETF
+           ifTable. The index values will serve as an external index
+           to the ocHnDevStatus tables."
+   ::= { ocHnDevInterfaceStatus 1 }
+
+ocHnDevInterfaceConfigEntry OBJECT-TYPE
+   SYNTAX      OcHnDevInterfaceConfigEntry
+   MAX-ACCESS not-accessible
+   STATUS      current
+   DESCRIPTION
+           "Each entry describes an interface for a specific
+           technology."
+   INDEX { ifIndex }
+   ::= { ocHnDevInterfaceConfigTable 1 }
+
+OcHnDevInterfaceConfigEntry ::=
+   SEQUENCE {
+       ocHnDevInterfaceConfigMaxPowerLevel
+           Integer32,
+       ocHnDevInterfaceConfigPowerUnits
+           PowerUnit,
+       ocHnDevInterfaceConfigMaxParameterizedBandwidth
+           Unsigned32,
+       ocHnDevInterfaceConfigEnableEncryption
+           INTEGER,
+       ocHnDevInterfaceConfigEncryptionPassphrase
+           SnmpAdminString
+       }
+
+ocHnDevInterfaceConfigMaxPowerLevel OBJECT-TYPE
+   SYNTAX      Integer32
+   MAX-ACCESS read-write
+   STATUS      current
+   DESCRIPTION
+           "Maximum power level used by an RSD Technology node.
+           This level is combined with the measurement units
+           defined in ocHnDevInterfaceConfigPowerUnits."
+   ::= { ocHnDevInterfaceConfigEntry 2 }
+
+ocHnDevInterfaceConfigPowerUnits OBJECT-TYPE
+   SYNTAX      PowerUnit
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+           "Reports the power units of measurement/reporting
+           in ocHnDevInterfacePowerUnits used by the RSD
+           technology on the interface being
+           reported."
+   ::= { ocHnDevInterfaceConfigEntry 3 }
+
+ocHnDevInterfaceConfigMaxParameterizedBandwidth OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+           "This object requests the maximum bandwidth, as a
+           percentage of total bandwidth, to be made available for
+           parameterized traffic streams. The actual bandwidth made
+           available for parameterized streams is represented by
+           ocHnDevInterfaceStatusMaxParameterizedBandwidth object.
+           This configuration takes effect only if the node
+           is the Layer2Scheduler for the RSD Technology interface
+           (i.e., if the ocHnDevInterfaceStatusLayer2Scheduler object
+           is set to true on this node)."
+    ::= { ocHnDevInterfaceConfigEntry 4 }
+
+ocHnDevInterfaceConfigEnableEncryption OBJECT-TYPE
+    SYNTAX     INTEGER
+               {
+               enabled(1),
+               disabled(2)
+               }
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+           "A Boolean parameter used to enable or disable privacy
+           (link layer encryption) on the RSD Technology. The default
+           is disabled(2)."
+    ::= { ocHnDevInterfaceConfigEntry 5 }
+
+ocHnDevInterfaceConfigEncryptionPassphrase OBJECT-TYPE
+    SYNTAX     SnmpAdminString (SIZE (24 | 32) )
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+           "A Password or a key used for encrypting data sent over
+           the RSD Technology using technology-specific encryption
+           algorithm."
+    ::= { ocHnDevInterfaceConfigEntry 6 }
+
+--
+-- Device Network Operating Status
+--
+
+ocHnDevInterfaceStatusTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF OcHnDevInterfaceStatusEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+           "This table tracks and reports current network
+           related attributes for each interface (e.g., MAC)."
+    ::= { ocHnDevInterfaceStatus 2 }
+
+ocHnDevInterfaceStatusEntry OBJECT-TYPE
+    SYNTAX     OcHnDevInterfaceStatusEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+           "Each entry associates the network operational
+           assignments for each interface."
+    INDEX { ifIndex }
+    ::= { ocHnDevInterfaceStatusTable 1 }
+
+OcHnDevInterfaceStatusEntry ::=
+   SEQUENCE {
+       ocHnDevInterfaceStatusTxBroadcastRate
+           Unsigned32,
+       ocHnDevInterfaceStatusTxBroadcastLevel
+           Tenths,
+       ocHnDevInterfaceStatusMaxTxPowerLevel
+           Tenths,
+       ocHnDevInterfaceStatusPowerUnits
+           PowerUnit,
+       ocHnDevInterfaceStatusMaxParameterizedBandwidth
+           Unsigned32,
+       ocHnDevInterfaceStatusLayer2Scheduler
+           TruthValue
+             }
+
+ocHnDevInterfaceStatusTxBroadcastRate OBJECT-TYPE
+   SYNTAX      Unsigned32
+   UNITS       "bits/sec"
+   MAX-ACCESS read-only
+   STATUS      current
+   DESCRIPTION
+           "Broadcast transmit rate (bits/sec) for this interface."
+   ::= { ocHnDevInterfaceStatusEntry 1 }
+
+ocHnDevInterfaceStatusTxBroadcastLevel OBJECT-TYPE
+   SYNTAX      Tenths
+   MAX-ACCESS read-only
+   STATUS      current
+   DESCRIPTION
+           "The power level used for transmission of broadcast
+           messages by the RSD node reported in units defined by
+           ocHnDevInterfaceStatusPowerUnits."
+   ::= { ocHnDevInterfaceStatusEntry 2 }
+
+ocHnDevInterfaceStatusMaxTxPowerLevel OBJECT-TYPE
+   SYNTAX      Tenths
+   MAX-ACCESS read-only
+   STATUS      current
+   DESCRIPTION
+           "The absolute maximum power level that a node
+           is capable of transmitting. The power units
+           are defined in ocHnDevInterfaceStatusPowerUnits."
+   ::= { ocHnDevInterfaceStatusEntry 3 }
+
+ocHnDevInterfaceStatusPowerUnits OBJECT-TYPE
+   SYNTAX      PowerUnit
+   MAX-ACCESS read-only
+   STATUS      current
+   DESCRIPTION
+           "Reports the power units of measurement/reporting
+           in ocHnDevInterfacePowerUnits used by the RSD
+           technology on the interface being reported."
+   ::= { ocHnDevInterfaceStatusEntry 4 }
+
+ocHnDevInterfaceStatusMaxParameterizedBandwidth OBJECT-TYPE
+   SYNTAX      Unsigned32
+   MAX-ACCESS read-only
+   STATUS      current
+   DESCRIPTION
+            "The actual bandwidth, as a percentage of total, that can
+            be utilized for reservation-based (parameterized)
+            traffic streams. A value of '0' should be reported if
+            this node is not a layer2scheduler for the RSD Technology
+            interface (i.e., if the
+            ocHnDevInterfaceStatusLayer2Scheduler
+            object is set to false on this node)."
+    ::= { ocHnDevInterfaceStatusEntry 5 }
+
+ocHnDevInterfaceStatusLayer2Scheduler OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+            "This Boolean parameter indicates whether this particular
+            node is a layer-2 scheduler."
+    ::= { ocHnDevInterfaceStatusEntry 6 }
+
+--
+-- Logical Device Connection Table
+--
+
+ocHnDevConnectionTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF OcHnDevConnectionEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "This table defines the logical connections, by MAC,
+            of all the devices known to this interface."
+    ::= { ocHnDevInterfaceStatus 3 }
+
+ocHnDevConnectionEntry OBJECT-TYPE
+    SYNTAX     OcHnDevConnectionEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+            "Each entry associates the network operational
+            attributes of the connections for each interface."
+    INDEX { ifIndex, ocHnDevConnectionIndex }
+    ::= { ocHnDevConnectionTable 1 }
+
+OcHnDevConnectionEntry ::=
+    SEQUENCE {
+        ocHnDevConnectionIndex
+            Unsigned32,
+        ocHnDevConnectionDestMac
+            MacAddress,
+        ocHnDevConnectionRxLinkRate
+            Unsigned32,
+        ocHnDevConnectionRxModulationType
+            SnmpAdminString,
+        ocHnDevConnectionRxBroadcastRate
+            Unsigned32,
+        ocHnDevConnectionRxSignalStrength
+            Tenths,
+        ocHnDevConnectionTxUnicastLevel
+            Tenths,
+        ocHnDevConnectionPowerUnits
+            PowerUnit,
+        ocHnDevConnectionTxLinkRate
+            Unsigned32,
+        ocHnDevConnectionTxModulationType
+            SnmpAdminString
+        }
+
+ocHnDevConnectionIndex OBJECT-TYPE
+   SYNTAX     Unsigned32 (1..4294967295)
+   MAX-ACCESS not-accessible
+   STATUS     current
+   DESCRIPTION
+           "Secondary index of the connection table."
+   ::= { ocHnDevConnectionEntry 1 }
+
+
+ocHnDevConnectionDestMac OBJECT-TYPE
+   SYNTAX      MacAddress
+   MAX-ACCESS read-only
+   STATUS      current
+   DESCRIPTION
+           "MAC of other device if visible to
+           this device."
+   ::= { ocHnDevConnectionEntry 2 }
+
+ocHnDevConnectionRxLinkRate OBJECT-TYPE
+   SYNTAX      Unsigned32
+   UNITS       "bits/sec"
+   MAX-ACCESS read-only
+   STATUS      current
+   DESCRIPTION
+           "PHY reception rate (bits/sec) on this interface
+           from the node identified by its MAC address."
+   ::= { ocHnDevConnectionEntry 3 }
+
+ocHnDevConnectionRxModulationType OBJECT-TYPE
+   SYNTAX      SnmpAdminString
+   MAX-ACCESS read-only
+   STATUS      current
+   DESCRIPTION
+           "Type of modulation currently being used by an
+           interface on this node for reception from the
+           node identified by MAC address. A value is required
+           only if this is an RF technology-based connection.
+           Non-RF interfaces should report 'n/a'."
+   ::= { ocHnDevConnectionEntry 4 }
+
+ocHnDevConnectionRxBroadcastRate OBJECT-TYPE
+   SYNTAX      Unsigned32
+   UNITS       "bits/sec"
+   MAX-ACCESS read-only
+   STATUS      current
+   DESCRIPTION
+           "Receive rate (bits/sec) at this RSD Interface for
+           broadcasts initiated by the logically connected node
+           identified by the destination MAC Address in
+           this table entry."
+   ::= { ocHnDevConnectionEntry 5 }
+
+ocHnDevConnectionRxSignalStrength OBJECT-TYPE
+   SYNTAX      Tenths
+   MAX-ACCESS read-only
+   STATUS      current
+   DESCRIPTION
+           "The signal strength received at this
+           interface from the associated node identified by
+           the MAC address. The power units are defined
+           in ocHnDevConnectionPowerUnits "
+   ::= { ocHnDevConnectionEntry 6 }
+
+ocHnDevConnectionTxUnicastLevel OBJECT-TYPE
+   SYNTAX      Tenths
+   MAX-ACCESS read-only
+   STATUS      current
+   DESCRIPTION
+           "The power level used for transmission of unicast
+           messages by the RSD node reported in units
+           defined in ocHnDevConnectionPowerUnits for
+           this interface."
+    ::= { ocHnDevConnectionEntry 7 }
+
+ocHnDevConnectionPowerUnits OBJECT-TYPE
+    SYNTAX     PowerUnit
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+           "Reports the power units of measurement/reporting
+           in ocHnDevInterfacePowerUnits used by the RSD
+           technology on the interface being
+           reported."
+    ::= { ocHnDevConnectionEntry 8 }
+
+ocHnDevConnectionTxLinkRate OBJECT-TYPE
+    SYNTAX     Unsigned32
+    UNITS      "bits/sec"
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+           "PHY transmission rate (bits/sec) from this interface
+           to the node identified by MAC addresses."
+    ::= { ocHnDevConnectionEntry 9 }
+
+ocHnDevConnectionTxModulationType OBJECT-TYPE
+    SYNTAX     SnmpAdminString
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+           "The modulation type currently employed by this
+           interface while transmitting to the node
+           identified by its MAC address. A value is required
+           only if this is an RF technology-based connection.
+           Non-RF interfaces should report 'n/a'."
+    ::= { ocHnDevConnectionEntry 10 }
+
+--
+
+ocHnConformance    OBJECT IDENTIFIER ::= { ocHnMibModule 3 }
+ocHnMIBCompliances OBJECT IDENTIFIER ::= { ocHnConformance 1 }
+ocHnMIBGroups      OBJECT IDENTIFIER ::= { ocHnConformance 2 }
+
+-- Compliance statements
+
+ocHnMIBCompliance MODULE-COMPLIANCE
+    STATUS     current
+    DESCRIPTION
+           "The requirements for conformance to the OpenCable
+           Home Networking MIB."
+    MODULE -- this module
+    MANDATORY-GROUPS {
+                     ocHnHomeNetworkStatusGroup,
+                     ocHnGenericDevInterfaceGroup
+                     }
+
+    GROUP ocHnRotameterConfigGroup
+    DESCRIPTION
+           "This group is an optional implementation."
+
+    GROUP ocHnQosTrafficDescInfo
+    DESCRIPTION
+           "This group is an optional implementation."
+
+    GROUP ocHnQosGroup
+    DESCRIPTION
+           "This group is an optional implementation."
+    ::= { ocHnMIBCompliances 1 }
+
+ocHnHomeNetworkStatusGroup OBJECT-GROUP
+   OBJECTS     {
+               ocHnRsdManagerImportanceNumber,
+               ocHnRsdManagerPreferredStatus,
+               ocHnDevUpnpServiceType,
+               ocHnDevUpnpServiceAvailable,
+               ocHnDevSupportedChannelLastOperatingFreq,
+               ocHnDevSupportedChannelInUse,
+               ocHnDevSupportedChannelFrequency,
+               ocHnDevSupportedChannelEligible,
+               ocHnDevPropertiesFriendlyName
+               }
+   STATUS      current
+   DESCRIPTION
+           "Defines the objects used to report the status
+           of the home network."
+   ::= { ocHnMIBGroups 1 }
+
+ocHnGenericDevInterfaceGroup OBJECT-GROUP
+   OBJECTS     {
+               ocHnDevInterfaceConfigMaxPowerLevel,
+               ocHnDevInterfaceConfigPowerUnits,
+               ocHnDevInterfaceConfigMaxParameterizedBandwidth,
+               ocHnDevInterfaceConfigEnableEncryption,
+               ocHnDevInterfaceConfigEncryptionPassphrase,
+               ocHnDevInterfaceStatusLayer2Scheduler,
+               ocHnDevInterfaceStatusTxBroadcastLevel,
+               ocHnDevInterfaceStatusTxBroadcastRate,
+               ocHnDevInterfaceStatusMaxTxPowerLevel,
+               ocHnDevInterfaceStatusPowerUnits,
+               ocHnDevInterfaceStatusMaxParameterizedBandwidth,
+               ocHnDevConnectionDestMac,
+               ocHnDevConnectionRxLinkRate,
+               ocHnDevConnectionRxModulationType,
+               ocHnDevConnectionRxBroadcastRate,
+               ocHnDevConnectionRxSignalStrength,
+               ocHnDevConnectionPowerUnits,
+               ocHnDevConnectionTxUnicastLevel,
+               ocHnDevConnectionTxLinkRate,
+               ocHnDevConnectionTxModulationType
+               }
+   STATUS      current
+   DESCRIPTION
+           "The objects common to all the OCHN interfaces."
+
+   ::= { ocHnMIBGroups 2 }
+
+ocHnRotameterConfigGroup OBJECT-GROUP
+   OBJECTS     {
+               ocHnRotameterConfigRowStatus,
+               ocHnRotameterConfigQosSegmentId,
+               ocHnRotameterConfigObservationActive,
+               ocHnRotameterConfigEndpointMacAddress,
+               ocHnRotameterConfigPeriod,
+               ocHnRotameterConfigMonitorResolutionPeriod,
+               ocHnPerStreamRotameterConfigRowStatus,
+               ocHnPerStreamRotameterConfigLayer2StreamId,
+               ocHnPerStreamRotameterConfigTrafficHandle,
+               ocHnPerStreamRotameterConfigObservationActive
+               }
+   STATUS      current
+   DESCRIPTION
+           "The collection of objects used to create one or more
+            Rotameter configurations that may be activated via
+            SNMP."
+   ::= { ocHnMIBGroups 3 }
+
+ocHnQosTrafficDescInfo OBJECT-GROUP
+    OBJECTS    {
+               ocHnQosStreamsInfoCollectionTrigger,
+               ocHnQosTrafficQDMacAddress,
+               ocHnQosTrafficHandle,
+               ocHnQosTrafficNetworkAddressType,
+               ocHnQosTrafficSourceAddress,
+               ocHnQosTrafficSourcePort,
+               ocHnQosTrafficDestinationAddress,
+               ocHnQosTrafficDestinationPort,
+               ocHnQosTrafficIpProtocol,
+               ocHnQosTrafficV3TrafficIdSourceUuid,
+               ocHnQosTrafficV3TrafficIdDestinationUuid,
+               ocHnQosTrafficMediaServerConnectionId,
+               ocHnQosTrafficMediaRendererConnectionId,
+               ocHnQosTrafficLeaseTime,
+               ocHnQosTrafficCritical,
+               ocHnQosTrafficUserName,
+               ocHnQosTrafficVendorApplicationName,
+               ocHnQosTrafficPortName,
+               ocHnQosTrafficServiceProviderServiceName,
+               ocHnQosTrafficCpName,
+               ocHnQosTspec,
+               ocHnQosActiveTspec,
+               ocHnQosTspecTrafficClass,
+               ocHnQosTspecReqQosType,
+               ocHnQosTspecDataRate,
+               ocHnQosTspecPeakDataRate,
+               ocHnQosTspecMaxBurstSize,
+               ocHnQosTspecMaxPacketSize,
+               ocHnQosTspecE2EMaxDelayHigh,
+               ocHnQosTspecE2EMaxJitter,
+               ocHnQosPolicyRowStatus,
+               ocHnQosPolicyIpAddressType,
+               ocHnQosPolicySourceAddressUpLimit,
+               ocHnQosPolicySourceAddressLowLimit,
+               ocHnQosPolicySourcePortUpLimit,
+               ocHnQosPolicySourcePortLowLimit,
+               ocHnQosPolicyDestinationAddressUpLimit,
+               ocHnQosPolicyDestinationAddressLowLimit,
+               ocHnQosPolicyDestinationPortUpLimit,
+               ocHnQosPolicyDestinationPortLowLimit,
+               ocHnQosPolicyIpProtocolUpLimit,
+               ocHnQosPolicyIpProtocolLowLimit,
+               ocHnQosPolicyTrafficClass,
+               ocHnQosPolicyPeakDataRateUpLimit,
+               ocHnQosPolicyPeakDataRateLowLimit,
+               ocHnQosPolicyMeanDataRateUpLimit,
+               ocHnQosPolicyMeanDataRateLowLimit,
+               ocHnQosPolicyMaxBurstSizeUpLimit,
+               ocHnQosPolicyMaxBurstSizeLowLimit,
+               ocHnQosPolicyE2EMaxDelayHighLimit,
+               ocHnQosPolicyE2EMaxDelayLowLimit,
+               ocHnQosPolicyBoundaryAddressType,
+               ocHnQosPolicyBoundarySourceAddressUpLimit,
+               ocHnQosPolicyBoundarySourceAddressLowLimit,
+               ocHnQosPolicyBoundaryDestinationAddressUpLimit,
+               ocHnQosPolicyBoundaryDestinationAddressLowLimit,
+               ocHnQosPolicyUserName,
+               ocHnQosPolicyVendorApplicationName,
+               ocHnQosPolicyPortName,
+               ocHnQosPolicyServiceProviderServiceName,
+               ocHnQosPolicyCriticalFlag,
+               ocHnQosPolicyRequestedQosType,
+               ocHnQosPolicyStartTime,
+               ocHnQosPolicyEndTime,
+               ocHnQosPolicyTrafficLeaseTimeUpValue,
+               ocHnQosPolicyTrafficLeaseTimeLowValue,
+               ocHnQosPolicyRuleType,
+               ocHnQosPolicyRulePriority,
+               ocHnQosPolicyTrafficImportanceNumber,
+               ocHnQosPolicyUserImportanceNumber
+               }
+   STATUS      current
+   DESCRIPTION
+           "List of objects used to acquire QOS traffic attributes
+           as well as set QOS Policies."
+   ::= { ocHnMIBGroups 4 }
+
+ocHnQosGroup OBJECT-GROUP
+   OBJECTS     {
+               ocHnQosROStatsIdentifier,
+               ocHnQosROStatsMacAddress,
+               ocHnQosROStatsObservationMacAddress,
+               ocHnQosROStatsQosSegmentId,
+               ocHnQosROStatsTotalTrafficBytes,
+               ocHnQosROStatsTotalParameterizedBytes,
+               ocHnQosROStatsTotalParameterizedPackets,
+               ocHnQosROStatsTotalParameterizedPacketsDropped,
+               ocHnQosROStatsReportingDateAndTime,
+               ocHnQosROStatsObservationPeriod,
+               ocHnQosROStatsMonitorResolutionPeriod,
+               ocHnQosStreamStatisticsLayer2StreamId,
+               ocHnQosStreamStatisticsPktsTransmitted,
+               ocHnQosStreamStatisticsPktsReceived,
+               ocHnQosStreamStatisticsErrorPktsDropped,
+               ocHnQosStreamStatisticsBytesTransmitted,
+               ocHnQosStreamStatisticsBytesReceived,
+               ocHnQosStreamStatisticsTrafficHandle,
+               ocHnQosStreamStatisticsPeakDataRateViolations,
+               ocHnQosTrafficTotalBytesPriority0,
+               ocHnQosTrafficTotalBytesPriority1,
+               ocHnQosTrafficTotalBytesPriority2,
+               ocHnQosTrafficTotalBytesPriority3,
+               ocHnQosTrafficTotalBytesPriority4,
+               ocHnQosTrafficTotalBytesPriority5,
+               ocHnQosTrafficTotalBytesPriority6,
+               ocHnQosTrafficTotalBytesPriority7,
+               ocHnStaticPQosStatus,
+               ocHnStaticPQosDeviceRowStatus,
+               ocHnStaticPQosDeviceActive,
+               ocHnStaticPQosDeviceMACAddress
+               }
+   STATUS      current
+   DESCRIPTION
+           "Parameterized and prioritized traffic flow objects."
+   ::= { ocHnMIBGroups 5 }
+
+END
+

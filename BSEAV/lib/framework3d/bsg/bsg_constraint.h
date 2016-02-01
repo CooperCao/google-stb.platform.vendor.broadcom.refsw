@@ -1,0 +1,292 @@
+/******************************************************************************
+ *   (c)2011-2012 Broadcom Corporation
+ *
+ * This program is the proprietary software of Broadcom Corporation and/or its
+ * licensors, and may only be used, duplicated, modified or distributed
+ * pursuant to the terms and conditions of a separate, written license
+ * agreement executed between you and Broadcom (an "Authorized License").
+ * Except as set forth in an Authorized License, Broadcom grants no license
+ * (express or implied), right to use, or waiver of any kind with respect to
+ * the Software, and Broadcom expressly reserves all rights in and to the
+ * Software and all intellectual property rights therein.  IF YOU HAVE NO
+ * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
+ * AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
+ * SOFTWARE.  
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE
+ * ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR
+ * ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *****************************************************************************/
+
+#ifndef __BSG_CONSTRAINT_H__
+#define __BSG_CONSTRAINT_H__
+
+#include "bsg_common.h"
+#include "bsg_library.h"
+#include "bsg_matrix.h"
+#include "bsg_animatable.h"
+
+namespace bsg
+{
+
+// The Memo class is used to record a value and record the fact that the value has been set.
+// It is write once, read once.
+template <typename T>
+class Memo
+{
+public:
+   //! Create an empty memo
+   Memo() :
+      m_set(false)
+   {}
+
+   //! Had the value been set?
+   bool    IsSet()             const { return m_set;                  }
+
+   //! Read the value and mark as unset
+   const T &GetInvalidate()    const { m_set = false; return m_value; }
+
+   //! Set the value and mark as set
+   void    Set(const T &value) const { m_set = true; m_value = value; }
+
+   //! Mark the memo as unset
+   void    Clear()                   { m_set = false;                 }
+
+private:
+   mutable bool  m_set;
+   mutable T     m_value;
+};
+
+class SceneNode;
+struct SceneNodeTraits;
+typedef Handle<SceneNodeTraits>     SceneNodeHandle;
+
+class Constraint;
+class ConstraintLerpPosition;
+class ConstraintFollowPosition;
+class ConstraintLookAt;
+
+// @cond
+struct ConstraintTraits
+{
+   typedef Constraint        Base;
+   typedef Constraint        Derived;
+   typedef ConstraintTraits  BaseTraits;
+};
+// @endcond
+
+//! @addtogroup handles
+typedef Handle<ConstraintTraits> ConstraintHandle;
+
+// @cond
+struct ConstraintFollowPositionTraits
+{
+   typedef Constraint               Base;
+   typedef ConstraintFollowPosition Derived;
+   typedef ConstraintTraits         BaseTraits;
+};
+// @endcond
+
+//! @addtogroup handles
+typedef Handle<ConstraintFollowPositionTraits>   ConstraintFollowPositionHandle;
+
+// @cond
+struct ConstraintLerpPositionTraits
+{
+   typedef Constraint               Base;
+   typedef ConstraintLerpPosition   Derived;
+   typedef ConstraintTraits         BaseTraits;
+};
+// @endcond
+
+//! @addtogroup handles
+typedef Handle<ConstraintLerpPositionTraits>    ConstraintLerpPositionHandle;
+
+// @cond
+struct ConstraintLookAtTraits
+{
+   typedef Constraint               Base;
+   typedef ConstraintLookAt         Derived;
+   typedef ConstraintTraits         BaseTraits;
+};
+// @endcond
+
+//! @addtogroup handles
+typedef Handle<ConstraintLookAtTraits>    ConstraintLookAtHandle;
+
+//! Constraints are an alternative mechanism for positioning and orienting nodes.  They override the normal transformations
+//! generated by the scene-graph traversal with more complicated dependencies.  There are constraints e.g. to position nodes
+//! relative to one another, or to orient nodes to point in particular directions.
+//! See the "Overview of Broadcom Scene Graph" for a more complete account of how constraints are handled.
+class Constraint : public RefCount
+{
+public:
+   virtual ~Constraint() {}
+
+   virtual void Remove(const SceneNode &/*owner*/) {}
+
+   //! Returns true if all the constraints have been satisfied for a particular render
+   virtual bool Ready() const = 0;
+
+   //! When the constrained node is visited, the constraints are passed the node handle and the
+   //! matrix transform of its parent.
+   virtual bool Visit(const SceneNode *who, const Mat4 &mat) const = 0;
+
+   //! Combine this constraint's transformation
+   virtual void GetTransform(Mat4 &trans) const = 0;
+
+protected:
+   //! Hide constructor
+   Constraint() {}
+};
+
+//! This constraint will set the positon of its node to that of another node.
+class ConstraintFollowPosition : public Constraint
+{
+   friend class Handle<ConstraintFollowPositionTraits>;
+
+public:
+   ~ConstraintFollowPosition();
+
+   //! Install constraint into owner and make it track follow.
+   void         Install(ConstraintFollowPositionHandle thisHandle, SceneNodeHandle &owner, SceneNodeHandle &follow);
+
+   virtual void Remove(const SceneNode &owner);
+
+   virtual bool Ready() const
+   {
+      return m_memoFollow.IsSet();
+   }
+
+   virtual bool Visit(const SceneNode *who, const Mat4 &xform) const;
+
+   virtual void GetTransform(Mat4 &trans) const
+   {
+      const Vec3 &follow = m_memoFollow.GetInvalidate();
+
+      trans = Translate(follow);
+   }
+
+protected:
+   ConstraintFollowPosition() {}
+
+private:
+   SceneNode   *m_follow;
+   Memo<Vec3>  m_memoFollow;
+};
+
+class ConstraintLerpPosition : public Constraint
+{
+   friend class Handle<ConstraintLerpPositionTraits>;
+
+public:
+   ~ConstraintLerpPosition();
+
+   //! Constrain owner to lie somewhere between from and to according to the interpolant alpha.
+   void         Install(ConstraintLerpPositionHandle thisHandle, SceneNodeHandle &owner, SceneNodeHandle &from, SceneNodeHandle &to, float alpha = 0.0f);
+
+   virtual void Remove(const SceneNode &owner);
+
+   virtual bool Ready() const
+   {
+      return m_memoFrom.IsSet() && m_memoTo.IsSet();
+   }
+
+   //! Remember the value from a parent node.  Return true if all values have been acquired.
+   virtual bool Visit(const SceneNode *who, const Mat4 &xform) const;
+
+   //! Set the transform from the constraint
+   virtual void GetTransform(Mat4 &trans) const
+   {
+      const Vec3 &from = m_memoFrom.GetInvalidate();
+      const Vec3 &to   = m_memoTo.GetInvalidate();
+
+      Vec3  interp = from * (1.0f - m_alpha) + to * m_alpha;
+
+      trans = Translate(interp);
+   }
+
+   //! Access to the interpolator paramater for animation
+   const AnimatableFloat &GetAlpha() const { return m_alpha; }
+   AnimatableFloat       &GetAlpha()       { return m_alpha; }
+
+protected:
+   ConstraintLerpPosition() {}
+
+private:
+   SceneNode         *m_from;
+   SceneNode         *m_to;
+   AnimatableFloat    m_alpha;
+
+   Memo<Vec3>        m_memoFrom;
+   Memo<Vec3>        m_memoTo;
+};
+
+class ConstraintLookAt : public Constraint
+{
+   friend class Handle<ConstraintLookAtTraits>;
+
+public:
+   ~ConstraintLookAt();
+
+   //! Constrain owner to lie at location and point towards lookAt.  The up vector is required for disambiguation.
+   void         Install(ConstraintLookAtHandle thisHandle, SceneNodeHandle &owner, SceneNodeHandle &location, SceneNodeHandle &lookAt, const Vec3 &up);
+
+   virtual void Remove(const SceneNode &owner);
+
+   //! Have both the parents supplied values yet?
+   virtual bool Ready() const
+   {
+      return m_memoLocation.IsSet() && m_memoLookAt.IsSet();
+   }
+
+   //! Remember the value from a parent node.  Return true if all values have been acquired.
+   virtual bool Visit(const SceneNode *who, const Mat4 &xform) const;
+
+   //! Set the transform from the constraint
+   virtual void GetTransform(Mat4 &trans) const
+   {
+      const Vec3 &location = m_memoLocation.GetInvalidate();
+      const Vec3 &lookAt   = m_memoLookAt.GetInvalidate();
+
+      trans = LookAt(location, lookAt, m_up);
+   }
+
+protected:
+   ConstraintLookAt() {}
+
+private:
+   SceneNode   *m_location;
+   SceneNode   *m_lookAt;
+
+   Memo<Vec3>  m_memoLocation;
+   Memo<Vec3>  m_memoLookAt;
+
+   Vec3              m_up;
+};
+
+}
+
+#endif

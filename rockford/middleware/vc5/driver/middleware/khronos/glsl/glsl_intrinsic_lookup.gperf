@@ -1,0 +1,41 @@
+/* Process this file with gperf glsl_intrinsic_lookup.gperf > glsl_intrinsic_lookup.auto.c */
+
+%{
+#include <string.h>
+#include "glsl_intrinsic.h"
+%}
+
+%struct-type
+%language=ANSI-C
+%define hash-function-name   glsl_intrinsic_hash
+%define lookup-function-name glsl_intrinsic_lookup
+%readonly-tables
+
+struct glsl_intrinsic_data_s;
+%%
+texture,      INTRINSIC_TEXTURE
+textureSize,  INTRINSIC_TEXTURE_SIZE
+rsqrt,        INTRINSIC_RSQRT
+rcp,          INTRINSIC_RCP
+log2,         INTRINSIC_LOG2
+exp2,         INTRINSIC_EXP2
+ceil,         INTRINSIC_CEIL
+floor,        INTRINSIC_FLOOR
+trunc,        INTRINSIC_TRUNC
+nearest,      INTRINSIC_NEAREST
+min,          INTRINSIC_MIN
+max,          INTRINSIC_MAX
+fabs,         INTRINSIC_ABS
+fdx,          INTRINSIC_FDX
+fdy,          INTRINSIC_FDY
+clz,          INTRINSIC_CLZ
+reinterpf,    INTRINSIC_REINTERPF
+reinterpi,    INTRINSIC_REINTERPI
+reinterpu,    INTRINSIC_REINTERPU
+fpack,        INTRINSIC_FPACK
+funpacka,     INTRINSIC_FUNPACKA
+funpackb,     INTRINSIC_FUNPACKB
+sin,          INTRINSIC_SIN
+cos,          INTRINSIC_COS
+tan,          INTRINSIC_TAN
+%%

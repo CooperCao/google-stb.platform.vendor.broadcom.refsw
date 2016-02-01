@@ -1,0 +1,80 @@
+// Broadcom BSG effect file
+//
+// Render a planetary surface
+//
+
+OPTIONS
+{
+     SortOrder = NONE;
+}
+
+PASS 0
+{
+   SEMANTICS
+   {
+      u_mvpMatrix  =  MATRIX4_MODEL_VIEW_PROJECTION;
+      a_position   =  VATTR_POSITION;
+      u_imvtMatrix =  MATRIX3_INVT_MODEL_VIEW;
+      u_mvMatrix   =  MATRIX4_MODEL_VIEW;
+      u_lightPos   =  VECTOR3_USER;
+      a_normal     =  VATTR_NORMAL;
+      a_tc         =  VATTR_TEXCOORD1;
+   }
+
+   STATE
+   {
+      EnableDepthTest = true;
+   }
+
+   SAMPLER_2D u_surfaceTex
+   {
+      Unit = 0;
+      Wrap = REPEAT, CLAMP;
+      Filter = LINEAR_MIPMAP_NEAREST, LINEAR;
+   }
+
+   VERTEX_SHADER
+   {
+      uniform    mat4    u_mvpMatrix;
+      attribute  vec4    a_position;
+      uniform    mat3    u_imvtMatrix;
+      uniform    mat4    u_mvMatrix;
+      uniform    vec3    u_lightPos;
+      attribute  vec3    a_normal;
+      attribute  vec2    a_tc;
+      varying    vec3    v_v2l;
+      varying    vec3    v_normal;
+      varying    vec2    v_tc;
+
+      void main()
+      {
+         v_normal = normalize(u_imvtMatrix * a_normal);
+         v_v2l    = normalize(u_lightPos - (u_mvMatrix * a_position).xyz);
+         v_tc     = a_tc + vec2(0.25, 0.0);
+
+         gl_Position = u_mvpMatrix * a_position;
+      }
+   }
+
+   FRAGMENT_SHADER
+   {
+      precision mediump float;
+
+      uniform    sampler2D u_surfaceTex;
+      varying    vec3      v_v2l;
+      varying    vec3      v_normal;
+      varying    vec2      v_tc;
+
+      void main()
+      {
+         vec3  v2l    = normalize(v_v2l);
+         vec3  normal = normalize(v_normal);
+         float diff   = max(0.0, dot(v2l, normal));
+
+         diff = 0.05 + diff * 0.95;
+
+         vec3 col = diff * texture2D(u_surfaceTex, v_tc).rgb;
+         gl_FragColor = vec4(col, 1.0);
+      }
+   }
+}

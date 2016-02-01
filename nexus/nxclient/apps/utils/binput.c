@@ -1,0 +1,413 @@
+/******************************************************************************
+ *    (c)2010-2013 Broadcom Corporation
+ *
+ * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
+ * $brcm_Workfile: $
+ * $brcm_Revision: $
+ * $brcm_Date: $
+ *
+ * Module Description:
+ *
+ * Revision History:
+ *
+ * $brcm_Log: $
+ *
+ *****************************************************************************/
+#include "bstd.h"
+#include "binput.h"
+#if NEXUS_HAS_INPUT_ROUTER
+#include "bkni_multi.h"
+#include "nxclient.h"
+#include "nexus_input_client.h"
+#include <string.h>
+#include <stdio.h>
+
+BDBG_MODULE(binput);
+
+enum binput_script
+{
+    binput_script_repeat = b_remote_key_max,
+    binput_script_sleep,
+    binput_script_max
+};
+
+struct keymap {
+    unsigned ir_input_a;
+    unsigned ir_cir_nec;
+    unsigned keyboard;
+    const char *script;
+} g_input_keymap[binput_script_max] = {
+                       /* ir_a, cir_nec     keyboard */
+    /* unknown */      {0,      0,          0,                      ""},
+    /* play */         {0x5038, 0xe21dff00, 25  /* P */,            "play"},
+    /* pause */        {0x1f,   0xe31cff00, 119 /* PAUSE/BREAK */,  "pause"},
+    /* fast_forward */ {0x201d, 0xa659ff00, 33  /* F */,            "ff"},
+    /* rewind */       {0x101e, 0xe619ff00, 19  /* R */,            "rew"},
+    /* stop */         {0x4039, 0xa35cff00, 57  /* SPACE */,        "stop"},
+    /* clear */        {0xd012, 0xb24dff00, 111 /* DELETE */,       "clear"},
+    /* back */         {0x303a, 0xf906ff00, 14  /* BACKSPACE */,    "back"},
+    /* up */           {0x9034, 0xb14eff00, 103,                    "u"},
+    /* down */         {0x8035, 0xf30cff00, 108,                    "d"},
+    /* right */        {0x6037, 0xb649ff00, 106,                    "r"},
+    /* left */         {0x7036, 0xf40bff00, 105,                    "l"},
+    /* select */       {0xe011, 0xf708ff00, 28  /* RETURN */,       "select"},
+    /* power */        {0x600A, 0xf50aff00, 142 /* SLEEP */,        "power"},
+    /* chan_up */      {0, 0xf609ff00, 0,                           "chan_up"},
+    /* chan_down */    {0, 0xf20dff00, 0,                           "chan_down"},
+
+    /* script commands */
+                       {0, 0, 0,                                    "repeat"},
+                       {0, 0, 0,                                    "sleep"} /* TODO: hardcoded 1 second */
+};
+
+#if NEXUS_HAS_IR_INPUT
+b_remote_key b_get_remote_key(NEXUS_IrInputMode irInput, unsigned code)
+{
+    b_remote_key key;
+
+    for (key=1;key<b_remote_key_max;key++) {
+        switch (irInput) {
+        case NEXUS_IrInputMode_eCirNec:
+            if (g_input_keymap[key].ir_cir_nec == code) return key;
+            break;
+        case NEXUS_IrInputMode_eRemoteA:
+            if (g_input_keymap[key].ir_input_a == code) return key;
+            break;
+        default:
+            BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            return b_remote_key_unknown;
+        }
+    }
+
+    BDBG_MSG(("unknown key %#x", code));
+    return b_remote_key_unknown;
+}
+#endif
+
+b_remote_key b_get_evdev_key(unsigned code)
+{
+    b_remote_key key;
+
+    for (key=1;key<b_remote_key_max;key++) {
+        if (g_input_keymap[key].keyboard == code) return key;
+    }
+
+    BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    return b_remote_key_unknown;
+}
+
+struct binput
+{
+    struct binput_settings settings;
+    NxClient_AllocResults allocResults;
+    NEXUS_InputClientHandle inputClient;
+    BKNI_EventHandle event;
+    struct {
+#define MAX_SCRIPT 100
+        unsigned key[MAX_SCRIPT];
+        unsigned total, current;
+        unsigned sleep_remaining;
+    } script;
+};
+
+static unsigned binput_p_find_script(const char *s)
+{
+    unsigned key;
+    for (key=1;key<binput_script_max;key++) {
+        if (!strcmp(g_input_keymap[key].script, s)) return key;
+    }
+    return 0;
+}
+
+void binput_get_default_settings(struct binput_settings *psettings)
+{
+    BKNI_Memset(psettings, 0, sizeof(*psettings));
+}
+
+static void binput_p_callback(void *context, int param)
+{
+    binput_t input = context;
+    BSTD_UNUSED(param);
+    BKNI_SetEvent(input->event);
+}
+
+static void binput_p_add_script(binput_t input, const char *s)
+{
+    while (*s && input->script.total < MAX_SCRIPT) {
+        const char *find = strchr(s, ';');
+        char buf[64];
+        unsigned len = find?find-s:(int)strlen(s);
+        strncpy(buf, s, sizeof(buf));
+        buf[len] = 0;
+        input->script.key[input->script.total] = binput_p_find_script(buf);
+        if (!input->script.key[input->script.total]) {
+            BDBG_ERR(("invalid command: %s", buf));
+            break;
+        }
+        input->script.total++;
+        if (!find) break;
+        s = ++find;
+    }
+}
+
+binput_t binput_open(const struct binput_settings *psettings)
+{
+    NxClient_AllocSettings allocSettings;
+    int rc;
+    binput_t input;
+    NEXUS_InputClientSettings settings;
+
+    input = BKNI_Malloc(sizeof(*input));
+    if (!input) return NULL;
+    BKNI_Memset(input, 0, sizeof(*input));
+    if (psettings) {
+        input->settings = *psettings;
+    }
+
+    NxClient_GetDefaultAllocSettings(&allocSettings);
+    allocSettings.inputClient = 1;
+    rc = NxClient_Alloc(&allocSettings, &input->allocResults);
+    if (rc) {BERR_TRACE(rc); goto error;}
+
+    input->inputClient = NEXUS_InputClient_Acquire(input->allocResults.inputClient[0].id);
+    if (!input->inputClient) goto error;
+
+    NEXUS_InputClient_GetSettings(input->inputClient, &settings);
+    settings.filterMask = 0xFFFFFFFF; /* everything */
+    if (input->settings.codeAvailable.callback) {
+        settings.codeAvailable = input->settings.codeAvailable;
+    }
+    else {
+        BKNI_CreateEvent(&input->event);
+        settings.codeAvailable.callback = binput_p_callback;
+        settings.codeAvailable.context = input;
+    }
+    NEXUS_InputClient_SetSettings(input->inputClient, &settings);
+
+    if (input->settings.script_file) {
+        FILE *f = fopen(input->settings.script_file, "r");
+        if (!f) {
+            BDBG_ERR(("unable to read script file %s", input->settings.script_file));
+        }
+        else {
+            while (!feof(f)) {
+                char buf[256];
+                unsigned len;
+                fgets(buf, sizeof(buf), f);
+                len = strlen(buf);
+                if (len) buf[len-1] = 0; /* remove newline */
+                binput_p_add_script(input, buf);
+            }
+            fclose(f);
+        }
+    }
+    else if (input->settings.script) {
+        binput_p_add_script(input, input->settings.script);
+    }
+
+    return input;
+
+error:
+    binput_close(input);
+    return NULL;
+}
+
+void binput_close(binput_t input)
+{
+    if (input->inputClient) {
+        NEXUS_InputClient_Release(input->inputClient);
+    }
+    if (input->event) {
+        BKNI_DestroyEvent(input->event);
+    }
+    NxClient_Free(&input->allocResults);
+    BKNI_Free(input);
+}
+
+int binput_read(binput_t input, b_remote_key *key, bool *repeat)
+{
+    NEXUS_InputRouterCode inputRouterCode;
+    unsigned num;
+    int rc;
+
+    if (input->script.key[input->script.current]) {
+        if (input->script.key[input->script.current] == binput_script_repeat) {
+            input->script.current = 0;
+        }
+        if (input->script.key[input->script.current] != binput_script_sleep) {
+            *key = input->script.key[input->script.current++];
+            *repeat = false;
+            return 0;
+        }
+    }
+
+    rc = NEXUS_InputClient_GetCodes(input->inputClient, &inputRouterCode, 1, &num);
+    if (rc || !num) {
+        return -1;
+    }
+    *repeat = false;
+    switch (inputRouterCode.deviceType) {
+    case NEXUS_InputRouterDevice_eIrInput:
+        *repeat = inputRouterCode.data.irInput.repeat;
+        *key = b_get_remote_key(inputRouterCode.data.irInput.mode, inputRouterCode.data.irInput.code);
+        return 0;
+    case NEXUS_InputRouterDevice_eEvdev:
+        /* evdev sends key up and key down status in the value, so ignore one of them to avoid double keypresses */
+        if (inputRouterCode.data.evdev.type == 1 /* EV_KEY */ && inputRouterCode.data.evdev.value) {
+            *key = b_get_evdev_key(inputRouterCode.data.evdev.code);
+            return 0;
+        }
+        break;
+    default:
+        break;
+    }
+    *key = b_remote_key_unknown;
+    return 0;
+}
+
+int binput_read_no_repeat(binput_t input, b_remote_key *key)
+{
+    bool repeat;
+    int rc;
+    do {
+        rc = binput_read(input, key, &repeat);
+    } while (!rc && repeat);
+    return rc;
+}
+
+int binput_wait(binput_t input, unsigned timeout_msec)
+{
+    if (input->script.key[input->script.current] == binput_script_sleep) {
+        if (!input->script.sleep_remaining) {
+            input->script.sleep_remaining = 1000; /* TODO */
+        }
+        if (timeout_msec > input->script.sleep_remaining) {
+            timeout_msec = input->script.sleep_remaining;
+        }
+        BKNI_Sleep(timeout_msec);
+        input->script.sleep_remaining -= timeout_msec;
+        if (!input->script.sleep_remaining) {
+            input->script.current++;
+        }
+        return BERR_TIMEOUT;
+    }
+
+    if (input->event) {
+        return BKNI_WaitForEvent(input->event, timeout_msec);
+    }
+    else {
+        return NEXUS_NOT_SUPPORTED;
+    }
+}
+
+void binput_interrupt(binput_t input)
+{
+    if (input->event) {
+        BKNI_SetEvent(input->event);
+    }
+}
+
+int binput_set_mask(binput_t input, uint32_t mask)
+{
+    NEXUS_InputClientSettings settings;
+    NEXUS_InputClient_GetSettings(input->inputClient, &settings);
+    settings.filterMask = mask;
+    return NEXUS_InputClient_SetSettings(input->inputClient, &settings);
+}
+
+void binput_print_script_usage(void)
+{
+    unsigned i;
+    BKNI_Printf("script commands\n");
+    for (i=1;i<binput_script_max;i++) {
+        BKNI_Printf("  %s\n", g_input_keymap[i].script);
+    }
+}
+#else
+#if NEXUS_HAS_IR_INPUT
+b_remote_key b_get_remote_key(NEXUS_IrInputMode irInput, unsigned code)
+{
+    BSTD_UNUSED(irInput);
+    BSTD_UNUSED(code);
+    return 0;
+}
+#endif
+void binput_get_default_settings(struct binput_settings *psettings)
+{
+    BSTD_UNUSED(psettings);
+}
+binput_t binput_open(const struct binput_settings *psettings)
+{
+    BSTD_UNUSED(psettings);
+    return NULL;
+}
+void binput_close(binput_t input)
+{
+    BSTD_UNUSED(input);
+}
+int binput_read(binput_t input, b_remote_key *key, bool *repeat)
+{
+    BSTD_UNUSED(input);
+    BSTD_UNUSED(key);
+    BSTD_UNUSED(repeat);
+    return 0;
+}
+int binput_read_no_repeat(binput_t input, b_remote_key *key)
+{
+    BSTD_UNUSED(input);
+    BSTD_UNUSED(key);
+    return 0;
+}
+int binput_wait(binput_t input, unsigned timeout_msec)
+{
+    BSTD_UNUSED(input);
+    BSTD_UNUSED(timeout_msec);
+    return 0;
+}
+void binput_interrupt(binput_t input)
+{
+    BSTD_UNUSED(input);
+}
+int binput_set_mask(binput_t input, uint32_t mask)
+{
+    BSTD_UNUSED(input);
+    BSTD_UNUSED(mask);
+    return 0;
+}
+void binput_print_script_usage(void)
+{
+}
+#endif

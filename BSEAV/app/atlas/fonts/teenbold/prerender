@@ -1,0 +1,11 @@
+#
+# This script will build the standard atlas fonts from teenbold and teenbdit
+#
+
+BUILDFONT=$BSEAV/lib/bwin/utils/i386-linux/buildfont
+
+$BUILDFONT teenbold.ttf 11 0 default arial_11.bwin_font
+$BUILDFONT teenbold.ttf 25 0 default arial_black_25.bwin_font
+$BUILDFONT teenbold.ttf 18 1 default arial_18_aa.bwin_font
+$BUILDFONT teenbdit.ttf 35 1 default arial_italic_35_aa.bwin_font
+

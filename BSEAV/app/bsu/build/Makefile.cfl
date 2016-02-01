@@ -1,0 +1,61 @@
+############################################################
+#     Copyright (c) 2003-2013, Broadcom Corporation
+#     All Rights Reserved
+#     Confidential Property of Broadcom Corporation
+#
+#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
+#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
+#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+#
+# $brcm_Workfile: $
+# $brcm_Revision: $
+# $brcm_Date: $
+#
+# Module Description:  Customizeable Features List
+#
+# Revision History:
+#
+# $brcm_Log: $
+# 
+############################################################
+
+#
+# Customizeable Features List
+#
+export NEXUS_AUDIO_SUPPORT=n
+export NEXUS_ASTM_SUPPORT=n
+export NEXUS_FILE_SUPPORT=n
+export NEXUS_FILE_MUX_SUPPORT=n
+export NEXUS_HDMI_INPUT_SUPPORT=n
+export NEXUS_INPUT_CAPTURE_SUPPORT=n
+export NEXUS_INPUT_ROUTER_SUPPORT=n
+export NEXUS_IR_BLASTER_SUPPORT=n
+export NEXUS_PLAYBACK_SUPPORT=n
+export NEXUS_POWER_MANAGEMENT=n
+export NEXUS_PWM_SUPPORT=n
+export NEXUS_RECORD_SUPPORT=n
+export NEXUS_SERVER_SUPPORT=n
+export NEXUS_SYNC_CHANNEL_SUPPORT=n
+export NEXUS_SMARTCARD_SUPPORT=n
+export NEXUS_STREAM_MUX_SUPPORT=n
+export NEXUS_TOUCHPAD_SUPPORT=n
+export NEXUS_TEMP_MONITOR_SUPPORT=n
+export NEXUS_SIMPLE_DECODER_SUPPORT=n
+export NEXUS_VIDEO_DECODER_SUPPORT=n
+export NEXUS_VIDEO_ENCODER_SUPPORT=n
+export PLAYBACK_IP_SUPPORT=n
+export V3D_SUPPORT=n
+export MEDIA_ASF_SUPPORT=n
+export MEDIA_AVI_SUPPORT=n
+export SAGE_SUPPORT=n
+
+#
+# If you want the GUI demo to have a background image, the following variables may be set to 'y'.
+#
+ifeq ($(filter $(NEXUS_PLATFORM),97584 97252), $(NEXUS_PLATFORM))
+    export NEXUS_PICTURE_DECODER_SUPPORT=y
+    export NEXUS_SURFACE_COMPOSITOR_SUPPORT=y
+else
+    export NEXUS_PICTURE_DECODER_SUPPORT=n
+    export NEXUS_SURFACE_COMPOSITOR_SUPPORT=n
+endif

@@ -1,0 +1,738 @@
+#**************************************************************************
+#
+#   Copyright (c) 2008 Broadcom Corporation
+#   All Rights Reserved
+#   No portions of this material may be reproduced in any form without the
+#   written permission of:
+#      Broadcom Corporation
+#      16215 Alton Parkway
+#      PO Box 57013
+#      Irvine, CA 92619-7013
+#   All information contained in this document is Broadcom Corporation
+#   company private, proprietary, and trade secret.
+#
+#
+#**************************************************************************
+#   Filename:      makefile
+#   Author:        Mike Sieweke (based on Doug Nguyen's makefile for VxWorks)
+#   Creation Date: September 26, 2003
+#
+#**************************************************************************
+#   Description:
+#
+#   eCos makefile for OpenSSL crypto library
+#
+#**************************************************************************
+
+ARCH          = mips-linux
+CPU           = MIPS32
+
+#CONFIG_DIR    = $(ECOS_CONFIG_ROOT)/$(ECOS_CONFIG_DIR)
+CONFIG_DIR    = /projects/settops/toolchain/07092007/mips-linux-2.6.12-uclibc/lib/gcc/mips-linux-uclibc/3.4.2
+
+# GNU_INC       = $(ECOS_DIR)/gnutools/$(ARCH)/$(ARCH)
+
+# Find the directory where the Gnu compiler is installed.
+GNU_INC := $(dir $(shell which $(ARCH)-gcc))
+
+# Get rid of the "/bin/", and add the architecture directory.  This is where
+# all the include files will be found.
+GNU_INC := $(subst /bin/,,$(GNU_INC))/$(ARCH)
+
+CC            = $(ARCH)-gcc 
+
+EXTRA_DEFINE = \
+        -DCPU=$(CPU) \
+        -DMIPSEB \
+        -DGETPID_IS_MEANINGLESS 
+	#-DOPENSSL_NO_ENGINE=1
+        #	-DOPENSSL_FIPS
+
+#--------------------------------------------------------------------------
+# Compiler flags:
+#        -EB            - big-endian
+#        -mips32        - MIPS32 CPU
+#        -G 0           - no "small global" area
+#        -O2            - extra optimization
+#        -fno-for-scope - make variables declared in "for" visible outside loop
+#        -msoft-float   - use soft floating point
+#        -Wall          - all warnings
+#        -c             - compile to .o
+#--------------------------------------------------------------------------
+CFLAGS  = \
+        -mips32 \
+        -G 0 \
+        -O2 \
+        -ffunction-sections \
+        -Wall \
+        $(EXTRA_INCLUDE) \
+        $(EXTRA_DEFINE) \
+        -c
+
+COMPILE = $(CC) $(CFLAGS)
+ARCHIVE = ar cru $@
+
+LIBRARY_PATH = ..
+PROJECTLIB   = $(LIBRARY_PATH)/libOpenSSLLinux.a
+
+EXTRA_INCLUDE += \
+        -I. \
+        -I../include \
+        -I../include/openssl \
+        -I$(CONFIG_DIR)/include \
+	-I../ \
+	
+
+junk = \
+        -I$(GNU_INC)/include/backward \
+        -I$(GNU_INC)/include \
+        -I$(GNU_INC)/include/$(ARCH)
+
+
+########################################################################
+# It shouldn't be necessary to change anything below this point.
+########################################################################
+
+#//======================================================================
+#// Crypto Files
+#//======================================================================
+CRYPTO_DIR=.
+CRYPTO_C=$(CRYPTO_DIR)/ebcdic.c  $(CRYPTO_DIR)/mem.c\
+         $(CRYPTO_DIR)/o_dir.c   $(CRYPTO_DIR)/o_str.c    $(CRYPTO_DIR)/o_time.c\
+	 $(CRYPTO_DIR)/tmdiff.c  $(CRYPTO_DIR)/uid.c\
+	 $(CRYPTO_DIR)/cpt_err.c $(CRYPTO_DIR)/cryptlib.c $(CRYPTO_DIR)/cversion.c\
+	 $(CRYPTO_DIR)/ex_data.c $(CRYPTO_DIR)/mem_clr.c  $(CRYPTO_DIR)/mem_dbg.c
+	
+
+#//======================================================================
+#// AES Files
+#//======================================================================
+AES_DIR=aes
+AES_C=$(AES_DIR)/aes_cbc.c $(AES_DIR)/aes_cfb.c  $(AES_DIR)/aes_core.c $(AES_DIR)/aes_ctr.c\
+      $(AES_DIR)/aes_ecb.c $(AES_DIR)/aes_misc.c $(AES_DIR)/aes_ofb.c 
+
+
+#//======================================================================
+#// ASN1 Files
+#//======================================================================
+ASN1_DIR=asn1
+ASN1_C=$(ASN1_DIR)/a_bitstr.c $(ASN1_DIR)/a_bool.c   $(ASN1_DIR)/a_bytes.c  $(ASN1_DIR)/a_d2i_fp.c\
+       $(ASN1_DIR)/a_digest.c $(ASN1_DIR)/a_dup.c    $(ASN1_DIR)/a_enum.c   $(ASN1_DIR)/a_gentm.c\
+       $(ASN1_DIR)/a_hdr.c    $(ASN1_DIR)/a_i2d_fp.c $(ASN1_DIR)/a_int.c    $(ASN1_DIR)/a_mbstr.c\
+       $(ASN1_DIR)/a_meth.c   $(ASN1_DIR)/a_object.c $(ASN1_DIR)/a_octet.c  $(ASN1_DIR)/a_print.c\
+       $(ASN1_DIR)/a_set.c    $(ASN1_DIR)/a_sign.c   $(ASN1_DIR)/a_strex.c  $(ASN1_DIR)/a_strnid.c\
+       $(ASN1_DIR)/a_time.c   $(ASN1_DIR)/a_type.c   $(ASN1_DIR)/a_utctm.c  $(ASN1_DIR)/a_utf8.c\
+       $(ASN1_DIR)/a_verify.c $(ASN1_DIR)/asn1_err.c $(ASN1_DIR)/asn1_gen.c $(ASN1_DIR)/asn1_lib.c\
+       $(ASN1_DIR)/asn1_par.c $(ASN1_DIR)/asn_moid.c $(ASN1_DIR)/asn_pack.c $(ASN1_DIR)/d2i_pr.c\
+       $(ASN1_DIR)/d2i_pu.c   $(ASN1_DIR)/evp_asn1.c $(ASN1_DIR)/f_enum.c   $(ASN1_DIR)/f_int.c\
+       $(ASN1_DIR)/f_string.c $(ASN1_DIR)/i2d_pr.c   $(ASN1_DIR)/i2d_pu.c   $(ASN1_DIR)/n_pkey.c\
+       $(ASN1_DIR)/nsseq.c    $(ASN1_DIR)/p5_pbe.c   $(ASN1_DIR)/p5_pbev2.c\
+       $(ASN1_DIR)/p8_pkey.c  $(ASN1_DIR)/t_bitst.c  $(ASN1_DIR)/t_crl.c    $(ASN1_DIR)/t_pkey.c\
+       $(ASN1_DIR)/t_req.c    $(ASN1_DIR)/t_spki.c   $(ASN1_DIR)/t_x509.c   $(ASN1_DIR)/t_x509a.c\
+       $(ASN1_DIR)/tasn_dec   $(ASN1_DIR)/tasn_enc   $(ASN1_DIR)/tasn_fre.c $(ASN1_DIR)/tasn_new.c\
+       $(ASN1_DIR)/tasn_prn.c $(ASN1_DIR)/tasn_typ.c $(ASN1_DIR)/tasn_utl.c\
+       $(ASN1_DIR)/x_algor.c  $(ASN1_DIR)/x_attrib.c $(ASN1_DIR)/x_bignum.c $(ASN1_DIR)/x_crl.c\
+       $(ASN1_DIR)/x_exten.c  $(ASN1_DIR)/x_info.c   $(ASN1_DIR)/x_long.c   $(ASN1_DIR)/x_name.c\
+       $(ASN1_DIR)/x_pkey.c   $(ASN1_DIR)/x_pubkey.c $(ASN1_DIR)/x_req.c    $(ASN1_DIR)/x_sig.c\
+       $(ASN1_DIR)/x_spki.c   $(ASN1_DIR)/x_val.c    $(ASN1_DIR)/x_x509.c   $(ASN1_DIR)/x_x509a.c 	 
+       
+       #compiler errors on this one $(ASN1_DIR)/p8_key.c       
+ 
+#//======================================================================
+#// BF Files
+#//======================================================================
+BF_DIR=bf
+BF_C=$(BF_DIR)/bf_cfb64.c $(BF_DIR)/bf_ecb.c  $(BF_DIR)/bf_enc.c\
+     $(BF_DIR)/bf_ofb64.c $(BF_DIR)/bf_skey.c $(BF_DIR)/bfspeed.c
+
+	
+     #$(BF_DIR)/bf_opts.c $(BF_DIR)/bf_cbc.c (bf_cbc has duplicate func with bf_enc)
+     
+     
+     #To Add Blowfish support:
+     # 1. Add $(EVP_DIR)/e_bf.c  (further in this file)
+     # 2. Undef "OPENSSL_NO_BF" in 3 opensslconf.h files ( 2 in lib and 1 in app ).
+     # 3. Add files to the build - SOURCE_C+=$(BF_C)   (further in this file)
+     
+     
+#//======================================================================
+#// BIO Files
+#//======================================================================
+BIO_DIR=bio
+BIO_C=$(BIO_DIR)/b_dump.c   $(BIO_DIR)/b_print.c   $(BIO_DIR)/b_sock.c   $(BIO_DIR)/bf_buff.c\
+      $(BIO_DIR)/bf_lbuf.c  $(BIO_DIR)/bf_nbio.c   $(BIO_DIR)/bf_null.c  $(BIO_DIR)/bio_cb.c\
+      $(BIO_DIR)/bio_err.c  $(BIO_DIR)/bio_lib.c   $(BIO_DIR)/bss_acpt.c $(BIO_DIR)/bss_bio.c\
+      $(BIO_DIR)/bss_conn.c $(BIO_DIR)/bss_dgram.c $(BIO_DIR)/bss_fd.c   $(BIO_DIR)/bss_file.c\
+      $(BIO_DIR)/bss_mem.c  $(BIO_DIR)/bss_null.c  $(BIO_DIR)/bss_sock.c
+      
+      #compiler errors $(BIO_DIR)/bss_log.c $(BIO_DIR)/bss_rtcp.c
+
+
+#//======================================================================
+#// BN Files
+#//======================================================================
+BN_DIR=bn
+BN_C=$(BN_DIR)/bn_add.c   $(BN_DIR)/bn_asm.c  $(BN_DIR)/bn_blind.c $(BN_DIR)/bn_ctx.c\
+     $(BN_DIR)/bn_depr.c  $(BN_DIR)/bn_div.c  $(BN_DIR)/bn_err.c   $(BN_DIR)/bn_exp2.c\
+     $(BN_DIR)/bn_exp.c   $(BN_DIR)/bn_gcd.c  $(BN_DIR)/bn_gf2m.c  $(BN_DIR)/bn_kron.c\
+     $(BN_DIR)/bn_lib.c   $(BN_DIR)/bn_mod.c  $(BN_DIR)/bn_mont.c  $(BN_DIR)/bn_mpi.c\
+     $(BN_DIR)/bn_mul.c   $(BN_DIR)/bn_nist.c $(BN_DIR)/bn_prime.c $(BN_DIR)/bn_print.c\
+     $(BN_DIR)/bn_rand.c  $(BN_DIR)/bn_recp.c $(BN_DIR)/bn_shift.c $(BN_DIR)/bn_sqr.c\
+     $(BN_DIR)/bn_sqrt    $(BN_DIR)/bn_word.c $(BN_DIR)/bnspeed.c\
+     $(BN_DIR)/expspeed.c 
+     
+     #$(BN_DIR)/exp.c $(BN_DIR)/bntest.c $(BN_DIR)/divtest.c$(BN_DIR)/exptest.c
+     #$(BN_DIR)/vms-helper.c
+    
+
+#//======================================================================
+#// BUFFER Files
+#//======================================================================
+BUFFER_DIR=buffer
+BUFFER_C=$(BUFFER_DIR)/buf_err.c $(BUFFER_DIR)/buffer.c 
+
+
+#//======================================================================
+#// CAST Files
+#//======================================================================
+CAST_DIR=cast
+CAST_C=$(CAST_DIR)/c_cfb64.c $(CAST_DIR)/c_ecb.c    $(CAST_DIR)/c_enc.c    $(CAST_DIR)/c_ofb64.c\
+       $(CAST_DIR)/c_skey.c  $(CAST_DIR)/cast_spd.c $(CAST_DIR)/castopts.c 
+       
+       #$(CAST_DIR)/casttest.c 
+
+ 
+#//======================================================================
+#// COMP Files
+#//======================================================================
+COMP_DIR=comp
+COMP_C=$(COMP_DIR)/c_rle.c $(COMP_DIR)/c_zlib.c $(COMP_DIR)/comp_err.c $(COMP_DIR)/comp_lib.c  
+
+
+#//======================================================================
+#// CONF Files
+#//======================================================================
+CONF_DIR=conf
+CONF_C=$(CONF_DIR)/cnf_save.c $(CONF_DIR)/conf_api.c $(CONF_DIR)/conf_def.c $(CONF_DIR)/conf_err.c\
+       $(CONF_DIR)/conf_lib.c $(CONF_DIR)/conf_mall  $(CONF_DIR)/conf_mod.c $(CONF_DIR)/conf_sap.c\
+       
+       #$(CONF_DIR)/test.c
+ 
+
+#//======================================================================
+#// DES Files
+#//======================================================================
+DES_DIR=des
+DES_C=$(DES_DIR)/cbc3_enc.c $(DES_DIR)/cbc_cksm.c     $(DES_DIR)/cbc_enc.c  $(DES_DIR)/cfb64ede.c\
+      $(DES_DIR)/cfb64enc.c $(DES_DIR)/cfb_enc.c      $(DES_DIR)/des.c      $(DES_DIR)/des_enc.c\
+      $(DES_DIR)/des_old2.c $(DES_DIR)/des_old                              $(DES_DIR)/ecb3_enc.c\
+      $(DES_DIR)/ecb_enc.c  $(DES_DIR)/ede_cbcm_enc.c $(DES_DIR)/enc_read.c $(DES_DIR)/enc_writ.c\
+      $(DES_DIR)/fcrypt.c   $(DES_DIR)/fcrypt_b.c     $(DES_DIR)/ncbc_enc.c $(DES_DIR)/ofb64ede.c\
+      $(DES_DIR)/ofb64enc.c $(DES_DIR)/ofb_enc.c      $(DES_DIR)/pcbc_enc.c $(DES_DIR)/qud_cksm.c\
+      $(DES_DIR)/rand_key.c $(DES_DIR)/read2pwd.c                           $(DES_DIR)/rpc_enc.c\
+      $(DES_DIR)/rpw.c      $(DES_DIR)/set_key.c                            $(DES_DIR)/str2key.c\
+      $(DES_DIR)/xcbc_enc.c
+      
+      #$(DES_DIR)/destest.c      
+      #compiler error $(DES_DIR)/read_pwd.c          $(DES_DIR)/speed.c  $(DES_DIR)/des_opts.c
+      
+ 
+#//======================================================================
+#// DH Files
+#//======================================================================
+DH_DIR=dh
+DH_C=$(DH_DIR)/dh_asn1.c $(DH_DIR)/dh_check.c $(DH_DIR)/dh_depr.c $(DH_DIR)/dh_err.c\
+     $(DH_DIR)/dh_gen.c  $(DH_DIR)/dh_key.c   $(DH_DIR)/dh_lib.c\
+     $(DH_DIR)/p192.c    $(DH_DIR)/p512.c     $(DH_DIR)/p1024.c
+     
+     #$(DH_DIR)/dhtest.c 
+
+
+#//======================================================================
+#// DSA Files
+#//======================================================================
+DSA_DIR=dsa
+DSA_C=$(DSA_DIR)/dsa_asn1.c $(DSA_DIR)/dsa_depr.c $(DSA_DIR)/dsa_err.c  $(DSA_DIR)/dsa_gen.c\
+      $(DSA_DIR)/dsa_key.c  $(DSA_DIR)/dsa_lib.c  $(DSA_DIR)/dsa_ossl.c $(DSA_DIR)/dsa_sign.c\
+      $(DSA_DIR)/dsa_vrf.c  $(DSA_DIR)/dsagen.c 
+      
+      #$(DSA_DIR)/dsatest.c
+
+
+#//======================================================================
+#// DSO Files
+#//======================================================================
+DSO_DIR=dso
+DSO_C=$(DSO_DIR)/dso_dl.c   $(DSO_DIR)/dso_dlfcn.c   $(DSO_DIR)/dso_err.c $(DSO_DIR)/dso_lib.c\
+      $(DSO_DIR)/dso_null.c $(DSO_DIR)/dso_openssl.c $(DSO_DIR)/dso_vms.c $(DSO_DIR)/dso_win32.c
+
+
+#//======================================================================
+#// EC Files
+#//======================================================================
+EC_DIR=ec
+EC_C=$(EC_DIR)/ec2_mult.c $(EC_DIR)/ec2_smpl.c                      $(EC_DIR)/ec_asn1.c\
+     $(EC_DIR)/ec_check.c $(EC_DIR)/ec_curve.c $(EC_DIR)/ec_cvt.c   $(EC_DIR)/ec_err.c\
+     $(EC_DIR)/ec_key     $(EC_DIR)/ec_lib.c   $(EC_DIR)/ec_mult.c  $(EC_DIR)/ec_print.c\
+     $(EC_DIR)/ecp_mont.c $(EC_DIR)/ecp_nist.c $(EC_DIR)/ecp_smpl.c 
+     
+     #$(EC_DIR)/ectest.c  
+     #compiler error  $(EC_DIR)/ec2_smpt.c
+     
+
+#//======================================================================
+#// ECDH Files
+#//======================================================================
+ECDH_DIR=ecdh
+ECDH_C=$(ECDH_DIR)/ech_err.c $(ECDH_DIR)/ech_key.c $(ECDH_DIR)/ech_lib.c $(ECDH_DIR)/ech_ossl.c
+    
+       #$(ECDH_DIR)/echtest.c
+       
+
+#//======================================================================
+#// ECDSA Files
+#//======================================================================
+ECDSA_DIR=ecdsa
+ECDSA_C=$(ECDSA_DIR)/ecs_asn1.c $(ECDSA_DIR)/ecs_err.c $(ECDSA_DIR)/ecs_lib.c $(ECDSA_DIR)/ecs_ossl.c\
+        $(ECDSA_DIR)/ecs_sign.c $(ECDSA_DIR)/ecs_vrf.c
+	
+	#$(ECDSA_DIR)/ecdsatest.c
+
+
+
+#//======================================================================
+#// Engine Files
+#//======================================================================
+ENG_DIR=engine
+ENGINE_C+=$(ENG_DIR)/eng_all.c   $(ENG_DIR)/eng_cnf.c   $(ENG_DIR)/eng_cryptodev.c $(ENG_DIR)/eng_ctrl.c\
+          $(ENG_DIR)/eng_dyn.c   $(ENG_DIR)/eng_err.c   $(ENG_DIR)/eng_fat.c       $(ENG_DIR)/eng_init.c\
+	  $(ENG_DIR)/eng_lib.c   $(ENG_DIR)/eng_list.c  $(ENG_DIR)/eng_openssl.c   $(ENG_DIR)/eng_padlock.c\
+	  $(ENG_DIR)/eng_pkey.c  $(ENG_DIR)/eng_table.c $(ENG_DIR)/tb_cipher.c     $(ENG_DIR)/tb_dh.c\
+	  $(ENG_DIR)/tb_digest.c $(ENG_DIR)/tb_dsa.c    $(ENG_DIR)/tb_ecdh.c       $(ENG_DIR)/tb_ecdsa.c\
+	  $(ENG_DIR)/tb_rand.c   $(ENG_DIR)/tb_rsa.c    $(ENG_DIR)/tb_store.c\
+         	  
+	  #(ENG_DIR)/enginetest.c  
+	  
+     
+#//======================================================================
+#// ERR Files
+#//======================================================================
+ERR_DIR=err
+ERR_C=$(ERR_DIR)/err.c $(ERR_DIR)/err_all.c $(ERR_DIR)/err_prn.c
+
+
+#//======================================================================
+#// EVP Files
+#//======================================================================
+EVP_DIR=evp
+EVP_C=$(EVP_DIR)/bio_b64.c  $(EVP_DIR)/bio_enc.c    $(EVP_DIR)/bio_md.c   $(EVP_DIR)/bio_ok.c\
+      $(EVP_DIR)/c_all.c    $(EVP_DIR)/c_allc.c     $(EVP_DIR)/c_alld.c   $(EVP_DIR)/digest.c\
+      $(EVP_DIR)/e_aes.c                            $(EVP_DIR)/e_cast.c   $(EVP_DIR)/e_des3.c\
+      $(EVP_DIR)/e_des.c                                                  $(EVP_DIR)/e_null.c\
+      $(EVP_DIR)/e_old.c    $(EVP_DIR)/e_rc2.c      $(EVP_DIR)/e_rc4.c\
+      $(EVP_DIR)/e_xcbc_d.c $(EVP_DIR)/encode.c     $(EVP_DIR)/evp_acnf.c $(EVP_DIR)/evp_enc.c\
+      $(EVP_DIR)/evp_err.c  $(EVP_DIR)/evp_key.c    $(EVP_DIR)/evp_lib.c  $(EVP_DIR)/evp_pbe.c\
+      $(EVP_DIR)/evp_pkey.c $(EVP_DIR)/m_dss1.c     $(EVP_DIR)/m_dss.c    $(EVP_DIR)/m_ecdsa.c\
+      $(EVP_DIR)/m_md2.c    $(EVP_DIR)/m_md4.c      $(EVP_DIR)/m_md5.c\
+      $(EVP_DIR)/m_null.c                           $(EVP_DIR)/m_sha1.c   $(EVP_DIR)/m_sha.c\
+      $(EVP_DIR)/names.c    $(EVP_DIR)/openbsd_hw.c $(EVP_DIR)/p5_crpt2.c $(EVP_DIR)/p5_crpt.c\
+      $(EVP_DIR)/p_dec.c    $(EVP_DIR)/p_enc.c      $(EVP_DIR)/p_lib.c    $(EVP_DIR)/p_open.c\
+      $(EVP_DIR)/p_seal.c   $(EVP_DIR)/p_sign.c     $(EVP_DIR)/p_verify.c
+      
+      #$(EVP_DIR)/m_ripemd.c 
+      
+#To Add Blowfish
+#EVP_C+=$(EVP_DIR)/e_bf.c
+
+      # $(EVP_DIR)/evp_test.c   
+      #complier error     $(EVP_DIR)/e_dsa.c
+      #don't use these    $(EVP_DIR)/e_idea.c  $(EVP_DIR)/e_bf.c  $(EVP_DIR)/e_rc5.c $(EVP_DIR)/m_mdc2.c           
+
+#//======================================================================
+#// HMAC Files
+#//======================================================================
+HMAC_DIR=hmac
+HMAC_C=$(HMAC_DIR)/hmac.c
+
+       #$(HMAC_DIR)/hmactest.c  
+
+
+#//======================================================================
+#// IDEA Files
+#//======================================================================
+IDEA_DIR=idea
+IDEA_C=$(IDEA_DIR)/i_cbc.c  $(IDEA_DIR)/i_cfb64.c  $(IDEA_DIR)/i_ecb.c $(IDEA_DIR)/i_ofb64.c\
+       $(IDEA_DIR)/i_skey.c $(IDEA_DIR)/idea_spd.c 
+       
+       #$(IDEA_DIR)/ideatest.c
+
+
+#//======================================================================
+#// KRB5 Files
+#//======================================================================
+KRB5_DIR=krb5
+KRB5_C=$(KRB5_DIR)/krb5_asn.c
+
+
+#//======================================================================
+#// LHASH Files
+#//======================================================================
+LHASH_DIR=lhash
+LHASH_C=$ $(LHASH_DIR)/lhash.c 
+        
+	#$(LHASH_DIR)/lh_test.c (LHASH_DIR)/lh_stats.c
+
+
+#//======================================================================
+#// MD2 Files
+#//======================================================================
+MD2_DIR=md2
+MD2_C=$(MD2_DIR)/md2.c $(MD2_DIR)/md2_dgst.c $(MD2_DIR)/md2_one.c
+      
+      #$(MD2_DIR)/md2test.c 
+ 
+
+#//======================================================================
+#// MD4 Files
+#//======================================================================
+MD4_DIR=md4
+MD4_C=$(MD4_DIR)/md4.c $(MD4_DIR)/md4_dgst.c $(MD4_DIR)/md4_one.c
+     
+      #$(MD4_DIR)/md4test.c
+
+
+#//======================================================================
+#// MD5 Files
+#//======================================================================
+MD5_DIR=md5
+MD5_C=$(MD5_DIR)/md5.c $(MD5_DIR)/md5_dgst.c $(MD5_DIR)/md5_one.c
+
+      #$(MD5_DIR)/md5test.c 
+
+
+#//======================================================================
+#// MDC2 Files
+#//======================================================================
+MDC2_DIR=mdc2
+MDC2_C=  
+
+       #$$(MDC2_DIR)/mdc2_one.c $(MDC2_DIR)/mdc2dgst.c (MDC2_DIR)/mdc2test.c
+
+
+#//======================================================================
+#// OBJECTS Files
+#//======================================================================
+OBJECTS_DIR=objects
+OBJECTS_C=$(OBJECTS_DIR)/o_names.c $(OBJECTS_DIR)/obj_dat.c $(OBJECTS_DIR)/obj_err.c\
+          $(OBJECTS_DIR)/obj_lib.c
+	
+
+#//======================================================================
+#// OCSP Files
+#//======================================================================
+OCSP_DIR=ocsp
+OCSP_C=$(OCSP_DIR)/ocsp_asn.c $(OCSP_DIR)/ocsp_cl.c $(OCSP_DIR)/ocsp_err.c\
+       $(OCSP_DIR)/ocsp_ext.c $(OCSP_DIR)/ocsp_ht.c $(OCSP_DIR)/ocsp_lib.c\
+       $(OCSP_DIR)/ocsp_prn.c $(OCSP_DIR)/ocsp_srv.c $(OCSP_DIR)/ocsp_vfy.c
+       
+
+#//======================================================================
+#// PEM Files
+#//======================================================================
+PEM_DIR=pem
+PEM_C=$(PEM_DIR)/pem_all.c  $(PEM_DIR)/pem_err.c  $(PEM_DIR)/pem_info.c $(PEM_DIR)/pem_lib.c\
+      $(PEM_DIR)/pem_oth.c  $(PEM_DIR)/pem_pk8.c  $(PEM_DIR)/pem_pkey.c $(PEM_DIR)/pem_seal.c\
+      $(PEM_DIR)/pem_sign.c $(PEM_DIR)/pem_x509.c $(PEM_DIR)/pem_xaux.c
+ 
+
+#//======================================================================
+#// PKCS7 Files
+#//======================================================================
+PKCS7_DIR=pkcs7
+PKCS7_C=                        $(PKCS7_DIR)/dec.c      $(PKCS7_DIR)/enc.c $(PKCS7_DIR)/example.c\
+        $(PKCS7_DIR)/pk7_asn1.c $(PKCS7_DIR)/pk7_attr.c $(PKCS7_DIR)/pk7_dgst.c $(PKCS7_DIR)/pk7_doit.c\
+	                        $(PKCS7_DIR)/pk7_lib.c  $(PKCS7_DIR)/pk7_mime.c $(PKCS7_DIR)/pk7_smime.c\
+        $(PKCS7_DIR)/pkcs7err.c $(PKCS7_DIR)/sign.c $(PKCS7_DIR)/verify.c
+  
+        #compier error  $(PKCS7_DIR)/bio_ber.c  $(PKCS7_DIR)/pk7_enc.c
+
+
+#//======================================================================
+#// PKCS12 Files
+#//======================================================================
+PKCS12_DIR=pkcs12
+PKCS12_C=$(PKCS12_DIR)/p12_add.c $(PKCS12_DIR)/p12_asn.c  $(PKCS12_DIR)/p12_attr.c\
+	$(PKCS12_DIR)/p12_crpt.c $(PKCS12_DIR)/p12_crt.c  $(PKCS12_DIR)/p12_decr.c\
+	$(PKCS12_DIR)/p12_init.c $(PKCS12_DIR)/p12_key.c  $(PKCS12_DIR)/p12_kiss.c\
+	$(PKCS12_DIR)/p12_mutl.c $(PKCS12_DIR)/p12_npas.c $(PKCS12_DIR)/p12_p8d.c\
+	$(PKCS12_DIR)/p12_p8e.c  $(PKCS12_DIR)/p12_utl.c  $(PKCS12_DIR)/pk12err.c
+	
+
+#//======================================================================
+#// PQUEUE Files
+#//======================================================================
+PQUEUE_DIR=pqueue
+PQUEUE_C=$(PQUEUE_DIR)/pqueue.c 
+
+         #$(PQUEUE_DIR)/pq_test.c
+
+
+#//======================================================================
+#// RAND Files
+#//======================================================================
+RAND_DIR=rand
+RAND_C=$(RAND_DIR)/md_rand.c $(RAND_DIR)/rand_egd.c $(RAND_DIR)/rand_err.c $(RAND_DIR)/rand_lib.c\
+       $(RAND_DIR)/rand_nw.c $(RAND_DIR)/rand_os2.c $(RAND_DIR)/rand_unix.c $(RAND_DIR)/rand_vms.c\
+       $(RAND_DIR)/rand_win.c $(RAND_DIR)/randfile.c
+       
+       # $(RAND_DIR)/randtest.c
+       
+	
+#//======================================================================
+#// RC2 Files
+#//======================================================================
+RC2_DIR=rc2
+RC2_C=$(RC2_DIR)/rc2_cbc.c  $(RC2_DIR)/rc2_ecb.c  $(RC2_DIR)/rc2_skey.c $(RC2_DIR)/rc2cfb64.c\
+      $(RC2_DIR)/rc2ofb64.c $(RC2_DIR)/rc2speed.c $(RC2_DIR)/tab.c
+         
+      #$(RC2_DIR)/rc2test.c
+
+   
+#//======================================================================
+#// RC4 Files
+#//======================================================================
+RC4_DIR=rc4
+RC4_C=$(RC4_DIR)/rc4_enc.c $(RC4_DIR)/rc4_skey.c $(RC4_DIR)/rc4speed.c
+
+      #$(RC4_DIR)/rc4test.c
+      #compiler error $(RC4_DIR)/rc4.c 
+	
+#//======================================================================
+#// RC5 Files
+#//======================================================================
+RC5_DIR=rc5
+RC5_C=
+      #$(RC5_DIR)/rc5_ecb.c  $(RC5_DIR)/rc5_enc.c  $(RC5_DIR)/rc5_skey.c\
+      #$(RC5_DIR)/rc5cfb64.c $(RC5_DIR)/rc5ofb64.c $(RC5_DIR)/rc5speed.c
+      
+      #$(RC5_DIR)/rc5test.c
+
+
+#//======================================================================
+#// RIPEMD Files
+#//======================================================================
+RIPEMD_DIR=ripemd
+RIPEMD_C=$(RIPEMD_DIR)/rmd160.c $(RIPEMD_DIR)/rmd_dgst.c\
+         $(RIPEMD_DIR)/rmd_one.c $(RIPEMD_DIR)/rmdtest.c 
+	 
+
+#//======================================================================
+#// RSA Files
+#//======================================================================
+RSA_DIR=rsa
+RSA_C=$(RSA_DIR)/rsa_asn1.c $(RSA_DIR)/rsa_chk.c  $(RSA_DIR)/rsa_depr.c $(RSA_DIR)/rsa_eay.c\
+      $(RSA_DIR)/rsa_err.c  $(RSA_DIR)/rsa_gen.c  $(RSA_DIR)/rsa_lib.c  $(RSA_DIR)/rsa_none.c\
+      $(RSA_DIR)/rsa_null.c $(RSA_DIR)/rsa_oaep.c $(RSA_DIR)/rsa_pk1.c  $(RSA_DIR)/rsa_pss.c\
+      $(RSA_DIR)/rsa_saos.c $(RSA_DIR)/rsa_sign.c $(RSA_DIR)/rsa_ssl.c  $(RSA_DIR)/rsa_x931.c
+
+      #$(RSA_DIR)/rsa_test.c
+
+
+#//======================================================================
+#// SHA Files
+#//======================================================================
+SHA_DIR=sha
+SHA_C=$(SHA_DIR)/sha1.c     $(SHA_DIR)/sha1_one.c $(SHA_DIR)/sha1dgst.c $(SHA_DIR)/sha256.c\
+      $(SHA_DIR)/sha256t.c  $(SHA_DIR)/sha512.c   $(SHA_DIR)/sha512t.c  $(SHA_DIR)/sha.c\
+      $(SHA_DIR)/sha_dgst.c $(SHA_DIR)/sha_one.c
+
+      #$(SHA_DIR)/sha1test.c  $(SHA_DIR)/shatest.c
+
+
+#//======================================================================
+#// STACK Files
+#//======================================================================
+STACK_DIR=stack
+STACK_C=$(STACK_DIR)/stack.c
+
+
+#//======================================================================
+#// STORE Files
+#//======================================================================
+STORE_DIR=store
+STORE_C=$(STORE_DIR)/str_err.c $(STORE_DIR)/str_lib.c\
+        $(STORE_DIR)/str_mem.c $(STORE_DIR)/str_meth.c
+
+
+#//======================================================================
+#// THREADS Files
+#//======================================================================
+THREADS_DIR=threads
+THREADS_C=$(THREADS_DIR)/th-lock.c
+
+         #$(THREADS_DIR)/mttest.c
+
+
+#//======================================================================
+#// TXT Files
+#//======================================================================
+TXT_DB_DIR=txt_db
+TXT_DB_C=$(TXT_DB_DIR)/txt_db.c
+
+
+#//======================================================================
+#// UI Files
+#//======================================================================
+UI_DIR=ui
+UI_C=$(UI_DIR)/ui_compat.c  $(UI_DIR)/ui_err.c $(UI_DIR)/ui_lib.c\
+     $(UI_DIR)/ui_openssl.c $(UI_DIR)/ui_util.c 
+
+
+#//======================================================================
+#// X509 Files
+#//======================================================================
+X509_DIR=x509
+X509_C=$(X509_DIR)/by_dir.c   $(X509_DIR)/by_file.c  $(X509_DIR)/x509_att.c $(X509_DIR)/x509_cmp.c\
+       $(X509_DIR)/x509_d2.c  $(X509_DIR)/x509_def.c $(X509_DIR)/x509_err.c $(X509_DIR)/x509_ext.c\
+       $(X509_DIR)/x509_lu.c  $(X509_DIR)/x509_obj.c $(X509_DIR)/x509_r2x.c $(X509_DIR)/x509_req.c\
+       $(X509_DIR)/x509_set.c $(X509_DIR)/x509_trs.c $(X509_DIR)/x509_txt.c $(X509_DIR)/x509_v3.c\
+       $(X509_DIR)/x509_vfy.c $(X509_DIR)/x509_vpm.c $(X509_DIR)/x509cset.c $(X509_DIR)/x509name.c\
+       $(X509_DIR)/x509rset.c $(X509_DIR)/x509spki.c $(X509_DIR)/x509type.c $(X509_DIR)/x_all.c
+         
+
+#//======================================================================
+#// X509V3 Files
+#//======================================================================
+X509V3_DIR=x509v3
+X509V3_C=$(X509V3_DIR)/pcy_cache.c $(X509V3_DIR)/pcy_data.c $(X509V3_DIR)/pcy_lib.c  $(X509V3_DIR)/pcy_map.c\
+         $(X509V3_DIR)/pcy_node.c  $(X509V3_DIR)/pcy_tree.c $(X509V3_DIR)/v3_akey.c  $(X509V3_DIR)/v3_akeya.c\
+	 $(X509V3_DIR)/v3_alt.c    $(X509V3_DIR)/v3_bcons.c $(X509V3_DIR)/v3_bitst.c $(X509V3_DIR)/v3_conf.c\
+	 $(X509V3_DIR)/v3_cpols.c  $(X509V3_DIR)/v3_crld.c  $(X509V3_DIR)/v3_enum.c  $(X509V3_DIR)/v3_extku.c\
+         $(X509V3_DIR)/v3_genn.c   $(X509V3_DIR)/v3_ia5.c   $(X509V3_DIR)/v3_info.c  $(X509V3_DIR)/v3_int.c\
+	 $(X509V3_DIR)/v3_lib.c    $(X509V3_DIR)/v3_ncons.c $(X509V3_DIR)/v3_ocsp.c  $(X509V3_DIR)/v3_pci.c\
+	 $(X509V3_DIR)/v3_pcia.c   $(X509V3_DIR)/v3_pcons.c $(X509V3_DIR)/v3_pku.c   $(X509V3_DIR)/v3_pmaps.c\
+         $(X509V3_DIR)/v3_prn.c    $(X509V3_DIR)/v3_purp.c  $(X509V3_DIR)/v3_skey.c  $(X509V3_DIR)/v3_sxnet.c\
+	 $(X509V3_DIR)/v3_utl.c    $(X509V3_DIR)/v3conf.c   $(X509V3_DIR)/v3err.c    $(X509V3_DIR)/v3prin.c\
+	 
+         #$(X509V3_DIR)/tabtest.c
+
+
+#//======================================================================
+#// Source Files
+#//======================================================================
+SOURCE_C=$(CRYPTO_C)  $(AES_C)    $(ASN1_C)   $(BIO_C)    $(BN_C)      $(BUFFER_C) \
+         $(COMP_C)    $(CONF_C)   $(DES_C)    $(DH_C)     $(ERR_C)\
+	 $(EVP_C)     $(HMAC_C)   $(LHASH_C)  $(MD5_C)    $(OBJECTS_C) $(PEM_C) \
+	 $(RAND_C)    $(RSA_C)    $(SHA_C)    $(STACK_C)  $(UI_C)      $(X509_C) $(X509V3_C)     
+
+#OpenSSH needs these
+SOURCE_C+= $(RC4_C) $(DSA_C) $(PKCS12_C)
+            
+         # don't use the following: $(IDEA_C) $(MDC2_C) $(RC5_C) $(BF_C)
+	 
+	 # $(RC2_C)    $(MD2_C)   $(MD4_C)    $(RIPEMD_C)  $(KRB5_C)   
+	 # $(TXT_DB_C) $(STORE_C) $(PQUEUE_C) $(THREADS_C) $(OCSP_C)   $(ENGINE_C) 
+	 # $(ECDH_C)   $(EC_C)    $(ECDSA_C)  $(DSO_C)     $(PKCS7_C)  
+	 # $(CAST_C)       
+	 
+
+
+#To Add Blowfish 
+#SOURCE_C+=$(BF_C) 
+
+
+#//======================================================================
+#// Generic rule for generating dependencies files
+#//======================================================================
+%.d : %.c
+	$(COMPILE_DEPENDS) -M $< > $(@F)
+   
+#//======================================================================
+#// Generic rule for generating *.o object files
+#//======================================================================
+%.o: %.c
+	$(COMPILE) $< -o $@
+   
+#//======================================================================
+%.dir: 
+	$(MAKE) -C $* 
+
+#//======================================================================
+%.cln: 
+	$(MAKE) -C $* clean
+   
+#//======================================================================
+#// Internal definitions
+#//======================================================================
+allcfiles      = $(SOURCE_C)
+c_objects      = $(allcfiles:.c=.o)
+
+all_objects   := $(c_objects) 
+
+#//======================================================================
+#// Build targets
+#//======================================================================
+target : project
+
+project : $(all_objects) $(PROJECTLIB)
+
+$(PROJECTLIB): $(all_objects)
+	$(ARCHIVE) $?
+
+all : 
+	@$(MAKE) clean
+	@$(MAKE) target
+
+clean : $(c_subdirs)
+	rm -f *.o
+	rm -f aes/*.o
+	rm -f asn1/*.o
+	rm -f bf/*.o
+	rm -f bio/*.o
+	rm -f bn/*.o
+	rm -f buffer/*.o
+	rm -f cast/*.o
+	rm -f comp/*.o
+	rm -f conf/*.o
+	rm -f des/*.o
+	rm -f dh/*.o
+	rm -f dsa/*.o
+	rm -f dso/*.o
+	rm -f ec/*.o
+	rm -f ecdh/*.o
+	rm -f ecdsa/*.o
+	rm -f engine/*.o
+	rm -f err/*.o
+	rm -f evp/*.o
+	rm -f hmac/*.o
+	rm -f idea/*.o
+	rm -f krb5/*.o
+	rm -f lhash/*.o
+	rm -f md2/*.o
+	rm -f md4/*.o
+	rm -f md5/*.o
+	rm -f mdc2/*.o
+	rm -f objects/*.o
+	rm -f ocsp/*.o
+	rm -f pem/*.o
+	rm -f pkcs7/*.o
+	rm -f pkcs12/*.o
+	rm -f pqueue/*.o
+	rm -f rand/*.o
+	rm -f rc2/*.o
+	rm -f rc4/*.o
+	rm -f rc5/*.o
+	rm -f ripemd/*.o
+	rm -f rsa/*.o
+	rm -f sha/*.o
+	rm -f stack/*.o
+	rm -f store/*.o
+	rm -f threads/*.o
+	rm -f txt_db/*.o
+	rm -f ui/*.o
+	rm -f x509/*.o
+	rm -f x509v3/*.o
+	rm -f $(PROJECTLIB)
+
+
+

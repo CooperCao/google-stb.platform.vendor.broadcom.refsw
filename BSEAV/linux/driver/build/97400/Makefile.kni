@@ -1,0 +1,81 @@
+############################################################
+#     Copyright (c) 2003-2009, Broadcom Corporation
+#     All Rights Reserved
+#     Confidential Property of Broadcom Corporation
+#
+#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
+#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
+#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+#
+# $brcm_Workfile: $
+# $brcm_Revision: $
+# $brcm_Date: $
+#
+# Module Description:
+#
+# Revision History:
+#
+# $brcm_Log: $
+# 
+############################################################
+
+LINUX ?= /opt/brcm/linux
+LINUX_VER_GE_2_6 ?= $(shell (grep 'PATCHLEVEL = 6' ${LINUX}/Makefile >/dev/null && echo 'y'))
+ifeq ($(LINUX_VER_GE_2_6),y)
+LINUX_VER_EQ_2_6_31 := $(shell (grep 'SUBLEVEL = 31' ${LINUX}/Makefile >/dev/null && echo 'y'))
+endif
+
+BUILDDIR=$(shell pwd)
+TARGET = bcmkni
+DRIVERS=$(BCM_OBJ_DIR)/$(TARGET).ko
+
+.PHONY: $(DRIVERS)
+all: checkdirs driver
+
+SYSTEM := linuxkernel
+
+ifeq ($(LINUX_VER_EQ_2_6_31),y)
+include Common.2.6.31.make
+else
+include Common.make
+endif
+
+# needed for PLATFORM->CHIP
+include ${BSEAV}/api/include/api.mak
+
+driver: checkdirs ${DRIVERS}
+
+CFLAGS += ${B_REFSW_LINUXKERNEL_CFLAGS}
+CFLAGS += ${BSETTOP_CFLAGS} ${B_REFSW_MAGNUM_INCLUDE_DIRS}
+CFLAGS += -DKBUILD_MODNAME=${TARGET}
+
+OBJS += \
+	bcmkni_driver.o \
+	bcmkni.mod.o \
+	bkni.o \
+	bdbg.o \
+	bdbg_os_priv.o\
+	bdbg_output.o
+
+
+ifeq ($(VERBOSE),)
+MAKEFLAGS += -s
+endif
+
+vpath %.c $(BSEAV)/linux/driver/97038
+vpath %.c $(BSEAV)/../magnum/basemodules/kni/linuxkernel
+vpath %.c $(BSEAV)/../magnum/basemodules/dbg/linuxkernel
+vpath %.c $(BSEAV)/../magnum/basemodules/dbg
+
+${OBJS}: ${LINUX_INC} checkdirs
+
+$(BCM_OBJ_DIR)/%.o: %.c
+	@echo [Compile... $(notdir $<)]
+	${Q_}$(CC) -MMD -c $(CFLAGS) $< -o $@
+
+${BCM_OBJ_DIR}/$(TARGET).ko: $(addprefix ${BCM_OBJ_DIR}/, ${OBJS})
+	@echo [Linking... $(notdir $@)]
+	${Q_}$(LD) -Map $(BCM_OBJ_DIR)/$(TARGET).map -r $^  -o $@ $(LDFLAGS)
+
+-include $(BCM_OBJ_DIR)/*.d
+

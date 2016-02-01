@@ -1,0 +1,23 @@
+# Menu item 1
+Planets Plus
+planets.png
+Runs the planets application and\nthe blit_client application
+pushd ../..
+blit_client -rect 900,100,800,600 &
+popd
+pushd ../planets
+planets o=100x100 d=800x600 +loop +demo +m
+popd
+killall blit_client
+
+# Menu item 2
+Programme Guide
+pg.png
+Run the programme guide demo\nand play videos
+pushd ../..
+playviewer &
+popd
+pushd ../pg
+pg o=640x360 d=1280x720 +m
+popd
+killall playviewer

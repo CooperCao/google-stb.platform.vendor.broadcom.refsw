@@ -1,0 +1,17 @@
+// SCB write for ITB0 (64 bytes) 
+zmw 02fad8c0 20000000
+zmw 02fad8c4 01caefe8
+zmw 02fad8c8 00000000
+zmw 02fad8cc 00000000
+zmw 02fad8d0 21000000
+zmw 02fad8d4 00014a78
+zmw 02fad8d8 00014a78
+zmw 02fad8dc 00000100
+zmw 02fad8e0 60000000
+zmw 02fad8e4 000bd800
+zmw 02fad8e8 00000000
+zmw 02fad8ec 00000000
+zmw 02fad8f0 61000000
+zmw 02fad8f4 0119bbc0
+zmw 02fad8f8 0000a53c
+zmw 02fad8fc 01234567

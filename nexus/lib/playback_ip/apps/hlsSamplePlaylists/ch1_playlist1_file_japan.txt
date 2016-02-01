@@ -1,0 +1,1 @@
+/File=/data/videos/japan_480p_q64.mpg;TranscodeEnabled=Yes;OutWidth=640;OutHeight=480;OutVideoCodec=H264;OutFrameRate=30;OutAudio=Yes;OutAudioCodec=AAC;TransportBitrate=1500000;HlsEnabled=Yes;NonRealTimeMode=Yes;

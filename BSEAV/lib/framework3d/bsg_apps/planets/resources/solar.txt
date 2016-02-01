@@ -1,0 +1,447 @@
+// Data is:
+//    radius         scaled, real (km)
+//    oblateness
+//    axialTilt      degrees
+//    day            hours
+//    surface        base_file_name
+//    orbitRadius    scaled, real (km)
+//    orbitTilt      degrees
+//    eccentricity
+//    year           hours
+//    ring           inner height, outer height, file_base_name
+//    clouds         rotation in hours, file_base_name
+
+BODY Mercury
+{
+   radius     = 1.7, 2439;
+   oblateness = 0;
+   axialTilt  = 0.03517;
+   day        = 1407.5;
+
+   surface = mercury_surface;
+
+   orbitRadius  = 32, 57909100;
+   orbitTilt    = 3.38;
+   eccentricity = 0.20563;
+   year         = 2111.2584;
+   phase        = 180;
+}
+
+BODY Venus
+{
+   radius     = 3.5, 6051.8;
+   oblateness = 0;
+   axialTilt  = 177.3;
+   day        = -5832.432;
+
+   surface = venus_surface;
+
+   orbitRadius  = 54, 108208930;
+   orbitTilt    = 3.86;
+   eccentricity = 0.007;
+   year         = 5392.8;
+   phase        = 250;
+}
+
+BODY Moon
+{
+   radius     = 2, 1738.14;
+   oblateness = 0.00125;
+   axialTilt  = 6.687;
+   day        = 655.717968;
+
+   surface = moon_surface;
+
+   orbitRadius  = 15, 384399;
+   orbitTilt    = 18;
+   eccentricity = 0.0549;
+   year         = 655.717968;
+}
+
+BODY Earth
+{
+   radius     = 4, 6378.1;
+   oblateness = 0.0033528;
+   axialTilt  = 23.43;
+   day        = 23.93447232;
+
+   surface = earth_surface;
+   clouds  = 23.9, earth_clouds
+
+   orbitRadius  = 85, 149598261;
+   orbitTilt    = 7.155;
+   eccentricity = 0.01671123;
+   year         = 8766.152712;
+   phase        = 120;
+
+   atmosphere   = 0.05 0.05 0.3 0.1
+
+   satellites = Moon;
+}
+
+BODY Mars
+{
+   radius     = 2.7, 3396.2;
+   oblateness = 0.006;
+   axialTilt  = 25.19;
+   day        = 24.624;
+
+   surface = mars_surface;
+
+   orbitRadius  = 140, 227939100;
+   orbitTilt    = 5.65;
+   eccentricity = 0.093;
+   year         = 16487.304;
+   phase        = 270;
+}
+
+BODY Io
+{
+   radius     = 1.4, 1830;
+   oblateness = 0;
+   axialTilt  = 0;
+   day        = 42.45930686;
+
+   surface = io_surface;
+
+   orbitRadius  = 16, 421700;
+   orbitTilt    = 0.05;
+   eccentricity = 0.0041;
+   year         = 42.45930686;
+   phase        = 90;
+}
+
+BODY Europa
+{
+   radius     = 1.25, 1569;
+   oblateness = 0;
+   axialTilt  = 0.1;
+   day        = 85.224;
+
+   surface = europa_surface;
+
+   orbitRadius  = 22, 670900;
+   orbitTilt    = 0.47;
+   eccentricity = 0.009;
+   year         = 85.224;
+   phase        = 170;
+}
+
+BODY Ganymede
+{
+   radius     = 1.4, 2634.1;
+   oblateness = 0;
+   axialTilt  = 0.15;
+   day        = 171.709271;
+
+   surface = ganymede_surface;
+
+   orbitRadius  = 28, 1070400;
+   orbitTilt    = 0.2;
+   eccentricity = 0.0013;
+   year         = 171.709271;
+   phase        = 250;
+}
+
+BODY Callisto
+{
+   radius     = 1.4, 2410.3;
+   oblateness = 0;
+   axialTilt  = 0;
+   day        = 400.536;
+
+   surface = callisto_surface;
+
+   orbitRadius  = 34, 1882700;
+   orbitTilt    = 0.192;
+   eccentricity = 0.007;
+   year         = 400.536;
+}
+
+
+BODY Jupiter
+{
+   radius     = 10, 69911;
+   oblateness = 0.06487;
+   axialTilt  = 3.13;
+   day        = 9.925;
+
+   surface = jupiter_surface;
+
+   orbitRadius  = 220, 778547200;
+   orbitTilt    = 6.09;
+   eccentricity = 0.048775;
+   year         = 103957.728;
+   phase        = 320;
+
+   satellites = Io, Europa, Callisto, Ganymede;
+}
+
+BODY Mimas
+{
+   radius     = 0.5, 414;
+   oblateness = 0;
+   axialTilt  = 0;
+   day        = 22.618104;
+
+   surface = mimas_surface;
+
+   orbitRadius  = 22, 185520;
+   orbitTilt    = 1.51;
+   eccentricity = 0.0202;
+   year         = 22.618104;
+   phase        = 150;
+}
+
+BODY Enceladus
+{
+   radius     = 0.5, 503;
+   oblateness = 0;
+   axialTilt  = 0;
+   day        = 32.885232;
+
+   surface = enceladus_surface;
+
+   orbitRadius  = 26, 237948;
+   orbitTilt    = 0.019;
+   eccentricity = 0.0047;
+   year         = 32.885232;
+   phase        = 300;
+}
+
+BODY Dione
+{
+   radius     = 1.0, 1122;
+   oblateness = 0;
+   axialTilt  = 0;
+   day        = 65.68596;
+
+   surface = dione_surface;
+
+   orbitRadius  = 28, 377396;
+   orbitTilt    = 0.019;
+   eccentricity = 0.0002;
+   year         = 65.68596;
+   phase        = 150;
+}
+
+BODY Rhea
+{
+   radius     = 1.1, 1525;
+   oblateness = 0;
+   axialTilt  = 0;
+   day        = 108.437088;
+
+   surface = rhea_surface;
+
+   orbitRadius  = 32, 527108;
+   orbitTilt    = 0.345;
+   eccentricity = 0.0012583;
+   year         = 108.437088;
+   phase        = 72;
+}
+
+BODY Titan
+{
+   radius     = 1.4, 2576;
+   oblateness = 0;
+   axialTilt  = 0;
+   day        = 382.68;
+
+   surface = titan_surface;
+
+   orbitRadius  = 40, 1221870;
+   orbitTilt    = 0.34854;
+   eccentricity = 0.0288;
+   year         = 382.68;
+   phase        = 0;
+}
+
+
+BODY Iapetus
+{
+   radius     = 1.4, 1495;
+   oblateness = 0;
+   axialTilt  = 0;
+   day        = 1903.716;
+
+   surface = iapetus_surface;
+
+   orbitRadius  = 48, 3560820;
+   orbitTilt    = 15.47;
+   eccentricity = 0.0286125;
+   year         = 1903.716;
+   phase        = 300;
+}
+
+BODY Saturn
+{
+   radius     = 8, 60268;
+   oblateness = 0.098;
+   axialTilt  = 26.73;
+   day        = 10.57;
+
+   surface = saturn_surface;
+
+   orbitRadius  = 360, 1433449370;
+   orbitTilt    = 5.51;
+   eccentricity = 0.056;
+   year         = 258221.28;
+
+   satellites = Mimas, Enceladus, Dione, Rhea, Titan, Iapetus;
+
+   ring       = 0.1, 10, saturn_ring;
+}
+
+BODY Miranda
+{
+   radius     = 0.5, 480;
+   oblateness = 0;
+   axialTilt  = 0;
+   day        = 33.923496;
+
+   surface = miranda_surface;
+
+   orbitRadius  = 10, 129390;
+   orbitTilt    = 4.232;
+   eccentricity = 0.0013;
+   year         = 33.923496;
+   phase        = 65;
+}
+
+BODY Ariel
+{
+   radius     = 1, 1162;
+   oblateness = 0;
+   axialTilt  = 0;
+   day        = 60.48;
+
+   surface = ariel_surface;
+
+   orbitRadius  = 14, 191020;
+   orbitTilt    = 0.26;
+   eccentricity = 0.0012;
+   year         = 60.48;
+   phase        = 130;
+}
+
+BODY Umbriel
+{
+   radius     = 0.5, 584.7;
+   oblateness = 0;
+   axialTilt  = 0;
+   day        = 99.456;
+
+   surface = umbriel_surface;
+
+   orbitRadius  = 18, 266000;
+   orbitTilt    = 0.128;
+   eccentricity = 0.0039;
+   year         = 99.456;
+   phase        = 200;
+}
+
+BODY Titania
+{
+   radius     = 0.8, 788.4;
+   oblateness = 0;
+   axialTilt  = 0;
+   day        = 208.949616;
+
+   surface = titania_surface;
+
+   orbitRadius  = 22, 435910;
+   orbitTilt    = 0.34;
+   eccentricity = 0.0011;
+   year         = 208.949616;
+   phase        = 235;
+}
+
+BODY Oberon
+{
+   radius     = 0.7, 761;
+   oblateness = 0;
+   axialTilt  = 0;
+   day        = 323.117616;
+
+   surface = oberon_surface;
+
+   orbitRadius  = 26, 583520;
+   orbitTilt    = 0.058;
+   eccentricity = 0.0014;
+   year         = 323.117616;
+   phase        = 330;
+}
+
+BODY Uranus
+{
+   radius     = 6, 25559;
+   oblateness = 0.023;
+   axialTilt  = 97.77;
+   day        = -17.232;
+
+   surface = uranus_surface;
+
+   orbitRadius  = 500, 2876679082;
+   orbitTilt    = 6.48;
+   eccentricity = 0.044;
+   year         = 739178.28;
+   phase        = 77;
+
+   satellites = Miranda, Ariel, Umbriel, Titania, Oberon;
+}
+
+BODY Triton
+{
+   radius     = 1.3, 1353;
+   oblateness = 0;
+   axialTilt  = 0;
+   day        = -141.048;
+
+   surface = triton_surface;
+
+   orbitRadius  = 12, 354759;
+   orbitTilt    = 23.115;
+   eccentricity = 0.000016;
+   year         = -141.048;
+}
+
+BODY Neptune
+{
+   radius     = 6, 24764;
+   oblateness = 0.0171;
+   axialTilt  = 28.32;
+   day        = 16.1112;
+
+   surface = neptune_surface;
+
+   orbitRadius  = 620, 4503443661;
+   orbitTilt    = 6.43;
+   eccentricity = 0.01121;
+   year         = 1444560;
+   phase        = 30;
+
+   satellites = Triton;
+}
+
+BODY Sun
+{
+   radius     = 15, 6955000;
+   oblateness = 0.00009;
+   axialTilt  = 0;
+   day        = 601.2;
+
+   orbitRadius  = 0.0, 0.0;
+   orbitTilt    = 0.0;
+   eccentricity = 0.0;
+   year         = 0.0;
+
+   surface = sun_surface;
+   light;
+
+   atmosphere   = 0.7 0.7 0.1 10
+
+   satellites = Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune;
+}
+
+ROOT Sun

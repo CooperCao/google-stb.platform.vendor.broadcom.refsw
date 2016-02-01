@@ -1,0 +1,23 @@
+2012-11-11
+
+hdmi_input_hdcp_keyloader:
+This app is used to load HDCP keys into secure RAM on those boards that have a HDMI Rx Receiver. The HDCP Keys must be encrypted by the separate BCrypt application.  The keys will remain until the board is reset/rebooted. 
+
+HDCP keys are requiered to connect any commercial HDMI device e.g. Bluray etc. to the HDMI Rx If the source does not find keys, it may not (probably will not) pass video to the HDMI Rx.
+
+
+hdmi_input_to_hdmi_output:
+This app is used to demonstrate receiving video on the HDMI Rx and re-transmitting on the HDMI Tx. This app does not fully implement HDCP Repeater capability  and should be used to test with non-commecrcial test devices (generators, other refence boards etc.)
+
+
+hdmi_repeater_passthrough:
+The hdmi_repeater_passthrough is used to demonstrate the full HDCP Repeater authentication. 
+
+Encrypted HDCP Rx keys must be loaded using the hdmi_input_hdcp_keyloader app.
+Encrypted HDCP Tx keys are declared in the app.  
+Once both Rx and Tx keys are set up, commercial devices can be connected to the HDMI Rx port to passthrough to a TV or another device  e.g.  Source --> BCM97xxx --> TV
+
+The hdmi_repeater_passthrough app can be used to perform the HDCP Repeater Compliance test as follows
+
+    # nexus hdmi_repeater_passthrough -compliance
+

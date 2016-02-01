@@ -1,0 +1,218 @@
+##############################################################################
+#
+# Copyright (c) 2007-2008 Broadcom Corporation
+#
+# This program is the proprietary software of Broadcom Corporation and/or
+# its licensors, and may only be used, duplicated, modified or distributed
+# pursuant to the terms and conditions of a separate, written license
+# agreement executed between you and Broadcom (an "Authorized License").
+# Except as set forth in an Authorized License, Broadcom grants no license
+# (express or implied), right to use, or waiver of any kind with respect to
+# the Software, and Broadcom expressly reserves all rights in and to the
+# Software and all intellectual property rights therein.  IF YOU HAVE NO
+# AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
+# AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
+# SOFTWARE.  
+#
+# Except as expressly set forth in the Authorized License,
+#
+# 1.     This program, including its structure, sequence and organization,
+# constitutes the valuable trade secrets of Broadcom, and you shall use all
+# reasonable efforts to protect the confidentiality thereof, and to use this
+# information only in connection with your use of Broadcom integrated circuit
+# products.
+#
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+# "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+# OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+# RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+# IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+# A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+# ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+# THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+#
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+# OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+# INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+# RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+# HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+# EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+# WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+# FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+#
+##############################################################################
+
+
+# defs.bsp - bsp default makefile definitions
+#
+# Based loosely on the Tornado 2.0 defs.bsp and make.RC32364sfgnu
+#
+# DESCRIPTION
+# This file is included into application makefiles to define build defaults.
+# After the include the Makefile may customize the definitions found here to
+# suit the circumstance.
+#
+# Redefinitions of make variables earlier than the include of this file will
+# have no affect.
+#
+ifeq ($(ARM_PLATFORM), yes)
+ARCH        = arm-linux
+CPU         = MIPS64
+else
+ARCH        = mipsel-linux
+CPU         = MIPS64
+endif
+
+//CONFIG_DIR  = $(ECOS_CONFIG_ROOT)/$(ECOS_CONFIG_DIR)
+
+# Find the directory where the Gnu compiler is installed.
+#GNU_INC := $(dir $(shell which $(ARCH)-gcc))
+
+# Get rid of the "/bin/", and add the architecture directory.  This is where
+# all the include files will be found.
+#GNU_INC := $(subst /bin/,,$(GNU_INC))/$(ARCH)
+ifeq ($(ARM_PLATFORM), yes)
+GNU_INC = $(CROSSCOMPILE)/arm-linux-uclibcgnueabi/
+else
+GNU_INC = $(CROSSCOMPILE)/mipsel-linux-uclibc/
+endif
+#==========================================================================
+## Define flag groups for C, C++, and assembler
+#==========================================================================
+
+CFLAGS = \
+        $(CC_ARCH_SPEC) \
+        $(CC_COMPILER) \
+        $(CC_OPTIM) \
+        $(CC_WARNINGS) \
+        $(CC_INCLUDE) \
+        $(CC_DEFINES) \
+        $(ADDED_CFLAGS)
+
+C++FLAGS = \
+        $(CC_ARCH_SPEC) \
+        $(C++_COMPILER) \
+        $(CC_OPTIM) \
+        $(C++_WARNINGS) \
+        $(CC_INCLUDE) \
+        $(CC_DEFINES) \
+        $(ADDED_C++FLAGS)
+
+CFLAGS_AS = \
+        $(CC_ARCH_SPEC) \
+        $(CC_COMPILER) \
+        $(CC_OPTIM) \
+        $(CC_INCLUDE) \
+        $(CC_DEFINES) \
+        $(ADDED_CFLAGS) \
+        -P \
+        -x assembler-with-cpp
+
+#==========================================================================
+## Compiler flags
+#==========================================================================
+
+#CC_COMPILER    = -ansi -pedantic -nostdinc
+# Need to omit -pedantic in order to use "long long"
+#CC_COMPILER    = -nostdinc
+
+# We want to see all warnings with C, but not with C++.
+CC_WARNINGS     = -Wall
+C++_WARNINGS    =
+
+# Use most optimizations (O2).
+CC_OPTIM        = -O2
+
+# We're big-endian, MIPS32, with no global "small variable" area.
+ifeq ($(ARM_PLATFORM), yes)
+CC_ARCH_SPEC    =        #-mips32  -mxgot
+else
+CC_ARCH_SPEC    = -mgp32 -mips2 -G 0     #-mips32 -G 0 -mxgot
+endif
+
+#==========================================================================
+## Path to included header files
+#==========================================================================
+ifeq ($(ARM_PLATFORM), yes)
+CC_INCLUDE  = \
+        $(EXTRA_INCLUDE) \
+        -I. \
+        -I$(GNU_INC)/include \
+        -I$(GNU_INC)/lib \
+		-I$(GNU_INC)/arm-linux-uclibcgnueabi/include/g++-v3 \
+		-I$(GNU_INC)/arm-linux-uclibcgnueabi/include/g++-v3/backward
+else
+CC_INCLUDE  = \
+        $(EXTRA_INCLUDE) \
+        -I. \
+        -I$(GNU_INC)/include \
+        -I$(GNU_INC)/lib \
+		-I$(GNU_INC)/mipsel-linux-uclibc/include/g++-v3 \
+		-I$(GNU_INC)/mipsel-linux-uclibc/include/g++-v3/backward
+endif
+
+#==========================================================================
+## Macro definitions
+#==========================================================================
+ifeq ($(ARM_PLATFORM), yes)
+CC_DEFINES  = \
+        $(EXTRA_DEFINE)
+else
+CC_DEFINES  = \
+        -DCPU=$(CPU) \
+        -DMIPSEL \
+        $(EXTRA_DEFINE)
+endif
+
+#==========================================================================
+## Other toolchain flags
+#==========================================================================
+
+#--------------------------------------------------------------------------
+# Linker flags
+#--------------------------------------------------------------------------
+#   -EB                     - big-endian
+#   -static                 - no dynamic libraries
+#   -nostdlib               - don't include standard C library
+#   -L$(CONFIG_DIR)/lib     - add eCos library path to search path
+#   -Ttarget.ld             - set eCos linker script
+#   -Wl,--gc-sections       - enable garbage collection of unused input sections
+
+# For static linking, add -static to LDFLAGS below
+LDFLAGS     =  \
+    -Wl,--gc-sections
+
+ifeq ($(GCC_VERSION), 4)
+LDFLAGS        += -lrt
+endif
+
+#==========================================================================
+## Object files which will be linked into the final executable
+#==========================================================================
+
+MACH_DEP      = $(MACH_EXTRA)
+
+#==========================================================================
+## Link libraries
+#==========================================================================
+
+LIBS =    \
+   $(LIB_EXTRA)
+
+
+#==========================================================================
+## Define tools.  Those prefixed with $(ARCH) come from the gnutools
+## directory.  Those without a prefix come from Cygwin.
+#==========================================================================
+
+CXX         = $(ARCH)-g++
+CC          = $(ARCH)-gcc
+OBJCOPY     = $(ARCH)-objcopy
+CPP         = $(CC) -E -P -xc
+AR          = $(ARCH)-ar
+LD          = $(ARCH)-ld
+NM          = $(ARCH)-nm
+C++FILT     = $(ARCH)-c++filt
+DEMANGLE    = $(ARCH)-c++filt
+OBJDUMP     = $(ARCH)-objdump
+STRIP       = $(ARCH)-strip

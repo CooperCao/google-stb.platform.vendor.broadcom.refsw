@@ -1,0 +1,3 @@
+/* NOTE: specified size must be larger than entire image size (including data segment)
+   Even though it only dumps the code sections, it will attempt to load the entire image */
+BXXX_AUTH("sid", 0, BSID_DumpImage, 0x45000)

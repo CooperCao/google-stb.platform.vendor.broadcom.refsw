@@ -1,0 +1,33 @@
+# Polygon rate performance 0.5 pixel
++vbo elem=3 +ztest +transform side=1x1 repeat=1 rects=3600 frames=35 iters=100 -index tex=earth_cloud0
+# Polygon rate performance 1 pixel
++vbo elem=3 +ztest +transform side=1x2 repeat=1 rects=3600 frames=35 iters=100 -index tex=earth_cloud0
+# Polygon rate performance 5 pixel
++vbo elem=3 +ztest +transform side=2x5 repeat=1 rects=3600 frames=35 iters=100 -index tex=earth_cloud0
+# Polygon rate performance 10 pixel
++vbo elem=3 +ztest +transform side=4x5 repeat=1 rects=3600 frames=35 iters=100 -index tex=earth_cloud0
+# Polygon rate performance 25 pixel
++vbo elem=3 +ztest +transform side=10x5 repeat=1 rects=3600 frames=35 iters=100 -index tex=earth_cloud0
+# Polygon rate performance 50 pixel
++vbo elem=3 +ztest +transform side=10x10 repeat=1 rects=3600 frames=35 iters=100 -index tex=earth_cloud0
+# Polygon rate performance 100 pixel
++vbo elem=3 +ztest +transform side=20x10 repeat=1 rects=3600 frames=35 iters=50 -index tex=earth_cloud0
+# Pixel rate performance 512x512 squares
++vbo elem=3 +ztest +transform side=512 repeat=1 rects=1 frames=35 iters=200 +index tex=earth_cloud0
+# Pixel rate performance 256x256 squares
++vbo elem=3 +ztest +transform side=256 repeat=1 rects=4 frames=35 iters=200 +index tex=earth_cloud0
+# Pixel rate performance 128x128 squares
++vbo elem=3 +ztest +transform side=128 repeat=1 rects=16 frames=35 iters=200 +index tex=earth_cloud0
+# Pixel rate performance 64x64 squares
++vbo elem=3 +ztest +transform side=64 repeat=1 rects=64 frames=35 iters=200 +index tex=earth_cloud0
+# Pixel rate performance 32x32 squares
++vbo elem=3 +ztest +transform side=32 repeat=1 rects=256 frames=35 iters=200 +index tex=earth_cloud0
+# Overdraw tests
++vbo elem=3 +ztest +varyDepth +ftob +transform side=512 repeat=4 rects=1 frames=50 iters=40 -index
++vbo elem=3 +ztest +varyDepth -ftob +transform side=512 repeat=4 rects=1 frames=50 iters=40 -index
++vbo elem=3 +ztest +varyDepth +ftob +transform side=256 repeat=4 rects=4 frames=50 iters=40 -index
++vbo elem=3 +ztest +varyDepth -ftob +transform side=256 repeat=4 rects=4 frames=50 iters=40 -index
++vbo elem=3 +ztest +varyDepth +ftob +transform side=512 repeat=4 rects=1 frames=50 iters=40 -index tex=earth_cloud0
++vbo elem=3 +ztest +varyDepth -ftob +transform side=512 repeat=4 rects=1 frames=50 iters=40 -index tex=earth_cloud0
++vbo elem=3 +ztest +varyDepth +ftob +transform side=256 repeat=4 rects=4 frames=50 iters=40 -index tex=earth_cloud0
++vbo elem=3 +ztest +varyDepth -ftob +transform side=256 repeat=4 rects=4 frames=50 iters=40 -index tex=earth_cloud0
