@@ -2077,10 +2077,22 @@ NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
         tsmSettings.ptsOffset += handle->astm.settings.ptsOffset;
     }
     else
-    {
-        tsmSettings.thresholds.syncLimit = 0;
-    }
 #endif
+    {
+        if (handle->programSettings.stcChannel)
+        {
+            NEXUS_StcChannelSettings stcSettings;
+            NEXUS_StcChannel_GetSettings(handle->programSettings.stcChannel, &stcSettings);
+            if (stcSettings.mode == NEXUS_StcChannelMode_eAuto && stcSettings.modeSettings.Auto.behavior == NEXUS_StcChannelAutoModeBehavior_eAudioMaster)
+            {
+                tsmSettings.thresholds.syncLimit = 5000;
+            }
+        }
+        else
+        {
+            tsmSettings.thresholds.syncLimit = 0;
+        }
+    }
 
     if ( 0 == handle->settings.discardThreshold )
     {
