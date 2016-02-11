@@ -1,51 +1,40 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "nexus_platform.h"
 #include <stdio.h>
@@ -793,7 +782,8 @@ end:
 
 void hdmi_drm_set_eotf_source(HdmiDrmContext * pHdmiDrmContext, HdmiDrmEotfSource source)
 {
-    if (pHdmiDrmContext->eotf.source != source)
+    if ((pHdmiDrmContext->eotf.source != HdmiDrmEotfSource_eInput) ||
+        (source != HdmiDrmEotfSource_eInput))
     {
         NEXUS_VideoEotf oldEotf = pHdmiDrmContext->infoFrame.output.eotf;
         switch (source)
@@ -1569,16 +1559,41 @@ int main(int argc, const char *argv[])
 
         NEXUS_Surface_GetDefaultCreateSettings(&surfaceCreateSettings);
         surfaceCreateSettings.width = 720;
+/*#define TEST_GFX_SDR_TO_HDR 1*/
+#if TEST_GFX_SDR_TO_HDR
+        surfaceCreateSettings.height = 480;
+#else
         surfaceCreateSettings.height = videoFormatInfo.height;
+#endif
         surfaceCreateSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
         framebuffer = NEXUS_Surface_Create(&surfaceCreateSettings);
         NEXUS_Surface_GetMemory(framebuffer, &mem);
         for (i=0;i<surfaceCreateSettings.height;i++) {
             for (j=0;j<surfaceCreateSettings.width;j++) {
+#if TEST_GFX_SDR_TO_HDR
+                if (j>=20 && j<700) {
+                    int c = (((j-20) / 68) * 255) / 9;
+                    if (i>=400 && i<410) {
+                        ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 16));
+                    } else if (i>=410 && i<420) {
+                        ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 8));
+                    } else if (i>=420 && i<430) {
+                        ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 0));
+                    } else if (i>=430 && i<440) {
+                        ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 0) | (c << 8) | (c << 16));
+                    } else {
+                        ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = 0;
+                    }
+                } else {
+                    ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = 0;
+                }
+#else
                 /* create checker board */
                 ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (((i/50)%2) ^ ((j/50)%2)) ? 0x00000000 : 0xFFFFFFFF;
+#endif
             }
         }
+
         NEXUS_Surface_Flush(framebuffer);
 
         NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
@@ -2620,6 +2635,17 @@ int main(int argc, const char *argv[])
                         break ;
                     }
                 NEXUS_HdmiOutput_SetSettings(platformConfig.outputs.hdmi[0], &settings);
+            }
+            else if (strstr(buf, "gfx_sdr2hdr(") == buf) {
+                int yScl = 0, cbScl = 0, crScl = 0;
+                NEXUS_GraphicsSettings graphicsSettings;
+                NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
+                sscanf(buf+strlen("gfx_sdr2hdr("),"%d,%d,%d", &yScl, &cbScl, &crScl);
+                graphicsSettings.sdrToHdr.y = (int16_t) yScl;
+                graphicsSettings.sdrToHdr.cb = (int16_t) cbScl;
+                graphicsSettings.sdrToHdr.cr = (int16_t) crScl;
+                rc = NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
+                BDBG_ASSERT(!rc);
             }
             else if (strstr(buf, "hdmi_matrix") == buf) {
                 NEXUS_HdmiOutputHandle hdmiOutput ;

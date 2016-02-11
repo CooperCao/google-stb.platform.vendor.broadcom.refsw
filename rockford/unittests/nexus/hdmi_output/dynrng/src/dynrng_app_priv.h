@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 
@@ -71,6 +63,9 @@
 #define DYNRNG_APP_PRIV_H__
 
 #define APP_MAX_INPUT_LEN 256
+
+#define APP_CMD_eAuto   0x8000
+#define APP_CMD_eInput  0x8001
 
 typedef enum APP_TrickMode
 {
@@ -170,7 +165,6 @@ int APP_ToggleSmd(APP_AppHandle app);
 int APP_SetSmdFilePath(APP_AppHandle app);
 int APP_DoSmd(void * context, char * args);
 
-int APP_SetupEotfCommand(APP_AppHandle app);
 APP_Eotf APP_NexusEotfToApp(NEXUS_VideoEotf nxEotf);
 NEXUS_VideoEotf APP_AppEotfToNexus(APP_Eotf eotf);
 void APP_PrintEotf(APP_AppHandle app);
@@ -179,6 +173,14 @@ const char * APP_GetEotfName(APP_Eotf eotf);
 APP_Eotf APP_ParseEotf(const char * eotfStr);
 int APP_SetEotf(APP_AppHandle app, APP_Eotf eotf);
 int APP_DoEotf(void * context, char * args);
+
+int APP_SetupMatrixCoefficientsCommand(APP_AppHandle app);
+NEXUS_MatrixCoefficients APP_ParseMatrixCoefficients(const char * matrixCoefficientsStr);
+const char * APP_GetMatrixCoefficientsName(NEXUS_MatrixCoefficients matrixCoefficients);
+
+int APP_SetupGfxSdr2HdrCommand(APP_AppHandle app);
+
+int APP_SetupEotfCommand(APP_AppHandle app);
 
 OSD_Eotf APP_NexusEotfToOsd(NEXUS_VideoEotf nxEotf);
 int APP_SetupOsdCommand(APP_AppHandle app);

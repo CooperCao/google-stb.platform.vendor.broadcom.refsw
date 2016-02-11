@@ -1005,6 +1005,8 @@ NEXUS_Error NEXUS_HdmiOutput_SetSettings( NEXUS_HdmiOutputHandle output, const N
 
     if (BKNI_Memcmp(&output->settings.dynamicRangeMasteringInfoFrame, &pSettings->dynamicRangeMasteringInfoFrame, sizeof(output->settings.dynamicRangeMasteringInfoFrame)))
     {
+        /* if there are two rapid calls to SetSettings, the second must not clear a pending formatChangeUpdate */
+        output->formatChangeUpdate = true;
 #if !BDBG_NO_MSG
         BDBG_MSG(("SetSettings")) ;
         NEXUS_HdmiOutput_P_PrintDrmInfoFrameChanges(&output->settings.dynamicRangeMasteringInfoFrame, &pSettings->dynamicRangeMasteringInfoFrame);
@@ -2398,6 +2400,17 @@ void NEXUS_HdmiOutput_AudioSampleRateChange_isr(
     {
         BHDM_AudioVideoRateChangeCB_isr(handle->hdmHandle, BHDM_Callback_Type_eAudioChange, &audioInfo);
     }
+}
+
+/* Ron please update this func to any format that makes sense to you */
+bool NEXUS_HdmiOutput_GetEotf_priv(
+    NEXUS_HdmiOutputHandle hdmiOutput,
+    NEXUS_VideoEotf *pEotf
+)
+{
+    *pEotf = hdmiOutput->settings.dynamicRangeMasteringInfoFrame.eotf;
+
+    return true;
 }
 
 /* Returns false if the format is not supported, true if it is */

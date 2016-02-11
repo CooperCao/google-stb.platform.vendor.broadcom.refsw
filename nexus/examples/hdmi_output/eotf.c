@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 /* Nexus example app: single playback 4k hevc video decode routed to HDMI with HDR signaling */
@@ -86,6 +78,8 @@ typedef struct App
     NEXUS_HdmiOutputEdidData sinkEdid;
     NEXUS_VideoDecoderStreamInformation lastStreamInfo;
     bool lastStreamInfoValid;
+    NEXUS_SurfaceHandle framebuffer;
+    BKNI_MutexHandle lock;
 } App;
 
 static const char * const eotfStrings[NEXUS_VideoEotf_eMax + 1] =
@@ -97,85 +91,217 @@ static const char * const eotfStrings[NEXUS_VideoEotf_eMax + 1] =
     "unspecified"
 };
 
+static void printEdid(App * app)
+{
+    if (app->sinkEdid.hdrdb.valid)
+    {
+        unsigned i;
+        for (i = 0; i < NEXUS_VideoEotf_eMax; i++)
+        {
+            BDBG_MSG(("SINK EDID EOTF %s %s", eotfStrings[i], app->sinkEdid.hdrdb.eotfSupported[i] ? "supported" : "not supported"));
+        }
+    }
+    else
+    {
+        BDBG_MSG(("SINK EDID has no HDR support"));
+    }
+}
+
+static void setHdmiOut(App *app, NEXUS_VideoDecoderStreamInformation *streamInfo, bool force)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_HdmiOutputSettings hdmiSettings;
+    bool apply = false;
+
+    NEXUS_HdmiOutput_GetSettings(app->hdmi, &hdmiSettings);
+
+    hdmiSettings.dynamicRangeMasteringInfoFrame.metadata.type = NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1;
+    if (force || !app->lastStreamInfoValid || app->lastStreamInfo.eotf != streamInfo->eotf)
+    {
+        fprintf(stdout, "input EOTF changed %s -> %s\n", eotfStrings[app->lastStreamInfo.eotf], eotfStrings[streamInfo->eotf]);
+        if (!app->sinkEdid.hdrdb.valid)
+        {
+            fprintf(stdout, "TV does not support HDR, no DRMInfoFrame sent. Display HDR video as SDR\n");
+            hdmiSettings.dynamicRangeMasteringInfoFrame.eotf = NEXUS_VideoEotf_eSdr;
+        }
+        else
+        {
+            hdmiSettings.dynamicRangeMasteringInfoFrame.eotf = streamInfo->eotf;
+        }
+        apply = true;
+    }
+    if (force || !app->lastStreamInfoValid || BKNI_Memcmp(&app->lastStreamInfo.contentLightLevel, &streamInfo->contentLightLevel, sizeof(streamInfo->contentLightLevel)))
+    {
+        fprintf(stdout, "input content light level changed: (%u, %u) -> (%u, %u)\n",
+                app->lastStreamInfo.contentLightLevel.max,
+                app->lastStreamInfo.contentLightLevel.maxFrameAverage,
+                streamInfo->contentLightLevel.max,
+                streamInfo->contentLightLevel.maxFrameAverage);
+        BKNI_Memcpy(&hdmiSettings.dynamicRangeMasteringInfoFrame.metadata.typeSettings.type1.contentLightLevel,
+                    &streamInfo->contentLightLevel,
+                    sizeof(streamInfo->contentLightLevel));
+        apply = true;
+    }
+    if (force || !app->lastStreamInfoValid || BKNI_Memcmp(&app->lastStreamInfo.masteringDisplayColorVolume, &streamInfo->masteringDisplayColorVolume, sizeof(streamInfo->masteringDisplayColorVolume)))
+    {
+        fprintf(stdout, "input mastering display color volume changed:\n");
+        fprintf(stdout, "\tred (%u, %u) -> (%u, %u)\n",
+                app->lastStreamInfo.masteringDisplayColorVolume.redPrimary.x,
+                app->lastStreamInfo.masteringDisplayColorVolume.redPrimary.y,
+                streamInfo->masteringDisplayColorVolume.redPrimary.x,
+                streamInfo->masteringDisplayColorVolume.redPrimary.y);
+        fprintf(stdout, "\tgreen (%u, %u) -> (%u, %u)\n",
+                app->lastStreamInfo.masteringDisplayColorVolume.greenPrimary.x,
+                app->lastStreamInfo.masteringDisplayColorVolume.greenPrimary.y,
+                streamInfo->masteringDisplayColorVolume.greenPrimary.x,
+                streamInfo->masteringDisplayColorVolume.greenPrimary.y);
+        fprintf(stdout, "\tblue (%u, %u) -> (%u, %u)\n",
+                app->lastStreamInfo.masteringDisplayColorVolume.bluePrimary.x,
+                app->lastStreamInfo.masteringDisplayColorVolume.bluePrimary.y,
+                streamInfo->masteringDisplayColorVolume.bluePrimary.x,
+                streamInfo->masteringDisplayColorVolume.bluePrimary.y);
+        fprintf(stdout, "\twhite (%u, %u) -> (%u, %u)\n",
+                app->lastStreamInfo.masteringDisplayColorVolume.whitePoint.x,
+                app->lastStreamInfo.masteringDisplayColorVolume.whitePoint.y,
+                streamInfo->masteringDisplayColorVolume.whitePoint.x,
+                streamInfo->masteringDisplayColorVolume.whitePoint.y);
+        fprintf(stdout, "\tluma (%u, %u) -> (%u, %u)\n",
+                app->lastStreamInfo.masteringDisplayColorVolume.luminance.max,
+                app->lastStreamInfo.masteringDisplayColorVolume.luminance.min,
+                streamInfo->masteringDisplayColorVolume.luminance.max,
+                streamInfo->masteringDisplayColorVolume.luminance.min);
+        BKNI_Memcpy(&hdmiSettings.dynamicRangeMasteringInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume,
+                    &streamInfo->masteringDisplayColorVolume,
+                    sizeof(streamInfo->masteringDisplayColorVolume));
+        apply = true;
+    }
+    if (apply)
+    {
+        rc = NEXUS_HdmiOutput_SetSettings(app->hdmi, &hdmiSettings);
+        BDBG_ASSERT(!rc);
+    }
+}
+
 static void streamChangedCallback(void * context, int param)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     App * app = context;
-    NEXUS_HdmiOutputSettings hdmiSettings;
     NEXUS_VideoDecoderStreamInformation streamInfo;
 
     BSTD_UNUSED(param);
 
+    BKNI_AcquireMutex(app->lock);
     rc = NEXUS_VideoDecoder_GetStreamInformation(app->videoDecoder, &streamInfo);
     if (!rc)
     {
-        bool apply = false;
-        NEXUS_HdmiOutput_GetSettings(app->hdmi, &hdmiSettings);
-        /* always do type 1 since there's nothing else yet */
-        hdmiSettings.dynamicRangeMasteringInfoFrame.metadata.type = NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1;
-        if (!app->lastStreamInfoValid || app->lastStreamInfo.eotf != streamInfo.eotf)
-        {
-            fprintf(stdout, "input EOTF changed %s -> %s\n", eotfStrings[app->lastStreamInfo.eotf], eotfStrings[streamInfo.eotf]);
-            hdmiSettings.dynamicRangeMasteringInfoFrame.eotf = streamInfo.eotf;
-            apply = true;
-        }
-        if (!app->lastStreamInfoValid || BKNI_Memcmp(&app->lastStreamInfo.contentLightLevel, &streamInfo.contentLightLevel, sizeof(streamInfo.contentLightLevel)))
-        {
-            fprintf(stdout, "input content light level changed: (%u, %u) -> (%u, %u)\n",
-                app->lastStreamInfo.contentLightLevel.max,
-                app->lastStreamInfo.contentLightLevel.maxFrameAverage,
-                streamInfo.contentLightLevel.max,
-                streamInfo.contentLightLevel.maxFrameAverage);
-            BKNI_Memcpy(&hdmiSettings.dynamicRangeMasteringInfoFrame.metadata.typeSettings.type1.contentLightLevel,
-                &streamInfo.contentLightLevel,
-                sizeof(streamInfo.contentLightLevel));
-            apply = true;
-        }
-        if (!app->lastStreamInfoValid || BKNI_Memcmp(&app->lastStreamInfo.masteringDisplayColorVolume, &streamInfo.masteringDisplayColorVolume, sizeof(streamInfo.masteringDisplayColorVolume)))
-        {
-            fprintf(stdout, "input mastering display color volume changed:\n");
-            fprintf(stdout, "\tred (%u, %u) -> (%u, %u)\n",
-                app->lastStreamInfo.masteringDisplayColorVolume.redPrimary.x,
-                app->lastStreamInfo.masteringDisplayColorVolume.redPrimary.y,
-                streamInfo.masteringDisplayColorVolume.redPrimary.x,
-                streamInfo.masteringDisplayColorVolume.redPrimary.y);
-            fprintf(stdout, "\tgreen (%u, %u) -> (%u, %u)\n",
-                app->lastStreamInfo.masteringDisplayColorVolume.greenPrimary.x,
-                app->lastStreamInfo.masteringDisplayColorVolume.greenPrimary.y,
-                streamInfo.masteringDisplayColorVolume.greenPrimary.x,
-                streamInfo.masteringDisplayColorVolume.greenPrimary.y);
-            fprintf(stdout, "\tblue (%u, %u) -> (%u, %u)\n",
-                app->lastStreamInfo.masteringDisplayColorVolume.bluePrimary.x,
-                app->lastStreamInfo.masteringDisplayColorVolume.bluePrimary.y,
-                streamInfo.masteringDisplayColorVolume.bluePrimary.x,
-                streamInfo.masteringDisplayColorVolume.bluePrimary.y);
-            fprintf(stdout, "\twhite (%u, %u) -> (%u, %u)\n",
-                app->lastStreamInfo.masteringDisplayColorVolume.whitePoint.x,
-                app->lastStreamInfo.masteringDisplayColorVolume.whitePoint.y,
-                streamInfo.masteringDisplayColorVolume.whitePoint.x,
-                streamInfo.masteringDisplayColorVolume.whitePoint.y);
-            fprintf(stdout, "\tluma (%u, %u) -> (%u, %u)\n",
-                app->lastStreamInfo.masteringDisplayColorVolume.luminance.max,
-                app->lastStreamInfo.masteringDisplayColorVolume.luminance.min,
-                streamInfo.masteringDisplayColorVolume.luminance.max,
-                streamInfo.masteringDisplayColorVolume.luminance.min);
-            BKNI_Memcpy(&hdmiSettings.dynamicRangeMasteringInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume,
-                &streamInfo.masteringDisplayColorVolume,
-                sizeof(streamInfo.masteringDisplayColorVolume));
-            apply = true;
-        }
-        if (app->sinkEdid.hdrdb.valid && apply)
-        {
-            rc = NEXUS_HdmiOutput_SetSettings(app->hdmi, &hdmiSettings);
-            BDBG_ASSERT(!rc);
-        }
-        else
-        {
-            fprintf(stdout, "sink has no HDR support, no DRMInfoFrame sent\n");
-        }
+        setHdmiOut(app, &streamInfo, false);
         app->lastStreamInfo = streamInfo;
         app->lastStreamInfoValid = true;
     }
+    BKNI_ReleaseMutex(app->lock);
+}
+
+static void setGraphics(App *app)
+{
+    int i, j;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_SurfaceCreateSettings surfaceCreateSettings;
+    NEXUS_SurfaceMemory mem;
+    NEXUS_GraphicsSettings graphicsSettings;
+
+    NEXUS_Surface_GetDefaultCreateSettings(&surfaceCreateSettings);
+    surfaceCreateSettings.width = 720;
+    surfaceCreateSettings.height = 480;
+    surfaceCreateSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
+    app->framebuffer = NEXUS_Surface_Create(&surfaceCreateSettings);
+    NEXUS_Surface_GetMemory(app->framebuffer, &mem);
+
+    for (i=0;i<surfaceCreateSettings.height;i++) {
+        for (j=0;j<surfaceCreateSettings.width;j++) {
+            if (j>=20 && j<700) {
+                int c = (((j-20) / 68) * 255) / 9;
+                if (i>=400 && i<410) {
+                    ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 16));
+                } else if (i>=410 && i<420) {
+                    ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 8));
+                } else if (i>=420 && i<430) {
+                    ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 0));
+                } else if (i>=430 && i<440) {
+                    ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = (0xFF000000 | (c << 0) | (c << 8) | (c << 16));
+                } else {
+                    ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = 0;
+                }
+            } else {
+                ((uint32_t*)((uint8_t*)mem.buffer + i*mem.pitch))[j] = 0;
+            }
+        }
+    }
+    NEXUS_Surface_Flush(app->framebuffer);
+
+    NEXUS_Display_GetGraphicsSettings(app->display, &graphicsSettings);
+    graphicsSettings.enabled = true;
+    graphicsSettings.clip.width = surfaceCreateSettings.width;
+    graphicsSettings.clip.height = surfaceCreateSettings.height;
+    rc = NEXUS_Display_SetGraphicsSettings(app->display, &graphicsSettings);
+    BDBG_ASSERT(!rc);
+    rc = NEXUS_Display_SetGraphicsFramebuffer(app->display, app->framebuffer);
+    BDBG_ASSERT(!rc);
+}
+
+static void setGfxSdrToHdr(App *app, short y, short cb, short cr)
+{
+    NEXUS_GraphicsSettings graphicsSettings;
+
+    /* note: app might implement GUI for end user to adjust graphicsSettings.sdrToHdr because it is subjective
+     * note: setting to graphicsSettings.sdrToHdr will ONLY take effect when display eotf is not sdr */
+    NEXUS_Display_GetGraphicsSettings(app->display, &graphicsSettings);
+    graphicsSettings.sdrToHdr.y = y;
+    graphicsSettings.sdrToHdr.cb = cb;
+    graphicsSettings.sdrToHdr.cr = cr;
+    NEXUS_Display_SetGraphicsSettings(app->display, &graphicsSettings);
+}
+
+static void setDisplay(App *app, NEXUS_HdmiOutputStatus *hdmiStatus)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_DisplaySettings displaySettings;
+
+    rc = NEXUS_HdmiOutput_GetEdidData(app->hdmi, &app->sinkEdid);
+    BDBG_ASSERT(!rc);
+    printEdid(app);
+
+    /* If current display format is not supported by monitor, switch to monitor's preferred format.
+       If other connected outputs do not support the preferred format, a harmless error will occur. */
+    NEXUS_Display_GetSettings(app->display, &displaySettings);
+    if ( !hdmiStatus->videoFormatSupported[displaySettings.format] ) {
+        displaySettings.format = hdmiStatus->preferredVideoFormat;
+        NEXUS_Display_SetSettings(app->display, &displaySettings);
+    }
+
+    setGfxSdrToHdr(app, 12288, 0, -16384);
+}
+
+/* registered HDMI hotplug handler -- changes the format (to monitor's default) if monitor doesn't support current format */
+static void hotPlugCallback(void *pParam, int iParam)
+{
+    App *app = (App *) pParam;
+    NEXUS_HdmiOutputStatus hdmiStatus;
+    NEXUS_Error rc;
+
+    BSTD_UNUSED(iParam);
+
+    BKNI_AcquireMutex(app->lock);
+    rc = NEXUS_HdmiOutput_GetStatus(app->hdmi, &hdmiStatus);
+    fprintf(stdout, "HDMI hotplug: %s\n", hdmiStatus.connected? "connected" : "not connected");
+    if ( !rc && hdmiStatus.connected )
+    {
+        setDisplay(app, &hdmiStatus);
+        if (app->lastStreamInfoValid)
+        {
+            setHdmiOut(app, &app->lastStreamInfo, true);
+        }
+    }
+    BKNI_ReleaseMutex(app->lock);
 }
 
 static bool sinkSupportsStreamEotf(App * app)
@@ -448,22 +574,6 @@ end:
     return rc;
 }
 
-static void printEdid(App * app)
-{
-    if (app->sinkEdid.hdrdb.valid)
-    {
-        unsigned i;
-        for (i = 0; i < NEXUS_VideoEotf_eMax; i++)
-        {
-            BDBG_MSG(("SINK EDID EOTF %s %s", eotfStrings[i], app->sinkEdid.hdrdb.eotfSupported[i] ? "supported" : "not supported"));
-        }
-    }
-    else
-    {
-        BDBG_MSG(("SINK EDID has no HDR support"));
-    }
-}
-
 int main(int argc, char * argv[])
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
@@ -473,6 +583,7 @@ int main(int argc, char * argv[])
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
     NEXUS_VideoDecoderSettings videoSettings;
     NEXUS_DisplaySettings displaySettings;
+    NEXUS_HdmiOutputSettings hdmiSettings;
     NEXUS_HdmiOutputStatus hdmiStatus;
     App * app = NULL;
     Args args;
@@ -499,15 +610,17 @@ int main(int argc, char * argv[])
     app->lastStreamInfo.eotf = NEXUS_VideoEotf_eMax;
     BKNI_Memcpy(&app->args, &args, sizeof(Args));
 
+    BKNI_CreateMutex(&app->lock);
+
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
     app->hdmi = platformConfig.outputs.hdmi[0];
     BDBG_ASSERT(app->hdmi);
 
-    rc = NEXUS_HdmiOutput_GetEdidData(app->hdmi, &app->sinkEdid);
-    BDBG_ASSERT(!rc);
-
-    printEdid(app);
+    NEXUS_HdmiOutput_GetSettings(app->hdmi, &hdmiSettings);
+    hdmiSettings.hotplugCallback.callback = hotPlugCallback;
+    hdmiSettings.hotplugCallback.context = app;
+    NEXUS_HdmiOutput_SetSettings(app->hdmi, &hdmiSettings);
 
     app->playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, NULL);
     BDBG_ASSERT(app->playpump);
@@ -535,14 +648,10 @@ int main(int argc, char * argv[])
     rc = NEXUS_HdmiOutput_GetStatus(app->hdmi, &hdmiStatus);
     if ( !rc && hdmiStatus.connected )
     {
-        /* If current display format is not supported by monitor, switch to monitor's preferred format.
-           If other connected outputs do not support the preferred format, a harmless error will occur. */
-        NEXUS_Display_GetSettings(app->display, &displaySettings);
-        if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
-            displaySettings.format = hdmiStatus.preferredVideoFormat;
-            NEXUS_Display_SetSettings(app->display, &displaySettings);
-        }
+        setDisplay(app, &hdmiStatus);
     }
+
+    setGraphics(app);
 
     app->window = NEXUS_VideoWindow_Open(app->display, 0);
     BDBG_ASSERT(app->window);
@@ -576,20 +685,54 @@ int main(int argc, char * argv[])
     rc = NEXUS_Playback_Start(app->playback, app->input, NULL);
     BDBG_ASSERT(!rc);
 
+    BKNI_Sleep(2*1000);
     while (true)
     {
-        if (!sinkSupportsStreamEotf(app)
-            &&
-            (app->lastStreamInfoValid
-            &&
-            /* all sinks support SDR, whether they claim to or not */
-            app->lastStreamInfo.eotf > NEXUS_VideoEotf_eSdr))
-        {
-            BDBG_WRN(("Stream reports %s EOTF.  Sink claims no support.  Video may be wonky.", eotfStrings[app->lastStreamInfo.eotf]));
-            BKNI_Sleep(5000);
+        char cmd;
+        int y = 0, cb = 0, cr = 0;
+
+        fprintf(stdout, "\nEnter cmd: setGfxSdrToHdr(s), checkEotf(c),  quit(q)\n");
+        if (scanf("%s", &cmd) > 0) {
+            if (cmd == 'q')
+                break;
+            else if (cmd == 's') {
+                fprintf(stdout, "Enter y cb cr (-32768, 32767):\n");
+                scanf("%d %d %d", &y, &cb, &cr);
+                BKNI_AcquireMutex(app->lock);
+                setGfxSdrToHdr(app, y, cb, cr);
+                BKNI_ReleaseMutex(app->lock);
+            }
+            else {
+                if (!app->lastStreamInfoValid)
+                    fprintf(stdout, "No stream yet\n");
+                else if (app->lastStreamInfo.eotf == NEXUS_VideoEotf_eSdr)
+                    fprintf(stdout, "Stream reports SDR EOTF\n");
+                else if (!sinkSupportsStreamEotf(app))
+                    fprintf(stdout, "Stream reports %s EOTF.  Sink claims no support.  Video may be wonky.\n", eotfStrings[app->lastStreamInfo.eotf]);
+                else
+                    fprintf(stdout, "Stream reports %s EOTF. Sink claims supported.\n", eotfStrings[app->lastStreamInfo.eotf]);
+            }
         }
     }
 
+    NEXUS_Playback_Stop(app->playback);
+    NEXUS_VideoDecoder_Stop(app->videoDecoder);
+
+    NEXUS_Playback_CloseAllPidChannels(app->playback);
+    NEXUS_FilePlay_Close(app->input);
+    NEXUS_Playback_Destroy(app->playback);
+    NEXUS_Playpump_Close(app->playpump);
+
+    NEXUS_VideoWindow_Close(app->window);
+    NEXUS_Display_Close(app->display);
+
+    NEXUS_VideoDecoder_Close(app->videoDecoder);
+
+    NEXUS_Surface_Destroy(app->framebuffer);
+
+    NEXUS_Platform_Uninit();
+
+    BKNI_DestroyMutex(app->lock);
 end:
     if (app) BKNI_Free(app);
     return rc;

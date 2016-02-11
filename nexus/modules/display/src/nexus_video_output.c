@@ -1,4 +1,4 @@
-/***************************************************************************
+/******************************************************************************
  *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -34,10 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "nexus_base.h"
 #include "nexus_display_module.h"
 #if NEXUS_HAS_HDMI_OUTPUT
@@ -1172,6 +1169,9 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
     BAVC_ColorRange magnumColorRange;
     NEXUS_ColorRange nexusColorRange;
     bool colorimetry_supported;
+    BVDC_Display_HdmiSettings displayHdmiSettings ;
+    NEXUS_VideoEotf eotf;
+    bool doneHdmiSettings = false;
 
     NEXUS_HdmiOutputVideoSettings requested ;
     NEXUS_HdmiOutputVideoSettings preferred ;
@@ -1226,6 +1226,8 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
         colorimetry_supported = NEXUS_HdmiOutput_GetColorimetry_priv(hdmiOutput,
                 &colorimetryParameters, &magnumMatrixCoefficients) ;
     }
+
+    NEXUS_HdmiOutput_GetEotf_priv(hdmiOutput, &eotf);
 
     NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
 
@@ -1296,7 +1298,6 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
         if (hdmiOutputStatus->connected)
         {
             BAVC_HDMI_BitsPerPixel colorDepth;
-            BVDC_Display_HdmiSettings displayHdmiSettings ;
 
             if (!colorimetry_supported)
             {
@@ -1332,9 +1333,10 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
             BVDC_Display_GetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
             displayHdmiSettings.eColorComponent = NEXUS_P_ColorSpace_ToMagnum_isrsafe(preferred.colorSpace) ;
             displayHdmiSettings.eColorRange = magnumColorRange;
+            displayHdmiSettings.eEotf = NEXUS_P_VideoEotf_ToMagnum_isrsafe(eotf);
             rc = BVDC_Display_SetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
             if (rc) return BERR_TRACE(rc);
-
+            doneHdmiSettings = true;
         }
     }
 
@@ -1350,6 +1352,14 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
 
     rc = BVDC_Display_SetHdmiConfiguration(display->displayVdc, display->hdmi.vdcIndex, magnumMatrixCoefficients);
     if (rc) {rc = BERR_TRACE(rc); goto error;}
+
+    if (!doneHdmiSettings) {
+        BVDC_Display_GetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
+        displayHdmiSettings.eColorRange = magnumColorRange;
+        displayHdmiSettings.eEotf = NEXUS_P_VideoEotf_ToMagnum_isrsafe(eotf);
+        rc = BVDC_Display_SetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
+        if (rc) return BERR_TRACE(rc);
+    }
 
     NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
         rc = NEXUS_HdmiOutput_GetDisplaySettings_priv(hdmiOutput, &stHdmiOutputDisplaySettings) ;

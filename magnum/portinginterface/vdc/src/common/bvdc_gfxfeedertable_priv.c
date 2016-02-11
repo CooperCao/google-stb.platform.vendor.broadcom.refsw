@@ -1,30 +1,47 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
- *   Contains tables for Display settings.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bvdc_gfxfeeder_priv.h"
 #include "bvdc_window_priv.h"
+#include "bvdc_compositor_priv.h"
 #include "bchp.h"
 #include "bchp_gfd_0.h"
 
-BDBG_MODULE(BVDC_GFX);
+BDBG_MODULE(BVDC_GFX_CSC);
 
 /****************************************************************
  *  Color Conversion Matrix
@@ -146,6 +163,213 @@ static const BVDC_P_CscCoeffs s_UhdYCbCr_to_RGBA_ConstBlend = BVDC_P_MAKE_GFD_CS
 	   1.168950,  2.120703,  0.000000,  0.0000, -290.153216 );
 #endif
 
+/*---------------------------------------------------------------------
+The orginal instruction from Richard W:
+                                         R'_709        16
+HDR10_Y'CbCr = step3 * step2 * step1 * [ G'_709 ] + [ 128 ]
+                                         B'_709       128
+
+step1 =
+
+      0.000833725490196079       0.00280470588235294      0.000283137254901961
+     -0.000449302376695451      -0.00151148193703004       0.00196078431372549
+       0.00196078431372549      -0.00178099179727771     -0.000179792516447778
+
+          luma_scale_factor         0               0
+step2 = [         0         Cb_scale_factor         0       ]
+                  0                 0       Cr_scale_factor
+
+luma_scale_factor = 0.000304541078031848 * slider + 0.440165761116297
+
+slider ranges from 0 to 1023.
+
+slide_position_for_default =
+
+   223
+
+Default Cb_scale_factor = 0.65
+Default Cr_scale_factor = 0.85
+
+step3 =
+
+                       219      -0.00252115460170543        0.0164946438489872
+       2.8421709430404e-14          195.900707915213         -1.84105828906519
+       6.3948846218409e-14          2.84071541916847          126.661162200751
+
+---------------------------------------------------------------------------*/
+
+#define DR_I_BITS   1
+#define DR_F_BITS  30
+
+#define DR_MAKE_E(e) \
+   (int32_t) BMTH_FIX_SIGNED_FTOFIX(e, DR_I_BITS, DR_F_BITS)
+
+#define DR_MAKE_M(m000, m001, m002, m010, m011, m012, m020, m021, m022, \
+				  m100, m101, m102, m110, m111, m112, m120, m121, m122, \
+				  m200, m201, m202, m210, m211, m212, m220, m221, m222) \
+{\
+	{\
+		{DR_MAKE_E(m000), DR_MAKE_E(m001), DR_MAKE_E(m002)}, \
+		{DR_MAKE_E(m010), DR_MAKE_E(m011), DR_MAKE_E(m012)}, \
+		{DR_MAKE_E(m020), DR_MAKE_E(m021), DR_MAKE_E(m022)}  \
+    },\
+	{\
+		{DR_MAKE_E(m100), DR_MAKE_E(m101), DR_MAKE_E(m102)}, \
+		{DR_MAKE_E(m110), DR_MAKE_E(m111), DR_MAKE_E(m112)}, \
+		{DR_MAKE_E(m120), DR_MAKE_E(m121), DR_MAKE_E(m122)}  \
+    },\
+	{\
+		{DR_MAKE_E(m200), DR_MAKE_E(m201), DR_MAKE_E(m202)}, \
+		{DR_MAKE_E(m210), DR_MAKE_E(m211), DR_MAKE_E(m212)}, \
+		{DR_MAKE_E(m220), DR_MAKE_E(m221), DR_MAKE_E(m222)}  \
+    }\
+}
+
+/* M[i][k][j] = S3[i][k] * S1[k][j] */
+static const int32_t s_iM[3][3][3] = DR_MAKE_M(
+	 0.182585882352941320,  0.614230588235293862,  0.062007058823529464,
+	 0.000001132760754563,  0.000003810679640938, -0.000004943440395501,
+	 0.000032342438919583, -0.000029376825394063, -0.000002965613525519,
+
+	 0.000000000000000024,  0.000000000000000080,  0.000000000000000008,
+	-0.088018653662626539, -0.296100381465242202,  0.384119035127868602,
+	-0.003609918213853314,  0.003278909711135239,  0.000331008502718071,
+
+	 0.000000000000000053,  0.000000000000000179,  0.000000000000000018,
+	-0.001276340189347808, -0.004293690044315861,  0.005570030233663667,
+	 0.248355220001472532, -0.225582490913199069, -0.022772729088273200);
+
+#define DR_MAX_SHORT    32768
+#define DR_MID_SLIDER   223
+#define DR_MAX_SLIDER   1023
+
+#define DR_ACCU_BITS    8
+#define SCL_MUL(s, x) \
+	BMTH_FIX_SIGNED_MUL(s, x, DR_I_BITS, DR_F_BITS, DR_I_BITS, DR_F_BITS, DR_I_BITS, DR_F_BITS)
+#define DR_MUL(s, x) \
+	BMTH_FIX_SIGNED_MUL(s, x, DR_I_BITS, DR_F_BITS, DR_I_BITS, DR_F_BITS, BVDC_P_CSC_GFD_CX_I_BITS, BVDC_P_CSC_GFD_CX_F_BITS + DR_ACCU_BITS)
+#define DR_MAKE_CX(x) \
+	(uint16_t)BMTH_FIX_SIGNED_CONVERT(x, BVDC_P_CSC_GFD_CX_I_BITS, BVDC_P_CSC_GFD_CX_F_BITS + DR_ACCU_BITS, BVDC_P_CSC_GFD_CX_I_BITS, BVDC_P_CSC_GFD_CX_F_BITS)
+
+#define DR_MAKE_A(x) \
+	BVDC_P_MAKE_CSC_CX(x / (1 << BVDC_P_CSC_GFD_CO_VID_BITS), BVDC_P_CSC_GFD_CX_I_BITS, BVDC_P_CSC_GFD_CX_F_BITS)
+#define DR_MAKE_O(x) \
+	BVDC_P_MAKE_CSC_CO(x, BVDC_P_CSC_GFD_CO_I_BITS, BVDC_P_CSC_GFD_CO_F_BITS, BVDC_P_CSC_GFD_CO_VID_BITS, BVDC_P_CSC_GFD_CO_VID_TBL_BITS)
+
+void BVDC_P_GfxFeeder_CalculateSdr2HdrCsc_isr
+	( BVDC_P_GfxFeeder_Handle      hGfxFeeder,
+	  bool                         bConstantBlend )
+{
+	int32_t iSlider;
+	int32_t iYScl, iCbScl, iCrScl;
+	BVDC_P_GfxFeederCfgInfo *pCurCfg = &(hGfxFeeder->stCurCfgInfo);
+	BVDC_P_CscCoeffs *pCsc = &hGfxFeeder->stCscCoeffSdr2Hdr;
+
+	/* YScl range: [0.440165761116297, 0.751711283942877504], default: 0.508078421517399104
+	 *   0.000304541078031848 * 1023 + 0.440165761116297 = 0.751711283942877504
+	 *   0.000304541078031848 * 223 + 0.440165761116297 = 0.508078421517399104
+	 * Y positive step:
+	 *   0.751711283942877504 - 0.508078421517399104 = 0.2436328624254784
+	 *   step = (0.2436328624254784 / 0x7FFF) * 0x8000 = 0.24364029773729899628284554582354
+	 * Y negative step:
+	 *   step = ((0.000304541078031848 * 223) / 0x8000) * 0x8000 = 0.067912660401102104
+	 * where "* 0x8000" is for more accuracy, it is compensated by "-15" in sYSlider << (30 - 15);
+	 */
+	if (pCurCfg->stSdrGfx2HdrAdj.sYSlider < 0)
+	{
+		/* (0x8000 - sYSlider) / 0x8000 in fixed point with 30 frac bits */
+		iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sYSlider) << (30-15);
+		iYScl = SCL_MUL(DR_MAKE_E(0.067912660401102104), iSlider) + DR_MAKE_E(0.440165761116297);
+	}
+	else
+	{
+		/* sYSlider / 0x8000 in fixed point with 30 frac bits */
+		iSlider = pCurCfg->stSdrGfx2HdrAdj.sYSlider << (30-15);
+		iYScl = SCL_MUL(DR_MAKE_E(0.24364029773729899628284554582354), iSlider) + DR_MAKE_E(0.508078421517399104);
+	}
+
+	/* CbScl range: [0.4, 1.0], default: 0.65
+	 * Cb positive step:
+	 *   step = ((1.0 - 0.65) / 0x7FFF) * 0x8000 = 0.35001068147831659901730399487289
+	 * Cb negative step:
+	 *   step = ((0.65 - 0.4) / 0x8000) * 0x8000 = 0.25
+	 * where "* 0x8000" is for more accuracy, it is compensated by "-15" in sCbSlider << (30 - 15);
+	 */
+	if (pCurCfg->stSdrGfx2HdrAdj.sCbSlider < 0)
+	{
+		/* (0x8000 - sCbSlider) / 0x8000 in fixed point with 30 frac bits */
+		iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sCbSlider) << (30-15);
+		iCbScl = SCL_MUL(DR_MAKE_E(0.25), iSlider) + DR_MAKE_E(0.4);
+	}
+	else
+	{
+		/* sCbSlider / 0x8000 in fixed point with 30 frac bits */
+		iSlider = pCurCfg->stSdrGfx2HdrAdj.sCbSlider << (30-15);
+		iCbScl = SCL_MUL(DR_MAKE_E(0.35001068147831659901730399487289), iSlider) + DR_MAKE_E(0.65);
+	}
+
+	/* CrScl range: [0.5, 1.0]. default: 0.85
+	 * Cr positive step:
+	 *   step = ((1.0 - 0.85) / 0x7FFF) * 0x8000 = 0.15000457777642139957884456923124
+	 * Cr negative step:
+	 *   step = ((0.85 - 0.5) / 0x8000) * 0x8000 = 0.35
+	 * where "* 0x8000" is for more accuracy, it is compensated by "-15" in sCrSlider << (30 - 15);
+	 */
+	if (pCurCfg->stSdrGfx2HdrAdj.sCrSlider < 0)
+	{
+		/* (0x8000 + sCrSlider) / 0x8000 in fixed point with 30 frac bits */
+		iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sCrSlider) << (30-15);
+		iCrScl = SCL_MUL(DR_MAKE_E(0.35), iSlider) + DR_MAKE_E(0.5);
+	}
+	else
+	{
+		/* sCrSlider / 0x8000 in fixed point with 30 frac bits */
+		iSlider = pCurCfg->stSdrGfx2HdrAdj.sCrSlider << (30-15);
+		iCrScl = SCL_MUL(DR_MAKE_E(0.15000457777642139957884456923124), iSlider) + DR_MAKE_E(0.85);
+	}
+
+	pCsc->usY0  = DR_MAKE_CX(DR_MUL(iYScl,s_iM[0][0][0]) + DR_MUL(iCbScl,s_iM[0][1][0]) + DR_MUL(iCrScl,s_iM[0][2][0]));
+	pCsc->usY1  = DR_MAKE_CX(DR_MUL(iYScl,s_iM[0][0][1]) + DR_MUL(iCbScl,s_iM[0][1][1]) + DR_MUL(iCrScl,s_iM[0][2][1]));
+	pCsc->usY2  = DR_MAKE_CX(DR_MUL(iYScl,s_iM[0][0][2]) + DR_MUL(iCbScl,s_iM[0][1][2]) + DR_MUL(iCrScl,s_iM[0][2][2]));
+
+	pCsc->usCb0 = DR_MAKE_CX(DR_MUL(iYScl,s_iM[1][0][0]) + DR_MUL(iCbScl,s_iM[1][1][0]) + DR_MUL(iCrScl,s_iM[1][2][0]));
+	pCsc->usCb1 = DR_MAKE_CX(DR_MUL(iYScl,s_iM[1][0][1]) + DR_MUL(iCbScl,s_iM[1][1][1]) + DR_MUL(iCrScl,s_iM[1][2][1]));
+	pCsc->usCb2 = DR_MAKE_CX(DR_MUL(iYScl,s_iM[1][0][2]) + DR_MUL(iCbScl,s_iM[1][1][2]) + DR_MUL(iCrScl,s_iM[1][2][2]));
+
+	pCsc->usCr0 = DR_MAKE_CX(DR_MUL(iYScl,s_iM[2][0][0]) + DR_MUL(iCbScl,s_iM[2][1][0]) + DR_MUL(iCrScl,s_iM[2][2][0]));
+
+	pCsc->usCr1 = DR_MAKE_CX(DR_MUL(iYScl,s_iM[2][0][1]) + DR_MUL(iCbScl,s_iM[2][1][1]) + DR_MUL(iCrScl,s_iM[2][2][1]));
+
+	pCsc->usCr2 = DR_MAKE_CX(DR_MUL(iYScl,s_iM[2][0][2]) + DR_MUL(iCbScl,s_iM[2][1][2]) + DR_MUL(iCrScl,s_iM[2][2][2]));
+
+	if (bConstantBlend)
+	{
+		pCsc->usYAlpha = 0;
+		pCsc->usCbAlpha = 0;
+		pCsc->usCrAlpha = 0;
+		pCsc->usYOffset = DR_MAKE_O(16.0);
+		pCsc->usCbOffset = DR_MAKE_O(128.0);
+		pCsc->usCrOffset = DR_MAKE_O(128.0);
+	}
+	else
+	{
+		pCsc->usYAlpha = DR_MAKE_A(16.0);
+		pCsc->usCbAlpha = DR_MAKE_A(128.0);
+		pCsc->usCrAlpha = DR_MAKE_A(128.0);
+		pCsc->usYOffset = 0;
+		pCsc->usCbOffset = 0;
+		pCsc->usCrOffset = 0;
+	}
+	pCsc->usCxIntBits = BVDC_P_CSC_GFD_CX_I_BITS;
+	pCsc->usCxFractBits = BVDC_P_CSC_GFD_CX_F_BITS;
+	pCsc->usCoIntBits = BVDC_P_CSC_GFD_CO_I_BITS;
+	pCsc->usCoFractBits = BVDC_P_CSC_GFD_CO_F_BITS;
+	pCsc->usCoVideoBits = BVDC_P_CSC_GFD_CO_VID_BITS;
+
+	BDBG_MSG(("GFD matrix for SDR gfx to HDR:"));
+	BVDC_P_Csc_Print_isr(pCsc);
+}
+
 /*------------------------------------------------------------------------
  * {private}
  * BVDC_P_GfxFeeder_DecideColorMatrix_isr
@@ -193,6 +417,12 @@ BERR_Code BVDC_P_GfxFeeder_DecideColorMatrix_isr
 			&s_SdYCbCr_to_RGBA_ConstBlend : &s_SdYCbCr_to_RGBA_AlphaBlend;
 	}
 
+	if (hGfxFeeder->stCurCfgInfo.stDirty.stBits.bSdrGfx2HdrAdj)
+	{
+		hGfxFeeder->eCurEotf = hGfxFeeder->hWindow->hCompositor->hDisplay->stCurInfo.stHdmiSettings.stSettings.eEotf;
+		BVDC_P_GfxFeeder_CalculateSdr2HdrCsc_isr(hGfxFeeder, bConstantBlend);
+	}
+
 #ifndef BVDC_FOR_BOOTUPDATER
 #if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC
 	pCscCfg->pCscMA = &s_Identity;
@@ -200,7 +430,8 @@ BERR_Code BVDC_P_GfxFeeder_DecideColorMatrix_isr
 	pCscCfg->bNLXvYcc = false;
 	if ((BVDC_P_CmpColorSpace_eUhdYCrCb == eDestColorSpace) &&
 	    (hGfxFeeder->bSupportNLCsc) &&
-	    (hGfxFeeder->bSupportMACsc || (BPXL_IS_RGB_FORMAT(eActivePxlFmt))))
+	    (hGfxFeeder->bSupportMACsc || (BPXL_IS_RGB_FORMAT(eActivePxlFmt))) &&
+	    ((BAVC_HDMI_DRM_EOTF_eSDR == hGfxFeeder->eCurEotf) || (!BPXL_IS_RGB_FORMAT(eActivePxlFmt))))
 	{
 		if (!BPXL_IS_RGB_FORMAT(eActivePxlFmt))
 		{
@@ -226,7 +457,17 @@ BERR_Code BVDC_P_GfxFeeder_DecideColorMatrix_isr
 #endif /* #ifndef BVDC_FOR_BOOTUPDATER */
 	if ( true == BPXL_IS_RGB_FORMAT(eActivePxlFmt) )
 	{
-		if (BVDC_P_CmpColorSpace_eUhdYCrCb == eDestColorSpace)
+		if (BAVC_HDMI_DRM_EOTF_eSDR != hGfxFeeder->eCurEotf)
+		{
+			pCscCfg->stCscMC = hGfxFeeder->stCscCoeffSdr2Hdr;
+#if (BDBG_DEBUG_BUILD)
+			if (hGfxFeeder->stCurCfgInfo.stDirty.stBits.bSdrGfx2HdrAdj)
+			{
+				BDBG_MSG(("Using HDR CSC for GFD"));
+			}
+#endif
+		}
+		else if (BVDC_P_CmpColorSpace_eUhdYCrCb == eDestColorSpace)
 		{
 			pCscCfg->stCscMC = (bConstantBlend)?
 				s_HdRGBA_to_UhdYCrCb_ConstBlend : s_HdRGBA_to_UhdYCrCb_AlphaBlend;

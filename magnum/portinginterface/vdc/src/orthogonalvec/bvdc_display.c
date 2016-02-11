@@ -1180,7 +1180,8 @@ static BERR_Code BVDC_P_Display_SetHdmiSettings
 	}
 
 	if(pHdmiSettings->stSettings.eColorComponent >= BAVC_Colorspace_eFuture ||
-	   pHdmiSettings->stSettings.eColorRange >= BAVC_ColorRange_eMax)
+	   pHdmiSettings->stSettings.eColorRange >= BAVC_ColorRange_eMax ||
+	   pHdmiSettings->stSettings.eEotf >= BAVC_HDMI_DRM_EOTF_eMax)
 	{
 		return BERR_TRACE(BVDC_ERR_INVALID_HDMI_MODE);
 	}
@@ -1249,6 +1250,11 @@ static BERR_Code BVDC_P_Display_SetHdmiSettings
 		hDisplay->stNewInfo.stHdmiSettings.stDirty.stBits.bHdmiRmChanged = BVDC_P_DIRTY;
 		hDisplay->stNewInfo.stHdmiSettings.stDirty.stBits.bHdmiColorComponent = BVDC_P_DIRTY;
 	}
+	if (hDisplay->stCurInfo.stHdmiSettings.stSettings.eEotf != hDisplay->stNewInfo.stHdmiSettings.stSettings.eEotf)
+	{
+		hDisplay->stNewInfo.stDirty.stBits.bHdmiSettings = BVDC_P_DIRTY;
+	}
+
 	BDBG_LEAVE(BVDC_P_Display_SetHdmiSettings);
 	return BERR_SUCCESS;
 }

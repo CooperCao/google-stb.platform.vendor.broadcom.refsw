@@ -40,62 +40,73 @@
 ******************************************************************************/
 
 #include "nexus_platform.h"
-#include "nexus_surface.h"
+#include "bstd.h"
+#include "bkni.h"
+#include "blst_queue.h"
+#include "dynrng_app.h"
+#include "dynrng_app_priv.h"
+#include "dynrng_shell.h"
+#include "dynrng_utils.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#ifndef DYNRNG_OSD_H__
-#define DYNRNG_OSD_H__
-
-typedef struct OSD_Osd * OSD_OsdHandle;
-
-typedef enum OSD_OsdMode
+void APP_PrintGfxSdr2Hdr(APP_AppHandle app)
 {
-    OSD_OsdMode_eOff,
-    OSD_OsdMode_eOn,
-    OSD_OsdMode_eTimer,
-    OSD_OsdMode_eMax
-} OSD_OsdMode;
+    fprintf(stdout, "# g2Hdr\n");
+    fprintf(stdout, "gfx sdrToHdr(%d %d %d)\n", app->args.gfxSdr2Hdr.y, app->args.gfxSdr2Hdr.cb, app->args.gfxSdr2Hdr.cr );
+}
 
-typedef struct OSD_OsdSettings
+int APP_DoGfxSdr2Hdr(void * context, char * args)
 {
-    OSD_OsdMode mode;
-    unsigned timeout;
-} OSD_OsdSettings;
+    APP_AppHandle app = (APP_AppHandle) context;
+    NEXUS_GraphicsSettings graphicsCompositorSettings;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    int y, cb, cr;
 
-typedef enum OSD_Eotf
+    if ( args )
+    {
+        if (sscanf(args, "%d %d %d", &y, &cb, &cr) == 3)
+        {
+            app->args.gfxSdr2Hdr.y = (short) y;
+            app->args.gfxSdr2Hdr.cb = (short) cb;
+            app->args.gfxSdr2Hdr.cr = (short) cr;
+            NEXUS_Display_GetGraphicsSettings(app->display, &graphicsCompositorSettings);
+            graphicsCompositorSettings.sdrToHdr.y = app->args.gfxSdr2Hdr.y;
+            graphicsCompositorSettings.sdrToHdr.cb = app->args.gfxSdr2Hdr.cb;
+            graphicsCompositorSettings.sdrToHdr.cr = app->args.gfxSdr2Hdr.cr;
+            rc = NEXUS_Display_SetGraphicsSettings(app->display, &graphicsCompositorSettings);
+            if (rc) { rc = BERR_TRACE(rc); goto end; }
+            rc = APP_UpdateOsd(app);
+            if (rc) { rc = BERR_TRACE(rc); goto end; }
+        }
+        else
+        {
+            fprintf(stdout, "g2Hdr requires [y cb cr] in short int format\n");
+        }
+    }
+    else
+    {
+        APP_PrintGfxSdr2Hdr(app);
+    }
+
+  end:
+    return rc;
+}
+
+int APP_SetupGfxSdr2HdrCommand(APP_AppHandle app)
 {
-    OSD_Eotf_eUnknown,
-    OSD_Eotf_eSdr,
-    OSD_Eotf_eHdr,
-    OSD_Eotf_eSmpte,
-    OSD_Eotf_eArib,
-    OSD_Eotf_eMax
-} OSD_Eotf;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    SHELL_CommandHandle command = NULL;
 
-typedef enum OSD_EotfSupport
-{
-    OSD_EotfSupport_eUnknown,
-    OSD_EotfSupport_eNo,
-    OSD_EotfSupport_eYes,
-    OSD_EotfSupport_eMax
-} OSD_EotfSupport;
+    command = SHELL_CreateCommand(app->shell,
+        "g2hdr",
+        "changes HDMI output SDR to HDR conversion adjustment. With no args, reports current Sdr2Hdr status to console.",
+        "[y cb cy], where y, cb, cr are short int",
+        &APP_DoGfxSdr2Hdr,
+        app);
+    if (!command) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto end; }
 
-typedef struct OSD_OsdModel
-{
-    OSD_Eotf input;
-    OSD_Eotf output;
-    OSD_EotfSupport tv;
-} OSD_OsdModel;
-
-void OSD_Destroy(OSD_OsdHandle osd);
-OSD_OsdHandle OSD_Create(unsigned width, unsigned height);
-NEXUS_SurfaceHandle OSD_GetFrameBuffer(OSD_OsdHandle osd);
-const NEXUS_Rect * OSD_GetFrameBufferDimensions(OSD_OsdHandle osd);
-void OSD_GetSettings(OSD_OsdHandle osd, OSD_OsdSettings * pSettings);
-int OSD_SetSettings(OSD_OsdHandle osd, const OSD_OsdSettings * pSettings);
-void OSD_GetModel(OSD_OsdHandle osd, OSD_OsdModel * model);
-int OSD_SetModel(OSD_OsdHandle osd, const OSD_OsdModel * model);
-void OSD_Print(OSD_OsdHandle osd);
-OSD_OsdMode OSD_ParseOsdMode(const char * osdStr);
-const char * OSD_GetModeName(OSD_OsdMode mode);
-
-#endif /* DYNRNG_OSD_H__ */
+end:
+    return rc;
+}

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,21 +35,14 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 
 #include "nexus_platform.h"
 #include "dynrng_args.h"
 #include "dynrng_args_priv.h"
+#include "dynrng_app_priv.h"
 #include "dynrng_utils.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -66,6 +59,12 @@ void ARGS_GetDefault(ARGS_Args * args)
     args->transportType = NEXUS_TransportType_eTs;
     args->colorSpace = NEXUS_ColorSpace_eAuto;
     args->colorDepth = 0;
+    args->colorRange = APP_CMD_eAuto;
+    args->matrixCoefficients = APP_CMD_eInput;
+    args->eotf = APP_Eotf_eInput; /* track the stream by default */
+    args->gfxSdr2Hdr.y = 12288;
+    args->gfxSdr2Hdr.cb = 0;
+    args->gfxSdr2Hdr.cr = -16384;
     args->format = NEXUS_VideoFormat_e3840x2160p30hz;
     args->smdFilename = NULL;
     args->osdMode = OSD_OsdMode_eOff;
@@ -83,8 +82,12 @@ void ARGS_Usage(const char * invocation)
     fprintf(stdout, "  -u audioCodec Optional. Specifies the audio codec to decode.  Defaults to aac.  Allowed values are: aac, ac3, mpeg.\n");
     fprintf(stdout, "  -s colorSpace Optional. Specifies the color space of the HDMI output.  Defaults to auto. Allowed values are auto, 422, 420, 444, rgb.  May not take effect if your tv doesn't support it.  Some combos of space and depth are not legal.\n");
     fprintf(stdout, "  -d colorDepth Optional. Specifies the color depth of the HDMI output.  Defaults to 0 (auto). Allowed values are 0, 8, 10, 12, and 16.  May not take effect if your tv doesn't support it. Some combos of space and depth are not legal.\n");
+    fprintf(stdout, "  -r colorRange Optional. Specifies color range of the HDMI output.  Defaults to auto, Allowed values are auto, limited, full. May not take effect if your tv doesn't support it. Some combos of matrixCoeff and range are not legal.\n");
+    fprintf(stdout, "  -ma matrixCoefficients Optional. Specifies matrixCoefficients of the HDMI output.  Defaults to auto. Allowed values are auto, input, 709, 170m, 429_2_bg, 2020ncl, 2020cl.  May not take effect if your tv doesn't support it. Some combos of matrixCoeff and range are not legal.\n");
+    fprintf(stdout, "  -e eotf Optional. Specifies eotf of the HDMI output.  Defaults to track input. Allowed values are input, sdr, hdrgamma, hdrpq. May not take effect if your tv doesn't support it.\n");
     fprintf(stdout, "  -o outputFormat Optional. Specifies the video output format.  Defaults to 2160p60, or whatever the display prefers.  Allowed values are 1080p50, 1080p60, 2160p30, 2160p50, and 2160p60\n");
     fprintf(stdout, "  -m metadataFilename Optional. Specifies the file from which to read DRM static metadata.\n");
+    fprintf(stdout, "  -g2hdr y cb cr Optional. Specifies the y, cb, cr gfx sdrToHdr adjustment.  Default y=12288, cr=0, cb=-16384. Allowed values are in [-32768, 32767]. Take effect only when display EOTF is NOT SDR.\n");
     fprintf(stdout, "  -g Optional. Specifies the OSD mode to start in.  If -g is specified, OSD will be on by default; if not OSD will be off by default.\n");
 }
 
@@ -134,6 +137,19 @@ NEXUS_TransportType ARGS_ParseTransportType(const char * typeStr)
 NEXUS_ColorSpace ARGS_ParseColorSpace(const char * spaceStr)
 {
     return UTILS_ParseColorSpace(spaceStr);
+}
+
+static const UTILS_StringIntMapEntry colorRangeAliases[] =
+{
+    { "auto", APP_CMD_eAuto },
+    { "limited", NEXUS_ColorRange_eLimited },
+    { "full", NEXUS_ColorRange_eFull },
+    { NULL, NEXUS_ColorRange_eMax },
+};
+
+NEXUS_VideoCodec ARGS_ParseColorRange(const char * colorRangeStr)
+{
+    return (NEXUS_ColorRange)UTILS_ParseTableAlias(colorRangeAliases, colorRangeStr);
 }
 
 NEXUS_VideoFormat ARGS_ParseVideoFormat(const char * formatStr)
@@ -209,6 +225,45 @@ NEXUS_Error ARGS_Parse(int argc, char * argv[], ARGS_Args * args)
             else
             {
                 fprintf(stderr, "-d requires an integer argument\n");
+                rc = NEXUS_INVALID_PARAMETER;
+                break;
+            }
+        }
+        else if (!strncmp(argv[i], "-r", 2))
+        {
+            if (++i < argc)
+            {
+                args->colorRange = ARGS_ParseColorRange(argv[i]);
+            }
+            else
+            {
+                fprintf(stderr, "-r requires color range name\n");
+                rc = NEXUS_INVALID_PARAMETER;
+                break;
+            }
+        }
+        else if (!strncmp(argv[i], "-ma", 3))
+        {
+            if (++i < argc)
+            {
+                args->matrixCoefficients = APP_ParseMatrixCoefficients(argv[i]);
+            }
+            else
+            {
+                fprintf(stderr, "-ma requires matrix coeffiecient name\n");
+                rc = NEXUS_INVALID_PARAMETER;
+                break;
+            }
+        }
+        else if (!strncmp(argv[i], "-e", 2))
+        {
+            if (++i < argc)
+            {
+                args->eotf = APP_ParseEotf(argv[i]);
+            }
+            else
+            {
+                fprintf(stderr, "-e requires eotf name\n");
                 rc = NEXUS_INVALID_PARAMETER;
                 break;
             }
@@ -291,6 +346,21 @@ NEXUS_Error ARGS_Parse(int argc, char * argv[], ARGS_Args * args)
                 break;
             }
         }
+        else if (!strncmp(argv[i], "-g2hdr", 3))
+        {
+            if ((++i + 2) < argc)
+            {
+                args->gfxSdr2Hdr.y = (short) strtol(argv[i], NULL, 0);
+                args->gfxSdr2Hdr.cb = (short) strtol(argv[++i], NULL, 0);
+                args->gfxSdr2Hdr.cr = (short) strtol(argv[++i], NULL, 0);
+            }
+            else
+            {
+                fprintf(stderr, "-g2hdr requires y cb cr\n");
+                rc = NEXUS_INVALID_PARAMETER;
+                break;
+            }
+        }
         else if (!strncmp(argv[i], "-g", 2))
         {
             args->osdMode = OSD_OsdMode_eOn;
@@ -317,6 +387,10 @@ void ARGS_Print(const ARGS_Args * args)
     fprintf(stdout, "color-space = %s\n", UTILS_GetColorSpaceName(args->colorSpace));
     fprintf(stdout, "color-depth = %u\n", args->colorDepth);
     fprintf(stdout, "transport-type = %s\n", UTILS_GetTransportTypeName(args->transportType));
+    fprintf(stdout, "color-range = %u\n", args->colorRange);
+    fprintf(stdout, "matrix-coefficients = %s\n", APP_GetMatrixCoefficientsName(args->matrixCoefficients));
+    fprintf(stdout, "eotf = %s\n", APP_GetEotfName(args->eotf));
+    fprintf(stdout, "gfxSdr2Hdr = {%d %d %d}\n", args->gfxSdr2Hdr.y, args->gfxSdr2Hdr.cb, args->gfxSdr2Hdr.cr);
     fprintf(stdout, "smd-filename = %s\n", args->smdFilename);
     fprintf(stdout, "osdMode = %s\n", OSD_GetModeName(args->osdMode));
 }

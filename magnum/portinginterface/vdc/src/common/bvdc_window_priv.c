@@ -88,6 +88,7 @@ BDBG_FILE_MODULE(deinterlacer_mosaic);
 BDBG_FILE_MODULE(BVDC_MTGW);
 BDBG_FILE_MODULE(BVDC_MTGR);
 BDBG_FILE_MODULE(BVDC_MTGR__);
+BDBG_FILE_MODULE(BVDC_NLCSC);
 BDBG_OBJECT_ID(BVDC_WIN);
 
 /* SW3556-886 */
@@ -1466,9 +1467,9 @@ void BVDC_P_Window_Init
 
 	/* Default CSC */
 	BVDC_P_Compositor_GetCscTable_isrsafe(&hWindow->stPriCsc,
-		true, BAVC_MatrixCoefficients_eItu_R_BT_709, BVDC_P_CmpColorSpace_eHdYCrCb, false);
+		true, BAVC_MatrixCoefficients_eItu_R_BT_709, BVDC_P_CmpColorSpace_eHdYCrCb, BAVC_HDMI_DRM_EOTF_eSDR, BAVC_HDMI_DRM_EOTF_eSDR, false);
 	BVDC_P_Compositor_GetCscTable_isrsafe(&hWindow->stSecCsc,
-		true, BAVC_MatrixCoefficients_eItu_R_BT_709, BVDC_P_CmpColorSpace_eHdYCrCb, false);
+		true, BAVC_MatrixCoefficients_eItu_R_BT_709, BVDC_P_CmpColorSpace_eHdYCrCb, BAVC_HDMI_DRM_EOTF_eSDR, BAVC_HDMI_DRM_EOTF_eSDR, false);
 
 #if BVDC_P_SUPPORT_CMP_MOSAIC_CSC
 	/* Mosaic CSC */
@@ -1478,7 +1479,7 @@ void BVDC_P_Window_Init
 		for (i = 0; i < BVDC_P_SUPPORT_CMP_MOSAIC_CSC; i++)
 		{
 			BVDC_P_Compositor_GetCscTable_isrsafe(&hWindow->astMosaicCscList[i],
-				true, BAVC_MatrixCoefficients_eItu_R_BT_709, BVDC_P_CmpColorSpace_eHdYCrCb, false);
+				true, BAVC_MatrixCoefficients_eItu_R_BT_709, BVDC_P_CmpColorSpace_eHdYCrCb, BAVC_HDMI_DRM_EOTF_eSDR, BAVC_HDMI_DRM_EOTF_eSDR, false);
 		}
 
 		for (i = 0; i < BAVC_MOSAIC_MAX; i++)
@@ -2881,6 +2882,10 @@ BERR_Code BVDC_P_Window_ValidateChanges
 	   (pNewInfo->lOffsetB        != pCurInfo->lOffsetB       ) ||
 	   (pNewInfo->bCscRgbMatching != pCurInfo->bCscRgbMatching) ||
 	   (hWindow->hCompositor->hDisplay->stNewInfo.bXvYcc!= hWindow->hCompositor->hDisplay->stCurInfo.bXvYcc)||
+	   (hWindow->hCompositor->hDisplay->stNewInfo.eHdmiOutput != hWindow->hCompositor->hDisplay->stCurInfo.eHdmiOutput)||
+#if BVDC_P_ORTHOGONAL_VEC
+	   (hWindow->hCompositor->hDisplay->stNewInfo.stHdmiSettings.stSettings.eEotf != hWindow->hCompositor->hDisplay->stCurInfo.stHdmiSettings.stSettings.eEotf)||
+#endif
 	   (hWindow->hCompositor->hDisplay->stNewInfo.stDirty.stBits.bTiming))
 	{
 		pNewDirty->stBits.bCscAdjust = BVDC_P_DIRTY;
@@ -3378,27 +3383,61 @@ static void BVDC_P_Window_SetMosaicCsc_isr
  * {private}
  *
  */
-static void BVDC_P_Window_SetBypassVideo_isr
-	( BVDC_Window_Handle               hWindow )
+static void BVDC_P_Window_SetBypassColor_isr
+	( BVDC_Window_Handle               hWindow,
+	  BAVC_MatrixCoefficients          eInputMatrixCoeff )
 {
 	BVDC_Compositor_Handle  hCompositor;
-#if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC
 	BVDC_P_WindowId  eV0Id;
-#endif
-	bool bBypassVideoProcessings = false;
+	BAVC_HDMI_DRM_EOTF eOutputEotf;
+	BVDC_P_CmpColorSpace eOutputColorSpace; /* like matrix coeff */
+	bool bBypassColorByEotf;
+	bool bBypassDviCsc;
+	uint32_t ulEnColorConv;
 
-	BDBG_ENTER(BVDC_P_Window_SetBypassVideo_isr);
+	BDBG_ENTER(BVDC_P_Window_SetBypassColor_isr);
 	BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 	BDBG_OBJECT_ASSERT(hWindow->hCompositor, BVDC_CMP);
 
 	hCompositor = hWindow->hCompositor;
-	bBypassVideoProcessings =
-		hWindow->stSettings.bBypassVideoProcessings ||
-		(hCompositor->eTransferCharacteristics == BAVC_TransferCharacteristics_eSmpte_ST_2084) ||
-		(hCompositor->eTransferCharacteristics == BAVC_TransferCharacteristics_eArib_STD_B67);
+	eOutputColorSpace = hCompositor->eCmpColorSpace;
+#if BVDC_P_ORTHOGONAL_VEC
+	eOutputEotf = hCompositor->hDisplay->stCurInfo.stHdmiSettings.stSettings.eEotf;
+#else
+	eOutputEotf = BAVC_HDMI_DRM_EOTF_eSDR;
+#endif
+	bBypassColorByEotf = BVDC_P_BYPASS_COLOR_CONV(hWindow->eInputEotf, eOutputEotf);
+	hWindow->bBypassCmpCsc = hWindow->stSettings.bBypassVideoProcessings || bBypassColorByEotf ||
+		(BVDC_P_IS_BT2020(eInputMatrixCoeff) && (eOutputColorSpace == BVDC_P_CmpColorSpace_eUhdYCrCb));
+	ulEnColorConv = (hWindow->bBypassCmpCsc)? 0 : 1;
+	if (hWindow->bBypassCmpCsc)
+	{
+		BDBG_MODULE_MSG(BVDC_NLCSC,("win[%d] bypass CSC", hWindow->eId));
+	}
+	eV0Id = BVDC_P_CMP_GET_V0ID(hCompositor);
+	if((hCompositor->ulActiveVideoWindow == 1) || (hWindow->eId == eV0Id))
+	{
+		/* if there is only one window in this compositor, it decides whether dviCsc bypass,
+		 * and if two windows are enabled, then window 0 decides it */
+#if BVDC_P_ORTHOGONAL_VEC
+		bBypassDviCsc = bBypassColorByEotf ||
+			((!BVDC_P_IS_SDR(eOutputEotf)) && (hCompositor->hDisplay->stCurInfo.stHdmiSettings.stSettings.eColorComponent != BAVC_Colorspace_eRGB));
+		if ((hCompositor->bBypassDviCsc != bBypassDviCsc) || bBypassDviCsc)
+		{
+			/* make disp always repeat bypass msg even if it already bypassColor */
+			hCompositor->hDisplay->stCurInfo.stDirty.stBits.bHdmiCsc = BVDC_P_DIRTY;
+		}
+#else
+		bBypassDviCsc = bBypassColorByEotf;
+#endif
+		hCompositor->bBypassDviCsc = bBypassDviCsc;
+		if (bBypassDviCsc)
+		{
+			BDBG_MODULE_MSG(BVDC_NLCSC,("win[%d] decides bypass DVI_CSC", hWindow->eId));
+		}
+	}
 
 #if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC
-	eV0Id = BVDC_P_CMP_GET_V0ID(hCompositor);
 	if (hCompositor->bSupportMACsc[hWindow->eId - eV0Id])
 	{
 		/* Enable or disable ma_color_conv */
@@ -3406,18 +3445,18 @@ static void BVDC_P_Window_SetBypassVideo_isr
 			BCHP_MASK(CMP_0_V0_SURFACE_CTRL, MA_COLOR_CONV_ENABLE) |
 			BCHP_MASK(CMP_0_V0_SURFACE_CTRL, COLOR_CONV_ENABLE));
 		BVDC_P_WIN_GET_REG_DATA(CMP_0_V0_SURFACE_CTRL) |=  (
-			BCHP_FIELD_DATA(CMP_0_V0_SURFACE_CTRL, MA_COLOR_CONV_ENABLE, (bBypassVideoProcessings)? 0 : 1) |
-			BCHP_FIELD_DATA(CMP_0_V0_SURFACE_CTRL, COLOR_CONV_ENABLE, (bBypassVideoProcessings)? 0 : 1));
+			BCHP_FIELD_DATA(CMP_0_V0_SURFACE_CTRL, MA_COLOR_CONV_ENABLE, ulEnColorConv) |
+			BCHP_FIELD_DATA(CMP_0_V0_SURFACE_CTRL, COLOR_CONV_ENABLE, ulEnColorConv));
 	}
 #else
 	/*BCHP_CMP_0_V0_SURFACE_CTRL_COLOR_CONV_ENABLE_MASK*/
 	BVDC_P_WIN_GET_REG_DATA(CMP_0_V0_SURFACE_CTRL) &= ~(
 		BCHP_MASK(CMP_0_V0_SURFACE_CTRL, COLOR_CONV_ENABLE));
 	BVDC_P_WIN_GET_REG_DATA(CMP_0_V0_SURFACE_CTRL) |=  (
-		BCHP_FIELD_DATA(CMP_0_V0_SURFACE_CTRL, COLOR_CONV_ENABLE, (bBypassVideoProcessings)? 0 : 1));
+		BCHP_FIELD_DATA(CMP_0_V0_SURFACE_CTRL, COLOR_CONV_ENABLE, ulEnColorConv));
 #endif
 
-	BDBG_LEAVE(BVDC_P_Window_SetBypassVideo_isr);
+	BDBG_LEAVE(BVDC_P_Window_SetBypassColor_isr);
 }
 
 /***************************************************************************
@@ -3457,42 +3496,18 @@ static void BVDC_P_Window_SetMiscellaneous_isr
 		!hWindow->stSettings.bBypassVideoProcessings));
 #endif
 
-	BVDC_P_Window_SetBypassVideo_isr (hWindow);
+	BVDC_P_Window_SetBypassColor_isr (hWindow, hWindow->ePrevMatrixCoeffs);
 
 #if BVDC_P_SUPPORT_WIN_CONST_COLOR
 	{
 		/* Get the window's source. */
 		const BVDC_P_Source_Info *pSrcInfo = &pWinInfo->hSource->stNewInfo;
-		BVDC_Compositor_Handle hCompositor = hWindow->hCompositor;
 
 		/* Set window constant color. */
-		switch(hWindow->eId)
-		{
-		case BVDC_P_WindowId_eComp0_V0:
-		case BVDC_P_WindowId_eComp1_V0:
-		case BVDC_P_WindowId_eComp2_V0:
-		case BVDC_P_WindowId_eComp3_V0:
-		case BVDC_P_WindowId_eComp4_V0:
-		case BVDC_P_WindowId_eComp5_V0:
-		case BVDC_P_WindowId_eComp6_V0:
-			BVDC_P_CMP_GET_REG_DATA(CMP_0_V0_CONST_COLOR) = (
-				BCHP_FIELD_DATA(CMP_0_V0_CONST_COLOR, Y,  BPXL_GET_COMPONENT(BPXL_eA8_Y8_Cb8_Cr8, pSrcInfo->ulMuteColorYCrCb, 2)) |
-				BCHP_FIELD_DATA(CMP_0_V0_CONST_COLOR, CR, BPXL_GET_COMPONENT(BPXL_eA8_Y8_Cb8_Cr8, pSrcInfo->ulMuteColorYCrCb, 0)) |
-				BCHP_FIELD_DATA(CMP_0_V0_CONST_COLOR, CB, BPXL_GET_COMPONENT(BPXL_eA8_Y8_Cb8_Cr8, pSrcInfo->ulMuteColorYCrCb, 1)));
-			break;
-
-#if BVDC_P_CMP_0_MAX_VIDEO_WINDOW_COUNT > 1
-		case BVDC_P_WindowId_eComp0_V1:
-		case BVDC_P_WindowId_eComp1_V1:
-			BVDC_P_CMP_GET_REG_DATA(CMP_0_V1_CONST_COLOR) = (
-				BCHP_FIELD_DATA(CMP_0_V1_CONST_COLOR, Y,  BPXL_GET_COMPONENT(BPXL_eA8_Y8_Cb8_Cr8, pSrcInfo->ulMuteColorYCrCb, 2)) |
-				BCHP_FIELD_DATA(CMP_0_V1_CONST_COLOR, CR, BPXL_GET_COMPONENT(BPXL_eA8_Y8_Cb8_Cr8, pSrcInfo->ulMuteColorYCrCb, 0)) |
-				BCHP_FIELD_DATA(CMP_0_V1_CONST_COLOR, CB, BPXL_GET_COMPONENT(BPXL_eA8_Y8_Cb8_Cr8, pSrcInfo->ulMuteColorYCrCb, 1)));
-			break;
-#endif
-		default:
-			break;
-		}
+		BVDC_P_WIN_GET_REG_DATA(CMP_0_V0_CONST_COLOR) = (
+			BCHP_FIELD_DATA(CMP_0_V0_CONST_COLOR, Y,  BPXL_GET_COMPONENT(BPXL_eA8_Y8_Cb8_Cr8, pSrcInfo->ulMuteColorYCrCb, 2)) |
+			BCHP_FIELD_DATA(CMP_0_V0_CONST_COLOR, CR, BPXL_GET_COMPONENT(BPXL_eA8_Y8_Cb8_Cr8, pSrcInfo->ulMuteColorYCrCb, 0)) |
+			BCHP_FIELD_DATA(CMP_0_V0_CONST_COLOR, CB, BPXL_GET_COMPONENT(BPXL_eA8_Y8_Cb8_Cr8, pSrcInfo->ulMuteColorYCrCb, 1)));
 	}
 #endif
 
@@ -4479,7 +4494,6 @@ static void BVDC_P_Window_AdjustForMadDelay_isr
 		pPicture->ulChunkId            = pReader->ulChunkId;
 		pPicture->eDispOrientation     = pReader->eDispOrientation;
 		pPicture->eTransferCharacteristics = pReader->eTransferCharacteristics;
-
 
 		if (BVDC_P_VNET_USED_MAD_AT_WRITER(pPicture->stVnetMode))
 		{
@@ -13923,12 +13937,14 @@ void BVDC_P_Window_Reader_isr
 	BDBG_MSG(("Win%d R(%d): B(%d) (%d -> %d)", hWindow->eId, eFieldId,
 		pPicture->ulBufferId, pPicture->eSrcPolarity, pPicture->eDstPolarity));
 	*/
-	if (hWindow->hCompositor->eTransferCharacteristics !=
-		pPicture->eTransferCharacteristics)
+	if ((hWindow->ePrevTransChar != pPicture->eTransferCharacteristics) ||
+		(hWindow->ePrevMatrixCoeffs != pPicture->eMatrixCoefficients))
 	{
-		hWindow->hCompositor->eTransferCharacteristics =
-			pPicture->eTransferCharacteristics;
-		BVDC_P_Window_SetBypassVideo_isr (hWindow);
+		hWindow->eInputEotf = BAVC_TransferCharacteristicsToEotf_isrsafe(pPicture->eTransferCharacteristics);
+		hWindow->ePrevTransChar = pPicture->eTransferCharacteristics;
+		hWindow->ePrevMatrixCoeffs = pPicture->eMatrixCoefficients;
+		bCscAdjust = true;
+		BVDC_P_Window_SetBypassColor_isr (hWindow, pPicture->eMatrixCoefficients);
 	}
 
 	if(BVDC_P_SRC_IS_MPEG(hWindow->stCurInfo.hSource->eId))
@@ -14084,9 +14100,7 @@ void BVDC_P_Window_Reader_isr
 	}
 
 	/* mark csc to be adjusted */
-	if ((hWindow->ePrevMatrixCoeffs != pPicture->eMatrixCoefficients)
-	    || pCurDirty->stBits.bMosaicMode
-	   )
+	if ( pCurDirty->stBits.bMosaicMode )
 	{
 		bCscAdjust = true;
 	}
@@ -14191,7 +14205,8 @@ void BVDC_P_Window_Reader_isr
 			for (i = 0; i < BVDC_P_SUPPORT_CMP_MOSAIC_CSC; i++)
 			{
 				BVDC_P_Compositor_GetCscTable_isrsafe(&hWindow->astMosaicCscList[i], pCurInfo->bCscRgbMatching,
-					hWindow->aeMosaicCscToClrSpaceMap[i], eCmpColorSpace, bInputXvYcc);
+					hWindow->aeMosaicCscToClrSpaceMap[i], eCmpColorSpace, hWindow->eInputEotf,
+					hWindow->hCompositor->hDisplay->stCurInfo.stHdmiSettings.stSettings.eEotf, bInputXvYcc);
 				/* TODO: make sure user csc is not enabled with mosaic */
 			}
 
@@ -14205,18 +14220,26 @@ void BVDC_P_Window_Reader_isr
 			if(pCurInfo->bUserCsc)
 			{
 				BVDC_P_Compositor_GetCscTable_isrsafe(&hWindow->stPriCsc,
-					true, BAVC_MatrixCoefficients_eItu_R_BT_709, BVDC_P_CmpColorSpace_eHdYCrCb, false);
+					true, BAVC_MatrixCoefficients_eItu_R_BT_709, BVDC_P_CmpColorSpace_eHdYCrCb,
+					BAVC_HDMI_DRM_EOTF_eSDR, BAVC_HDMI_DRM_EOTF_eSDR, false);
 				BVDC_P_Compositor_GetCscTable_isrsafe(&hWindow->stSecCsc,
-					true, BAVC_MatrixCoefficients_eItu_R_BT_709, BVDC_P_CmpColorSpace_eHdYCrCb, false);
+					true, BAVC_MatrixCoefficients_eItu_R_BT_709, BVDC_P_CmpColorSpace_eHdYCrCb,
+					BAVC_HDMI_DRM_EOTF_eSDR, BAVC_HDMI_DRM_EOTF_eSDR, false);
 				BVDC_P_Csc_FromMatrix_isr(&hWindow->stPriCsc.stCscMC, pCurInfo->pl32_Matrix, pCurInfo->ulUserShift);
 				BVDC_P_Csc_FromMatrix_isr(&hWindow->stSecCsc.stCscMC, pCurInfo->pl32_Matrix, pCurInfo->ulUserShift);
 			}
 			else
 			{
+				BAVC_HDMI_DRM_EOTF eOutEotf;
+#if BVDC_P_ORTHOGONAL_VEC
+				eOutEotf = hWindow->hCompositor->hDisplay->stCurInfo.stHdmiSettings.stSettings.eEotf;
+#else
+				eOutEotf = BAVC_HDMI_DRM_EOTF_eSDR;
+#endif
 				BVDC_P_Compositor_GetCscTable_isrsafe(&hWindow->stPriCsc, pCurInfo->bCscRgbMatching,
-					pPicture->eMatrixCoefficients, eCmpColorSpace, bInputXvYcc);
+					pPicture->eMatrixCoefficients, eCmpColorSpace, hWindow->eInputEotf, eOutEotf, bInputXvYcc);
 				BVDC_P_Compositor_GetCscTable_isrsafe(&hWindow->stSecCsc, pCurInfo->bCscRgbMatching,
-					pPicture->eMatrixCoefficients, eCmpColorSpace, bInputXvYcc);
+					pPicture->eMatrixCoefficients, eCmpColorSpace, hWindow->eInputEotf, eOutEotf, bInputXvYcc);
 			}
 		}
 
@@ -14224,7 +14247,6 @@ void BVDC_P_Window_Reader_isr
 		hCompositor->ulCscAdjust[hWindow->eId] = BVDC_P_RUL_UPDATE_THRESHOLD;
 		hCompositor->bCscCompute[hWindow->eId] = true;
 		hCompositor->bCscDemoCompute[hWindow->eId] = true;
-		hWindow->ePrevMatrixCoeffs = pPicture->eMatrixCoefficients;
 	}
 
 	/* Note: the reader side setting should start from upstream then to the downstream. */
@@ -14358,7 +14380,7 @@ void BVDC_P_Window_Reader_isr
 	BVDC_P_Window_UpdateCallback_isr(hWindow, eFieldId);
 
 	/* Update the corresponding STG meta data*/
-	BVDC_P_Compositor_SetMBoxMetaData_isr(pPicture, hWindow->hCompositor, hWindow->eId);
+	BVDC_P_Compositor_SetMBoxMetaData_isr(pPicture, hWindow->hCompositor);
 
 done:
 	hWindow->pCurReaderNode = pPicture;

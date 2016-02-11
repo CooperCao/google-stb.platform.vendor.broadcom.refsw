@@ -1,24 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
- *     Private module for setting up the modular Vec
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "bstd.h"
 #include "bdbg.h"
@@ -86,6 +105,7 @@
 BDBG_MODULE(BVDC_DISP);
 BDBG_FILE_MODULE(BVDC_DISP_CSC);
 BDBG_FILE_MODULE(BVDC_CMP_SIZE);
+BDBG_FILE_MODULE(BVDC_NLCSC);
 
 /* A forward definition for convenience */
 static void BVDC_P_Display_Copy_Acp_isr(
@@ -3273,21 +3293,23 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
 	uint8_t ucCh0, ucCh1, ucCh2;
 	const BVDC_P_Compositor_Info *pCmpInfo = &hDisplay->hCompositor->stCurInfo;
 #if BCHP_DVI_MISC_0_REG_START
-	bool  bBypassCsc;
+	bool  bDviCscPassThrough;
 #endif
 
 	BDBG_ASSERT(stAVC_MatrixCoefficient_InfoTbl[hDisplay->stCurInfo.eHdmiOutput].eAvcCs == hDisplay->stCurInfo.eHdmiOutput);
 	BDBG_MSG(("Display %d Hdmi %d using %s",
 		hDisplay->eId, pstChan->ulDvi, stAVC_MatrixCoefficient_InfoTbl[hDisplay->stCurInfo.eHdmiOutput].pcAvcCsStr));
 #if BCHP_DVI_MISC_0_REG_START
-	bBypassCsc = (hDisplay->hCompositor->eTransferCharacteristics == BAVC_TransferCharacteristics_eArib_STD_B67) ||
-				 (hDisplay->hCompositor->eTransferCharacteristics == BAVC_TransferCharacteristics_eSmpte_ST_2084) ||
-					hDisplay->stCurInfo.bBypassVideoProcess;
+	bDviCscPassThrough = (hDisplay->hCompositor->bBypassDviCsc || hDisplay->stCurInfo.bBypassVideoProcess);
+	if (bDviCscPassThrough)
+	{
+		BDBG_MODULE_MSG(BVDC_NLCSC, ("disp[%d] bypass DVI_CSC", hDisplay->eId));
+	}
 	*pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
 	*pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_MISC_0_CSC_BYPASS_OVERRIDE_CONTROL + pstChan->ulDviRegOffset);
 	*pList->pulCurrent++ =
-		 BCHP_FIELD_DATA(DVI_MISC_0_CSC_BYPASS_OVERRIDE_CONTROL, OVERRIDE_ENABLE, bBypassCsc) |
-		 BCHP_FIELD_DATA(DVI_MISC_0_CSC_BYPASS_OVERRIDE_CONTROL, OVERRIDE_VALUE,  bBypassCsc);
+		 BCHP_FIELD_DATA(DVI_MISC_0_CSC_BYPASS_OVERRIDE_CONTROL, OVERRIDE_ENABLE, bDviCscPassThrough) |
+		 BCHP_FIELD_DATA(DVI_MISC_0_CSC_BYPASS_OVERRIDE_CONTROL, OVERRIDE_VALUE,  bDviCscPassThrough);
 #endif
 
 	/* --- Setup DVI CSC --- */

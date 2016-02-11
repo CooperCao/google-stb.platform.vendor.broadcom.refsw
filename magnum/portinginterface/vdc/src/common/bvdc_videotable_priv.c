@@ -1,23 +1,41 @@
-/***************************************************************************
- *     Copyright (c) 2003-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 #include "bstd.h"
 #include "bvdc_scaler_priv.h"
 #include "bvdc_window_priv.h"
@@ -26,6 +44,7 @@
 #include "bchp_cmp_0.h"
 
 BDBG_MODULE(BVDC_CSC);
+BDBG_FILE_MODULE(BVDC_NLCSC);
 
 /***************************************************************************
  * video surface color space conversion matrices Set I
@@ -208,17 +227,29 @@ static const BVDC_P_CscCoeffs s_CMP_UHDYCbCr_to_PalSDYCbCr = BVDC_P_MAKE_CMP_CSC
 	   0.000710,   1.150467,  -0.146623,   -0.503457,
 	  -0.001799,  -0.096657,   1.408076,  -39.832873 );
 
-/* BT2020 (i.e. UHD) -> BT709 (i.e. HD) */
+/* SDR BT2020 (i.e. UHD) -> BT709 (i.e. HD) */
 static const BVDC_P_CscCoeffs s_CMP_UHDYCbCr_to_HDYCbCr = BVDC_P_MAKE_CMP_CSC
 	(  1.000000,   0.000015, -0.000130,    0.014753,
 	   0.000000,   1.143195,  0.016617,  -20.455953,
 	   0.000000,  -0.021793,  1.502906,  -61.582478 );
 
-/* BT709 (i.e. HD) -> BT2020 (i.e. UHD) */
+/* SDR BT709 (i.e. HD) -> BT2020 (i.e. UHD) */
 static const BVDC_P_CscCoeffs s_CMP_HDYCbCr_to_UHDYCbCr = BVDC_P_MAKE_CMP_CSC
 	(  1.000000,  -0.000011,   0.000087,  -0.009648,
 	   0.000000,   0.874557,  -0.009669,  17.294425,
 	   0.000000,   0.012682,   0.665237,  41.226373 );
+
+/* HDR BT2020 (i.e. UHD) -> BT709 (i.e. HD) */
+static const BVDC_P_CscCoeffs s_CMP_HDR_UHDYCbCr_to_HDYCbCr = BVDC_P_MAKE_CMP_CSC
+	(  1.000000,   0.000015,  -0.000130,   0.014753,
+	   0.000000,   1.143195,   0.016617, -20.455953,
+	   0.000000,  -0.025639,   1.768125, -95.038210 );
+
+/* HDR BT709 (i.e. HD) -> BT2020 (i.e. UHD) */
+static const BVDC_P_CscCoeffs s_CMP_HDR_HDYCbCr_to_UHDYCbCr = BVDC_P_MAKE_CMP_CSC
+	(  1.000000,  -0.000011,  0.000074,   -0.007985,
+	   0.000000,   0.874557, -0.008219,   17.108772,
+	   0.000000,   0.012682,  0.565452,   53.998927 );
 
 /* identity matrix */
 static const BVDC_P_CscCoeffs s_CMP_Identity_YCbCr_to_YCbCr = BVDC_P_MAKE_CMP_CSC
@@ -928,22 +959,24 @@ void BVDC_P_AssertEnumAndTables(void)
 void BVDC_P_Compositor_GetCscTable_isrsafe
 	( BVDC_P_CscCfg                   *pCscCfg,
 	  bool                             bCscRgbMatching,
-	  BAVC_MatrixCoefficients          eInputColorSpace,
-	  BVDC_P_CmpColorSpace             eOutputColorSpace,
+	  BAVC_MatrixCoefficients          eInputMatrixCoeff,
+	  BVDC_P_CmpColorSpace             eOutputColorSpace, /* like matrix coeff */
+	  BAVC_HDMI_DRM_EOTF               eInputEotf,
+	  BAVC_HDMI_DRM_EOTF               eOutputEotf,
 	  bool                             bInputXvYcc )
 {
-	BAVC_MatrixCoefficients eVdcInputColorSpace = eInputColorSpace;
+	BAVC_MatrixCoefficients eVdcInputMatrixCoeff = eInputMatrixCoeff;
 
 	/* convert to internal xvYCC color space */
 	if(bInputXvYcc && bCscRgbMatching)
 	{
-		if ((BAVC_MatrixCoefficients)eVdcInputColorSpace == BAVC_MatrixCoefficients_eItu_R_BT_709)
+		if ((BAVC_MatrixCoefficients)eVdcInputMatrixCoeff == BAVC_MatrixCoefficients_eItu_R_BT_709)
 		{
-			eVdcInputColorSpace = BAVC_MatrixCoefficients_eXvYCC_709;
+			eVdcInputMatrixCoeff = BAVC_MatrixCoefficients_eXvYCC_709;
 		}
-		else if((BAVC_MatrixCoefficients)eVdcInputColorSpace == BAVC_MatrixCoefficients_eSmpte_170M)
+		else if((BAVC_MatrixCoefficients)eVdcInputMatrixCoeff == BAVC_MatrixCoefficients_eSmpte_170M)
 		{
-			eVdcInputColorSpace = BAVC_MatrixCoefficients_eXvYCC_601;
+			eVdcInputMatrixCoeff = BAVC_MatrixCoefficients_eXvYCC_601;
 		}
 		else
 		{
@@ -952,22 +985,67 @@ void BVDC_P_Compositor_GetCscTable_isrsafe
 	}
 
 	/* Ouptut debug msgs */
-	BDBG_MSG(("bInputXvYcc = %d, bCscRgbMatching = %d", bInputXvYcc, bCscRgbMatching));
-	BDBG_MSG(("eVdcInputColorSpace       = %d", eVdcInputColorSpace));
-	BDBG_MSG(("eOutputColorSpace         = %d", eOutputColorSpace));
+	BDBG_MODULE_MSG(BVDC_NLCSC, ("bInputXvYcc = %d, bCscRgbMatching = %d", bInputXvYcc, bCscRgbMatching));
+	BDBG_MODULE_MSG(BVDC_NLCSC, ("eVdcInputMatrixCoeff = %d, eInputEotf  = %d", eVdcInputMatrixCoeff, eInputEotf));
+	BDBG_MODULE_MSG(BVDC_NLCSC, ("eOutputColorSpace    = %d, eOutputEotf = %d", eOutputColorSpace, eOutputEotf));
+
+	if (!BVDC_P_IS_SDR(eInputEotf) || !BVDC_P_IS_SDR(eOutputEotf))
+	{
+#if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC
+		pCscCfg->ulNLCnv = BVDC_P_NL_CSC_CTRL_SEL_BYPASS;
+		pCscCfg->pCscMA = &s_CMP_Identity_YCbCr_to_YCbCr;
+#endif
+		if (BVDC_P_IS_SDR(eInputEotf) != BVDC_P_IS_SDR(eOutputEotf))
+		{
+			pCscCfg->stCscMC = s_CMP_Identity_YCbCr_to_YCbCr;
+		}
+		else if (!BVDC_P_IS_SDR(eInputEotf) &&
+				 (BVDC_P_IS_BT2020(eVdcInputMatrixCoeff) ||
+				  (eOutputColorSpace == BVDC_P_CmpColorSpace_eUhdYCrCb)))
+		{
+			/* both input and output are HDR, and at least one of them is BT2020 */
+			if ((eOutputColorSpace == BVDC_P_CmpColorSpace_eUhdYCrCb) &&
+				(BVDC_P_IS_BT2020(eVdcInputMatrixCoeff)))
+			{
+				/* both input and output are BT2020 */
+				pCscCfg->stCscMC = s_CMP_Identity_YCbCr_to_YCbCr;
+			}
+			else if (eOutputColorSpace == BVDC_P_CmpColorSpace_eUhdYCrCb)
+			{
+				/*output is BT2020, input is not */
+				pCscCfg->stCscMC = s_CMP_HDR_HDYCbCr_to_UHDYCbCr;
+			}
+			else
+			{
+				/*output is not BT2020, input is */
+				pCscCfg->stCscMC = s_CMP_HDR_UHDYCbCr_to_HDYCbCr;
+			}
+		}
+		else
+		{
+			if(bCscRgbMatching)
+			{
+				pCscCfg->stCscMC = *(s_aaCMP_YCbCr_MatrixTbl[eVdcInputMatrixCoeff][eOutputColorSpace]);
+			}
+			else
+			{
+				pCscCfg->stCscMC = *(s_aaCMP_YCbCr_MatrixTbl_II[eVdcInputMatrixCoeff][eOutputColorSpace]);
+			}
+		}
+	}
 
 #if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC
-	if (eOutputColorSpace == BVDC_P_CmpColorSpace_eUhdYCrCb)
+	else if (eOutputColorSpace == BVDC_P_CmpColorSpace_eUhdYCrCb)
 	{
-		pCscCfg->pCscMA = s_aCMP_MA_TO_UHD_MatrixTbl[eVdcInputColorSpace];
-		if (eVdcInputColorSpace == BAVC_MatrixCoefficients_eItu_R_BT_2020_NCL)
+		pCscCfg->pCscMA = s_aCMP_MA_TO_UHD_MatrixTbl[eVdcInputMatrixCoeff];
+		if (eVdcInputMatrixCoeff == BAVC_MatrixCoefficients_eItu_R_BT_2020_NCL)
 		{
 			pCscCfg->ulNLCnv = BVDC_P_NL_CSC_CTRL_SEL_BYPASS;
 			pCscCfg->stCscMC = s_CMP_Identity_YCbCr_to_YCbCr;
 		}
 		else
 		{
-			pCscCfg->ulNLCnv = (eVdcInputColorSpace == BAVC_MatrixCoefficients_eItu_R_BT_2020_CL)?
+			pCscCfg->ulNLCnv = (eVdcInputMatrixCoeff == BAVC_MatrixCoefficients_eItu_R_BT_2020_CL)?
 				BCHP_CMP_0_V0_NL_CSC_CTRL_SEL_CONV_R0_CL_YCbCr_2_2020_RGB :
 				BCHP_CMP_0_V0_NL_CSC_CTRL_SEL_CONV_R0_709_RGB_2_2020_RGB;
 			pCscCfg->stCscMC = s_CMP_BT2020RGB_to_UhdYCbCr;
@@ -976,10 +1054,10 @@ void BVDC_P_Compositor_GetCscTable_isrsafe
 	else /* output non-BT2020 */
 	{
 		pCscCfg->pCscMA = &s_CMP_Identity_YCbCr_to_YCbCr;
-		if ((eVdcInputColorSpace == BAVC_MatrixCoefficients_eItu_R_BT_2020_NCL) ||
-			(eVdcInputColorSpace == BAVC_MatrixCoefficients_eItu_R_BT_2020_CL ))
+		if ((eVdcInputMatrixCoeff == BAVC_MatrixCoefficients_eItu_R_BT_2020_NCL) ||
+			(eVdcInputMatrixCoeff == BAVC_MatrixCoefficients_eItu_R_BT_2020_CL ))
 		{
-			pCscCfg->ulNLCnv = (eVdcInputColorSpace == BAVC_MatrixCoefficients_eItu_R_BT_2020_NCL)?
+			pCscCfg->ulNLCnv = (eVdcInputMatrixCoeff == BAVC_MatrixCoefficients_eItu_R_BT_2020_NCL)?
 				BCHP_CMP_0_V0_NL_CSC_CTRL_SEL_CONV_R0_NCL_YCbCr_2_709_RGB :
 				BCHP_CMP_0_V0_NL_CSC_CTRL_SEL_CONV_R0_CL_YCbCr_2_709_RGB;
 			pCscCfg->stCscMC = *(s_aCMP_BT709RGB_to_YCbCr_MatrixTbl[eOutputColorSpace]);
@@ -989,26 +1067,26 @@ void BVDC_P_Compositor_GetCscTable_isrsafe
 			pCscCfg->ulNLCnv = BVDC_P_NL_CSC_CTRL_SEL_BYPASS;
 			if(bCscRgbMatching)
 			{
-				pCscCfg->stCscMC = *(s_aaCMP_YCbCr_MatrixTbl[eVdcInputColorSpace][eOutputColorSpace]);
+				pCscCfg->stCscMC = *(s_aaCMP_YCbCr_MatrixTbl[eVdcInputMatrixCoeff][eOutputColorSpace]);
 			}
 			else
 			{
-				pCscCfg->stCscMC = *(s_aaCMP_YCbCr_MatrixTbl_II[eVdcInputColorSpace][eOutputColorSpace]);
+				pCscCfg->stCscMC = *(s_aaCMP_YCbCr_MatrixTbl_II[eVdcInputMatrixCoeff][eOutputColorSpace]);
 			}
 		}
 	}
-	pCscCfg->bNLXvYcc = ((eVdcInputColorSpace == BAVC_MatrixCoefficients_eXvYCC_601) ||
-						 (eVdcInputColorSpace == BAVC_MatrixCoefficients_eXvYCC_709) ||
+	pCscCfg->bNLXvYcc = ((eVdcInputMatrixCoeff == BAVC_MatrixCoefficients_eXvYCC_601) ||
+						 (eVdcInputMatrixCoeff == BAVC_MatrixCoefficients_eXvYCC_709) ||
 						 (eOutputColorSpace   == BVDC_P_CmpColorSpace_eXvYcc_601));
-	BDBG_MSG(("ulNLCnv %d, bNLXvYcc %d", pCscCfg->ulNLCnv, pCscCfg->bNLXvYcc));
+	BDBG_MODULE_MSG(BVDC_NLCSC, ("ulNLCnv %d, bNLXvYcc %d", pCscCfg->ulNLCnv, pCscCfg->bNLXvYcc));
 #else /* #if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC */
-	if(bCscRgbMatching)
+	else if(bCscRgbMatching)
 	{
-		pCscCfg->stCscMC = *(s_aaCMP_YCbCr_MatrixTbl[eVdcInputColorSpace][eOutputColorSpace]);
+		pCscCfg->stCscMC = *(s_aaCMP_YCbCr_MatrixTbl[eVdcInputMatrixCoeff][eOutputColorSpace]);
 	}
 	else
 	{
-		pCscCfg->stCscMC = *(s_aaCMP_YCbCr_MatrixTbl_II[eVdcInputColorSpace][eOutputColorSpace]);
+		pCscCfg->stCscMC = *(s_aaCMP_YCbCr_MatrixTbl_II[eVdcInputMatrixCoeff][eOutputColorSpace]);
 	}
 #endif /* #if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC */
 

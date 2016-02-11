@@ -1,24 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
- *   See Module Overview below.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #ifndef BVDC_H__
 #define BVDC_H__
 
@@ -5130,7 +5146,8 @@ Description:
 	This will allow application to fine tune the vec hdmi settings.
 
 	eColorComponent - This parameter specifies RGB/YCbCr type (4:2:0/4:2:2/4:4:4).
-	eColorRange - Limited range or full range.
+	eColorRange - This parameter specifies whether limited range or full range.
+	eEotf - This parameter specifies whether sdr, gama-hdr, or pq-hdr, ...
 
 See Also:
 	BVDC_Display_SetHdmiSettings;
@@ -5139,7 +5156,33 @@ typedef struct
 {
 	BAVC_Colorspace              eColorComponent;
 	BAVC_ColorRange              eColorRange;
+	BAVC_HDMI_DRM_EOTF           eEotf;
 } BVDC_Display_HdmiSettings;
+
+/***************************************************************************
+Summary:
+	This structure describes the adjustment of HDR display of SDR graphics
+
+Description:
+	This will allow application to adjust the linear approximation of converting
+	SDR graphics to HDR for HDMI HDR display
+
+	sYSlider  - Y adjust slider, from -32768 to 32767. The bigger the Y slider
+		is, the brighter the display is. Default value is 0.
+	sCbSlider - Cb adjust slider, from -32768 to 32767. The bigger the Cb slider
+		is, the more blue saturated the display is. Default value is 0.
+	sCrSlider - Cr adjust slider, from -32768 to 32767. The bigger the Cr slider
+		is, the more red saturated the display is. Default value is 0.
+
+See Also:
+	BVDC_Source_SetSdrGfxToHdrApproximationAdjust;
+***************************************************************************/
+typedef struct
+{
+	int16_t                      sYSlider;
+	int16_t                      sCbSlider;
+	int16_t                      sCrSlider;
+} BVDC_Source_SdrGfxToHdrApproximationAdjust;
 
 /***************************************************************************
  * Public API
@@ -11779,6 +11822,47 @@ BERR_Code BVDC_Source_DisableGammaCorrection
 	( BVDC_Source_Handle               hSource,
 	  const BMMA_Block_Handle          hGammaTable );
 
+/***************************************************************************
+Summary:
+	Sets the adjustment for SDR graphics to HDR conversion in the graphics
+	source device specified by the source handle.
+
+Description:
+	This function currently only applies to the source type of graphics
+	feeder. It would return BERR_INVALID_PARAMETER if hSource does not
+	represent a graphics feeder.
+
+	When a SDR graphics surface is displayed on a HDMI device with HDR EOTF
+	the pixel values need to be converted from SDR EOTF to HDR. Depending
+	on the room brightness and the video displayed at the time, the graphics
+	might look too dark or too bright to user, or too less or too much bluish
+	/reddish. This function allows user to adjust them to his/her preference.
+
+	This setting will be in effect only if the graphics surface has SDR EOTF,
+	and the HDMI display has HDR EOTF.
+
+	Refer to BVDC_Source_SdrGfxToHdrApproximationAdjust for default settings.
+
+	This setting will not be applied until a call to BVDC_ApplyChanges is
+	made.
+
+Input:
+	hSource - The source device to modify.
+	pSdrGfxToHdrApproxAdj - A reference to approximation adjust settings structure.
+
+Output:
+
+Returns:
+	BERR_INVALID_PARAMETER - hSource is not a valid source handle.
+	BERR_SUCCESS - Successfully enabled gamma correction.
+
+See Also:
+	BVDC_Source_SdrGfxToHdrApproximationAdjust
+	BVDC_Display_HdmiSettings, BVDC_Display_SetHdmiSettings
+****************************************************************************/
+BERR_Code BVDC_Source_SetSdrGfxToHdrApproximationAdjust
+	( BVDC_Source_Handle               hSource,
+	  const BVDC_Source_SdrGfxToHdrApproximationAdjust *pSdrGfxToHdrApproxAdj);
 
 /***************************************************************************
 Summary:

@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "nexus_base.h"
 #include "nexus_display_module.h"
 #include "priv/nexus_surface_priv.h"
@@ -115,6 +104,15 @@ NEXUS_Display_P_SetGraphicsChromaKey(const struct NEXUS_DisplayGraphics *graphic
     return NEXUS_SUCCESS;
 }
 
+static NEXUS_Error
+NEXUS_Display_P_SetSdrGfxToHdrApproximationAdjust(const struct NEXUS_DisplayGraphics *graphics, const NEXUS_GraphicsSettings *cfg)
+{
+    BERR_Code rc;
+
+    rc = BVDC_Source_SetSdrGfxToHdrApproximationAdjust(graphics->source, (BVDC_Source_SdrGfxToHdrApproximationAdjust *)&cfg->sdrToHdr);
+    if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
+    return NEXUS_SUCCESS;
+}
 
 static BERR_Code
 NEXUS_Display_P_SetGraphicsSettings(NEXUS_DisplayHandle display, const NEXUS_GraphicsSettings *cfg, bool force)
@@ -178,6 +176,13 @@ NEXUS_Display_P_SetGraphicsSettings(NEXUS_DisplayHandle display, const NEXUS_Gra
 
     if(force || (graphics->cfg.chromakeyEnabled!=cfg->chromakeyEnabled || graphics->cfg.lowerChromakey!=cfg->lowerChromakey || graphics->cfg.upperChromakey!=cfg->upperChromakey)) {
         rc = NEXUS_Display_P_SetGraphicsChromaKey(graphics, cfg);
+        if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto err_source_cfg;}
+    }
+
+    if(force || (graphics->cfg.sdrToHdr.y!=cfg->sdrToHdr.y ||
+                 graphics->cfg.sdrToHdr.cb!=cfg->sdrToHdr.cb ||
+                 graphics->cfg.sdrToHdr.cr!=cfg->sdrToHdr.cr)) {
+        rc = NEXUS_Display_P_SetSdrGfxToHdrApproximationAdjust(graphics, cfg);
         if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto err_source_cfg;}
     }
 

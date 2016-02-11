@@ -497,6 +497,8 @@ int cmdline_parse(int argc, const char *argv[], struct util_opts_t *opts)
     opts->playbackHeap = -1;
     opts->playbackFifoSize = 0;
 
+    opts->useHdmiDrm = true;
+
     for (i=0;i<argc;i++)
     {
         rc = cmdline_parse_common(i, argc, argv, &opts->common, &state, print_usage);
