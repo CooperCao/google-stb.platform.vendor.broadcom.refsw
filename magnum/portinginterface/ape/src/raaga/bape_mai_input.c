@@ -1,23 +1,44 @@
-/***************************************************************************
- *     Copyright (c) 2006-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description: MAI Audio Input Interface (used for HDMI)
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *
+ *****************************************************************************/
 
 #include "bape.h"
 #include "bape_priv.h"
@@ -42,9 +63,9 @@ typedef struct BAPE_MaiInput
     BDBG_OBJECT(BAPE_MaiInput)
     BAPE_Handle deviceHandle;
     BAPE_MaiInputSettings settings;
-    unsigned index;                 
+    unsigned index;
     BAPE_InputPortObject inputPort;
-    uint32_t offset;  
+    uint32_t offset;
     BAPE_MaiInputFormatDetectionSettings clientFormatDetectionSettings;
     bool localFormatDetectionEnabled;
     bool formatDetectionEnabled;
@@ -52,7 +73,7 @@ typedef struct BAPE_MaiInput
     uint32_t outFormatEna;      /* last value written to OUT_FORMAT_ENA field. */
     bool enable;
     char name[12];   /* MAI IN %d */
-    
+
     BINT_CallbackHandle maiRxCallback;
 
     BAPE_MaiInputFormatDetectionStatus  lastFormatDetectionStatus;
@@ -92,7 +113,7 @@ static BERR_Code    BAPE_MaiInput_P_OpenHw(BAPE_MaiInputHandle handle);
 static BERR_Code    BAPE_MaiInput_P_ApplySettings(BAPE_MaiInputHandle handle);
 static void         BAPE_MaiInput_P_DetectInputChange_isr (BAPE_MaiInputHandle handle);
 static BERR_Code    BAPE_MaiInput_P_GetFormatDetectionStatus_isr(BAPE_MaiInputHandle handle, BAPE_MaiInputFormatDetectionStatus *pStatus );
-static void         BAPE_P_MAI_RX_isr (void * pParm1, int iParm2); 
+static void         BAPE_P_MAI_RX_isr (void * pParm1, int iParm2);
 static void         BAPE_MaiInput_P_SetReceiverOutputFormat_isr (BAPE_MaiInputHandle handle, BAPE_MaiInputFormatDetectionStatus *pFormatDetectionStatus);
 static BERR_Code    BAPE_MaiInput_P_SetFormatDetection_isr(BAPE_MaiInputHandle handle);
 static void         BAPE_MaiInput_P_UpdateFormat_isr (BAPE_MaiInputHandle handle, BAPE_MaiInputFormatDetectionStatus *pFormatDetectionStatus, BAPE_FMT_Descriptor *pFormat);
@@ -142,7 +163,7 @@ BERR_Code BAPE_MaiInput_Open(
 
     BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
     BDBG_ASSERT(NULL != phandle);
-    
+
     BDBG_MSG(("%s: Opening MAI Input: %u", __FUNCTION__, index));
 
     *phandle = NULL;
@@ -416,12 +437,12 @@ BERR_Code BAPE_MaiInput_GetFormatDetectionStatus(
     )
 {
     BERR_Code ret = BERR_SUCCESS;
-    
+
     BDBG_ENTER(BAPE_MaiInput_GetFormatDetectionStatus);
-    
+
     BDBG_ASSERT(handle);
     BDBG_ASSERT(pStatus);
-    
+
     if ( handle->formatDetectionEnabled )
     {
         /* If Format Detection is enabled, we can just return a copy of whats
@@ -442,7 +463,7 @@ BERR_Code BAPE_MaiInput_GetFormatDetectionStatus(
     }
 
     BDBG_LEAVE(BAPE_MaiInput_GetFormatDetectionStatus);
-    return ret;    
+    return ret;
 }
 
 /***************************************************************************
@@ -467,9 +488,9 @@ BERR_Code BAPE_MaiInput_P_PrepareForStandby(BAPE_Handle hApe)
             if( handle->maiRxCallback )
             {
                 errCode = BINT_DisableCallback(handle->maiRxCallback);
-                if (errCode != BERR_SUCCESS)                             
-                {                                                    
-                    BDBG_ERR(("Unable to Disable MAI RX callback")); 
+                if (errCode != BERR_SUCCESS)
+                {
+                    BDBG_ERR(("Unable to Disable MAI RX callback"));
                 }
 
                 BINT_DestroyCallback(handle->maiRxCallback);
@@ -717,7 +738,7 @@ static BERR_Code BAPE_MaiInput_P_ConsumerAttached_isr(BAPE_InputPort inputPort, 
     BDBG_OBJECT_ASSERT(inputPort, BAPE_InputPort);
     handle = inputPort->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_MaiInput);
-    
+
     BDBG_MSG(("Attaching consumer %s", pConsumer->pName));
 
     switch ( pConsumer->type )
@@ -791,12 +812,12 @@ static BERR_Code BAPE_MaiInput_P_OpenHw(BAPE_MaiInputHandle handle)
     hApe = handle->deviceHandle;
     BDBG_OBJECT_ASSERT(hApe, BAPE_Device);
 
-    /* Taken from RAP PI (regarding ALLOW_NZ_STUFFING=Nonzero_Ok) -->                                                                       
+    /* Taken from RAP PI (regarding ALLOW_NZ_STUFFING=Nonzero_Ok) -->
     PR 35668: Some Blu Ray DVD Players send Non Zero values between compressed
     frames. This was getting treated as PCM data and causing confusion in 3563
-    and a workaround was put. In 3548 this has been fixed in hardware.        
-    Enabling the bit here.                                                    
-    */                                                                        
+    and a workaround was put. In 3548 this has been fixed in hardware.
+    Enabling the bit here.
+    */
 
     BAPE_Reg_P_InitFieldList(hApe, &regFieldList);
 
@@ -829,6 +850,9 @@ static BERR_Code BAPE_MaiInput_P_OpenHw(BAPE_MaiInputHandle handle)
         BAPE_Reg_P_Write(hApe, BCHP_AUD_FMM_IOP_MISC_ESR_STATUS_CLEAR, BCHP_MASK( AUD_FMM_IOP_MISC_ESR_STATUS_CLEAR, IOP_INTERRUPT_IN_HDMI_0));
         BAPE_Reg_P_Write(hApe, BCHP_AUD_FMM_IOP_MISC_ESR_MASK_CLEAR,   BCHP_MASK( AUD_FMM_IOP_MISC_ESR_MASK_CLEAR,   IOP_INTERRUPT_IN_HDMI_0));
 
+        BAPE_Reg_P_UpdateEnum_isr(hApe, BCHP_AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL,
+                                                           AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL, MODE, Locked);
+
     #endif /* if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_IOPIN */
     #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY
         /* Clear and unmask L2 interrupts. */
@@ -838,25 +862,28 @@ static BERR_Code BAPE_MaiInput_P_OpenHw(BAPE_MaiInputHandle handle)
                                                               BCHP_MASK( SPDIF_RCVR_ESR_MASK_CLEAR, SPDIFRX_PC_CHANGE_MASK )   |
                                                               BCHP_MASK( SPDIF_RCVR_ESR_MASK_CLEAR, SPDIFRX_COMP_CHANGE_MASK ) |
                                                               BCHP_MASK( SPDIF_RCVR_ESR_MASK_CLEAR, SPDIFRX_MAI_FMT_CHANGE_MASK ));
+
+        BAPE_Reg_P_UpdateEnum_isr(hApe, BCHP_HDMI_RCVR_CTRL_OUT_RATE_CTRL,
+                                                            SPDIF_RCVR_CTRL_OUT_RATE_CTRL, MODE, Locked);
     #endif /* if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY */
 
     {
         #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_IOPIN
-            BINT_Id             intId = BCHP_INT_ID_AUD_IOP;  
+            BINT_Id             intId = BCHP_INT_ID_AUD_IOP;
         #endif /* if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_IOPIN */
         #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY
-            BINT_Id             intId = BCHP_INT_ID_HDMIRX;  
+            BINT_Id             intId = BCHP_INT_ID_HDMIRX;
         #endif /* if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY */
 
         errCode = BINT_CreateCallback( &handle->maiRxCallback,
-                                       hApe->intHandle, 
+                                       hApe->intHandle,
                                        intId,
-                                       BAPE_P_MAI_RX_isr, 
+                                       BAPE_P_MAI_RX_isr,
                                        (void*)handle,
-                                       0 /* Not used*/       
+                                       0 /* Not used*/
                                       );
     }
-    if (errCode != BERR_SUCCESS) 
+    if (errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("Unable to create MAI RX callback"));
         return errCode;
@@ -881,7 +908,7 @@ static BERR_Code BAPE_MaiInput_P_ApplySettings(BAPE_MaiInputHandle handle)
     BAPE_Reg_P_AddToFieldList(&regFieldList, BAPE_P_HDMI_RX_CONFIG_REGNAME, IGNORE_PERR_COMP, pSettings->ignoreCompressedParity);
     BAPE_Reg_P_AddToFieldList(&regFieldList, BAPE_P_HDMI_RX_CONFIG_REGNAME, TIMEBASE_SEL,     pSettings->stcIndex);
 
-    switch ( pSettings->errorInsertion ) 
+    switch ( pSettings->errorInsertion )
     {
     case BAPE_SpdifInputErrorInsertion_eNone:
         BAPE_Reg_P_AddEnumToFieldList(&regFieldList, BAPE_P_HDMI_RX_CONFIG_REGNAME, INSERT_MODE, No_insert);
@@ -896,7 +923,7 @@ static BERR_Code BAPE_MaiInput_P_ApplySettings(BAPE_MaiInputHandle handle)
         BDBG_ERR(("Invalid Error Insertion Mode %d", pSettings->errorInsertion));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
-    
+
     {  /* Start Critical Section */
         BKNI_EnterCriticalSection();
         BAPE_Reg_P_ApplyFieldList(&regFieldList, BAPE_P_HDMI_RX_CONFIG_REGADDR);
@@ -910,19 +937,19 @@ static BERR_Code BAPE_MaiInput_P_ApplySettings(BAPE_MaiInputHandle handle)
 
 static void BAPE_P_MAI_RX_isr (
         void * pParm1, /* [in] channel handle */
-        int    iParm2  /* [in] Not used */        
+        int    iParm2  /* [in] Not used */
 )
 {
     BAPE_MaiInputHandle handle = NULL;
     uint32_t                        ui32IntStatus=0;
     uint32_t                        ui32MaskStatus=0;
-    
+
     BDBG_ENTER (BAPE_P_MAI_RX_isr);
 
     BKNI_ASSERT_ISR_CONTEXT();
     BDBG_ASSERT (pParm1);
     BSTD_UNUSED(iParm2);
-        
+
     handle = (BAPE_MaiInputHandle) pParm1;
 
     #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_IOPIN
@@ -935,7 +962,7 @@ static void BAPE_P_MAI_RX_isr (
     #endif
 
     ui32IntStatus &= ~ui32MaskStatus;
-            
+
     BDBG_MSG(("MAI_RX_ISR: ESR_STATUS (unmasked): 0x%x", ui32IntStatus));
 
     if (ui32IntStatus)
@@ -951,7 +978,7 @@ static void BAPE_P_MAI_RX_isr (
         BAPE_MaiInput_P_DetectInputChange_isr(handle);
     }
     BDBG_LEAVE (BAPE_P_MAI_RX_isr);
-    return;    
+    return;
 }
 
 /**************************************************************************/
@@ -990,8 +1017,8 @@ static BERR_Code BAPE_MaiInput_P_SetFormatDetection_isr(
     if (! handle->formatDetectionEnabled && formatDetectionRequired )
     {
         /* Make a call to BAPE_MaiInput_P_GetFormatDetectionStatus_isr() to get a
-         * fresh snapshot of the current state of things from the hardware 
-         * (so that we can detect a change when interrupts occur later.   */ 
+         * fresh snapshot of the current state of things from the hardware
+         * (so that we can detect a change when interrupts occur later.   */
         BAPE_MaiInput_P_GetFormatDetectionStatus_isr(handle, &handle->lastFormatDetectionStatus);
 
         BINT_EnableCallback_isr(handle->maiRxCallback);
@@ -1005,10 +1032,10 @@ static BERR_Code BAPE_MaiInput_P_SetFormatDetection_isr(
         {
             handle->formatDetectionEnabled = false;
             ret = BINT_DisableCallback_isr(handle->maiRxCallback);
-            if (ret != BERR_SUCCESS)                             
-            {                                                    
-                BDBG_ERR(("Unable to Disable MAI RX callback")); 
-            }                                                    
+            if (ret != BERR_SUCCESS)
+            {
+                BDBG_ERR(("Unable to Disable MAI RX callback"));
+            }
         }
     }
 
@@ -1023,14 +1050,14 @@ static BERR_Code BAPE_MaiInput_P_GetFormatDetectionStatus_isr(BAPE_MaiInputHandl
     uint32_t        maiFormatRegVal = 0;
     uint32_t        maiFormatRegAudioFormat = 0;
     uint32_t        maiFormatRegSampleRate = 0;
-    uint32_t        burstPreamble = 0;    
+    uint32_t        burstPreamble = 0;
     unsigned int    i;
 
     BDBG_ENTER(BAPE_MaiInput_P_GetFormatDetectionStatus_isr);
 
     BKNI_ASSERT_ISR_CONTEXT();
     BDBG_OBJECT_ASSERT(handle, BAPE_MaiInput);
-    BDBG_ASSERT(pStatus);   
+    BDBG_ASSERT(pStatus);
 
     /* Clear out the destination buffer. */
     BKNI_Memset(pStatus, 0, sizeof (*pStatus));
@@ -1064,30 +1091,30 @@ static BERR_Code BAPE_MaiInput_P_GetFormatDetectionStatus_isr(BAPE_MaiInputHandl
             BAPE_MaiInputFormat     maiInputFormat;
             bool                    compressed;     /* true => stream is compressed */
             bool                    hbr;            /* true => HBR stream           */
-            unsigned                numPcmChannels;   /* Total number of PCM audio channels, 0 for comnpressed streams */  
+            unsigned                numPcmChannels;   /* Total number of PCM audio channels, 0 for comnpressed streams */
         } maiInputFormatInfo[] =
         {    /* hwAudioFormat                                                                                      maiInputFormat                              compressed   hbr    numPcmChannels */
 
 
             {BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_MAI_FORMAT_REGNAME, AUDIO_FORMAT, Idle),                               BAPE_MaiInputFormat_eIdle,                      false,    false,   0 },
-            #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_IOPIN                                                         
+            #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_IOPIN
                 {BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_MAI_FORMAT_REGNAME, AUDIO_FORMAT, Linear_PCM_audio_stereo_mode),   BAPE_MaiInputFormat_eSpdifLinearPcm,            false,    false,   2 },
             #endif
-            #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY                                                        
+            #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY
                 {BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_MAI_FORMAT_REGNAME, AUDIO_FORMAT, HDMI_linearPCM_stereo),          BAPE_MaiInputFormat_eHdmiPcmStereo,             false,    false,   2 },
                 {BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_MAI_FORMAT_REGNAME, AUDIO_FORMAT, SPDIF_linearPCM),                BAPE_MaiInputFormat_eSpdifLinearPcm,            false,    false,   2 },
-            #endif                                                                                                
+            #endif
             {BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_MAI_FORMAT_REGNAME, AUDIO_FORMAT, SPDIF_linearPCM_stereo),             BAPE_MaiInputFormat_eSpdifPcmStereo,            false,    false,   2 },
             {BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_MAI_FORMAT_REGNAME, AUDIO_FORMAT, SPDIF_linearPCM_6_channel),          BAPE_MaiInputFormat_eSpdifPcm6Channel,          false,    false,   6 },
             {BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_MAI_FORMAT_REGNAME, AUDIO_FORMAT, SPDIF_linearPCM_8_channel),          BAPE_MaiInputFormat_eSpdifPcm8Channel,          false,    false,   8 },
-                                                                                                                                 
+
             {BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_MAI_FORMAT_REGNAME, AUDIO_FORMAT, HBR_compressed_8_channel),           BAPE_MaiInputFormat_eHbrCompressed,              true,     true,   0 },
-                                                                                                                  
-            #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY                                                        
+
+            #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY
                 {BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_MAI_FORMAT_REGNAME, AUDIO_FORMAT, HDMI_nonlinearPCM),              BAPE_MaiInputFormat_eHdmiNonLinearPcm,           true,    false,   0 },
                 {BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_MAI_FORMAT_REGNAME, AUDIO_FORMAT, SPDIF_nonlinearPCM),             BAPE_MaiInputFormat_eSpdifNonLinearPcm,          true,    false,   0 },
-            #endif                                                                                                
-            #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_IOPIN                                                         
+            #endif
+            #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_IOPIN
                 {BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_MAI_FORMAT_REGNAME, AUDIO_FORMAT, Compressed_audio_2_channel),     BAPE_MaiInputFormat_eSpdifNonLinearPcm,          true,    false,   0 },
             #endif
         };
@@ -1141,7 +1168,7 @@ static BERR_Code BAPE_MaiInput_P_GetFormatDetectionStatus_isr(BAPE_MaiInputHandl
             case BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_MAI_FORMAT_REGNAME, SAMPLE_RATE, Rate_17640Hz):     pStatus->sampleRate = 176400;     break;
             case BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_MAI_FORMAT_REGNAME, SAMPLE_RATE, Rate_19200Hz):     pStatus->sampleRate = 192000;     break;
             default:                                                                                 pStatus->sampleRate =      0;     break;
-        }            
+        }
     }
 
     if ( pStatus->sampleRate == 0 )
@@ -1175,7 +1202,7 @@ static BERR_Code BAPE_MaiInput_P_GetFormatDetectionStatus_isr(BAPE_MaiInputHandl
             {
                 pStatus->codec = BAVC_AudioCompressionStd_eMax;
                 BDBG_MSG (("Preamble C: Not yet valid: BAVC_AudioCompressionStd_eMax"));
-            }        
+            }
             else /* if preamble C is valid... */
             {
                 burstPreamble = BCHP_GET_FIELD_DATA(receiverStatusRegVal, BAPE_P_HDMI_RX_STATUS_REGNAME, BURST_PREAM_C);
@@ -1185,7 +1212,7 @@ static BERR_Code BAPE_MaiInput_P_GetFormatDetectionStatus_isr(BAPE_MaiInputHandl
             } /* End if preambleC is valid */
     } /* End if not linear PCM */
 
-    BDBG_LEAVE(BAPE_MaiInput_P_GetFormatDetectionStatus_isr);    
+    BDBG_LEAVE(BAPE_MaiInput_P_GetFormatDetectionStatus_isr);
 
     return BERR_SUCCESS;
 }
@@ -1275,9 +1302,9 @@ static void BAPE_MaiInput_P_DetectInputChange_isr (BAPE_MaiInputHandle    handle
             /* Done with the important stuff,  now print out each of the fields and indicate whether they've changed. */
             #if BDBG_DEBUG_BUILD
             #define BAPE_PRINT_CHANGE(name, pfmt, old, new)                                  \
-                (  (old) != (new)   	 											         \
-                    ? 	   BDBG_MODULE_MSG(bape_mai_input_detail, ("%s: " pfmt " -> " pfmt , name,	 (old),	 (new )))    \
-                    : 	   BDBG_MODULE_MSG(bape_mai_input_detail, ("%s: " pfmt, name, (new) ))			        	     \
+                (  (old) != (new)                                                            \
+                    ?      BDBG_MODULE_MSG(bape_mai_input_detail, ("%s: " pfmt " -> " pfmt , name,   (old),  (new )))    \
+                    :      BDBG_MODULE_MSG(bape_mai_input_detail, ("%s: " pfmt, name, (new) ))                           \
                     )
 
             BDBG_MODULE_MSG(bape_mai_input_detail, ("--------MAI Input Format Change Detection ---- begin ----"));
@@ -1326,7 +1353,7 @@ static void BAPE_MaiInput_P_DetectInputChange_isr (BAPE_MaiInputHandle    handle
     while ( formatCounter != formatCounterReturn && changeCount > 0 );
     #endif
 
-    BDBG_LEAVE (BAPE_MaiInput_P_DetectInputChange_isr);   
+    BDBG_LEAVE (BAPE_MaiInput_P_DetectInputChange_isr);
     return;
 }
 
@@ -1369,14 +1396,14 @@ static void BAPE_MaiInput_P_SetReceiverOutputFormat_isr (BAPE_MaiInputHandle han
     {
         handle->outFormatEna = outFormatEna; /* Update the saved state in the handle. */
 
-        BDBG_MSG (("Switching HDMI Receiver output format to %s", 
+        BDBG_MSG (("Switching HDMI Receiver output format to %s",
                    (outFormatEna ==  BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, COMP) ) ? "COMP" :
                    (outFormatEna ==  BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PES) )  ? "PES"  :
                    (outFormatEna ==  BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PCM) )  ? "PCM"  :
                                                                                                             "Unknown" ));
 
         BAPE_Reg_P_UpdateField_isr(handle->deviceHandle,
-                                  BAPE_P_HDMI_RX_CONFIG_REGADDR, 
+                                  BAPE_P_HDMI_RX_CONFIG_REGADDR,
                                   BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, outFormatEna);
 
     }
@@ -1384,10 +1411,10 @@ static void BAPE_MaiInput_P_SetReceiverOutputFormat_isr (BAPE_MaiInputHandle han
     BDBG_MSG(("Setting HBR_MODE to %u", pFormatDetectionStatus->hbr ? 1 : 0));
     BAPE_Reg_P_UpdateField_isr(handle->deviceHandle, BAPE_P_HDMI_RX_CONFIG_REGADDR,
                                BAPE_P_HDMI_RX_CONFIG_REGNAME, HBR_MODE, pFormatDetectionStatus->hbr?1:0);
-    
+
     #endif
 
-    BDBG_LEAVE (BAPE_MaiInput_P_SetReceiverOutputFormat_isr);   
+    BDBG_LEAVE (BAPE_MaiInput_P_SetReceiverOutputFormat_isr);
     return;
 }
 
@@ -1445,12 +1472,12 @@ static void BAPE_MaiInput_P_UpdateFormat_isr (BAPE_MaiInputHandle handle, BAPE_M
 
     BDBG_MSG(( "Updated format fields: "  BAPE_FMT_P_TO_PRINTF_ARGS(pFormat)));
 
-    BDBG_LEAVE (BAPE_MaiInput_P_UpdateFormat_isr);   
+    BDBG_LEAVE (BAPE_MaiInput_P_UpdateFormat_isr);
     return;
 }
 
 /***************************************************************************
-    Define stub functions for when there are no MAI inputs. 
+    Define stub functions for when there are no MAI inputs.
 ***************************************************************************/
 #else /* BAPE_CHIP_MAX_MAI_INPUTS > 0 */
     /* No MAI inputs, just use stubbed out functions. */
