@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************/
 #include "nexus_transport_module.h"
@@ -276,6 +267,7 @@ NEXUS_Error NEXUS_ParserBand_P_SetSettings(NEXUS_ParserBandHandle parserBand, co
     parserCfg.AcceptNulls = pSettings->acceptNullPackets;
     parserCfg.TsMode = NEXUS_IS_DSS_MODE(pSettings->transportType) ? BXPT_ParserTimestampMode_eBinary : BXPT_ParserTimestampMode_eMod300;
     parserCfg.AcceptAdapt00 = pSettings->acceptAdapt00;
+    parserCfg.ForceRestamping = pSettings->forceRestamping;
 
     rc = BXPT_SetParserConfig(pTransport->xpt, bandHwIndex, &parserCfg);
     if (rc) {return BERR_TRACE(rc);}
@@ -529,6 +521,7 @@ void NEXUS_ParserBand_P_GetDefaultSettings(unsigned index, NEXUS_ParserBandSetti
 #else
     pSettings->maxDataRate = pTransport->settings.maxDataRate.parserBand[index];
 #endif
+    pSettings->forceRestamping = true;
 }
 
 #if NEXUS_NUM_PARSER_BANDS

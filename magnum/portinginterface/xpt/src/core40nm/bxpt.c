@@ -1006,6 +1006,11 @@ BERR_Code BXPT_GetParserConfig(
         Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_FULL_PID_PARSER_IBP_ACCEPT_ADAPT_00 );
         ParserConfig->AcceptAdapt00 = (Reg >> GetParserIndex (hXpt, ParserNum)) & 0x01 ? true : false;
 #endif
+
+        /* The hw logic defaults to 1, opposite of what we're used to. */
+        RegAddr = BXPT_P_GetParserCtrlRegAddr( hXpt, ParserNum, BCHP_XPT_FE_MINI_PID_PARSER0_CTRL2 );
+        Reg = BREG_Read32( hXpt->hRegister, RegAddr );
+        ParserConfig->ForceRestamping = BCHP_GET_FIELD_DATA( Reg, XPT_FE_MINI_PID_PARSER0_CTRL2, PARSER_TIMESTAMP_RESTAMP ) ? true : false;
     }
 
     return( ExitCode );
@@ -1036,6 +1041,7 @@ BERR_Code BXPT_GetDefaultParserConfig(
         ParserConfig->TsMode = BXPT_ParserTimestampMode_eAutoSelect;
         ParserConfig->AcceptNulls = false;
         ParserConfig->AcceptAdapt00 = false;
+        ParserConfig->ForceRestamping = true;
     }
 
     return( ExitCode );
@@ -1084,6 +1090,16 @@ BERR_Code BXPT_SetParserConfig(
 
         BREG_Write32( hXpt->hRegister, RegAddr, Reg );
 
+        /* The hw logic defaults to 1, opposite of what we're used to. */
+        RegAddr = BXPT_P_GetParserCtrlRegAddr( hXpt, ParserNum, BCHP_XPT_FE_MINI_PID_PARSER0_CTRL2 );
+        Reg = BREG_Read32( hXpt->hRegister, RegAddr );
+        Reg &= ~(
+            BCHP_MASK( XPT_FE_MINI_PID_PARSER0_CTRL2, PARSER_TIMESTAMP_RESTAMP )
+        );
+        Reg |= (
+            BCHP_FIELD_DATA( XPT_FE_MINI_PID_PARSER0_CTRL2, PARSER_TIMESTAMP_RESTAMP, ParserConfig->ForceRestamping ? 1 : 0 )
+        );
+        BREG_Write32( hXpt->hRegister, RegAddr, Reg );
 
 #if BCHP_XPT_FULL_PID_PARSER_IBP_ACCEPT_ADAPT_00_PARSER0_ACCEPT_ADP_00_MASK != 0x00000001 || BXPT_NUM_PID_PARSERS > 32
     #error "PI NEEDS UPDATING"
