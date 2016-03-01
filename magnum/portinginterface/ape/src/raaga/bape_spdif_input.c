@@ -634,18 +634,8 @@ static BERR_Code BAPE_SpdifInput_P_OpenHw(BAPE_SpdifInputHandle handle)
 
     BAPE_Reg_P_InitFieldList(hApe, &regFieldList);
 
-    if( BAPE_FMT_P_IsLinearPcm_isrsafe(&handle->inputPort.format) )
-    {            
-        /* Set the output format ena to PCM */
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PCM);
-        handle->outFormatEna = BAPE_P_BCHP_ENUM(BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PCM);  /* Remember OUT_FORMAT_ENA setting. */
-    }
-    else
-    {
-        /* Set the output format ena to PES */
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PES);
-        handle->outFormatEna = BAPE_P_BCHP_ENUM(BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PES);  /* Remember OUT_FORMAT_ENA setting. */
-    }
+    BAPE_Reg_P_AddEnumToFieldList(&regFieldList, BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, ALL);
+    handle->outFormatEna = BAPE_P_BCHP_ENUM(BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, ALL);  /* Remember OUT_FORMAT_ENA setting. */
 
     BAPE_Reg_P_AddEnumToFieldList(&regFieldList, BAPE_P_SPDIF_RX_CONFIG_REGNAME, ALLOW_NZ_STUFFING, Nonzero_OK);
 
@@ -1094,28 +1084,9 @@ static void BAPE_SpdifInput_P_SetReceiverOutputFormat_isr (BAPE_SpdifInputHandle
     BKNI_ASSERT_ISR_CONTEXT();
     BDBG_OBJECT_ASSERT(handle, BAPE_SpdifInput);
 
-    outFormatEna =  BAPE_P_BCHP_ENUM(BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PCM);
+    BSTD_UNUSED(pFormatDetectionStatus);
 
-    if ( pFormatDetectionStatus->compressed)
-    {
-        BAPE_PathNode * pConsumer;
-
-        /* TODO: Need to revisit compressed capture in the context of FCI splitting
-           As of today, this code is broken if we have consumer of different types. Second consumer wins. */
-        for ( pConsumer = BLST_S_FIRST(&handle->inputPort.consumerList);
-            pConsumer != NULL;
-            pConsumer = BLST_S_NEXT(pConsumer, consumerNode) )
-        {
-            if ( pConsumer && pConsumer->type == BAPE_PathNodeType_eInputCapture )
-            {
-                outFormatEna =  BAPE_P_BCHP_ENUM(BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, COMP);
-            }
-            else
-            {
-                outFormatEna =  BAPE_P_BCHP_ENUM(BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PES);
-            }
-        }
-    }
+    outFormatEna =  BAPE_P_BCHP_ENUM(BAPE_P_SPDIF_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, ALL);
 
     if ( outFormatEna != handle->outFormatEna )
     {

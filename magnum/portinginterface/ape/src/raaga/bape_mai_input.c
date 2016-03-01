@@ -819,8 +819,8 @@ static BERR_Code BAPE_MaiInput_P_OpenHw(BAPE_MaiInputHandle handle)
 
     regAddr = BAPE_P_HDMI_RX_CONFIG_REGADDR;
 
-    BAPE_Reg_P_AddEnumToFieldList(&regFieldList, BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PCM);
-    handle->outFormatEna = BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PCM);  /* Remember OUT_FORMAT_ENA setting. */
+    BAPE_Reg_P_AddEnumToFieldList(&regFieldList, BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, ALL);
+    handle->outFormatEna = BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, ALL);  /* Remember OUT_FORMAT_ENA setting. */
 
     BAPE_Reg_P_AddEnumToFieldList(&regFieldList, BAPE_P_HDMI_RX_CONFIG_REGNAME, ALLOW_NZ_STUFFING, Nonzero_OK);
     #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY
@@ -1361,7 +1361,7 @@ static void BAPE_MaiInput_P_SetReceiverOutputFormat_isr (BAPE_MaiInputHandle han
     BKNI_ASSERT_ISR_CONTEXT();
     BDBG_OBJECT_ASSERT(handle, BAPE_MaiInput);
 
-    outFormatEna =  BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, PCM);
+    outFormatEna =  BAPE_P_BCHP_ENUM(BAPE_P_HDMI_RX_CONFIG_REGNAME, OUT_FORMAT_ENA, ALL);
 
     if ( pFormatDetectionStatus->compressed)
     {
