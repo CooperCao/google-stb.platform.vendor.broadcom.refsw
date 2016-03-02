@@ -222,7 +222,7 @@ copy:
 ifeq ($(filter $(target), playready playready_svp urr_toggling), $(target))
 ifeq ($(MSDRM_PRDY_SDK_VERSION), 2.5)
 	@echo [Copy $(target) dependencies...]
-	cp -f $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/common_drm/libcmndrmprdy.so $(NEXUS_BIN_DIR)
+	cp -f ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR)/libcmndrmprdy.so $(NEXUS_BIN_DIR)
 ifeq ($(SAGE_SUPPORT),y)
 	cp -f ${BSEAV}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/libplayreadypk_host.so  ${NEXUS_BIN_DIR}
 else

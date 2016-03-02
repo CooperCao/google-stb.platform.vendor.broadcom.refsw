@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2010-2014 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "nexus_simple_decoder_module.h"
 
 /* internal apis */
@@ -330,26 +319,11 @@ void NEXUS_SimpleVideoDecoder_GetServerSettings( NEXUS_SimpleVideoDecoderHandle 
 NEXUS_Error NEXUS_SimpleVideoDecoder_SetServerSettings( NEXUS_SimpleVideoDecoderHandle handle, const NEXUS_SimpleVideoDecoderServerSettings *pSettings )
 {
     NEXUS_Error rc;
-    bool decoder_change;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleVideoDecoder);
 
-    decoder_change = (handle->serverSettings.videoDecoder != pSettings->videoDecoder);
-
-    /* we might be losing our decoders, so disconnect */
-    if (decoder_change) {
-        if (handle->imageInput.handle) {
-            /* user stop. there is no auto-restart for image input. */
-            NEXUS_SimpleVideoDecoder_Stop(handle);
-        }
-        else {
-            nexus_simplevideodecoder_p_stop(handle);
-            nexus_simplevideodecoder_p_disconnect(handle, true);
-        }
-    }
-
     /* testing for loss of secondary windows. this is a specific case for nxserver. */
-    if (!decoder_change && !pSettings->window[1] && handle->serverSettings.window[1]) {
+    if (handle->serverSettings.videoDecoder && handle->serverSettings.videoDecoder == pSettings->videoDecoder && !pSettings->window[1] && handle->serverSettings.window[1]) {
         /* now verify the loss of secondary is the only change */
         NEXUS_SimpleVideoDecoderServerSettings temp = *pSettings;
         temp.window[1] = handle->serverSettings.window[1];
@@ -365,6 +339,16 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SetServerSettings( NEXUS_SimpleVideoDecoder
             handle->serverSettings = *pSettings;
             return 0;
         }
+    }
+
+    if (handle->imageInput.handle) {
+        /* user stop. there is no auto-restart for image input. */
+        NEXUS_SimpleVideoDecoder_Stop(handle);
+    }
+    else {
+        /* otherwise do internal disconnect so we can resume when able. */
+        nexus_simplevideodecoder_p_stop(handle);
+        nexus_simplevideodecoder_p_disconnect(handle, true);
     }
 
     handle->serverSettings = *pSettings;
@@ -399,9 +383,7 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SetServerSettings( NEXUS_SimpleVideoDecoder
         }
     }
 
-    if (decoder_change) {
-        NEXUS_TaskCallback_Fire(handle->resourceChangedCallback);
-    }
+    NEXUS_TaskCallback_Fire(handle->resourceChangedCallback);
 
     return 0;
 }
@@ -2159,7 +2141,7 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_StartHdmiInput( NEXUS_SimpleVideoDecoderHan
         NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&handle->startSettings);
     }
 
-    if (handle->serverSettings.window[0]) {
+    if (handle->serverSettings.window[0] || handle->encoder.window) {
         int rc;
         if (handle->connected) {
             nexus_simplevideodecoder_p_disconnect(handle, false);
@@ -2211,7 +2193,7 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_StartHdDviInput( NEXUS_SimpleVideoDecoderHa
         NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&handle->startSettings);
     }
 
-    if (handle->serverSettings.window[0]) {
+    if (handle->serverSettings.window[0] || handle->encoder.window) {
         int rc;
         if (handle->connected) {
             nexus_simplevideodecoder_p_disconnect(handle, false);

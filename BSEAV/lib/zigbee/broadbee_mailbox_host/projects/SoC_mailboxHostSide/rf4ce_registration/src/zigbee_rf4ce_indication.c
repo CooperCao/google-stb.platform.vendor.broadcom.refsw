@@ -143,7 +143,12 @@ void RF4CE_ZRC2_ControlCommandInd(RF4CE_ZRC2_ControlCommandIndParams_t *const in
 
 void RF4CE_ZRC1_VendorSpecificInd(RF4CE_ZRC1_VendorSpecificIndParams_t *const indParams)
 {
-
+    int clientId = -1;
+    if((clientId = findClientIdByPairRef(indParams->pairingRef)) != -1){
+        server_RF4CE_ZRC1_VendorSpecificInd(indParams, clientId);
+    }
+	return;
+#if 0
     void rf4ceGetPairEntryInfoByPairRefCallback(RF4CE_NWK_GetReqDescr_t *req, RF4CE_NWK_GetConfParams_t *conf)
     {
         if(0 == conf->status){
@@ -183,6 +188,7 @@ void RF4CE_ZRC1_VendorSpecificInd(RF4CE_ZRC1_VendorSpecificIndParams_t *const in
         getDescr.callback = rf4ceGetPairEntryInfoByPairRefCallback;
         RF4CE_NWK_GetReq_Call(&getDescr);
     }
+#endif
 }
 
 void RF4CE_ZRC1_ControlCommandInd(RF4CE_ZRC1_ControlCommandIndParams_t *const indParams)

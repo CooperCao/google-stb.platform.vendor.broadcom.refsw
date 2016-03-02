@@ -133,6 +133,8 @@ CFLAGS += -I${NEXUS_TOP}/../${B_THIS_DIR}/${NEXUS_PLATFORM} -Wimplicit-function-
 CFLAGS += -I$(NEXUS_TOP)/../BSEAV/tools/bmemperf/include
 CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/media
 
+CFLAGS += -DBMEMCONFIG_READ32_SUPPORTED
+
 # Always build with debug
 CFLAGS += -g
 CFLAGS += -I$(NEXUS_TOP)/../BSEAV/tools/bmemconfig

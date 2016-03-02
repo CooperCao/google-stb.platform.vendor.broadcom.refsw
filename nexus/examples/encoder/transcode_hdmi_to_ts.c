@@ -100,7 +100,7 @@ static uint32_t CRC32_mpeg(uint32_t crc, uint8_t *data, int length)
 	crc = ~crc;
 	while (length--)
 	{
-		for (j=0; j<8; j++) 
+		for (j=0; j<8; j++)
 			crc = (crc<<1) ^ ((((*data >> (7-j)) ^ (crc >> 31)) & 1) ? 0x04c11db7 : 0);
 		data++;
 	}
@@ -207,7 +207,7 @@ int main(void)
 #endif
 
     /**********************************************************
-     * Open HDMI INPUT which also drives timebase for display/xcode 
+     * Open HDMI INPUT which also drives timebase for display/xcode
      */
     NEXUS_Timebase_GetSettings(NEXUS_Timebase_e0, &timebaseSettings);
     timebaseSettings.sourceType = NEXUS_TimebaseSourceType_eHdDviIn;
@@ -236,7 +236,7 @@ int main(void)
     /* connect hdmi input STC channel 0 */
     NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
     stcSettings.timebase = NEXUS_Timebase_e0;
-    stcSettings.autoConfigTimebase = false;
+    stcSettings.autoConfigTimebase = false; /* hdmi input module will auto config timebase */
     stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
     audioProgram.stcChannel = stcChannel;
 
@@ -285,12 +285,13 @@ int main(void)
         NEXUS_AudioMuxOutput_GetConnector(audioMuxOutput), NEXUS_AudioEncoder_GetConnector(audioEncoder));
 
     /***********************************************8
-     * Open transcoder STC channel 1 (binary format) 
+     * Open transcoder STC channel 1 (binary format)
      */
     NEXUS_StcChannel_GetDefaultSettings(1, &stcSettings);
     stcSettings.timebase = NEXUS_Timebase_e0;
     stcSettings.mode = NEXUS_StcChannelMode_eAuto;
     stcSettings.pcrBits = NEXUS_StcChannel_PcrBits_eFull42;/* 42-bit binary broadcast for encoder */
+    stcSettings.autoConfigTimebase = false; /* don't auto config timebase from encoder stc */
     stcChannelTranscode = NEXUS_StcChannel_Open(1, &stcSettings);
 
     /**********************************************
@@ -309,7 +310,7 @@ int main(void)
     rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
     if ( !rc && hdmiStatus.connected )
     {
-        /* If current display format is not supported by monitor, switch to monitor's preferred format. 
+        /* If current display format is not supported by monitor, switch to monitor's preferred format.
            If other connected outputs do not support the preferred format, a harmless error will occur. */
         NEXUS_Display_GetSettings(display, &displaySettings);
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
@@ -329,9 +330,9 @@ int main(void)
     videoEncoder = NEXUS_VideoEncoder_Open(0, NULL);
     assert(videoEncoder);
     NEXUS_GetVideoEncoderCapabilities(&videoEncoderCap);
-    
+
     /*************************************
-     * Bring up video encoder display 
+     * Bring up video encoder display
      */
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     displaySettings.displayType = NEXUS_DisplayType_eAuto;
@@ -471,7 +472,7 @@ int main(void)
     assert(pidChannelTranscodePat);
 
     /***********************************
-     * start mux 
+     * start mux
      */
     NEXUS_StreamMux_Start(streamMux,&muxConfig, &muxOutput);
     pidChannelTranscodeVideo = muxOutput.video[0];
@@ -637,7 +638,7 @@ static const uint8_t s_auiTSPacket_PMT[188] =
     getchar();
 
     /************************************
-     * Bring down system 
+     * Bring down system
      */
 
     /**************************************************
@@ -667,8 +668,8 @@ static const uint8_t s_auiTSPacket_PMT[188] =
     NEXUS_Record_Stop(record);
     NEXUS_FileRecord_Close(fileTranscode);
     /*****************************************
-     * Note: remove all record PID channels before stream 
-     * mux stop since streammux would close the A/V PID channels 
+     * Note: remove all record PID channels before stream
+     * mux stop since streammux would close the A/V PID channels
      */
     NEXUS_Record_RemoveAllPidChannels(record);
     NEXUS_StreamMux_Stop(streamMux);
@@ -678,7 +679,7 @@ static const uint8_t s_auiTSPacket_PMT[188] =
     NEXUS_Playpump_ClosePidChannel(playpumpTranscodePcr, pidChannelTranscodePcr);
     NEXUS_Playpump_ClosePidChannel(playpumpTranscodePcr, pidChannelTranscodePat);
     NEXUS_Playpump_ClosePidChannel(playpumpTranscodePcr, pidChannelTranscodePmt);
-    
+
     NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioMuxOutput_GetConnector(audioMuxOutput));
     NEXUS_AudioEncoder_RemoveAllInputs(audioEncoder);
     NEXUS_AudioInput_Shutdown(NEXUS_AudioEncoder_GetConnector(audioEncoder));
@@ -712,7 +713,7 @@ static const uint8_t s_auiTSPacket_PMT[188] =
     NEXUS_VideoInput_Shutdown(NEXUS_HdmiInput_GetVideoConnector(hdmiInput));
     NEXUS_VideoWindow_Close(window);
     NEXUS_Display_Close(display);
-    
+
     NEXUS_VideoWindow_Close(windowTranscode);
     NEXUS_Display_Close(displayTranscode);
     NEXUS_StreamMux_Destroy(streamMux);

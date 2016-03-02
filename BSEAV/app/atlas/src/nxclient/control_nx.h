@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -66,6 +66,14 @@ public:
     virtual eRet    setVolume(int32_t level);
     virtual bool    getMute(void);
     virtual eRet    setMute(bool muted);
+    virtual eRet    connectDecoders(
+        CSimpleVideoDecode * pVideoDecode,
+        CSimpleAudioDecode * pAudioDecode,
+        uint32_t             width,
+        uint32_t             height,
+        CPid *               pVideoPid,
+        eWindowType          winType);
+    virtual void    disconnectDecoders(eWindowType winType);
 };
 
 #ifdef __cplusplus

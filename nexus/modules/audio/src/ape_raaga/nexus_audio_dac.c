@@ -105,7 +105,6 @@ void NEXUS_AudioDac_GetDefaultSettings(
     pSettings->testTone.numSamplesLeft = 64;
     pSettings->testTone.numSamplesRight = 64;
     pSettings->testTone.sampleRate = 48000;
-    pSettings->peakGain = dacSettings.peakGain;
 }
 
 /***************************************************************************
@@ -262,7 +261,7 @@ NEXUS_Error NEXUS_AudioDac_SetSettings(
     dacSettings.testTone.numSamplesLeft = pSettings->testTone.numSamplesLeft;
     dacSettings.testTone.numSamplesRight = pSettings->testTone.numSamplesRight;
     dacSettings.testTone.sampleRate = pSettings->testTone.sampleRate;
-    dacSettings.peakGain = pSettings->peakGain;
+    dacSettings.fineAdjustment = pSettings->fineAdjustment;
 
     errCode = BAPE_Dac_SetSettings(handle->handle, &dacSettings);
     if ( errCode )

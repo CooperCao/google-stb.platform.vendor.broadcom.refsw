@@ -80,8 +80,8 @@ extern "C" {
    API header file to ensure they are correct (i.e. that PI is using same as FW
    => we can accomplish the same thing with FW version alone - the one in the API file
    should match that returned by the command) */
-#define BSID_FW_API_VERSION     0x00010000
-#define BSID_FW_VERSION         0x00010000
+#define BSID_FW_API_VERSION     0x00010001
+#define BSID_FW_VERSION         0x00010001
 
 /* FIXME: This defined in sidapi.h */
 /* FIXME: Seems like the number interrupts is the limiting factor on the number of channels */

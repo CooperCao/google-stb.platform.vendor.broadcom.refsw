@@ -1,5 +1,5 @@
 #############################################################################
-#    (c)2012-2013 Broadcom Corporation
+#    (c)2012-2016 Broadcom Corporation
 #
 # This program is the proprietary software of Broadcom Corporation and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -102,8 +102,9 @@ info:
 $(info Objects = $(OBJECTS))
 $(BSG_OBJ_DIR)/$(TARGET):	$(OBJECTS)
 	$(CXX) $(CFLAGS) $(CXXFLAGS) $(OBJECTS) $(LDFLAGS) -o $(BSG_OBJ_DIR)/$(TARGET)
-ifneq ($(B_REFSW_DEBUG),n)
-else
+
+B_REFSW_DEBUG ?= y
+ifneq ($(B_REFSW_DEBUG),y)
 	$(STRIP) $(BSG_OBJ_DIR)/$(TARGET)
 endif
 

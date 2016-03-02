@@ -967,6 +967,7 @@ void NEXUS_GetVideoEncoderCapabilities( NEXUS_VideoEncoderCapabilities *pCapabil
         }
         if (j == BBOX_VDC_DISPLAY_COUNT) continue;
         pCapabilities->videoEncoder[i].supported = true;
+        pCapabilities->videoEncoder[i].memory = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[i].memory;
         BDBG_MSG(("Video encoder[%d] is supported with display[%d]", i, j));
         break; /* TODO: support multiple soft transcoders */
     }
@@ -981,6 +982,7 @@ void NEXUS_GetVideoEncoderCapabilities( NEXUS_VideoEncoderCapabilities *pCapabil
     if (i >= 0) {
         pCapabilities->videoEncoder[0].supported = true;
         pCapabilities->videoEncoder[0].displayIndex = i;
+        pCapabilities->videoEncoder[0].memory = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[0].memory;
     }
 #endif
 }

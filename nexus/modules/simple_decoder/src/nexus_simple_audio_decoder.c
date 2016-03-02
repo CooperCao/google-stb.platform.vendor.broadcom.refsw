@@ -1,51 +1,43 @@
-/***************************************************************************
- *     (c)2010-2014 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bstd.h"
 #include "bdbg.h"
 #include "bkni.h"
@@ -369,15 +361,18 @@ static void NEXUS_SimpleAudioDecoder_P_RestoreDescriptionDecoder(NEXUS_SimpleAud
 /* Check change in server settings and only suspend/resume and remove/re-add outputs if required.
 We need to avoid reconfig for change in enabled or stcIndex, or if setting input[] == NULL if disabled.
 All other changes require reconfig. */
-static bool nexus_p_check_reconfig(const NEXUS_SimpleAudioDecoderServerSettings *pNewSettings, const NEXUS_SimpleAudioDecoderServerSettings *pCurrentSettings, bool acquired)
+static bool nexus_p_check_reconfig(NEXUS_SimpleAudioDecoderHandle handle, const NEXUS_SimpleAudioDecoderServerSettings *pNewSettings)
 {
     unsigned i;
+    const NEXUS_SimpleAudioDecoderServerSettings *pCurrentSettings = &handle->serverSettings;
+
     if ((pNewSettings->primary != pCurrentSettings->primary ||
         pNewSettings->secondary != pCurrentSettings->secondary ||
-        pNewSettings->description != pCurrentSettings->description) && acquired) return true;
+        pNewSettings->description != pCurrentSettings->description) && handle->acquired) return true;
+    /* If HDMI input is enabled we do not want to change any output setting just save them*/
     for (i=0;i<NEXUS_AudioCodec_eMax;i++) {
-        if ((pNewSettings->spdif.input[i] || pNewSettings->enabled) && pNewSettings->spdif.input[i] != pCurrentSettings->spdif.input[i]) return true;
-        if ((pNewSettings->hdmi.input[i] || pNewSettings->enabled) && pNewSettings->hdmi.input[i] != pCurrentSettings->hdmi.input[i]) return true;
+        if ((pNewSettings->spdif.input[i] || pNewSettings->enabled) && pNewSettings->spdif.input[i] != pCurrentSettings->spdif.input[i] && !handle->hdmiInput.handle) return true;
+        if ((pNewSettings->hdmi.input[i] || pNewSettings->enabled) && pNewSettings->hdmi.input[i] != pCurrentSettings->hdmi.input[i] && !handle->hdmiInput.handle) return true;
     }
     for (i=0;i<NEXUS_MAX_SIMPLE_DECODER_SPDIF_OUTPUTS;i++) {
         if (pNewSettings->spdif.outputs[i] != pCurrentSettings->spdif.outputs[i]) return true;
@@ -396,7 +391,7 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings( NEXUS_SimpleAudioDecoder
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleAudioDecoder);
 
-    configOutputs = nexus_p_check_reconfig(pSettings, &handle->serverSettings, handle->acquired);
+    configOutputs = nexus_p_check_reconfig(handle, pSettings);
 
     if(!pSettings->enabled || pSettings->primary==NULL) {
         NEXUS_SimpleAudioDecoder_P_RestorePrimaryDecoder(handle);
@@ -500,6 +495,7 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SwapServerSettings( NEXUS_SimpleAudioDecode
     dest->serverSettings = src->serverSettings;
     dest->currentSpdifInput = src->currentSpdifInput;
     dest->currentHdmiInput = src->currentHdmiInput;
+    dest->mixers.suspended = src->mixers.suspended;
     dest->encoder = src->encoder;
     if (dest->encoder.displayEncode && !src->displayEncode.slave) {
         BDBG_MSG(("link"));
@@ -670,19 +666,6 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_AddOutputs( NEXUS_SimpleAudioDecod
         primaryCodec = secondaryCodec = NEXUS_AudioCodec_eUnknown;
     }
 
-#if NEXUS_HAS_HDMI_INPUT && NEXUS_HAS_HDMI_OUTPUT
-    if (handle->hdmiInput.handle) {
-        /* for now, always passthrough hdmi input audio. this is lower latency than doing DSP passthrough. */
-        if (handle->serverSettings.hdmi.outputs[0]) {
-            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(handle->serverSettings.hdmi.outputs[0]));
-            rc = NEXUS_AudioOutput_AddInput( NEXUS_HdmiOutput_GetAudioConnector(handle->serverSettings.hdmi.outputs[0]), NEXUS_AudioInputCapture_GetConnector(handle->hdmiInput.inputCapture));
-            if (rc) return BERR_TRACE(rc);
-            handle->currentHdmiInput = NEXUS_AudioInputCapture_GetConnector(handle->hdmiInput.inputCapture);
-        }
-        return 0;
-    }
-#endif
-
     /* determine inputs */
     spdifInput = NULL;
     hdmiInput = NULL;
@@ -707,6 +690,16 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_AddOutputs( NEXUS_SimpleAudioDecod
         }
 #endif
     }
+
+#if NEXUS_HAS_HDMI_INPUT && NEXUS_HAS_HDMI_OUTPUT
+    if (handle->hdmiInput.handle) {
+        /* for now, always passthrough hdmi input audio. this is lower latency than doing DSP passthrough. */
+        if (handle->serverSettings.hdmi.outputs[0]) {
+            hdmiInput = NEXUS_AudioInputCapture_GetConnector(handle->hdmiInput.inputCapture);
+            spdifInput = handle->serverSettings.spdif.input[NEXUS_AudioCodec_eUnknown];
+        }
+    }
+#endif
 
     /* if outputs are the same, don't change. this avoids needless glitches when starting/stopping decode */
     if (handle->currentSpdifInput == spdifInput && handle->currentHdmiInput == hdmiInput) {
@@ -765,16 +758,6 @@ static void NEXUS_SimpleAudioDecoder_P_RemoveOutputs( NEXUS_SimpleAudioDecoderHa
     /* Suspend playbacks first as suspending the decoder will cause the
        decoder to detach from the mixer but if anything is running it can't */
     NEXUS_SimpleAudioDecoder_Suspend(handle);
-
-#if NEXUS_HAS_HDMI_INPUT && NEXUS_HAS_HDMI_OUTPUT
-    if (handle->hdmiInput.handle) {
-        if (handle->serverSettings.hdmi.outputs[0]) {
-            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(handle->serverSettings.hdmi.outputs[0]));
-        }
-        handle->currentHdmiInput = NULL;
-        return;
-    }
-#endif
 
     if (handle->serverSettings.primary) {
         nexus_p_check_decoder(handle->serverSettings.primary);
@@ -2400,13 +2383,18 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_StartHdmiInput( NEXUS_SimpleAudioDecoderHan
     else {
         NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&handle->startSettings);
     }
-    if (handle->serverSettings.enabled) {
+    if (handle->serverSettings.enabled && (!handle->encoder.audioEncoder || handle->encoder.displayEncode)) {
         NEXUS_SimpleAudioDecoder_Suspend(handle);
+    }
+    if (handle->serverSettings.enabled)
+    {
         rc = nexus_simpleaudiodecoder_p_start(handle);
         if (rc) {
             NEXUS_SimpleAudioDecoder_StopHdmiInput(handle);
             BERR_TRACE(rc); /* fall through */
         }
+    }
+    if (handle->serverSettings.enabled && (!handle->encoder.audioEncoder || handle->encoder.displayEncode)) {
         NEXUS_SimpleAudioDecoder_Resume(handle);
     }
     return rc;
@@ -2420,10 +2408,15 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_StartHdmiInput( NEXUS_SimpleAudioDecoderHan
 
 void NEXUS_SimpleAudioDecoder_StopHdmiInput( NEXUS_SimpleAudioDecoderHandle handle )
 {
-    BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleAudioDecoder);
 #if NEXUS_HAS_HDMI_INPUT
+    bool restart = false;
+    BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleAudioDecoder);
     if (!handle->hdmiInput.handle) {
         return;
+    }
+    if (handle->clientStarted ) {
+        NEXUS_SimpleAudioDecoder_P_RemoveOutputs(handle);
+        restart = true;
     }
     nexus_simpleaudiodecoder_p_stop(handle);
     NEXUS_OBJECT_RELEASE(handle, NEXUS_HdmiInput, handle->hdmiInput.handle);
@@ -2433,7 +2426,13 @@ void NEXUS_SimpleAudioDecoder_StopHdmiInput( NEXUS_SimpleAudioDecoderHandle hand
         NEXUS_AudioInputCapture_Close(handle->hdmiInput.inputCapture);
         handle->hdmiInput.inputCapture = NULL;
     }
+    if (restart) {
+        NEXUS_SimpleAudioDecoder_P_AddOutputs(handle);
+    }
+#else
+    BSTD_UNUSED(handle);
 #endif
+
 }
 
 NEXUS_Error NEXUS_SimpleAudioDecoder_GetPassthroughBuffer(

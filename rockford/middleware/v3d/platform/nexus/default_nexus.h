@@ -12,6 +12,14 @@ DESC
 #ifndef _NXPL_DEFAULT_NEXUS_H__
 #define _NXPL_DEFAULT_NEXUS_H__
 
+#ifndef NXPL_EXPORT
+#if defined(WIN32)
+#define NXPL_EXPORT __declspec(dllexport)
+#else
+#define NXPL_EXPORT __attribute__((visibility("default")))
+#endif
+#endif
+
 #ifdef NULL_DISPLAY
 
 #define NEXUS_SURFACEHANDLE void *
@@ -67,38 +75,38 @@ typedef struct
  * a Nexus display.
  * Fills in the NXPL platform handle, which must be passed back into the unregister function.
  */
-extern void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, NEXUS_DISPLAYHANDLE display);
+NXPL_EXPORT void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, NEXUS_DISPLAYHANDLE display);
 
 /* Unregister a display for exclusive use. The client application can the use the Nexus display again. */
-extern void NXPL_UnregisterNexusDisplayPlatform(NXPL_PlatformHandle handle);
+NXPL_EXPORT void NXPL_UnregisterNexusDisplayPlatform(NXPL_PlatformHandle handle);
 
-extern bool NXPL_BufferGetRequirements(NXPL_PlatformHandle handle, BEGL_PixmapInfo *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements);
+NXPL_EXPORT bool NXPL_BufferGetRequirements(NXPL_PlatformHandle handle, BEGL_PixmapInfo *bufferRequirements, BEGL_BufferSettings * bufferConstrainedRequirements);
 
 /* Create a 'native window' of the given size. This is really just a small structure that holds the size
  * of the window that EGL will write into. */
-extern void *NXPL_CreateNativeWindow(const NXPL_NativeWindowInfo *info);
+NXPL_EXPORT void *NXPL_CreateNativeWindow(const NXPL_NativeWindowInfo *info);
 
 /* Update the 'native window' with new settings */
-extern void NXPL_UpdateNativeWindow(void *native, const NXPL_NativeWindowInfo *info);
+NXPL_EXPORT void NXPL_UpdateNativeWindow(void *native, const NXPL_NativeWindowInfo *info);
 
 /* Destroy a 'native window' */
-extern void NXPL_DestroyNativeWindow(void *nativeWin);
+NXPL_EXPORT void NXPL_DestroyNativeWindow(void *nativeWin);
 
-extern bool NXPL_CreateCompatiblePixmap(NXPL_PlatformHandle handle, void **pixmapHandle, NEXUS_SURFACEHANDLE *surface, BEGL_PixmapInfo *info);
+NXPL_EXPORT bool NXPL_CreateCompatiblePixmap(NXPL_PlatformHandle handle, void **pixmapHandle, NEXUS_SURFACEHANDLE *surface, BEGL_PixmapInfo *info);
 
-extern void NXPL_DestroyCompatiblePixmap(NXPL_PlatformHandle handle, void *pixmapHandle);
+NXPL_EXPORT void NXPL_DestroyCompatiblePixmap(NXPL_PlatformHandle handle, void *pixmapHandle);
 
 #ifndef SINGLE_PROCESS
 /* only valid for surface compositor */
 /* gets the associated video pip window from the graphics window. */
-NEXUS_SurfaceClientHandle NXPL_CreateVideoWindowClient(void *native, unsigned windowId);
+NXPL_EXPORT NEXUS_SurfaceClientHandle NXPL_CreateVideoWindowClient(void *native, unsigned windowId);
 
 /* releases the pip back */
-void NXPL_ReleaseVideoWindowClient(NEXUS_SurfaceClientHandle handle);
+NXPL_EXPORT void NXPL_ReleaseVideoWindowClient(NEXUS_SurfaceClientHandle handle);
 
 /* returns the top surface Id for that nxclient or */
 /* 0 if the native window doesn't exit */
-uint32_t NXPL_GetClientID (void *native);
+NXPL_EXPORT uint32_t NXPL_GetClientID(void *native);
 
 #endif
 

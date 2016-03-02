@@ -75,6 +75,7 @@ while read file sum url sumtype; do
         wget -O $tmp_file $url
         test_sum $tmp_file $sumtype $sum
         mv $tmp_file $cache_file
+	chmod a+rw $cache_file
         cp -f $cache_file $dest_file
     else
         echo "Can't use cache $B_REFSW_CACHE_DIR"

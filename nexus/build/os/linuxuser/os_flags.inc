@@ -1,7 +1,7 @@
-############################################################
-#     (c)2003-2014 Broadcom Corporation
+#############################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#   This file defines the OS-specific flags for building in linuxuser mode.
-#
-# Revision History:
-#
-# $brcm_Log: $
-#
 ############################################################
 
 ############################################################
@@ -73,10 +61,17 @@ ifeq ($(findstring arm, ${B_REFSW_ARCH}),arm)
 NEXUS_CFLAGS +=-marm -march=armv7-a
 endif
 
+ifeq ($(B_REFSW_ANDROID),y)
+IS_TOOLCHAIN_VALID := $(shell test -e $(B_REFSW_CROSS_COMPILE)gcc && echo y)
+else
+IS_TOOLCHAIN_VALID := y
+endif
+ifeq ($(IS_TOOLCHAIN_VALID),y)
 B_REFSW_TOOLCHAIN_VER := $(shell $(B_REFSW_CROSS_COMPILE)gcc -dumpversion)
 # TODO: parse string for true "greater than or equal" test
 ifneq ($(findstring 4.8.,$(B_REFSW_TOOLCHAIN_VER)),)
 B_REFSW_TOOLCHAIN_VER_GE_4_8 := y
+endif
 endif
 
 # We use c89 for maximum compatibility across OS's

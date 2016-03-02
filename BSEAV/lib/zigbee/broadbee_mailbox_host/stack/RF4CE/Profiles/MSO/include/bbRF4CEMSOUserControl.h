@@ -79,7 +79,8 @@ typedef enum _RF4CE_MSO_UserControlStatusCodes_t
     RF4CE_MSO_USER_CONTROL_SUCCESS = 0,
     RF4CE_MSO_USER_CONTROL_NO_MEMORY,
     RF4CE_MSO_USER_CONTROL_ERROR_SEND,
-    RF4CE_MSO_USER_CONTROL_NO_MORE_DATA
+    RF4CE_MSO_USER_CONTROL_NO_MORE_DATA,
+    RF4CE_MSO_USER_CONTROL_INVALID_PARAMETER
 } RF4CE_MSO_UserControlStatusCodes_t;
 
 /**//**
@@ -174,6 +175,8 @@ struct _RF4CE_MSO_UserControlReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;       /*!< Service field. */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_MSO_UserControlReqParams_t params;  /*!< Parameters. */
     RF4CE_MSO_UserControlCallback_t callback; /*!< Request callback. */

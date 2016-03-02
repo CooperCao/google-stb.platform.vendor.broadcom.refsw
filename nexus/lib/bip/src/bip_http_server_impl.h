@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * (c) 2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -103,7 +103,7 @@ typedef enum BIP_HttpServerSocketState
     BIP_HttpServerSocketState_eWaitingForRecvRequestApi,    /* Received a New Request, requestReceivedCallback to App has been invoked and now waiting for _RecvRequest(). */
     BIP_HttpServerSocketState_eWaitingForStartStreamerApi,  /* Caller has issued _RecvRequest to receive the Request and we are now waiting for _StartStreamer(). */
     BIP_HttpServerSocketState_eProcessingRequest,           /* We are now Processing given a HttpRequest by streaming media on the associated HttpSocket. */
-    BIP_HttpServerSocketState_eDestroying,                  /* An error has occured on the ServerSocket object & we are now destroying it. */
+    BIP_HttpServerSocketState_eDestroying,                  /* An error has occurred on the ServerSocket object & we are now destroying it. */
     BIP_HttpServerSocketState_eMax
 } BIP_HttpServerSocketState;
 

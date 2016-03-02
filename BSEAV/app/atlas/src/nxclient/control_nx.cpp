@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -44,6 +44,7 @@
 #include "control_nx.h"
 #include "output_nx.h"
 #include "video_decode_nx.h"
+#include "audio_decode_nx.h"
 
 BDBG_MODULE(atlas_control);
 
@@ -315,17 +316,10 @@ eRet CControlNx::swapPip()
 
     NxClient_GetDefaultReconfigSettings(&reconfigSettings);
     reconfigSettings.command[0].type       = NxClient_ReconfigType_eRerouteVideoAndAudio;
-    reconfigSettings.command[0].connectId1 = pVideoDecodeMain->getConnectId();
-    reconfigSettings.command[0].connectId2 = pVideoDecodePip->getConnectId();
+    reconfigSettings.command[0].connectId1 = _pModel->getConnectId(eWindowType_Main);
+    reconfigSettings.command[0].connectId2 = _pModel->getConnectId(eWindowType_Pip);
     nerror = NxClient_Reconfig(&reconfigSettings);
     CHECK_NEXUS_ERROR_GOTO("unable to swap pip windows", ret, nerror, error);
-
-    /* swap connect id's to match underlying nxclient connections */
-    {
-        uint32_t tmp = pVideoDecodeMain->getConnectId();
-        pVideoDecodeMain->setConnectId(pVideoDecodePip->getConnectId());
-        pVideoDecodePip->setConnectId(tmp);
-    }
 
 error:
     /* notify that pip state has changed - no actual change in pip state value */
@@ -422,3 +416,56 @@ eRet CControlNx::setMute(bool muted)
 error:
     return(ret);
 } /* setMute */
+
+eRet CControlNx::connectDecoders(
+    CSimpleVideoDecode * pVideoDecode,
+    CSimpleAudioDecode * pAudioDecode,
+    uint32_t             width,
+    uint32_t             height,
+    CPid *               pVideoPid,
+    eWindowType          winType)
+{
+    eRet                     ret       = eRet_Ok;
+    NEXUS_Error              nerror    = NEXUS_SUCCESS;
+    unsigned                 connectId = 0;
+    NxClient_ConnectSettings settings;
+
+    NxClient_GetDefaultConnectSettings(&settings);
+
+    if (0 != _pModel->getConnectId(winType))
+    {
+        BDBG_ERR(("connect id is invalid - possibly trying to connect more than once?!"));
+    }
+
+    /* call base class first */
+    ret = CControl::connectDecoders(pVideoDecode, pAudioDecode, width, height, pVideoPid, winType);
+    CHECK_ERROR_GOTO("unable to set max size in video decoder", ret, error);
+
+    if (NULL != pVideoDecode)
+    {
+        ((CSimpleVideoDecodeNx *)pVideoDecode)->updateConnectSettings(&settings);
+    }
+    if (NULL != pAudioDecode)
+    {
+        ((CSimpleAudioDecodeNx *)pAudioDecode)->updateConnectSettings(&settings);
+    }
+
+    nerror = NxClient_Connect(&settings, &connectId);
+    CHECK_NEXUS_ERROR_GOTO("unable to connect to simple video decoder", nerror, ret, error);
+
+    _pModel->setConnectId(connectId, winType);
+
+error:
+    return(ret);
+} /* connectDecoders */
+
+void CControlNx::disconnectDecoders(eWindowType winType)
+{
+    if (0 == _pModel->getConnectId(winType))
+    {
+        return;
+    }
+
+    NxClient_Disconnect(_pModel->getConnectId(winType));
+    _pModel->setConnectId(0, winType);
+} /* disconnectDecoders() */

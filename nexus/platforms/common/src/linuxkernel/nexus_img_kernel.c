@@ -73,10 +73,12 @@ static struct NEXUS_ImgState {
     struct BIMG_InterfaceList active;
     bool ready;
     bool stopped;
+    bool busy;
     BKNI_EventHandle started;
     BKNI_EventHandle req;
     BKNI_EventHandle ack;
     BIMG_Ioctl ioctl;
+    BKNI_MutexHandle lock;
     uint8_t data[64*1024]; /* space to hold kernel copy of data */
 } b_interfaces;
 
@@ -89,6 +91,7 @@ nexus_img_interfaces_init(void)
     BKNI_CreateEvent(&b_interfaces.started);
     BKNI_CreateEvent(&b_interfaces.req);
     BKNI_CreateEvent(&b_interfaces.ack);
+    BKNI_CreateMutex(&b_interfaces.lock);
     b_interfaces.ready = false;
     b_interfaces.stopped = false;
     return 0;
@@ -100,6 +103,7 @@ nexus_img_interfaces_shutdown(void)
     BIMG_Driver *iface;
 
     BDBG_OBJECT_ASSERT(&b_interfaces, NEXUS_ImgState);
+    BKNI_AcquireMutex(b_interfaces.lock);
     while((iface=BLST_S_FIRST(&b_interfaces.active))!=NULL) {
         BDBG_OBJECT_ASSERT(iface, BIMG_Driver);
         BDBG_MSG(("removing %#x", (unsigned)iface));
@@ -107,10 +111,13 @@ nexus_img_interfaces_shutdown(void)
         BDBG_OBJECT_DESTROY(iface, BIMG_Driver);
         BKNI_Free(iface);
     }
+    BKNI_ReleaseMutex(b_interfaces.lock);
     /* interface shutdown called at unload time, at this time shall be no application which are sleeping in the kernel, and waiting for the event */
     BKNI_DestroyEvent(b_interfaces.req);
     BKNI_DestroyEvent(b_interfaces.ack);
     BKNI_DestroyEvent(b_interfaces.started);
+    BKNI_DestroyMutex(b_interfaces.lock);
+    b_interfaces.busy = false;
     b_interfaces.ready = false;
     BDBG_OBJECT_UNSET(&b_interfaces, NEXUS_ImgState);
     return;
@@ -162,11 +169,13 @@ Nexus_IMG_Driver_Create(const char *id)
         BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         return NULL;
     }
+    BKNI_AcquireMutex(b_interfaces.lock);
     iface->name = id;
     BLST_S_INSERT_HEAD(&b_interfaces.active, iface, link);
     BDBG_MSG(("adding %#x(%s)", (unsigned)iface, iface->name));
     iface->image = NULL;
     BDBG_OBJECT_SET(iface, BIMG_Driver);
+    BKNI_ReleaseMutex(b_interfaces.lock);
 
     return iface;
 }
@@ -177,7 +186,9 @@ Nexus_IMG_Driver_Destroy(void *interface)
     BIMG_Driver *iface=interface;
     BDBG_OBJECT_ASSERT(iface, BIMG_Driver);
     BDBG_MSG(("-removing %#x(%s)", (unsigned)iface, iface->name));
+    BKNI_AcquireMutex(b_interfaces.lock);
     BLST_S_REMOVE(&b_interfaces.active, iface, BIMG_Driver, link);
+    BKNI_ReleaseMutex(b_interfaces.lock);
     BDBG_MSG(("+removing %#x(%s)", (unsigned)iface, iface->name));
     BDBG_OBJECT_DESTROY(iface, BIMG_Driver);
     BKNI_Free(iface);
@@ -303,6 +314,8 @@ Nexus_IMG_Driver_Open(void *context, void **image, unsigned image_id)
 {
     BERR_Code rc;
     BIMG_Driver *iface = context;
+    unsigned i;
+    bool acquired;
 
     BDBG_OBJECT_ASSERT(iface, BIMG_Driver);
 
@@ -311,9 +324,23 @@ Nexus_IMG_Driver_Open(void *context, void **image, unsigned image_id)
         /* open shall be matched with close */
         return BERR_TRACE(BERR_OS_ERROR);
     }
+    for(acquired=false,i=0;i<6000;i++) { /* try to get through for 60 seconds */
+        BKNI_AcquireMutex(b_interfaces.lock);
+        if(!b_interfaces.busy) {
+            acquired=true;
+            break;
+        }
+        BKNI_ReleaseMutex(b_interfaces.lock);
+        BKNI_Sleep(10);
+    }
+    if(!acquired) {
+        BDBG_ERR(("user/kernel BIMG proxy is already used"));
+        return BERR_TRACE(BERR_NOT_AVAILABLE);
+    }
     b_interfaces.ioctl.req.data.open.image_id = image_id;
     rc = b_send_req(iface, BIMG_Ioctl_Req_Type_Open);
     if (rc!=BERR_SUCCESS) {
+        BKNI_ReleaseMutex(b_interfaces.lock);
         if ( rc == BERR_INVALID_PARAMETER ) {
             /* This error is common on 740x platforms.  Silently return. */
             BDBG_MSG(("Invalid Parameter Error returned.  Firmware image not available?"));
@@ -323,6 +350,8 @@ Nexus_IMG_Driver_Open(void *context, void **image, unsigned image_id)
         }
     }
     iface->image = b_interfaces.ioctl.ack.data.open.image;
+    b_interfaces.busy = true;
+    BKNI_ReleaseMutex(b_interfaces.lock);
     BDBG_MSG(("open< context %#p'%s' id %u image %p", iface, iface->name, image_id, iface->image));
     *image = iface;
 
@@ -368,6 +397,9 @@ Nexus_IMG_Driver_Close(void *image)
     if (iface->image==NULL) {
         return;
     }
+    BKNI_AcquireMutex(b_interfaces.lock);
+    b_interfaces.busy = false;
+    BKNI_ReleaseMutex(b_interfaces.lock);
     rc = b_send_req(iface, BIMG_Ioctl_Req_Type_Close);
     BDBG_MSG(("close< image %#p'%s'", iface, iface->name));
     iface->image = NULL;

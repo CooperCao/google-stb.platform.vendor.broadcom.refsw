@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -51,6 +51,7 @@
 #include "bwidgets.h"
 #include "widget_engine.h"
 #include "audio_processing.h"
+#include "model.h"
 
 #include "nexus_simple_audio_decoder_server.h"
 #include "nexus_audio_decoder_types.h"
@@ -173,6 +174,7 @@ class COutputHdmi;
 class COutputAudioDac;
 class COutputRFM;
 class COutputAudioDummy;
+class CModel;
 
 class CSimpleAudioDecode : public CAudioDecode
 {
@@ -237,9 +239,14 @@ public:
     eSpdifInput getSpdifInput(NEXUS_AudioCodec codec);
     eRet        setStc(CStc * pStc);
     CStc *      getStc(void) { return(_pStc); }
+    void        setModel(CModel * pModel) { _pModel = pModel; }
+    CModel *    getModel(void)            { return(_pModel); }
 
     COutputHdmi *  getOutputHdmi(void)  { return(_pHdmi); }
     COutputSpdif * getOutputSpdif(void) { return(_pSpdif); }
+    void           setWindowType(eWindowType windowType) { _windowType = windowType; }
+    eWindowType    getWindowType(void) { return(_windowType); }
+
 
 protected:
     NEXUS_SimpleAudioDecoderHandle _simpleDecoder;
@@ -269,6 +276,8 @@ protected:
     NEXUS_AudioInput _stereoInput;
     bool             _bEncodeConnectedDts;
     bool             _bEncodeConnectedAc3;
+    eWindowType      _windowType;
+    CModel *         _pModel;
 };
 
 #ifdef __cplusplus

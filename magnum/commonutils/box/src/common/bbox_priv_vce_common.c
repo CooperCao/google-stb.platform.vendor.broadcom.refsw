@@ -43,25 +43,24 @@ BERR_Code BBOX_P_Vce_SetBoxMode
 
    BKNI_Memset( pBoxVce, 0, sizeof( BBOX_Vce_Capabilities) );
 
-   if ( 0 != ulBoxId )
+   /* Search for Box Mode in VCE Capabilities LUT */
+   for ( i = 0; i < ( BBOX_P_Vce_CapabilitiesLUT_size / sizeof( BBOX_Vce_Capabilities ) ); i++ )
    {
-      /* Search for Box Mode in VCE Capabilities LUT */
-      for ( i = 0; i < ( BBOX_P_Vce_CapabilitiesLUT_size / sizeof( BBOX_Vce_Capabilities ) ); i++ )
+      if ( BBOX_P_Vce_CapabilitiesLUT[i].uiBoxId == ulBoxId )
       {
-         /* If there's a box id of 0 in the capabilities LUT, then we should return VCE PI defaults */
-         if ( 0 == BBOX_P_Vce_CapabilitiesLUT[i].uiBoxId )
-         {
-            goto done;
-         }
-         if ( BBOX_P_Vce_CapabilitiesLUT[i].uiBoxId == ulBoxId )
-         {
-            *pBoxVce = BBOX_P_Vce_CapabilitiesLUT[i];
-            goto done;
-         }
+         *pBoxVce = BBOX_P_Vce_CapabilitiesLUT[i];
+         goto done;
       }
-      BDBG_ERR(("VCE Box mode %d is not supported on this chip.", ulBoxId));
-      eStatus = BERR_TRACE(BERR_INVALID_PARAMETER);
+
+      /* If we hit a box mode of 0 in the LUT and it didn't match above,
+       * then VCE is not supported, and just return */
+      if ( 0 == BBOX_P_Vce_CapabilitiesLUT[i].uiBoxId )
+      {
+         goto done;
+      }
    }
+   BDBG_ERR(("VCE Box mode %d is not supported on this chip.", ulBoxId));
+   eStatus = BERR_TRACE(BERR_INVALID_PARAMETER);
 done:
 
    return BERR_TRACE(eStatus);

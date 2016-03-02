@@ -126,7 +126,7 @@ static TokenSeq *subst(TokenSeq *is, TokenList *fp, TokenSeqList *ap, TokenList 
            formal && actual && !found;
            formal = formal->next, actual = actual->next) {
 
-         if (glsl_token_equals(is->token, formal->token)) {
+         if (glsl_token_equals(is->token, formal->token, false)) {
             os = glsl_tokenseq_destructive_reverse(glsl_expand(actual->seq, true), os);
             is = is->next;
 
@@ -198,6 +198,9 @@ TokenSeq *glsl_expand(TokenSeq *ts, bool recursive)
             case MACRO_FUNCTION:
                if (!recursive && ts->next == NULL)
                   ts->next = next_tokenseq();
+
+               if (ts->next && ts->next->token->type == WHITESPACE)
+                  ts->next = ts->next->next;
 
                if (ts->next && is_lparen(ts->next->token)) {
                   int formal_count = glsl_tokenlist_length(m->args);

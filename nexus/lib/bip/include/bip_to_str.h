@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2007-2015 Broadcom Corporation
+ * (c) 2007-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -135,6 +135,7 @@ const char * BIP_ToStr_BIP_PlayerClockRecoveryMode( int value);
 const char * BIP_ToStr_BIP_DtcpIpClientFactoryAkeEntryState( int value);
 const char * BIP_ToStr_BIP_PlayerDataAvailabilityModel( int value);
 const char * BIP_ToStr_BIP_PlayerMode( int value);
+const char * BIP_ToStr_BIP_MediaInfoType(int value);
 
 /* Conveniently named wrapper functions for NEXUS types. */
 const char * BIP_ToStr_NEXUS_VideoFormat(int value);

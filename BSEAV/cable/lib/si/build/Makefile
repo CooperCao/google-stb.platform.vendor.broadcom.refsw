@@ -201,11 +201,11 @@ vpath %.o $(SI_OBJ_DIR)
 all: $(TARGET) $(addprefix $(SI_OBJ_DIR)/, $(SI_TEST_OBJ))
 
 $(TARGET): $(addprefix $(SI_OBJ_DIR)/, $(SI_OBJS))
-	$(AR)  -cvr $@ $?
+	${Q_}$(AR)  -cvr $@ $?
 
 $(SI_OBJ_DIR)/%.o: %.c
 	${Q_}mkdir -p $(SI_OBJ_DIR)
-	$(CC) $(CFLAGS) -MMD -c $< -o $@
+	${Q_}$(CC) $(CFLAGS) -MMD -c $< -o $@
 
 # include individual depend files
 -include $(SI_OBJ_DIR)/*.d

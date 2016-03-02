@@ -310,7 +310,6 @@ EGL_SURFACE_T *egl_surface_create(
    surface->width = width;
    surface->height = height;
    surface->swapchainc = swapchainc;
-   surface->swap_interval = 1;
 
    surface->base_width = width;
    surface->base_height = height;
@@ -436,7 +435,6 @@ EGL_SURFACE_T *egl_surface_from_vg_image(
 
    surface->config = config;
    surface->win = 0;
-   surface->swap_interval = 1;
 
    surface->largest_pbuffer = largest_pbuffer;
    surface->mipmap_texture = mipmap_texture;
@@ -560,7 +558,7 @@ EGLBoolean egl_surface_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint 
          *value = EGL_VG_COLORSPACE_LINEAR;
       return EGL_TRUE;
    case EGL_CONFIG_ID:
-      *value = (EGLint)(size_t)surface->config;
+      *value = (EGLint)(intptr_t)surface->config;
       return EGL_TRUE;
    case EGL_HEIGHT:
 #ifndef ANDROID
@@ -656,12 +654,20 @@ EGLint egl_surface_set_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint valu
    case EGL_SWAP_BEHAVIOR:
       switch (value) {
       case EGL_BUFFER_PRESERVED:
+      {
+         EGLint value = 0;
+         egl_config_get_attrib((int)((intptr_t)surface->config - 1), EGL_SURFACE_TYPE, &value);
+         if (!(value & EGL_SWAP_BEHAVIOR_PRESERVED_BIT))
+            return EGL_BAD_MATCH;
+      }
       case EGL_BUFFER_DESTROYED:
-         surface->swap_behavior = value;
-         return EGL_SUCCESS;
+         break;
       default:
          return EGL_BAD_PARAMETER;
       }
+
+      surface->swap_behavior = value;
+      return EGL_SUCCESS;
    case EGL_MULTISAMPLE_RESOLVE:
       switch (value) {
       case EGL_MULTISAMPLE_RESOLVE_DEFAULT:

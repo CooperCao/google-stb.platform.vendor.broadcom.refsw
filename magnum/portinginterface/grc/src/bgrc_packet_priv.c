@@ -3426,6 +3426,9 @@ void BGRC_PACKET_P_WriteHwPkt(
 	}
 	hGrc->pHwPktPrevWritePtr = hGrc->pHwPktWritePtr;
 	hGrc->pHwPktWritePtr = (uint8_t *) pHwPktWritePtr;
+
+	/* so no more LUT table loading */
+	BGRC_PACKET_P_STORE_REG( SRC_CLUT_ENTRY_i_ARRAY_BASE, 0x0 );
 }
 
 /***************************************************************************/

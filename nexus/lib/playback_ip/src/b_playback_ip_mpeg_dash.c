@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * (c) 2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -1125,7 +1125,7 @@ B_PlaybackIp_MpegDashBuildAbsoluteUri(char *server, int port, char *baseUri, cha
  * remaining portion of the MPD file.
  *****************************************************************************/
 static bool
-B_PlaybackIp_MpegDashFinishFileDownload(B_PlaybackIpHandle playback_ip, int fd, char *buffer, int bufferSize, ssize_t *totalBytesRead, bool nullTerminate)
+B_PlaybackIp_MpegDashFinishFileDownload(B_PlaybackIpHandle playback_ip, int fd, char *buffer, int bufferSize, int *totalBytesRead, bool nullTerminate)
 {
     ssize_t bytesRead = 0;
     int bytesToRead;

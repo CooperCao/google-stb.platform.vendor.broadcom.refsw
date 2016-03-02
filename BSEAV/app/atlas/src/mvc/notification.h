@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -124,6 +124,7 @@ typedef enum eNotification
     eNotify_ShowDiscoveredPlaylists, /* command  - show list of playlists discovered by atlas server */
     eNotify_ShowPlaylist,            /* command  - show contents of given playlist */
     eNotify_StreamChannel,           /* command  - stream IP channel from remote server */
+    eNotify_Debug,                   /* command  - show debug message */
     eNotify_Exit,                    /* command  - exit atlas */
 
     eNotify_Error,                /* status   - error occurred */
@@ -190,8 +191,12 @@ typedef enum eNotification
     eNotify_BluetoothA2DPStarted,        /* status   - bluetooth A2DP started */
     eNotify_BluetoothA2DPStopped,        /* status   - bluetooth A2DP stopped */
 #endif /* ifdef NETAPP_SUPPORT */
-    eNotify_PlaylistAdded,   /* status   - a playlist was added to the playlist database */
-    eNotify_PlaylistRemoved, /* status   - a playlist was removed from the playlist database */
+    eNotify_PlaylistAdded,            /* status   - a playlist was added to the playlist database */
+    eNotify_PlaylistRemoved,          /* status   - a playlist was removed from the playlist database */
+    eNotify_DecodeStarted,            /* status   - a video or audio decode has started */
+    eNotify_DecodeStopped,            /* status   - a video or audio decode has stopped */
+    eNotify_DiscoveredPlaylistsShown, /* status   - a discovered playlist has been displayed on console */
+    eNotify_PlaylistShown,            /* status   - a playlist contents has been displayed on console */
     eNotify_Invalid,
     eNotify_Max
 } eNotification;

@@ -110,7 +110,7 @@ include $(PLATFORM_MODULES_INC)
 
 # NEXUS_CLIENT_MODULES is the list of nexus modules compiled into the client/proxy library.
 # It is used nexus/build/os/linuxuser/module_rules.pl, et al.
-NEXUS_CLIENT_MODULES := RECORD FILE PLAYBACK WMDRMPD
+NEXUS_CLIENT_MODULES := RECORD FILE PLAYBACK
 
 # MAGNUM_CLIENT_MODULES is the list of magnum modules compiled into the client/proxy library.
 # It is used in nexus/build/nexus.inc
@@ -157,8 +157,10 @@ endif
 ifeq ($(SAGE_SUPPORT),y)
 ifneq ($(NEXUS_MODE),client)
 ifneq ($(NEXUS_MODE),proxy)
+ifeq ($(shell test -e $(BSEAV)/lib/security/sage/bin/install.mak && echo y),y)
 EXTRA_INSTALL += install_sage
 include $(BSEAV)/lib/security/sage/bin/install.mak
+endif
 endif
 endif
 endif

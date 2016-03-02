@@ -1,5 +1,5 @@
 /******************************************************************************
- *    (c)2008-2013 Broadcom Corporation
+ *    (c)2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,23 +35,9 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
-#include "bstd.h"
-#include "bkni.h"
-#include "nexus_types.h"
-#include "nexus_video_types.h"
+#include "nexus_platform.h"
 #include "nexus_surface.h"
-
 #include "thumbnail.h"
 
 #include <string.h>
@@ -60,120 +46,70 @@
 
 BDBG_MODULE(thumbnail);
 
-NEXUS_VideoCodec getVideoCodec(const char *cur)
+static void print_usage(void)
 {
-    if (!strcasecmp(cur, "avc") || !strcasecmp(cur, "h264")) {
-        return NEXUS_VideoCodec_eH264;
-    }
-    else if (!strcasecmp(cur, "vc1sm")) {
-        return NEXUS_VideoCodec_eVc1SimpleMain;
-    }
-    else if (!strcasecmp(cur, "vc1")) {
-        return NEXUS_VideoCodec_eVc1;
-    }
-    else if (!strcasecmp(cur, "divx")) {
-        return NEXUS_VideoCodec_eMpeg4Part2;
-    }
-    else if (!strcasecmp(cur, "divx311")) {
-        return NEXUS_VideoCodec_eDivx311;
-    }
-    else if (!strcasecmp(cur, "mpeg")) {
-        return NEXUS_VideoCodec_eMpeg2;
-    }
-    else {
-        BDBG_ERR(("Unknown video codec: %s", cur));
-        return NEXUS_VideoCodec_eMpeg2;
-    }
-}
-
-NEXUS_TransportType getTransportType(const char *cur, const char *datafilename)
-{
-    if (strcasecmp(cur, "auto")) {
-        if (!strcasecmp(cur, "asf")) {
-            return NEXUS_TransportType_eAsf;
-        }
-        else if (!strcasecmp(cur, "avi")) {
-            return NEXUS_TransportType_eAvi;
-        }
-        else if (!strcasecmp(cur, "mp4")) {
-            return NEXUS_TransportType_eMp4;
-        }
-        else if (!strcasecmp(cur, "mkv")) {
-            return NEXUS_TransportType_eMkv;
-        }
-        else if (!strcasecmp(cur, "pes")) {
-            return NEXUS_TransportType_eMpeg2Pes;
-        }
-        else if (!strcasecmp(cur, "es")) {
-            return NEXUS_TransportType_eEs;
-        }
-        else if (!strcasecmp(cur, "ts") || !strcasecmp(cur, "tts")) {
-            return NEXUS_TransportType_eTs;
-        }
-        BDBG_ERR(("Unknown transport type: %s", cur));
-        return NEXUS_TransportType_eTs;
-    }
-    else {
-        if (strstr(datafilename, ".asf") || strstr(datafilename, ".wmv")) {
-            return NEXUS_TransportType_eAsf;
-        }
-        else if (strstr(datafilename, ".avi") || strstr(datafilename, ".divx")) {
-            return NEXUS_TransportType_eAvi;
-        }
-        else if (strstr(datafilename, ".mkv")) {
-            return NEXUS_TransportType_eMkv;
-        }
-        else if (strstr(datafilename, ".mp4")) {
-            return NEXUS_TransportType_eMp4;
-        }
-        return NEXUS_TransportType_eTs;
-    }
-}
-
-NEXUS_TransportTimestampType getTimestampType(const char *cur)
-{
-    return !strcasecmp(cur, "tts")?NEXUS_TransportTimestampType_e32_Binary:NEXUS_TransportTimestampType_eNone;
+    printf(
+    "Usage: nexus thumbnail [OPTIONS] DATAFILE [INDEXFILE]\n"
+    "  DATAFILE = stream data\n"
+    "  INDEXFILE = stream index (use ""same"" if the DATAFILE contains the index, ""none"" if no index)\n"
+    "\n"
+    "OPTIONS:\n"
+    "  -h or --help\n"
+    "  -spacing SECONDS (default 5)\n"
+    );
 }
 
 int main(int argc, char **argv)
 {
-    if (argc < 6) {
-        printf(
-        "\n"
-        "Usage: nexus thumbnail DATAFILE INDEXFILE VIDEOCODEC PID STREAMTYPE SPACING\n"
-        "  DATAFILE = stream data\n"
-        "  INDEXFILE = stream index (use ""same"" if the DATAFILE contains the index, ""none"" if no index)\n"
-        "  VIDEOCODEC = mpeg,avc/h264,vc1,vc1sm,divx,divx311\n"
-        "  PID = transport pid or ASF/AVI stream index\n"
-        "  STREAMTYPE = ts,asf,avi,mkv,mp4,tts\n"
-        "  SPACING = # in seconds (default 5)\n"
-        "\n"
-        );
-        printf(
-        "Samples:\n"
-        "  nexus thumbnail /mnt/hd/mystream.mpg /mnt/hd/mystream.nav avc 0x1000 ts 30\n"
-        "  nexus thumbnail /mnt/hd/mystream.divx same divx 1 auto 10\n"
-        );
-        exit(1);
+    const char *filename = NULL;
+    const char *indexfile = NULL;
+    int curarg = 1;
+    int rc;
+    NEXUS_PlatformSettings platformSettings;
+
+    g_data.spacing = 5;
+    while (curarg < argc) {
+        if (!strcmp(argv[curarg], "-h") || !strcmp(argv[curarg], "--help")) {
+            print_usage();
+            return 0;
+        }
+        else if (!strcmp(argv[curarg], "-spacing") && curarg+1 < argc) {
+            g_data.spacing = atoi(argv[++curarg]);
+        }
+        else if (!filename) {
+            filename = argv[curarg];
+        }
+        else if (!indexfile) {
+            indexfile = argv[curarg];
+        }
+        else {
+            print_usage();
+            return -1;
+        }
+        curarg++;
+    }
+    if (!filename) {
+        print_usage();
+        return -1;
     }
 
-    g_data.display_format = NEXUS_VideoFormat_e720p;
-    g_data.datafilename = argv[1];
-    g_data.indexfilename = argv[2];
-    if (!strcasecmp(g_data.indexfilename, "same")) {
-        g_data.indexfilename = g_data.datafilename;
+    NEXUS_Platform_GetDefaultSettings(&platformSettings);
+    platformSettings.openFrontend = false;
+    NEXUS_Platform_Init(&platformSettings);
+
+    g_data.datafilename = filename;
+    g_data.indexfilename = indexfile;
+    if (g_data.indexfilename)  {
+        if (!strcasecmp(g_data.indexfilename, "same")) {
+            g_data.indexfilename = g_data.datafilename;
+        }
+        else if (!strcasecmp(g_data.indexfilename, "none")) {
+            g_data.indexfilename = NULL;
+        }
     }
-    else if (!strcasecmp(g_data.indexfilename, "none")) {
-        g_data.indexfilename = NULL;
-    }
-    g_data.videoCodec = getVideoCodec(argv[3]);
-    g_data.pid = strtoul(argv[4], NULL, 0);
-    g_data.transportType = getTransportType(argv[5], g_data.datafilename);
-    g_data.timestampType = getTimestampType(argv[5]);
-    if (argc > 6) {
-        g_data.spacing = strtoul(argv[6], NULL, 0);
-    }
-    if (g_data.spacing == 0) g_data.spacing = 5;
+
+    rc = probe_media(filename, &g_data.probe_results);
+    if (rc) return BERR_TRACE(-1);
 
     thumbnail_demo_init();
 
@@ -181,7 +117,7 @@ int main(int argc, char **argv)
 
     thumbnail_demo_uninit();
 
+    NEXUS_Platform_Uninit();
+
     return 0;
 }
-
-

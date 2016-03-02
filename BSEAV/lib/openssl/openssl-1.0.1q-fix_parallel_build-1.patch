@@ -4,9 +4,9 @@ Initial Package Version: 1.0.1e
 Upstream Status:         Unknown
 Origin:                  https://github.com/Alexpux/Qt-builds/tree/master/patches/openssl
 Description:             Fixes build with make -jx, where x is greater than 1.
-diff -rNup openssl-1.0.1p.orig/crypto/Makefile openssl-1.0.1p/crypto/Makefile
---- openssl-1.0.1p.orig/crypto/Makefile	2015-07-09 05:22:09.000000000 -0700
-+++ openssl-1.0.1p/crypto/Makefile	2015-10-01 17:43:13.090078386 -0700
+diff -rNup openssl-1.0.1q.orig/crypto/Makefile openssl-1.0.1q/crypto/Makefile
+--- openssl-1.0.1q.orig/crypto/Makefile	2015-12-03 06:50:08.000000000 -0800
++++ openssl-1.0.1q/crypto/Makefile	2016-01-27 17:10:56.977547349 -0800
 @@ -85,11 +85,11 @@ testapps:
  	@if [ -z "$(THIS)" ]; then $(MAKE) -f $(TOP)/Makefile reflect THIS=$@; fi
  
@@ -48,9 +48,9 @@ diff -rNup openssl-1.0.1p.orig/crypto/Makefile openssl-1.0.1p/crypto/Makefile
  
  lint:
  	@target=lint; $(RECURSIVE_MAKE)
-diff -rNup openssl-1.0.1p.orig/engines/Makefile openssl-1.0.1p/engines/Makefile
---- openssl-1.0.1p.orig/engines/Makefile	2015-07-09 05:22:21.000000000 -0700
-+++ openssl-1.0.1p/engines/Makefile	2015-10-01 17:43:13.094078523 -0700
+diff -rNup openssl-1.0.1q.orig/engines/Makefile openssl-1.0.1q/engines/Makefile
+--- openssl-1.0.1q.orig/engines/Makefile	2015-12-03 06:50:23.000000000 -0800
++++ openssl-1.0.1q/engines/Makefile	2016-01-27 17:10:56.978547375 -0800
 @@ -72,7 +72,7 @@ top:
  
  all:	lib subdirs
@@ -78,9 +78,9 @@ diff -rNup openssl-1.0.1p.orig/engines/Makefile openssl-1.0.1p/engines/Makefile
  
  tags:
  	ctags $(SRC)
-diff -rNup openssl-1.0.1p.orig/Makefile.org openssl-1.0.1p/Makefile.org
---- openssl-1.0.1p.orig/Makefile.org	2015-07-09 05:21:24.000000000 -0700
-+++ openssl-1.0.1p/Makefile.org	2015-10-01 17:43:13.094078523 -0700
+diff -rNup openssl-1.0.1q.orig/Makefile.org openssl-1.0.1q/Makefile.org
+--- openssl-1.0.1q.orig/Makefile.org	2015-12-03 06:48:58.000000000 -0800
++++ openssl-1.0.1q/Makefile.org	2016-01-27 17:10:56.978547375 -0800
 @@ -277,17 +277,17 @@ build_libcrypto: build_crypto build_engi
  build_libssl: build_ssl libssl.pc
  
@@ -105,7 +105,7 @@ diff -rNup openssl-1.0.1p.orig/Makefile.org openssl-1.0.1p/Makefile.org
  
  all_testapps: build_libs build_testapps
  build_testapps:
-@@ -529,9 +529,9 @@ dist:
+@@ -532,9 +532,9 @@ dist:   
  dist_pem_h:
  	(cd crypto/pem; $(MAKE) -e $(BUILDENV) pem.h; $(MAKE) clean)
  
@@ -117,7 +117,7 @@ diff -rNup openssl-1.0.1p.orig/Makefile.org openssl-1.0.1p/Makefile.org
  	@$(PERL) $(TOP)/util/mkdir-p.pl $(INSTALL_PREFIX)$(INSTALLTOP)/bin \
  		$(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR) \
  		$(INSTALL_PREFIX)$(INSTALLTOP)/$(LIBDIR)/engines \
-@@ -540,12 +540,19 @@ install_sw:
+@@ -543,12 +543,19 @@ install_sw:
  		$(INSTALL_PREFIX)$(OPENSSLDIR)/misc \
  		$(INSTALL_PREFIX)$(OPENSSLDIR)/certs \
  		$(INSTALL_PREFIX)$(OPENSSLDIR)/private
@@ -138,7 +138,7 @@ diff -rNup openssl-1.0.1p.orig/Makefile.org openssl-1.0.1p/Makefile.org
  	@set -e; liblist="$(LIBS)"; for i in $$liblist ;\
  	do \
  		if [ -f "$$i" ]; then \
-@@ -625,12 +632,7 @@ install_html_docs:
+@@ -628,12 +635,7 @@ install_html_docs:
  		done; \
  	done
  
@@ -152,9 +152,9 @@ diff -rNup openssl-1.0.1p.orig/Makefile.org openssl-1.0.1p/Makefile.org
  	@pod2man="`cd ./util; ./pod2mantest $(PERL)`"; \
  	here="`pwd`"; \
  	filecase=; \
-diff -rNup openssl-1.0.1p.orig/Makefile.shared openssl-1.0.1p/Makefile.shared
---- openssl-1.0.1p.orig/Makefile.shared	2015-07-09 04:53:21.000000000 -0700
-+++ openssl-1.0.1p/Makefile.shared	2015-10-01 17:43:13.094078523 -0700
+diff -rNup openssl-1.0.1q.orig/Makefile.shared openssl-1.0.1q/Makefile.shared
+--- openssl-1.0.1q.orig/Makefile.shared	2015-12-03 06:04:23.000000000 -0800
++++ openssl-1.0.1q/Makefile.shared	2016-01-27 17:10:56.978547375 -0800
 @@ -105,6 +105,7 @@ LINK_SO=	\
      SHAREDFLAGS="$${SHAREDFLAGS:-$(CFLAGS) $(SHARED_LDFLAGS)}"; \
      LIBPATH=`for x in $$LIBDEPS; do echo $$x; done | sed -e 's/^ *-L//;t' -e d | uniq`; \
@@ -171,10 +171,10 @@ diff -rNup openssl-1.0.1p.orig/Makefile.shared openssl-1.0.1p/Makefile.shared
  			( $(SET_X); rm -f $$SHLIB$$SHLIB_SUFFIX; \
  			  ln -s $$prev $$SHLIB$$SHLIB_SUFFIX ); \
  		fi; \
-diff -rNup openssl-1.0.1p.orig/test/Makefile openssl-1.0.1p/test/Makefile
---- openssl-1.0.1p.orig/test/Makefile	2015-07-09 05:22:23.000000000 -0700
-+++ openssl-1.0.1p/test/Makefile	2015-10-01 17:43:13.094078523 -0700
-@@ -131,7 +131,7 @@ install:
+diff -rNup openssl-1.0.1q.orig/test/Makefile openssl-1.0.1q/test/Makefile
+--- openssl-1.0.1q.orig/test/Makefile	2015-12-03 06:50:25.000000000 -0800
++++ openssl-1.0.1q/test/Makefile	2016-01-27 17:25:33.258158823 -0800
+@@ -135,7 +135,7 @@ install:
  tags:
  	ctags $(SRC)
  
@@ -183,7 +183,7 @@ diff -rNup openssl-1.0.1p.orig/test/Makefile openssl-1.0.1p/test/Makefile
  
  apps:
  	@(cd ..; $(MAKE) DIRS=apps all)
-@@ -394,121 +394,121 @@ BUILD_CMD_STATIC=shlib_target=; \
+@@ -403,124 +403,124 @@ BUILD_CMD_STATIC=shlib_target=; \
  		link_app.$${shlib_target}
  
  $(RSATEST)$(EXE_EXT): $(RSATEST).o $(DLIBCRYPTO)
@@ -342,9 +342,13 @@ diff -rNup openssl-1.0.1p.orig/test/Makefile openssl-1.0.1p/test/Makefile
 -	@target=$(VERIFYEXTRATEST) $(BUILD_CMD)
 +	+@target=$(VERIFYEXTRATEST) $(BUILD_CMD)
  
+ $(CLIENTHELLOTEST)$(EXE_EXT): $(CLIENTHELLOTEST).o
+-	@target=$(CLIENTHELLOTEST) $(BUILD_CMD)
++	+@target=$(CLIENTHELLOTEST) $(BUILD_CMD)
+ 
  #$(AESTEST).o: $(AESTEST).c
  #	$(CC) -c $(CFLAGS) -DINTERMEDIATE_VALUE_KAT -DTRACE_KAT_MCT $(AESTEST).c
-@@ -521,7 +521,7 @@ $(VERIFYEXTRATEST)$(EXE_EXT): $(VERIFYEX
+@@ -533,7 +533,7 @@ $(CLIENTHELLOTEST)$(EXE_EXT): $(CLIENTHE
  #	fi
  
  dummytest$(EXE_EXT): dummytest.o $(DLIBCRYPTO)

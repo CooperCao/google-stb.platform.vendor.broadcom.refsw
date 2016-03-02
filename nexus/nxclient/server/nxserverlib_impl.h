@@ -465,6 +465,7 @@ NEXUS_VideoDecoderHandle nxserver_p_get_video_decoder(struct b_connect *connect)
 nxserverlib_audio.c API
 ************/
 int bserver_set_audio_config(struct b_audio_resource *ar);
+void bserver_acquire_audio_mixers(struct b_audio_resource *r, bool start);
 #if NEXUS_HAS_HDMI_OUTPUT
 int bserver_hdmi_edid_audio_config(struct b_session *session, const NEXUS_HdmiOutputStatus *pStatus);
 #endif

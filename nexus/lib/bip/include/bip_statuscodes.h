@@ -1,5 +1,5 @@
 /***************************************************************************
-*     (c)2007-2015 Broadcom Corporation
+*     (c)2007-2016 Broadcom Corporation
 *
 *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -111,7 +111,8 @@ BIP_MAKE_STATUS_CODE( BIP_SUCCESS, 0,  0x0) /* success (always zero) */
     BIP_MAKE_STATUS_CODE( BIP_ERR_MEDIA_INFO_BAD_HLS_PATH,          BIP_NEXUS_STATUS_CODE_ID, 0x204) /* hls master playlist  file specified does not exist, or bad path to master playlist  file. Check input to bip media info api */
     BIP_MAKE_STATUS_CODE( BIP_ERR_MEDIA_INFO_BAD_DASH_PATH,         BIP_NEXUS_STATUS_CODE_ID, 0x205) /* dash mpd file specified does not exist, or dash mpd path to info file. Check input to bip media info api */
 
-    BIP_MAKE_STATUS_CODE( BIP_INF_MEDIA_INFO_UNKNOWN_CONTAINER_TYPE,BIP_NEXUS_STATUS_CODE_ID, 0x260) /* file is present but container type is unknown, may be text/html/m3u8, etc. type file */
+    BIP_MAKE_STATUS_CODE( BIP_INF_MEDIA_INFO_UNKNOWN_CONTAINER_TYPE,BIP_NEXUS_STATUS_CODE_ID, 0x280) /* file is present but container type is unknown, may be text/html/m3u8, etc. type file */
+    BIP_MAKE_STATUS_CODE( BIP_INF_MEDIA_INFO_VERSION_MISMATCH, BIP_NEXUS_STATUS_CODE_ID, 0x281)      /* media info file version mismatch. Need to regerate the info files.*/
 
     /* BIP_HttpServer Status Codes*/
     /* Range 0x0300 -> 0x03ff: Error Codes: Normal discrete BIP_HttpServer "Error" status. */

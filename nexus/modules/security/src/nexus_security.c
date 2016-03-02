@@ -62,6 +62,10 @@
 #include "priv/nexus_security_standby_priv.h"
 #endif
 
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+#include "bhsm_exception_status.h"
+#endif
+
 
 BDBG_MODULE(nexus_security);
 
@@ -224,6 +228,81 @@ void NEXUS_GetSecurityCapabilities( NEXUS_SecurityCapabilities *pCaps )
     return;
 }
 
+
+/*
+Description:
+    Function will itterate over all ARCHes of each available MEM Controller and print any detected violations.
+*/
+void NEXUS_Security_PrintArchViolation_priv( void )
+{
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+    BERR_Code  magnumRc;
+    BHSM_ExceptionStatusRequest_t request;
+    BHSM_ExceptionStatus_t status;
+    BCHP_MemoryInfo memInfo;
+    BHSM_Handle hHsm;
+    unsigned maxMemc = 0;
+    unsigned memcIndex;
+    unsigned archIndex;
+
+    BDBG_ENTER(NEXUS_Security_PrintArchViolation_priv);
+    NEXUS_ASSERT_MODULE();
+
+    NEXUS_Security_GetHsm_priv( &hHsm );
+    if(!hHsm )
+    {
+        BERR_TRACE( NEXUS_INVALID_PARAMETER );
+        return;
+    }
+
+    BKNI_Memset( &memInfo, 0, sizeof( memInfo ) );
+    if( ( magnumRc = BCHP_GetMemoryInfo( g_pCoreHandles->reg, &memInfo ) ) !=  BERR_SUCCESS )
+    {
+        BERR_TRACE( magnumRc );
+        return;
+    }
+
+    maxMemc = sizeof(memInfo.memc)/sizeof(memInfo.memc[0]);
+
+    BKNI_Memset( &request, 0, sizeof(request) );
+
+    request.deviceType = BHSM_ExceptionStatusDevice_eMemcArch;
+
+    for( memcIndex = 0; memcIndex < maxMemc; memcIndex++ )  /* iterate over mem controllers. */
+    {
+        if( memInfo.memc[memcIndex].size > 0 )              /* if the MEMC is in use. */
+        {
+            request.u.memArch.unit = memcIndex;
+
+            for( archIndex = 0; archIndex < BHSM_MAX_ARCH_PER_MEMC; archIndex++ )   /* itterate over ARCHes. */
+            {
+                request.u.memArch.subUnit = archIndex;
+
+                magnumRc = BHSM_GetExceptionStatus( hHsm, &request, &status );
+                if( magnumRc != BERR_SUCCESS )
+                {
+                    if(magnumRc != BERR_NOT_SUPPORTED) {
+                        magnumRc = BERR_TRACE( magnumRc );
+                    }
+                    return;
+                }
+
+                if( status.u.memArch.endAddress ) /* if there has been a violation */
+                {
+                    BDBG_ERR(("MEMC ARCH Violation. MEMC[%u]ARCH[%u] Addr start [" BDBG_UINT64_FMT "] end[" BDBG_UINT64_FMT " ] numBlocks[%u] scbClientId[%u] requestType[%#x]",
+                               memcIndex, archIndex,
+                               BDBG_UINT64_ARG(status.u.memArch.startAddress), BDBG_UINT64_ARG(status.u.memArch.endAddress),
+                               status.u.memArch.numBlocks, status.u.memArch.scbClientId, status.u.memArch.requestType ));
+                }
+            }
+        }
+    }
+
+    BDBG_LEAVE(NEXUS_Security_PrintArchViolation_priv);
+#endif /* BHSM_ZEUS_VERSION .. */
+
+    return;
+}
 
 
 void NEXUS_SecurityModule_GetDefaultSettings(NEXUS_SecurityModuleSettings *pSettings)

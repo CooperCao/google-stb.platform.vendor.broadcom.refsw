@@ -1,7 +1,7 @@
-############################################################
-#     (c)2003-2014 Broadcom Corporation
+#############################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 
 #
@@ -51,13 +50,13 @@ NEXUS_RFM_SUPPORT := n
 endif
 
 ifeq ($(NEXUS_HEADLESS_PLATFORM),y)
-NEXUS_IR_BLASTER_SUPPORT := n
-NEXUS_RFM_SUPPORT := n
-NEXUS_KEYPAD_SUPPORT := n
-NEXUS_HDMI_OUTPUT_SUPPORT := n
-NEXUS_HDMI_INPUT_SUPPORT := n
-NEXUS_HDMI_DVO_SUPPORT := n
-NEXUS_CEC_SUPPORT := n
+NEXUS_IR_BLASTER_SUPPORT ?= n
+NEXUS_RFM_SUPPORT ?= n
+NEXUS_KEYPAD_SUPPORT ?= n
+NEXUS_HDMI_OUTPUT_SUPPORT ?= n
+NEXUS_HDMI_INPUT_SUPPORT ?= n
+NEXUS_HDMI_DVO_SUPPORT ?= n
+NEXUS_CEC_SUPPORT ?= n
 endif
 
 ifeq ($(shell test -e ${BCHP_RDB_PATH}/bchp_uhfr.h && echo y),)
@@ -85,8 +84,10 @@ ifneq ($(NEXUS_PICTURE_DECODER_SUPPORT),n)
 BSID_MJPEG_SUPPORT := y
 endif
 
-ifneq ($(filter $(BCHP_CHIP),7435 7584 7445 7439 74371 7366 7250 7364 75845), $(BCHP_CHIP))
-SAGE_SUPPORT := n
+ifeq ($(shell test -e ${BCHP_RDB_PATH}/bchp_scpu_top_ctrl.h && echo y),y)
+ifneq ($(findstring $(BCHP_CHIP),7435 7584 7271 7268 74371),$(BCHP_CHIP))
+SAGE_SUPPORT ?= y
+endif
 endif
 
 ifeq ($(shell test -e ${BCHP_RDB_PATH}/bchp_xpt_mcpb.h && echo y),y)

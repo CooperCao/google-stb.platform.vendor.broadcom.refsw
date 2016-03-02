@@ -40,7 +40,11 @@
 #define BGUI_H__
 
 #include "nexus_graphics2d.h"
+#if NXCLIENT_SUPPORT
 #include "nexus_surface_client.h"
+#else
+#include "nexus_display.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -55,27 +59,41 @@ is not supported as a standard reference software deliverable.
 
 typedef struct bgui *bgui_t;
 
-bgui_t bgui_create(unsigned width, unsigned height);
+struct bgui_settings
+{
+    unsigned width, height;
+#if !NXCLIENT_SUPPORT
+    NEXUS_DisplayHandle display;
+#endif
+};
+
+void bgui_get_default_settings(struct bgui_settings *psettings);
+bgui_t bgui_create(const struct bgui_settings *psettings);
 void bgui_destroy(bgui_t gui);
 
-/* get resources */
+/* if not NXCLIENT_SUPPORT, bgui_submit will do a flip. bgui_surface() will retrieve the current offscreen surface. */
 NEXUS_SurfaceHandle bgui_surface(bgui_t gui);
+NEXUS_Graphics2DHandle bgui_blitter(bgui_t gui);
+
+#if NXCLIENT_SUPPORT
 NEXUS_SurfaceClientHandle bgui_surface_client(bgui_t gui);
 unsigned bgui_surface_client_id(bgui_t gui);
-NEXUS_Graphics2DHandle bgui_blitter(bgui_t gui);
+#endif
 
 /* common actions */
 int bgui_fill(bgui_t gui, unsigned color);
 int bgui_checkpoint(bgui_t gui);
 int bgui_submit(bgui_t gui);
-int bgui_wait_for_move(bgui_t gui);
 
+#if NXCLIENT_SUPPORT
 /* picture in graphics test API */
 struct b_pig_inc {
     int x, y, width;
 };
 void b_pig_init(NEXUS_SurfaceClientHandle video_sc);
 void b_pig_move(NEXUS_SurfaceClientHandle video_sc, struct b_pig_inc *pig_inc);
+int bgui_wait_for_move(bgui_t gui);
+#endif
 
 #ifdef __cplusplus
 }

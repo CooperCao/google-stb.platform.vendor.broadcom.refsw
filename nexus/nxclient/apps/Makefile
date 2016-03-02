@@ -1,44 +1,39 @@
 ############################################################
-#     (c)2012-2015 Broadcom Corporation
+# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-#  and may only be used, duplicated, modified or distributed pursuant to the terms and
-#  conditions of a separate, written license agreement executed between you and Broadcom
-#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-#  no license (express or implied), right to use, or waiver of any kind with respect to the
-#  Software, and Broadcom expressly reserves all rights in and to the Software and all
-#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+# This program is the proprietary software of Broadcom and/or its licensors,
+# and may only be used, duplicated, modified or distributed pursuant to the terms and
+# conditions of a separate, written license agreement executed between you and Broadcom
+# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+# no license (express or implied), right to use, or waiver of any kind with respect to the
+# Software, and Broadcom expressly reserves all rights in and to the Software and all
+# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
-#  Except as expressly set forth in the Authorized License,
+# Except as expressly set forth in the Authorized License,
 #
-#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-#  and to use this information only in connection with your use of Broadcom integrated circuit products.
+# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+# and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
-#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-#  USE OR PERFORMANCE OF THE SOFTWARE.
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+# USE OR PERFORMANCE OF THE SOFTWARE.
 #
-#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-#  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+# ANY LIMITED REMEDY.
 ############################################################
 
 # no extra source needed (other than GUI_SOURCE)
@@ -158,14 +153,7 @@ else
 LDFLAGS += $(NXCLIENT_LDFLAGS)
 endif
 
-# nexus/nxclient/apps/utils
-CFLAGS += -I$(NEXUS_TOP)/nxclient/apps/utils -I$(BINDIR)
 vpath %.c $(NEXUS_TOP)/nxclient/apps
-vpath %.c $(NEXUS_TOP)/nxclient/apps/utils
-
-# namevalue.c
-CFLAGS += -I$(NEXUS_TOP)/utils
-vpath %.c $(NEXUS_TOP)/utils
 
 $(APPS) $(MANUAL_APPS): $(NXCLIENT_SHARED_LIB)
 
@@ -222,33 +210,15 @@ $(APPS): $(EXTRA_BUILD_RULES)
 
 # for faster compilation, archive nexus/nxclient/apps/utils
 NXCLIENT_APPS_UTILS_LIB := nxclient_apps_utils.a
-NXCLIENT_APPS_UTILS_SRC := \
-	bfile_crypto.c \
-	bfont.c \
-	bgui.c \
-	binput.c \
-	brecord_gui.c \
-	dvr_crypto.c \
-	live_decode.c \
-	live_source.c \
-	media_player.c \
-	media_player_ip.c \
-	media_player_bip.c \
-	media_probe.c \
-	namevalue.c \
-	nxapps_cmdline.c \
-	picdecoder.c \
-	tshdrbuilder.c \
-	tspsimgr3.c \
-	wav_file.c
+include $(NEXUS_TOP)/nxclient/apps/utils/nxutils.inc
+NXCLIENT_APPS_UTILS_SRC := $(foreach src,$(NXUTILS_SOURCES), $(notdir $(src)))
+CFLAGS += $(addprefix -I,$(NXUTILS_INCLUDES)) -I$(BINDIR)
+vpath %.c $(foreach src,$(NXUTILS_SOURCES), $(dir $(src)))
 
 $(NXCLIENT_APPS_UTILS_LIB): $(EXTRA_BUILD_RULES)
 $(NXCLIENT_APPS_UTILS_LIB): $(patsubst %.c,%.o,$(NXCLIENT_APPS_UTILS_SRC))
 	@echo [Archive... $@]
 	$(Q_)$(AR) rcs $@ $(filter %.o, $^)
-
-vpath %.c $(NEXUS_TOP)/../BSEAV/lib/tshdrbuilder
-CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/tshdrbuilder
 
 %.o: %.c
 	@echo [Compile... $(notdir $<)]
@@ -260,7 +230,7 @@ $(BASIC_BUILD_APPS): %: %.c $(NXCLIENT_APPS_UTILS_LIB)
 	$(CP) $@ ${NEXUS_BIN_DIR}
 
 # CUSTOM_BUILD_APPS
-ifneq ($(NXSERVER_PMLIB_SUPPORT),y)
+ifeq ($(NEXUS_POWER_MANAGEMENT),y)
 PMLIB_TOP=$(NEXUS_TOP)/../BSEAV/lib/pmlib
 include $(PMLIB_TOP)/pmlib.inc
 $(PMLIB_LIBDIR)/pmlib.o: pmlib
@@ -271,8 +241,6 @@ clean_pmlib:
 standby: CFLAGS += $(PMLIB_CFLAGS)
 STANDBY_DEPENDENCIES = $(PMLIB_LIBDIR)/pmlib.o
 EXTRA_CLEAN_RULES += clean_pmlib
-else
-standby: CFLAGS += -DNXSERVER_PMLIB_SUPPORT
 endif
 STANDBY_DEPENDENCIES += $(NXCLIENT_APPS_UTILS_LIB)
 standby: %: %.c $(STANDBY_DEPENDENCIES)
@@ -280,7 +248,7 @@ standby: %: %.c $(STANDBY_DEPENDENCIES)
 	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o %.a, $^) $(CFLAGS) $(LDFLAGS)
 	$(CP) $@ ${NEXUS_BIN_DIR}
 
-transcode: CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/bcmplayer/include -I$(NEXUS_TOP)/../magnum/commonutils/vlc
+transcode: CFLAGS += -I$(NEXUS_TOP)/../magnum/commonutils/vlc
 ifneq ($(NEXUS_PLAYBACK_SUPPORT),n)
 TRANSCODE_DEPENDENCIES = $(NEXUS_TOP)/../BSEAV/lib/bcmplayer/src/bcmindexer.c $(NEXUS_TOP)/../magnum/commonutils/vlc/bvlc.c $(NXCLIENT_APPS_UTILS_LIB)
 else
@@ -297,14 +265,7 @@ list_all_boxmodes:
 	$(Q_)chmod +x $@
 	$(CP) $@ ${NEXUS_BIN_DIR}
 
-playviewer: CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/thumbnail
-playviewer: CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/bcmplayer/include -DCMDLINE_TEST
-ifneq ($(NEXUS_PLAYBACK_SUPPORT),n)
-PLAYVIEWER_DEPENDENCIES = thumbdecoder.c botf_bcmindexer.c $(NEXUS_TOP)/../BSEAV/lib/thumbnail/bthumbnail_extractor.c $(NEXUS_TOP)/../BSEAV/lib/bcmplayer/src/tsindexer.c $(NXCLIENT_APPS_UTILS_LIB)
-else
-PLAYVIEWER_DEPENDENCIES =
-endif
-playviewer: %: %.c $(PLAYVIEWER_DEPENDENCIES)
+playviewer: %: %.c $(NXCLIENT_APPS_UTILS_LIB)
 	@echo [Compile... $(notdir $<)]
 	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o %.a, $^) $(CFLAGS) $(LDFLAGS)
 	$(CP) $@ ${NEXUS_BIN_DIR}

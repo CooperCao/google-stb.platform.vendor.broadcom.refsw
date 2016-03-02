@@ -265,8 +265,8 @@ static int nexus_surfaceclient_p_setvideo( NEXUS_SurfaceClientHandle client )
         if (!window) continue;
 
         pWindowSettings = &client->server->windowSettings;
-        BKNI_Memcpy(&client->server->prevWindowSettings, pWindowSettings, sizeof(*pWindowSettings)); /* use memcpy to match memcmp later on */
         NEXUS_VideoWindow_GetSettings_priv(window, pWindowSettings);
+        BKNI_Memcpy(&client->server->prevWindowSettings, pWindowSettings, sizeof(*pWindowSettings)); /* use memcpy to match memcmp later on */
 
         /* unlike graphics, video window's target is actual display coordinates.
         this algorithm will set window position and source clipping.

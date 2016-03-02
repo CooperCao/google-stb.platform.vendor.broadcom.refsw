@@ -1422,12 +1422,12 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapInterval(EGLDisplay dpy, EGLint interval)
 {
    CLIENT_THREAD_STATE_T *thread;
    CLIENT_PROCESS_STATE_T *process;
-   EGLBoolean result;
+   EGLint error;
 
-   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process))
-   {
+   if (CLIENT_LOCK_AND_GET_STATES(dpy, &thread, &process)) {
       EGL_CURRENT_T *current;
       EGL_SURFACE_T *surface;
+      EGL_CONTEXT_T *context;
 
 #ifndef NO_OPENVG
       if (thread->bound_api == EGL_OPENVG_API)
@@ -1436,45 +1436,36 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapInterval(EGLDisplay dpy, EGLint interval)
 #endif /* NO_OPENVG */
          current = &thread->opengl;
 
-      surface = current->draw;
-
-      if (surface) {
-         if (surface->type == WINDOW) {
-            if (interval < EGL_CONFIG_MIN_SWAP_INTERVAL)
-               interval = EGL_CONFIG_MIN_SWAP_INTERVAL;
-            if (interval > EGL_CONFIG_MAX_SWAP_INTERVAL)
-               interval = EGL_CONFIG_MAX_SWAP_INTERVAL;
-
-            surface->swap_interval = (uint32_t) interval;
-         }
-
-         eglIntSwapInterval_impl(surface->serverbuffer,
-                                 surface->swap_interval);
-
-         /* TODO: should we raise an error if it's not a window
-          * surface, or silently ignore it?
-          */
-         thread->error = EGL_SUCCESS;
-         result = EGL_TRUE;
-      } else {
-         /*
-         "If there is no current context
-         on the calling thread, a EGL BAD CONTEXT error is generated. If there is no surface
-         bound to the current context, a EGL BAD SURFACE error is generated."
-
-         TODO
-         This doesn't make sense to me - the current context always has surfaces
-         bound to it, so which error do we raise?
-         */
-         thread->error = EGL_BAD_SURFACE;
-         result = EGL_FALSE;
+      context = current->context;
+      if (!context) {
+         error = EGL_BAD_CONTEXT;
+         goto end;
       }
-      CLIENT_UNLOCK();
-   }
-   else
-      result = EGL_FALSE;
 
-   return result;
+      surface = current->draw;
+      if (!surface) {
+         error = EGL_BAD_SURFACE;
+         goto end;
+      }
+
+      if (surface->type == WINDOW) {
+         if (interval < EGL_CONFIG_MIN_SWAP_INTERVAL)
+            interval = EGL_CONFIG_MIN_SWAP_INTERVAL;
+         if (interval > EGL_CONFIG_MAX_SWAP_INTERVAL)
+            interval = EGL_CONFIG_MAX_SWAP_INTERVAL;
+
+         eglIntSwapInterval_impl(surface->serverbuffer, interval);
+      }
+
+      error = EGL_SUCCESS;
+end:
+      thread->error = error;
+      CLIENT_UNLOCK();
+
+      return error == EGL_SUCCESS;
+   }
+
+   return EGL_FALSE;
 }
 
 EGLAPI EGLContext EGLAPIENTRY eglCreateContext(EGLDisplay dpy, EGLConfig config, EGLContext share_ctx, const EGLint *attrib_list)

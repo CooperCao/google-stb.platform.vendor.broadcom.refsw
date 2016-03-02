@@ -3657,7 +3657,7 @@ void BHDM_P_HandleHAEInterrupt_isr(
 		break;
 
 	case MAKE_HAE_INTR_ENUM(REAUTH_REQ):
-		BDBG_MSG(("Tx%d: HAE_Int0x%x! - REAUTH_REQ", hHDMI->eCoreId, parm2));
+		BDBG_LOG(("Tx%d: HAE_Int0x%x! - REAUTH_REQ (from Rx)", hHDMI->eCoreId, parm2));
 		{
 			uint32_t Register;
 

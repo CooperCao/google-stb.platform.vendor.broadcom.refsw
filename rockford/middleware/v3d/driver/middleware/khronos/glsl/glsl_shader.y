@@ -23,83 +23,39 @@
    extern void ppunput(int c);
    extern int pplex(void);
 
-   void yyerror(char *);
-
    static TokenSeq *seq;
 
-   static bool fast;
+   static void yyerror (void *top_level_statement, const char *s) {
+      if (strcmp(s, "syntax error") == 0) {
+         // Catch syntax errors and redirect them.
+         glsl_compile_error(ERROR_LEXER_PARSER, 1, g_LineNumber, NULL);
+      } else {
+         glsl_compile_error(ERROR_UNKNOWN, 0, g_LineNumber, "%s", s);
+      }
+   }
 
-   int yylex(void)
+   static int yylex(void)
    {
       V3DTokenType type = 0;
       TokenData data;
 
-      /*
-         fast path bypassing preprocessor
-      */
-
-      if (fast) {
-         bool newline = false;
-
-         do {
-            type = (V3DTokenType)pplex();
-            data = pptoken;
-
-            if (type == NEWLINE)
-               newline = true;
-         } while (type == WHITESPACE || type == NEWLINE);
-
-         if (type == IDENTIFIER) {
-            /*
-               expand built-in macros
-            */
-
-            if (!strcmp(data.s, "__LINE__")) {
-               type = PPNUMBERI;
-               data.i = g_LineNumber;
-            } else if (!strcmp(data.s, "__FILE__")) {
-               type = PPNUMBERI;
-               data.i = g_FileNumber;
-            } else if (!strcmp(data.s, "__VERSION__")) {
-               type = PPNUMBERI;
-               data.i = 100;
-            } else if (!strcmp(data.s, "GL_ES")) {
-               type = PPNUMBERI;
-               data.i = 1;
-            } else if (!strcmp(data.s, "GL_FRAGMENT_PRECISION_HIGH")) {
-               type = PPNUMBERI;
-               data.i = 1;
-            }
+      do {
+         if (!seq) {
+            seq = glsl_expand(NULL, false);
+            if (!seq)
+               return 0;
          }
 
-         if (newline && type == HASH)
-            fast = false;
-         else
-            glsl_directive_disallow_version();
-      }
+         type = seq->token->type;
+         data = seq->token->data;
+         seq = seq->next;
+      } while (type == WHITESPACE);
 
       /*
-         slow path via preprocessor
+         detect uses of reserved keywords
       */
 
-      if (!fast) {
-         if (!seq)
-            seq = glsl_expand(NULL, false);
-
-         if (seq) {
-            type = seq->token->type;
-            data = seq->token->data;
-
-            seq = seq->next;
-         } else
-            return 0;
-      }
-
-      /*
-         detect uses of reserved keywords (anything from the list, or anything containing '__')
-      */
-
-      if ((type >= ASM && type <= USING) || (type == IDENTIFIER && strstr(data.s, "__")))
+      if (type >= ASM && type <= USING)
          glsl_compile_error(ERROR_LEXER_PARSER, 3, g_LineNumber, NULL);
 
       if (type == UNKNOWN)
@@ -207,8 +163,6 @@
 
       seq = NULL;
 
-      fast = true;
-
       g_LoopDepth = 0;
    }
 
@@ -226,6 +180,7 @@
 %expect 1
 
 %no-lines
+%parse-param { void *top_level_statement }
 
 // The rule that will derive a correct program.
 %start translation_unit
@@ -244,195 +199,194 @@
    struct { Statement* a; Statement* b; } statement2;
 }
 
-%token<lookup> IDENTIFIER     512
-%token<i> PPNUMBERI           513
-%token<f> PPNUMBERF           514
-%token<s> PPNUMBERU           515
+%token<lookup> IDENTIFIER
+%token<i> PPNUMBERI
+%token<f> PPNUMBERF
+%token<s> PPNUMBERU
+%token<s> UNKNOWN
 
-%token<s> UNKNOWN             516
+%token HASH
+%token WHITESPACE
+%token NEWLINE
 
-%token HASH                   517
-%token WHITESPACE             518
-%token NEWLINE                519
+%token LEFT_OP
+%token RIGHT_OP
+%token INC_OP
+%token DEC_OP
+%token LE_OP
+%token GE_OP
+%token EQ_OP
+%token NE_OP
+%token LOGICAL_AND_OP
+%token LOGICAL_OR_OP
+%token LOGICAL_XOR_OP
+%token MUL_ASSIGN
+%token DIV_ASSIGN
+%token ADD_ASSIGN
+%token MOD_ASSIGN
+%token LEFT_ASSIGN
+%token RIGHT_ASSIGN
+%token AND_ASSIGN
+%token XOR_ASSIGN
+%token OR_ASSIGN
+%token SUB_ASSIGN
+%token LEFT_PAREN
+%token RIGHT_PAREN
+%token LEFT_BRACKET
+%token RIGHT_BRACKET
+%token LEFT_BRACE
+%token RIGHT_BRACE
+%token DOT
+%token COMMA
+%token COLON
+%token EQUAL
+%token SEMICOLON
+%token BANG
+%token DASH
+%token TILDE
+%token PLUS
+%token STAR
+%token SLASH
+%token PERCENT
+%token LEFT_ANGLE
+%token RIGHT_ANGLE
+%token BITWISE_OR_OP
+%token BITWISE_XOR_OP
+%token BITWISE_AND_OP
+%token QUESTION
 
-%token LEFT_OP                520
-%token RIGHT_OP               521
-%token INC_OP                 522
-%token DEC_OP                 523
-%token LE_OP                  524
-%token GE_OP                  525
-%token EQ_OP                  526
-%token NE_OP                  527
-%token LOGICAL_AND_OP         528
-%token LOGICAL_OR_OP          529
-%token LOGICAL_XOR_OP         530
-%token MUL_ASSIGN             531
-%token DIV_ASSIGN             532
-%token ADD_ASSIGN             533
-%token MOD_ASSIGN             534
-%token LEFT_ASSIGN            535
-%token RIGHT_ASSIGN           536
-%token AND_ASSIGN             537
-%token XOR_ASSIGN             538
-%token OR_ASSIGN              539
-%token SUB_ASSIGN             540
-%token LEFT_PAREN             541
-%token RIGHT_PAREN            542
-%token LEFT_BRACKET           543
-%token RIGHT_BRACKET          544
-%token LEFT_BRACE             545
-%token RIGHT_BRACE            546
-%token DOT                    547
-%token COMMA                  548
-%token COLON                  549
-%token EQUAL                  550
-%token SEMICOLON              551
-%token BANG                   552
-%token DASH                   553
-%token TILDE                  554
-%token PLUS                   555
-%token STAR                   556
-%token SLASH                  557
-%token PERCENT                558
-%token LEFT_ANGLE             559
-%token RIGHT_ANGLE            560
-%token BITWISE_OR_OP          561
-%token BITWISE_XOR_OP         562
-%token BITWISE_AND_OP         563
-%token QUESTION               564
+%token INTRINSIC_TEXTURE_2D_BIAS
+%token INTRINSIC_TEXTURE_2D_LOD
+%token INTRINSIC_TEXTURE_CUBE_BIAS
+%token INTRINSIC_TEXTURE_CUBE_LOD
+%token INTRINSIC_RSQRT
+%token INTRINSIC_RCP
+%token INTRINSIC_LOG2
+%token INTRINSIC_EXP2
+%token INTRINSIC_CEIL
+%token INTRINSIC_FLOOR
+%token INTRINSIC_SIGN
+%token INTRINSIC_TRUNC
+%token INTRINSIC_NEAREST
+%token INTRINSIC_MIN
+%token INTRINSIC_MAX
+%token INTRINSIC_MINABS
+%token INTRINSIC_MAXABS
 
-%token INTRINSIC_TEXTURE_2D_BIAS       565
-%token INTRINSIC_TEXTURE_2D_LOD        566
-%token INTRINSIC_TEXTURE_CUBE_BIAS     567
-%token INTRINSIC_TEXTURE_CUBE_LOD      568
-%token INTRINSIC_RSQRT                 569
-%token INTRINSIC_RCP                   570
-%token INTRINSIC_LOG2                  571
-%token INTRINSIC_EXP2                  572
-%token INTRINSIC_CEIL                  573
-%token INTRINSIC_FLOOR                 574
-%token INTRINSIC_SIGN                  575
-%token INTRINSIC_TRUNC                 576
-%token INTRINSIC_NEAREST               577
-%token INTRINSIC_MIN                   578
-%token INTRINSIC_MAX                   579
-%token INTRINSIC_MINABS                580
-%token INTRINSIC_MAXABS                581
+%token DEFINE
+%token UNDEF
+%token IFDEF
+%token IFNDEF
+%token ELIF
+%token ENDIF
+%token _ERROR
+%token PRAGMA
+%token EXTENSION
+%token VERSION
+%token LINE
 
-%token DEFINE                 582
-%token UNDEF                  583
-%token IFDEF                  584
-%token IFNDEF                 585
-%token ELIF                   586
-%token ENDIF                  587
-%token _ERROR                 588
-%token PRAGMA                 589
-%token EXTENSION              590
-%token VERSION                591
-%token LINE                   592
+%token ALL
+%token REQUIRE
+%token ENABLE
+%token WARN
+%token DISABLE
 
-%token ALL                    593
-%token REQUIRE                594
-%token ENABLE                 595
-%token WARN                   596
-%token DISABLE                597
+%token ATTRIBUTE
+%token _CONST
+%token _BOOL
+%token _FLOAT
+%token _INT
+%token BREAK
+%token CONTINUE
+%token DO
+%token ELSE
+%token FOR
+%token IF
+%token DISCARD
+%token RETURN
+%token BVEC2
+%token BVEC3
+%token BVEC4
+%token IVEC2
+%token IVEC3
+%token IVEC4
+%token VEC2
+%token VEC3
+%token VEC4
+%token _MAT2
+%token MAT3
+%token MAT4
+%token _IN
+%token _OUT
+%token INOUT
+%token UNIFORM
+%token VARYING
+%token SAMPLER2D
+%token SAMPLEREXTERNAL
+%token SAMPLERCUBE
+%token STRUCT
+%token _VOID
+%token WHILE
+%token INVARIANT
+%token HIGH_PRECISION
+%token MEDIUM_PRECISION
+%token LOW_PRECISION
+%token PRECISION
 
-%token ATTRIBUTE              598
-%token _CONST                 599
-%token _BOOL                  600
-%token _FLOAT                 601
-%token _INT                   602
-%token BREAK                  603
-%token CONTINUE               604
-%token DO                     605
-%token ELSE                   606
-%token FOR                    607
-%token IF                     608
-%token DISCARD                609
-%token RETURN                 610
-%token BVEC2                  611
-%token BVEC3                  612
-%token BVEC4                  613
-%token IVEC2                  614
-%token IVEC3                  615
-%token IVEC4                  616
-%token VEC2                   617
-%token VEC3                   618
-%token VEC4                   619
-%token _MAT2                  620
-%token MAT3                   621
-%token MAT4                   622
-%token _IN                    623
-%token _OUT                   624
-%token INOUT                  625
-%token UNIFORM                626
-%token VARYING                627
-%token SAMPLER2D              628
-%token SAMPLEREXTERNAL        629
-%token SAMPLERCUBE            630
-%token STRUCT                 631
-%token _VOID                  632
-%token WHILE                  633
-%token INVARIANT              634
-%token HIGH_PRECISION         635
-%token MEDIUM_PRECISION       636
-%token LOW_PRECISION          637
-%token PRECISION              638
+%token ASM
+%token CLASS
+%token UNION
+%token ENUM
+%token TYPEDEF
+%token TEMPLATE
+%token THIS
+%token PACKED
+%token GOTO
+%token SWITCH
+%token DEFAULT
+%token _INLINE
+%token NOINLINE
+%token VOLATILE
+%token PUBLIC
+%token STATIC
+%token EXTERN
+%token EXTERNAL
+%token INTERFACE
+%token FLAT
+%token _LONG
+%token _SHORT
+%token DOUBLE
+%token HALF
+%token _FIXED
+%token _UNSIGNED
+%token SUPERP
+%token _INPUT
+%token OUTPUT
+%token HVEC2
+%token HVEC3
+%token HVEC4
+%token DVEC2
+%token DVEC3
+%token DVEC4
+%token FVEC2
+%token FVEC3
+%token FVEC4
+%token SAMPLER1D
+%token SAMPLER3D
+%token SAMPLER1DSHADOW
+%token SAMPLER2DSHADOW
+%token SAMPLER2DRECT
+%token SAMPLER3DRECT
+%token SAMPLER2DRECTSHADOW
+%token SIZEOF
+%token CAST
+%token NAMESPACE
+%token USING
 
-%token ASM                    639
-%token CLASS                  640
-%token UNION                  641
-%token ENUM                   642
-%token TYPEDEF                643
-%token TEMPLATE               644
-%token THIS                   645
-%token PACKED                 646
-%token GOTO                   647
-%token SWITCH                 648
-%token DEFAULT                649
-%token _INLINE                650
-%token NOINLINE               651
-%token VOLATILE               652
-%token PUBLIC                 653
-%token STATIC                 654
-%token EXTERN                 655
-%token EXTERNAL               656
-%token INTERFACE              657
-%token FLAT                   658
-%token _LONG                  659
-%token _SHORT                 660
-%token DOUBLE                 661
-%token HALF                   662
-%token _FIXED                 663
-%token _UNSIGNED              664
-%token SUPERP                 665
-%token _INPUT                 666
-%token OUTPUT                 667
-%token HVEC2                  668
-%token HVEC3                  669
-%token HVEC4                  670
-%token DVEC2                  671
-%token DVEC3                  672
-%token DVEC4                  673
-%token FVEC2                  674
-%token FVEC3                  675
-%token FVEC4                  676
-%token SAMPLER1D              677
-%token SAMPLER3D              678
-%token SAMPLER1DSHADOW        679
-%token SAMPLER2DSHADOW        680
-%token SAMPLER2DRECT          681
-%token SAMPLER3DRECT          682
-%token SAMPLER2DRECTSHADOW    683
-%token SIZEOF                 684
-%token CAST                   685
-%token NAMESPACE              686
-%token USING                  687
+%token _TRUE
+%token _FALSE
 
-%token _TRUE                  688
-%token _FALSE                 689
-
-%token<lookup> CANDIDATE_TYPE_NAME     690
+%token<lookup> CANDIDATE_TYPE_NAME
 
 %type<lookup> variable_identifier
 %type<expr> primary_expression

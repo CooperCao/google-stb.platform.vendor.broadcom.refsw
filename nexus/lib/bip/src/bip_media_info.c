@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * (c) 2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -70,6 +70,10 @@ BIP_SETTINGS_ID(BIP_MediaInfoMakeNavForTsSettings);
 
 /* XML tags */
 #define BIP_MEDIAINFO_XML_TAG_MEDIA_INFO             "BIP_MediaInfo" /* root element */
+#define BIP_MEDIAINFO_XML_TAG_SIZE_IN_BYTES          "sizeInBytes"   /* File size in bytes */
+#define BIP_MEDIAINFO_XML_TAG_MEDIA_INFO_TYPE        "mediaInfoType" /* whether stream or unknown. */
+
+
 #define BIP_MEDIAINFO_XML_TAG_MEDIA_INFO_STREAM      "BIP_MediaInfoStream"
 #define BIP_MEDIAINFO_XML_TAG_MEDIA_INFO_TRK_GROUP   "BIP_MediaInfoTrackGroup"
 #define BIP_MEDIAINFO_XML_TAG_MEDIA_INFO_TRK_GROUP_TS   "BIP_MediaInfoTrackGroup_Ts"
@@ -81,8 +85,8 @@ BIP_SETTINGS_ID(BIP_MediaInfoMakeNavForTsSettings);
 
 
 /* XML attributes */
-#define BIP_MEDIAINFO_XML_ATT_ABS_MEDIA_PATH    "pMediaFileAbsolutePathname"
 #define BIP_MEDIAINFO_XML_ATT_VERSION           "version"
+#define BIP_MEDIAINFO_XML_ATT_ABS_MEDIA_PATH    "pMediaFileAbsolutePathname"
 
 #define BIP_MEDIAINFO_STREAM_XML_ATT_TYPE                   "transportType"
 #define BIP_MEDIAINFO_STREAM_XML_ATT_NUM_GROUPS             "numberOfTrackGroups"
@@ -833,18 +837,23 @@ static BIP_Status BIP_MediaInfo_ProbeFileForMediaInfo(
 
     fd = bfile_stdio_read_attach( fp );
 
+    /* we want to set the hAbsoluteMediaPath and mediaInfoStream.contentLength even before probe since this informations will be valid for an unknown container type file, that is for any file. */
+    rc = BIP_String_StrcpyPrintf(hMediaInfo->hAbsoluteMediaPath, fileName);
+    BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "BIP_String_StrcpyPrintf failed "), error, BIP_INF_MEDIA_INFO_UNKNOWN_CONTAINER_TYPE, rc );
+
+    hMediaInfo->sizeInBytes =  fileStats.st_size;
+
     bmedia_probe_default_cfg( &probe_config );
     probe_config.file_name = fileName;
     probe_config.type      = bstream_mpeg_type_unknown;
     probe_config.min_probe_request = hMediaInfo->createSettings.psiAcquireProbeSizeInBytes;
     pStream = bmedia_probe_parse( probe, fd, &probe_config );
+    if(pStream == NULL)
+    {
+        hMediaInfo->mediaInfoType = BIP_MediaInfoType_eUnknown;
+        BDBG_MSG((BIP_MSG_PRE_FMT "-----------hMediaInfo->mediaInfoType = |%d|" BIP_MSG_PRE_ARG, hMediaInfo->mediaInfoType));
+    }
     BIP_CHECK_GOTO(( pStream !=NULL ), ( "Media probe can't parse stream |%s|", fileName ), error, BIP_INF_MEDIA_INFO_UNKNOWN_CONTAINER_TYPE, rc );
-
-
-    rc = BIP_String_StrcpyPrintf(hMediaInfo->hAbsoluteMediaPath, fileName);
-    BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "BIP_String_StrcpyPrintf failed "), error, BIP_INF_MEDIA_INFO_UNKNOWN_CONTAINER_TYPE, rc );
-
-    /* Populate MediaInfoStream structure from bmedia_probe_stream */
     hMediaInfo->mediaInfoStream.contentLength =  fileStats.st_size;
 
     rc = BIP_MediaInfo_GenerateBipMediaInfoFromBMediaStream(pStream, hMediaInfo );
@@ -1236,6 +1245,13 @@ BIP_Status BIP_MediaInfo_CreateXmlTree(
     BIP_CHECK_GOTO(( xmlElemRoot !=NULL ), ("BIP_XmlElem_Create failed"), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
     hMediaInfo->xmlElemRoot = xmlElemRoot;
 
+    /* Add version number. */
+    BIP_XmlElem_AddAttr(
+            xmlElemRoot,
+            BIP_MEDIAINFO_XML_ATT_VERSION,
+            BIP_MEDIA_INFO_VERSION
+            );
+
     /* Add attributes for media. hAbsoluteMediaPath will be NULL for tunerInput.*/
     if(NULL != hMediaInfo->hAbsoluteMediaPath )
     {
@@ -1246,8 +1262,15 @@ BIP_Status BIP_MediaInfo_CreateXmlTree(
             );
     }
 
-    rc = addMediaInfoStreamToXmlTree(hMediaInfo, xmlElemRoot);
-    BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "addMediaInfoStreamToXmlTree failed" ), error, rc, rc );
+    BIP_XmlElem_AddAttrInt64( xmlElemRoot, BIP_MEDIAINFO_XML_TAG_SIZE_IN_BYTES,hMediaInfo->sizeInBytes);
+
+    BIP_XmlElem_AddAttr( xmlElemRoot, BIP_MEDIAINFO_XML_TAG_MEDIA_INFO_TYPE,BIP_ToStr_BIP_MediaInfoType(hMediaInfo->mediaInfoType));
+
+    if(hMediaInfo->mediaInfoType == BIP_MediaInfoType_eStream)
+    {
+        rc = addMediaInfoStreamToXmlTree(hMediaInfo, xmlElemRoot);
+        BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "addMediaInfoStreamToXmlTree failed" ), error, rc, rc );
+    }
 
     rc = BIP_MediaInfo_CreateInfoFile(
             pInfoFileAbsolutePathName,
@@ -1626,6 +1649,14 @@ static  BIP_Status BIP_MediaInfo_PopulateMediaInfoFromXmlTree(
     xmlElemMediaInfo = BIP_XmlElem_FindChild(xmlElemRoot , BIP_MEDIAINFO_XML_TAG_MEDIA_INFO);
     BIP_CHECK_GOTO((xmlElemMediaInfo != NULL),("BIP_XmlElem_FindChild Failed for %s tag", BIP_MEDIAINFO_XML_TAG_MEDIA_INFO), error, BIP_ERR_INTERNAL, rc );
 
+    /* Check for version number. */
+    if(strncmp(BIP_MEDIA_INFO_VERSION , BIP_XmlElem_FindAttrValue(xmlElemMediaInfo , BIP_MEDIAINFO_XML_ATT_VERSION ), sizeof(BIP_MEDIA_INFO_VERSION)))
+    {
+        /* Need to regenerate the info files.*/
+        rc = BIP_INF_MEDIA_INFO_VERSION_MISMATCH;
+        goto error;
+    }
+
     pMediaPathFromInfo = BIP_XmlElem_FindAttrValue(xmlElemMediaInfo , BIP_MEDIAINFO_XML_ATT_ABS_MEDIA_PATH );
 
     if(pMediaPathFromInfo)
@@ -1633,6 +1664,17 @@ static  BIP_Status BIP_MediaInfo_PopulateMediaInfoFromXmlTree(
         rc = BIP_String_StrcpyPrintf(hMediaInfo->hAbsoluteMediaPath, pMediaPathFromInfo);
         BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "BIP_String_StrcpyPrintf failed "), error, rc, rc );
     }
+
+    hMediaInfo->sizeInBytes = BIP_XmlElem_FindAttrValueInt64(xmlElemMediaInfo, BIP_MEDIAINFO_XML_TAG_SIZE_IN_BYTES, 0);
+    hMediaInfo->mediaInfoType = BIP_StrTo_BIP_MediaInfoType(BIP_XmlElem_FindAttrValue( xmlElemMediaInfo, BIP_MEDIAINFO_XML_TAG_MEDIA_INFO_TYPE));
+
+    if(hMediaInfo->mediaInfoType != BIP_MediaInfoType_eStream)
+    {
+        BDBG_MSG((BIP_MSG_PRE_FMT "mediaInfoType is unknown" BIP_MSG_PRE_ARG));
+        /* Nothing to be done no more information is avilable.*/
+        goto error;
+    }
+
 #if 0
     /* TODO: The following check need to be added at some point after a discussion with Gary/Sanjeev */
     /* Now get the mediaInfo element and then get the path of the media, if path is already provided and that doesn't match with the info file specified path
@@ -1736,7 +1778,7 @@ static BIP_Status BIP_MediaInfo_RetriveMetaDataFromInfoFile(
     BIP_CHECK_GOTO(( pReadBuffer != NULL ), ("B_Os_Calloc failed"), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
     fileSize = fread(pReadBuffer, 1, infoFileStats.st_size , fp);
-    BIP_CHECK_GOTO(( fileSize == infoFileStats.st_size ), ("fread frim info file has an error:|fileSize != infoFileStats.st_size|"), error, BIP_ERR_INTERNAL, rc );
+    BIP_CHECK_GOTO(( fileSize == (size_t)infoFileStats.st_size ), ("fread frim info file has an error:|fileSize != infoFileStats.st_size|"), error, BIP_ERR_INTERNAL, rc );
 
     /* Add the null character for end of string.*/
     pReadBuffer[infoFileStats.st_size] = '\0';
@@ -1746,7 +1788,7 @@ static BIP_Status BIP_MediaInfo_RetriveMetaDataFromInfoFile(
     BIP_CHECK_GOTO(( xmlElemParsed != NULL ), ("BIP_Xml_Create failed"), error, BIP_ERR_INTERNAL, rc );
 
     rc = BIP_MediaInfo_PopulateMediaInfoFromXmlTree( hMediaInfo, xmlElemParsed );
-    BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "BIP_MediaInfo_PopulateMediaInfoFromXmlTree failed" ), error, rc, rc );
+    BIP_CHECK_GOTO(( rc == BIP_SUCCESS || rc == BIP_INF_MEDIA_INFO_VERSION_MISMATCH), ( "BIP_MediaInfo_PopulateMediaInfoFromXmlTree failed" ), error, rc, rc );
 
 error:
     if (fp){ fclose( fp );}
@@ -3137,9 +3179,22 @@ BIP_MediaInfoHandle BIP_MediaInfo_CreateFromMediaFile(
                          pInfoFileAbsolutePathName,
                          hMediaInfo
                          );
-                BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "BIP_MediaInfo_RetriveMetaDataFromInfoFile failed" ), error, rc, rc );
-            }
+                BIP_CHECK_GOTO(( rc == BIP_SUCCESS || rc == BIP_INF_MEDIA_INFO_VERSION_MISMATCH ), ( "BIP_MediaInfo_RetriveMetaDataFromInfoFile failed" ), error, rc, rc );
 
+                if(rc == BIP_INF_MEDIA_INFO_VERSION_MISMATCH)
+                {
+                    /* Reacquire the media info meta data from media file since media info file is old and need to be updated.*/
+                    hMediaInfo->createSettings.reAcquireInfo = true;
+
+                    BDBG_WRN(( BIP_MSG_PRE_FMT "MediaInfo version mismatched, Calling BIP_MediaInfo_ProbeFileForMediaInfo to regenerate info file " BIP_MSG_PRE_ARG));
+
+                    rc = BIP_MediaInfo_ProbeFileForMediaInfo(
+                                    pMediaFileAbsolutePathname,
+                                    hMediaInfo
+                                    );
+                    BIP_CHECK_GOTO(( rc==BIP_SUCCESS || rc == BIP_INF_MEDIA_INFO_UNKNOWN_CONTAINER_TYPE), ( "error Probing Stream(%s)", pMediaFileAbsolutePathname ), error, BIP_ERR_MEDIA_INFO_BAD_MEDIA_PATH, rc );
+                }
+            }
         }
         else /*(NULL == pInfoFileAbsolutePathName) */
         {
@@ -3148,14 +3203,12 @@ BIP_MediaInfoHandle BIP_MediaInfo_CreateFromMediaFile(
                                 pMediaFileAbsolutePathname,
                                 hMediaInfo
                                 );
-            BIP_CHECK_GOTO(( rc==BIP_SUCCESS || rc == BIP_INF_MEDIA_INFO_UNKNOWN_CONTAINER_TYPE), ( "error Probing Stream(%s)", pMediaFileAbsolutePathname ), error, BIP_ERR_MEDIA_INFO_BAD_MEDIA_PATH, rc );
+            BIP_CHECK_GOTO(( rc==BIP_SUCCESS || rc==BIP_INF_MEDIA_INFO_UNKNOWN_CONTAINER_TYPE), ( "error Probing Stream(%s)", pMediaFileAbsolutePathname ), error, BIP_ERR_MEDIA_INFO_BAD_MEDIA_PATH, rc );
         }
     }
 
-    /* BIP_INF_MEDIA_INFO_UNKNOWN_CONTAINER_TYPE is not an error but we don't want to create any dummy xml file for such stream. */
-    if( (hMediaInfo->createSettings.reAcquireInfo)
-        && (rc != BIP_INF_MEDIA_INFO_UNKNOWN_CONTAINER_TYPE)
-        )
+    /*If BIP_INF_MEDIA_INFO_UNKNOWN_CONTAINER_TYPE still we want to generate an xml file with the mediaName and file size. Rest of all fields will be set to 0. */
+    if( hMediaInfo->createSettings.reAcquireInfo)
     {
         /* Create xml tree to generate the new xml info file.*/
         rc = BIP_MediaInfo_CreateXmlTree(hMediaInfo, pInfoFileAbsolutePathName);

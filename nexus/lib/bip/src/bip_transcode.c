@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * (c) 2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -467,7 +467,7 @@ static BIP_Status startTranscodePath(
 
     /* Start Transcode. */
     nrc = NEXUS_SimpleEncoder_Start( hTranscode->nexusHandles.simple.hEncoder, &hTranscode->encoderStartSettings );
-    BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleTranscode_Start Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
+    BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleEncoder_Start Failed!" ), error, BIP_ERR_NEXUS, bipStatus );
     hTranscode->encoderStarted = true;
     BDBG_MSG(( BIP_MSG_PRE_FMT "Transcode (%p) Started" BIP_MSG_PRE_ARG, hTranscode->nexusHandles.simple.hEncoder ));
 

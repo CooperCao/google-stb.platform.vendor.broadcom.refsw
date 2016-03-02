@@ -341,16 +341,7 @@ static void NEXUS_AudioModule_P_PopulateRaagaOpenSettings(
     }
 
     raagaSettings->NumDsp = boxConfig->stAudio.numDsps;
-    #if 0
-    raagaSettings->box = g_pCoreHandles?g_pCoreHandles->box:NULL;
-    #endif
 }
-
-
-
-
-
-
 
 NEXUS_ModuleHandle NEXUS_AudioModule_Init(
     const NEXUS_AudioModuleSettings *pSettings
@@ -419,6 +410,7 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
                               g_pCoreHandles->heap[fwHeapIndex].mem,
                               g_pCoreHandles->bint,
                               g_pCoreHandles->tmr,
+                              g_pCoreHandles->box,
                               &raagaSettings);
     if ( errCode )
     {
@@ -576,11 +568,13 @@ void NEXUS_AudioModule_Uninit(void)
     LOCK_SECURITY();
     NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID_eRaaga0 );
     UNLOCK_SECURITY();
-    #if NEXUS_NUM_AUDIO_DSP > 1
-    LOCK_SECURITY();
-    NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID_eRaaga1 );
-    UNLOCK_SECURITY();
-    #endif
+
+    if( g_NEXUS_audioModuleData.numDsps > 1 )
+    {
+        LOCK_SECURITY();
+        NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID_eRaaga1 );
+        UNLOCK_SECURITY();
+    }
    #endif
 
     if (g_NEXUS_audioModuleData.pImageContext) {
@@ -767,8 +761,16 @@ NEXUS_Error NEXUS_AudioModule_Standby_priv(
 	        BDBG_WRN(("Forcing Audio Decoder %d Stop for Standby", i));
 	        NEXUS_AudioDecoder_Stop(handle);
 	    }
-
 	}
+
+    for (i=0; i < NEXUS_NUM_AUDIO_MIXERS; i++) {
+        NEXUS_AudioMixerHandle mixerHandle = NEXUS_AudioMixer_P_GetMixerByIndex(i);
+        if (mixerHandle && NEXUS_AudioMixer_P_IsStarted(mixerHandle))
+        {
+            BDBG_WRN(("Forcing Audio Mixer %d Stop for Standby", i));
+	        NEXUS_AudioMixer_Stop(mixerHandle);
+        }
+    }
 	rc = BAPE_Standby(g_NEXUS_audioModuleData.apeHandle, NULL);
 	if (rc) { rc = BERR_TRACE(rc); goto err; }
 
@@ -780,11 +782,13 @@ NEXUS_Error NEXUS_AudioModule_Standby_priv(
         LOCK_SECURITY();
         NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID_eRaaga0 );
         UNLOCK_SECURITY();
-        #if NEXUS_NUM_AUDIO_DSP > 1
-        LOCK_SECURITY();
-        NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID_eRaaga1 );
-        UNLOCK_SECURITY();
-        #endif
+
+        if( g_NEXUS_audioModuleData.numDsps > 1 )
+        {
+            LOCK_SECURITY();
+            NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID_eRaaga1 );
+            UNLOCK_SECURITY();
+        }
        #endif
 
     } else {
@@ -1330,7 +1334,7 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
               dspUsage.DolbyCodecVersion));
 
     NEXUS_AudioModule_P_PopulateRaagaOpenSettings(&preInitState->boxConfig, &audioModuleSettings, &dspSettings);
-    BDSP_Raaga_GetMemoryEstimate(&dspSettings, &dspUsage, (g_pCoreHandles!=NULL) ? g_pCoreHandles->chp : NULL, &dspEstimate);
+    BDSP_Raaga_GetMemoryEstimate(&dspSettings, &dspUsage, (g_pCoreHandles!=NULL) ? g_pCoreHandles->box : NULL, &dspEstimate);
     BDBG_MODULE_MSG(nexus_audio_memest, ("DSP USAGE: firmware %d bytes, general %d bytes, total %d bytes", dspEstimate.FirmwareMemory, dspEstimate.GeneralMemory, dspEstimate.GeneralMemory + dspEstimate.FirmwareMemory));
 
     /* hardcode to mem controller 0 for now */

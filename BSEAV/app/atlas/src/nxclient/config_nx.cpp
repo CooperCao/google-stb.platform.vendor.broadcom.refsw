@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -92,20 +92,6 @@ eRet CConfigNx::initResources()
 
     _pResources->add(eBoardResource_display, 2, "display", &_cfg);
 
-    /* allocate simple video decoders using separate alloc calls which is required to make pip swap work
-     * properly in nxclient mode */
-    {
-        NxClient_GetDefaultAllocSettings(&allocSettings);
-        allocSettings.simpleVideoDecoder = 1;
-        nerror                           = NxClient_Alloc(&allocSettings, &_allocResults);
-        CHECK_NEXUS_ERROR_ASSERT("error unable to allocate the minimum number of resources", nerror);
-        /* add available resources */
-        for (i = 0; i < allocSettings.simpleVideoDecoder; i++)
-        {
-            _pResources->add(eBoardResource_simpleDecodeVideo, 1, "simpleVideoDecode", &_cfg, 0, _allocResults.simpleVideoDecoder[i].id);
-        }
-    }
-
     NxClient_GetDefaultAllocSettings(&allocSettings);
     allocSettings.simpleVideoDecoder  = 1;
     allocSettings.simpleAudioDecoder  = 1;
@@ -116,18 +102,18 @@ eRet CConfigNx::initResources()
 #ifdef DCC_SUPPORT
     allocSettings.surfaceClient++;
 #endif
-    nerror = NxClient_Alloc(&allocSettings, &_allocResults);
+    nerror = NxClient_Alloc(&allocSettings, &_allocResultsMain);
     CHECK_NEXUS_ERROR_ASSERT("error unable to allocate the minimum number of resources", nerror);
 
     /* add available resources */
     for (i = 0; i < allocSettings.simpleVideoDecoder; i++)
     {
-        _pResources->add(eBoardResource_simpleDecodeVideo, 1, "simpleVideoDecode", &_cfg, 0, _allocResults.simpleVideoDecoder[i].id);
+        _pResources->add(eBoardResource_simpleDecodeVideo, 1, "simpleVideoDecode", &_cfg, 0, _allocResultsMain.simpleVideoDecoder[i].id);
     }
 
     if (0 < allocSettings.simpleAudioDecoder)
     {
-        _pResources->add(eBoardResource_simpleDecodeAudio, 1, "simpleAudioDecode", &_cfg, 0, _allocResults.simpleAudioDecoder.id);
+        _pResources->add(eBoardResource_simpleDecodeAudio, 1, "simpleAudioDecode", &_cfg, 0, _allocResultsMain.simpleAudioDecoder.id);
     }
 
     _pResources->add(eBoardResource_stcChannel, NEXUS_NUM_STC_CHANNELS, "stcChannel", &_cfg);
@@ -138,12 +124,12 @@ eRet CConfigNx::initResources()
 #if NEXUS_HAS_UHF_INPUT
         if ((allocSettings.inputClient - 1) == i)
         {
-            _pResources->add(eBoardResource_uhfRemote, 1, "uhfRemote", &_cfg, 0, _allocResults.inputClient[i].id);
+            _pResources->add(eBoardResource_uhfRemote, 1, "uhfRemote", &_cfg, 0, _allocResultsMain.inputClient[i].id);
         }
         else
 #endif /* if NEXUS_HAS_UHF_INPUT */
         {
-            _pResources->add(eBoardResource_irRemote, 1, "irRemote", &_cfg, 0, _allocResults.inputClient[i].id);
+            _pResources->add(eBoardResource_irRemote, 1, "irRemote", &_cfg, 0, _allocResultsMain.inputClient[i].id);
         }
     }
 #ifdef NETAPP_SUPPORT
@@ -153,7 +139,29 @@ eRet CConfigNx::initResources()
 
     for (i = 0; i < allocSettings.surfaceClient; i++)
     {
-        _pResources->add(eBoardResource_surfaceClient, 1, "surfaceClient", &_cfg, i, _allocResults.surfaceClient[i].id);
+        _pResources->add(eBoardResource_surfaceClient, 1, "surfaceClient", &_cfg, i, _allocResultsMain.surfaceClient[i].id);
+    }
+
+    /* allocate simple video decoders for PiP using separate alloc calls
+       which is required to make pip swap work properly in nxclient mode
+     */
+    {
+        NxClient_GetDefaultAllocSettings(&allocSettings);
+        allocSettings.simpleVideoDecoder = 1;
+        allocSettings.simpleAudioDecoder = 1;
+        nerror                           = NxClient_Alloc(&allocSettings, &_allocResultsPip);
+        CHECK_NEXUS_ERROR_ASSERT("error unable to allocate the minimum number of resources", nerror);
+
+        /* add available resources */
+        for (i = 0; i < allocSettings.simpleVideoDecoder; i++)
+        {
+            _pResources->add(eBoardResource_simpleDecodeVideo, 1, "simpleVideoDecode", &_cfg, 0, _allocResultsPip.simpleVideoDecoder[i].id);
+        }
+
+        if (0 < allocSettings.simpleAudioDecoder)
+        {
+            _pResources->add(eBoardResource_simpleDecodeAudio, 1, "simpleAudioDecode", &_cfg, 0, _allocResultsPip.simpleAudioDecoder.id);
+        }
     }
 
 #if NEXUS_HAS_FRONTEND
@@ -223,5 +231,6 @@ error:
 void CConfigNx::uninitResources()
 {
     _pResources->clear();
-    NxClient_Free(&_allocResults);
+    NxClient_Free(&_allocResultsPip);
+    NxClient_Free(&_allocResultsMain);
 }

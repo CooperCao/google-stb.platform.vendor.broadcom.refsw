@@ -187,6 +187,9 @@ static bool IsEquivalentFormat_isr(NEXUS_UserDataFormat nexus_format, BUDP_DCCpa
     case NEXUS_UserDataFormat_eScte21:
         if (budp_format == BUDP_DCCparse_Format_DVS053) { return true; }
         break;
+    case NEXUS_UserDataFormat_eAtsc72:
+        if (budp_format == BUDP_DCCparse_Format_SEI) { return true; }
+        break;
     default:
     case NEXUS_UserDataFormat_eAny:
         return true;
@@ -317,6 +320,7 @@ static void NEXUS_VideoDecoder_P_ParseUserdata_isr(NEXUS_VideoDecoderHandle vide
             case BUDP_DCCparse_Format_ATSC53: nexusUserDataFormat = NEXUS_UserDataFormat_eAtsc53; break;
             case BUDP_DCCparse_Format_DVS157: nexusUserDataFormat = NEXUS_UserDataFormat_eScte20; break;
             case BUDP_DCCparse_Format_DVS053: nexusUserDataFormat = NEXUS_UserDataFormat_eScte21; break;
+            case BUDP_DCCparse_Format_SEI: nexusUserDataFormat = NEXUS_UserDataFormat_eAtsc72; break;
             default: nexusUserDataFormat = NEXUS_UserDataFormat_eAny; break;
             }
 
@@ -328,6 +332,7 @@ static void NEXUS_VideoDecoder_P_ParseUserdata_isr(NEXUS_VideoDecoderHandle vide
             case NEXUS_UserDataFormat_eScte20:
             case NEXUS_UserDataFormat_eScte21:
             case NEXUS_UserDataFormat_eAtsc53:
+            case NEXUS_UserDataFormat_eAtsc72:
                 if (nexusUserDataFormat != videoDecoder->userDataFormat) {
                     continue;
                 }
@@ -339,7 +344,7 @@ static void NEXUS_VideoDecoder_P_ParseUserdata_isr(NEXUS_VideoDecoderHandle vide
                     videoDecoder->currentUserDataFormat = ccData[i].format;
                 }
                 else if (videoDecoder->currentUserDataFormat != ccData[i].format) {
-                    if (++videoDecoder->userdataAnyFilterCnt == 20) {
+                    if (++videoDecoder->userdataAnyFilterCnt == videoDecoder->settings.userDataFilterThreshold) {
                         /* after seeing some number of entries of another format, and nothing from currentUserDataFormat, reset the filter */
                         BDBG_WRN(("decoder %p: switching userdata filter from %d to %d", (void *)videoDecoder, videoDecoder->currentUserDataFormat, ccData[i].format));
                         videoDecoder->currentUserDataFormat = ccData[i].format;

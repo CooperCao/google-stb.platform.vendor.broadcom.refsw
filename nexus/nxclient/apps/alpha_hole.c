@@ -84,6 +84,7 @@ int main(int argc, const char **argv)
 {
     NxClient_JoinSettings joinSettings;
     bgui_t gui;
+    struct bgui_settings gui_settings;
     NEXUS_Error rc;
     int curarg = 1;
     NEXUS_Rect rect = {0,0,0,0};
@@ -119,7 +120,10 @@ int main(int argc, const char **argv)
     rc = NxClient_Join(&joinSettings);
     if (rc) return -1;
 
-    gui = bgui_create(10,10);
+    bgui_get_default_settings(&gui_settings);
+    gui_settings.width = 10;
+    gui_settings.height = 10;
+    gui = bgui_create(&gui_settings);
 
     if (rect.width || zorder) {
         NEXUS_SurfaceComposition comp;

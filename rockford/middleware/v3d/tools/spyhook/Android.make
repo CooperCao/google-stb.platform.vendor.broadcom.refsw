@@ -1,30 +1,112 @@
-#
-# make -f Android.make B_REFSW_ARCH=arm-linux-androideabi B_REFSW_CROSS_COMPILE=arm-linux-androideabi- B_REFSW_TOOLCHAIN_ARCH=arm-linux-androideabi ROOT=/scratch/hauxwell/android-l NEXUS_PLATFORM=97252 BCHP_VER=D0
-#
+# default build mode - release
+
+PROFILING?=0
 
 ifeq ($(VERBOSE),)
 Q := @
 endif
 
-$(info *** Making GPU Monitor Hook ***)
+include ${PLATFORM_APP_INC}
 
-$(info $(NEXUS_DEFINES))
+$(info === Building $(MAKECMDGOALS) ===)
 
-all: lib/libgpumonitor.so
+DRV = ../../driver
 
-NEXUS_TOP:=$(ROOT)/vendor/broadcom/stb/refsw/nexus
+CC = $(B_REFSW_CROSS_COMPILE)gcc
+CPP = $(B_REFSW_CROSS_COMPILE)g++
 
-include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+CFLAGS += \
+	-fpic -DPIC -DBCG_ABSTRACT_PLATFORM \
+	-std=c99 \
+	-mcpu=cortex-a15 \
+	-mfpu=neon \
+	-I${PLATFORM_DIR}/android \
+	-I${PLATFORM_DIR}/common \
+	-I. \
+	-I${DRV} \
+	-I${DRV}/vcos \
+	-I${DRV}/vcos/include \
+	-I${DRV}/vcos/pthreads \
+	-I${DRV}/v3d_platform \
+	-I${DRV}/interface/khronos/include \
+	-I${DRV}/middleware/khronos/glsl \
+	-Dkhronos_EXPORTS \
+	-D_POSIX_C_SOURCE=200112 \
+	-D_GNU_SOURCE \
+	-DHAVE_ZLIB
+
+CFLAGS += -shared
 
 NEXUS_CFLAGS:=$(filter-out -Wstrict-prototypes,$(NEXUS_CFLAGS))
 NEXUS_CFLAGS:=$(filter-out -std=c89,$(NEXUS_CFLAGS))
+NEXUS_CFLAGS:=$(filter-out -march=%,$(NEXUS_CFLAGS))
 
-CC = $(B_REFSW_CROSS_COMPILE)gcc
-C++ = $(B_REFSW_CROSS_COMPILE)g++
+# Add any customer specific cflags from the command line
+CFLAGS += $(V3D_EXTRA_CFLAGS) $(NEXUS_CFLAGS)
 
-CFLAGS += -c $(foreach dir,$(NEXUS_APP_INCLUDE_PATHS),-I$(dir)) $(foreach def,$(NEXUS_APP_DEFINES),-D"$(def)")
+HOOK_LDFLAGS = -nostdlib -Wl,--gc-sections -Wl,-shared,-Bsymbolic \
+	-fno-rtti -fno-exceptions -fno-use-cxa-atexit \
+	-L$(ANDROID_LIBDIR_LINK) \
+	-Wl,--no-whole-archive -lcutils \
+	-lstdc++ \
+	-lc \
+	-lm \
+	-llog \
+	-lc++ \
+	-lnexus \
+	-lnexuseglclient \
+	-ldl \
+	-Wl,--no-undefined -Wl,--whole-archive -Wl,--fix-cortex-a8 \
+	-z defs
 
-CFLAGS += -I$(ROOT)/external/libcxx/include $(STL_PORT) \
+HOOK_LDFLAGS += $(V3D_EXTRA_LDFLAGS)
+
+LDFLAGS += -export-dynamic
+
+ifeq ($(V3D_DEBUG),y)
+
+ifneq ($(PROFILING),0)
+CFLAGS += -Os -g -DNDEBUG
+else
+CFLAGS += -O0 -g -fvisibility=hidden
+endif
+
+LDFLAGS += -g
+OBJDIR ?= obj_$(NEXUS_PLATFORM)_debug
+LIBDIR ?= lib_$(NEXUS_PLATFORM)_debug
+
+else
+
+CFLAGS += -Os -DNDEBUG
+
+ifeq ($(PROFILING),0)
+CFLAGS += -fvisibility=hidden
+# Strip
+LDFLAGS += -s
+else
+CFLAGS += -g
+LDFLAGS += -g -export-dynamic
+endif
+
+OBJDIR ?= obj_$(NEXUS_PLATFORM)_release
+LIBDIR ?= lib_$(NEXUS_PLATFORM)_release
+endif
+
+CPPFLAGS:=$(filter-out -std=c99,$(CFLAGS))
+
+## CAUTION: Using higher optimsation levels causes a SEGV when getting state
+#CFLAGS += -O0 -fPIC -DPIC -fvisibility=hidden
+CPPFLAGS += \
+	-O0 \
+	-DANDROID \
+	-DHAVE_SYS_UIO_H \
+	-fno-rtti \
+	-fno-exceptions \
+	-fno-use-cxa-atexit \
+	-g -funwind-tables \
+	-std=c++0x
+
+CPPFLAGS += -I$(ROOT)/external/libcxx/include $(STL_PORT) \
 				-isystem $(ROOT)/system/core/include \
 				-isystem $(ROOT)/bionic \
 				-isystem $(ROOT)/bionic/libc/arch-arm/include \
@@ -42,52 +124,69 @@ CFLAGS += -I$(ROOT)/external/libcxx/include $(STL_PORT) \
 				-I$(ROOT)/bionic/libc/kernel/uapi \
 				-I$(ROOT)/bionic/libc/kernel/uapi/asm-arm \
 				-I$(ROOT)/bionic/libm/include \
-				-I$(ROOT)/bionic/libm/include/arm \
-				-I. \
-				-I$(NEXUS_TOP)/../rockford/middleware/v3d/driver/interface/khronos/include \
-				-I$(NEXUS_TOP)/../rockford/middleware/v3d/driver
+				-I$(ROOT)/bionic/libm/include/arm
 
-## CAUTION: Using higher optimsation levels causes a SEGV when getting state
-#CFLAGS += -O0 -fPIC -DPIC -fvisibility=hidden
-CFLAGS += \
-	-O0 \
-	-fPIC \
-	-DPIC \
-	-DANDROID \
-	-DHAVE_SYS_UIO_H \
-	-fno-rtti \
-	-fno-exceptions \
-	-fno-use-cxa-atexit \
-	-std=c++0x
-
-CFLAGS += \
+CPPFLAGS += \
 	-DLOGD=ALOGD \
 	-DLOGE=ALOGE
 
-LDFLAGS = -nostdlib -Wl,--gc-sections -Wl,-shared,-Bsymbolic \
-	-fno-rtti -fno-exceptions -fno-use-cxa-atexit \
-	-L$(ROOT)/out/target/product/bcm_platform/system/lib/ \
-	-Wl,--no-whole-archive -lcutils \
-	-lstdc++ \
-	-lc \
-	-lm \
-	-lgcc \
-	-lcutils \
-	-llog \
-	-lc++ \
-	-lnexus \
-	-Wl,--no-undefined -Wl,--whole-archive -Wl,--fix-cortex-a8 \
-	-z defs
+HOOK_SOURCES = \
+	spyhook.cpp \
+	archive.cpp \
+	packet.cpp \
+	platform.cpp \
+	remote.cpp
 
-lib/libgpumonitor.so : obj/spyhook.o obj/remote.o obj/archive.o obj/packet.o obj/platform.o
-	$(Q)mkdir -p lib
-	$(info Linking $@)
-	$(Q)$(C++) $(NEXUS_LDFLAGS) $(LDFLAGS) -o $@ $^
+all: $(LIBDIR)/libgpumonitor.so
 
-obj/%.o: %.cpp
-	$(Q)mkdir -p obj
-	$(info Compiling $<)
-	$(Q)$(C++) -c $(NEXUS_CFLAGS) $(CFLAGS) $(CPPFLAGS) $< -o $@
+.phony: OUTDIR
+OUTDIR :
+	$(Q)mkdir -p $(OBJDIR)
 
-clean:
-	rm -rf lib obj
+# $(1) = src
+# $(2) = obj
+define CCompileRuleHook
+HOOK_OBJS += $(2)
+$(2) : $(1)
+	$(Q)echo Compiling $(1)
+	$(Q)$(CPP) -c $(CPPFLAGS) -o "$(2)" "$(1)"
+
+endef
+
+$(foreach src,$(HOOK_SOURCES),$(eval $(call CCompileRuleHook,$(src),$(OBJDIR)/$(basename $(notdir $(src))).o)))
+
+# $(1) = src
+# $(2) = d
+# $(3) = obj
+define DependRule_CPP
+$(2) : $(1) | OUTDIR $(AUTO_FILES)
+	$(Q)echo Making depends for $(1)
+	$(Q)touch $(2).tmp
+	$(Q)$(CC) -D__SSE__ -D__MMX__ -M -MQ $(3) -MF $(2).tmp -MM $(CPPFLAGS) $(1)
+	$(Q)sed 's/D:/\/\/D/g' < $(2).tmp | sed 's/C:/\/\/C/g' > $(2)
+	$(Q)rm -f $(2).tmp
+
+PRE_BUILD_RULES += $(2)
+# Don't know why, but a comment on this line is necessary
+
+endef
+
+ifneq ($(MAKECMDGOALS),clean_hook)
+
+$(foreach src,$(filter %.cpp,$(HOOK_SOURCES)),$(eval $(call DependRule_CPP,$(src),$(OBJDIR)/$(basename $(notdir $(src))).d,\
+			$(OBJDIR)/$(basename $(notdir $(src))).o)))
+
+$(foreach src,$(filter %.cpp,$(HOOK_SOURCES)),$(eval -include $(OBJDIR)/$(basename $(notdir $(src))).d))
+
+endif
+
+$(LIBDIR)/libgpumonitor.so: $(PRE_BUILD_RULES) $(HOOK_OBJS)
+	$(Q)echo Linking ... libgpumonitor.so
+	$(Q)mkdir -p $(LIBDIR)
+	$(Q)$(CC) $(HOOK_LDFLAGS) -shared -o $(LIBDIR)/libgpumonitor.so $(HOOK_OBJS)
+
+# clean out the dross
+.PHONY: clean_hook
+clean_hook:
+	$(Q)rm -f $(LIBDIR)/libgpumonitor.so *~ $(HOOK_OBJS)
+	$(Q)rm -f $(OBJDIR)/*.d

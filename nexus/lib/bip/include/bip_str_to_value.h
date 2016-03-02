@@ -1,5 +1,5 @@
  /******************************************************************************
- * (c) 2007-2015 Broadcom Corporation
+ * (c) 2007-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -49,6 +49,7 @@ extern "C" {
 
 
 int BIP_StrTo_BIP_MediaInfoTrackType( const char *str);
+int BIP_StrTo_BIP_MediaInfoType(const char *str);
 
 /* Conveniently named wrapper functions to convert string to NEXUS types. */
 unsigned BIP_StrTo_NEXUS_VideoFormat(const char *str);

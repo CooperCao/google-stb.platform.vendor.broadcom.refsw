@@ -2245,6 +2245,7 @@ NEXUS_Error NEXUS_SyncChannel_P_ConnectVideoInput(NEXUS_SyncChannelHandle syncCh
 
         /* clear outputs on each input connection */
         BKNI_Memset(syncChannel->outputs.window, 0, sizeof(syncChannel->outputs.window));
+        syncChannel->syncLockedWindow = NULL;
 
         /* discover outputs */
         NEXUS_Module_Lock(g_NEXUS_syncChannel.settings.modules.display);

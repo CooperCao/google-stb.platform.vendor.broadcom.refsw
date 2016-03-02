@@ -2831,13 +2831,9 @@ void BVDC_P_FillVfTable_isr
 		if (bHsyncEdit)
 		{
 #if BVDC_P_ORTHOGONAL_VEC
-			index =
-				(BCHP_VF_0_NEG_SYNC_VALUES - BCHP_VF_0_FORMAT_ADDER)/4 +
-				1;
+			index = (BCHP_VF_0_NEG_SYNC_VALUES - BCHP_VF_0_FORMAT_ADDER)/4;
 #else
-			index =
-				(BCHP_PRIM_VF_NEG_SYNC_VALUES - BCHP_PRIM_VF_FORMAT_ADDER)/4 +
-				1;
+			index = (BCHP_PRIM_VF_NEG_SYNC_VALUES - BCHP_PRIM_VF_FORMAT_ADDER)/4;
 #endif
 			pTable[index] &= ~(
 #if (BVDC_P_SUPPORT_VEC_VF_VER == 1)

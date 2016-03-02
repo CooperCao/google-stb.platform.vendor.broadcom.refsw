@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * (c) 2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -54,6 +54,15 @@ int BIP_StrTo_BIP_MediaInfoTrackType( const char *str)
         {"Other", BIP_MediaInfoTrackType_eOther},
         {"Max"  , BIP_MediaInfoTrackType_eMax},
         {NULL, 0}
+    };
+    return (lookup(myStrings, (str)));
+}
+
+int BIP_StrTo_BIP_MediaInfoType(const char *str)
+{
+    const namevalue_t myStrings[] = {
+        { "stream"  ,  BIP_MediaInfoType_eStream },
+        { "unknown" ,  BIP_MediaInfoType_eUnknown},
     };
     return (lookup(myStrings, (str)));
 }

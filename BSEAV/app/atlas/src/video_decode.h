@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -50,6 +50,7 @@
 #include "stc.h"
 #include "bwidgets.h"
 #include "widget_engine.h"
+#include "model.h"
 
 #include "nexus_video_input.h"
 #include "nexus_video_decoder_types.h"
@@ -150,6 +151,8 @@ public:
     eRet                        setAnrMode(NEXUS_VideoWindowFilterMode mode);
     NEXUS_VideoWindowFilterMode getAnrMode(void);
     void                        videoDecodeSourceChangedCallback(void);
+    void                        setWindowType(eWindowType windowType) { _windowType = windowType; }
+    eWindowType                 getWindowType(void) { return(_windowType); }
 
 protected:
     NEXUS_SimpleVideoDecoderHandle _simpleDecoder;
@@ -157,6 +160,7 @@ protected:
     CVideoDecode *                 _pDecoder;
     MList<CVideoWindow>            _videoWindowList;
     CVideoWindow *                 _pVideoWindow;
+    eWindowType                    _windowType;
     CModel * _pModel;
 };
 

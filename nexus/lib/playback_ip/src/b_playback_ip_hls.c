@@ -307,7 +307,7 @@ B_PlaybackIp_HlsBuildAbsoluteUri(char *server, int port, char *baseUri, char *fi
 /* download file (either playlist or decryption key) from the current network socket into the specified buffer and return the amount of bytes read. */
 /* read until EOF, error condition, or channel change (state change) occurs */
 bool
-B_PlaybackIp_HlsDownloadFile(B_PlaybackIpHandle playback_ip, int *pFd, char *buffer, int bufferSize, ssize_t *totalBytesRead, bool nullTerminate)
+B_PlaybackIp_HlsDownloadFile(B_PlaybackIpHandle playback_ip, int *pFd, char *buffer, int bufferSize, int *totalBytesRead, bool nullTerminate)
 {
     int fd;
     ssize_t bytesRead = 0;
@@ -468,7 +468,7 @@ B_PlaybackIp_HlsDownloadMediaSegment(
     char *buffer,
     int bufferSize,
     int bytesToRead,
-    ssize_t *totalBytesRead,
+    int *totalBytesRead,
     unsigned *networkBandwidth,
     bool *serverClosed
     )
@@ -844,12 +844,12 @@ hls_build_get_req(B_PlaybackIpHandle playback_ip, char *write_buf, int write_buf
         char *rangeString;
         rangeString = "Range:";
         if (byteRangeEnd > byteRangeStart)
-            bytesWrote = snprintf(header, bytesLeft, "%s bytes=%lld-%lld\r\n", rangeString, byteRangeStart, byteRangeEnd);
+            bytesWrote = snprintf(header, bytesLeft, "%s bytes=%lld-%lld\r\n", rangeString, (long long)byteRangeStart, (long long)byteRangeEnd);
         else {
             if (playback_ip->contentLength != 0)
-                bytesWrote = snprintf(header, bytesLeft, "%s bytes=%lld-%lld\r\n", rangeString, byteRangeStart, playback_ip->contentLength-1);
+                bytesWrote = snprintf(header, bytesLeft, "%s bytes=%lld-%lld\r\n", rangeString, (long long)byteRangeStart, (long long)playback_ip->contentLength-1);
             else
-                bytesWrote = snprintf(header, bytesLeft, "%s bytes=%lld-\r\n", rangeString, byteRangeStart);
+                bytesWrote = snprintf(header, bytesLeft, "%s bytes=%lld-\r\n", rangeString, (long long)byteRangeStart);
         }
         bytesLeft -= bytesWrote;
         header += bytesWrote;
@@ -1930,14 +1930,14 @@ B_PlaybackIp_HlsNetIndexRead(bfile_io_read_t self, void *buf, size_t length)
             return 0;
         }
         length = 2 * TS_PKT_SIZE; /* forcing the read length to only 1st two MPEG2 TS packets */
-        BDBG_MSG(("%s: trimming index read request to complate probe faster for HLS, offset %lld", __FUNCTION__, length, file->offset));
+        BDBG_MSG(("%s: trimming index read request to complate probe faster for HLS, offset %lld", __FUNCTION__, file->offset));
     }
 
     if (file->offset >= mediaProbe->segmentBuffer->bufferDepth) {
         BDBG_MSG(("%s: returned enough data to allow media probe to promptly return basic PSI for HLS sessions (offset %lld, length %u, buffer depth %d)", __FUNCTION__, file->offset, length, mediaProbe->segmentBuffer->bufferDepth));
         return -1;
     }
-    else if ( file->offset+length >= mediaProbe->segmentBuffer->bufferDepth)
+    else if ( file->offset+(int)length >= mediaProbe->segmentBuffer->bufferDepth)
         bytesToRead = mediaProbe->segmentBuffer->bufferDepth - (size_t)file->offset;
     else
         bytesToRead = length;
@@ -3191,6 +3191,7 @@ doMediaProbeOnAltRenditions(B_PlaybackIpHandle playback_ip)
         B_PlaybackIp_HlsMediaProbeDestroy(&hlsSession->mediaProbe);
         B_PlaybackIp_FreePlaylistInfo(playlistFileInfo);
     }
+    BDBG_MSG(("%s: hlsAltAudioRenditionCount=%d ", __FUNCTION__, playback_ip->psi.hlsAltAudioRenditionCount));
     playback_ip->hlsSessionEnabled = true;
     return true;
 error:
@@ -4958,6 +4959,7 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
     if (playback_ip->psi.psiValid == true && playback_ip->psi.mpegType == NEXUS_TransportType_eMpeg2Pes) {
         wrapEsWithPes = true;
     }
+    BDBG_MSG(("%s:%p: wrapEsWithPes =%d psiValid=%d mpegType=%d", __FUNCTION__, playback_ip, wrapEsWithPes, playback_ip->psi.psiValid, playback_ip->psi.mpegType));
     while (true) {
         unsigned controlBytesLength = 0;    /* keeps track of any control bytes that get inserted into the stream. */
 
@@ -5711,7 +5713,7 @@ setupPlaybackIpSessionForAltAudio(B_PlaybackIpHandle playback_ip, B_PlaybackIpHl
 
         memset(pSetupStatus, 0, sizeof(*pSetupStatus));
         setupSettings.u.http.contentTypeHint = altAudioRenditionInfo->containerType;
-        setupSettings.u.http.skipPsiParsing = true;
+        setupSettings.u.http.skipPsiParsing = false;
         pbipStatus = B_PlaybackIp_SessionSetup(playback_ip->playbackIp2, &setupSettings, pSetupStatus);
         BKNI_Free(pSetupStatus);
         if (pbipStatus != B_ERROR_SUCCESS) {
@@ -5834,7 +5836,7 @@ B_PlaybackIp_HlsPlaybackThread(
         playback_ip->networkTimeout = HTTP_SELECT_TIMEOUT/20;
         playback_ip->settings.networkTimeout = playback_ip->networkTimeout;
     }
-    BDBG_ERR(("%s: Starting (n/w timeout %d secs)", __FUNCTION__, playback_ip->networkTimeout));
+    BDBG_MSG(("%s:%p Starting (n/w timeout %d secs)", __FUNCTION__, playback_ip, playback_ip->networkTimeout));
 
     /* close the previous security handle and socket used for downloading the 1st media segment during media probe */
     if (playback_ip->securityHandle) {
@@ -6221,7 +6223,7 @@ error:
     }
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
-        BDBG_WRN(("%s: HLS Playback thread is exiting...", __FUNCTION__));
+        BDBG_WRN(("%s:%p HLS Playback thread is exiting...", __FUNCTION__, playback_ip));
 #endif
     BKNI_SetEvent(playback_ip->playback_halt_event);
 }

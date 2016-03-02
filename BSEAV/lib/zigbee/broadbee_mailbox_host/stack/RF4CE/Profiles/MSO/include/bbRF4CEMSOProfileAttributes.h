@@ -229,6 +229,8 @@ struct _RF4CE_MSO_GetProfileAttributeReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;               /*!< Service field */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_MSO_GetProfileAttributeReqParams_t params;  /*!< Request parameters */
     RF4CE_MSO_GetProfileAttributeCallback_t callback; /*!< Request callback */
@@ -269,6 +271,8 @@ struct _RF4CE_MSO_SetProfileAttributeReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;               /*!< Service field */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_MSO_SetProfileAttributeReqParams_t params;  /*!< Request parameters */
     RF4CE_MSO_SetProfileAttributeCallback_t callback; /*!< Request callback */

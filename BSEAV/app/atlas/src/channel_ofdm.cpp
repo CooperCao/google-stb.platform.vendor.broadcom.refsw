@@ -220,11 +220,19 @@ eRet CChannelOfdm::getChannelInfo(
         )
 {
     BERR_Code     err            = BERR_SUCCESS;
-    CParserBand * pBand          = getParserBand();
-    int           patTimeout     = GET_INT(_pCfg, TUNE_OFDM_PAT_TIMEOUT)/10; /* in tsPsi_setTimeout2() this is 500msecs */
+    CParserBand * pBand          = NULL;/*getParserBand();*/
+    int           patTimeout     = 0;
     int           patTimeoutOrig = 0;
-    int           pmtTimeout     = GET_INT(_pCfg, TUNE_OFDM_PMT_TIMEOUT)/10; /* in tsPsi_setTimeout2() this is 500msecs */
+    int           pmtTimeout     = 0;
     int           pmtTimeoutOrig = 0;
+
+	BSTD_UNUSED(patTimeoutOrig); /* to avoid compile warnings */
+	BSTD_UNUSED(pmtTimeoutOrig); /* to avoid compile warnings */
+	BSTD_UNUSED(pChanInfo); /* to avoid compile warnings */
+	BSTD_UNUSED(bScanning); /* to avoid compile warnings */
+	pBand          = getParserBand();
+	patTimeout     = GET_INT(_pCfg, TUNE_OFDM_PAT_TIMEOUT)/10; /* in tsPsi_setTimeout2() this is 500msecs */
+	pmtTimeout     = GET_INT(_pCfg, TUNE_OFDM_PMT_TIMEOUT)/10; /* in tsPsi_setTimeout2() this is 500msecs */
 
 #ifndef MPOD_SUPPORT
     if (true == bScanning)

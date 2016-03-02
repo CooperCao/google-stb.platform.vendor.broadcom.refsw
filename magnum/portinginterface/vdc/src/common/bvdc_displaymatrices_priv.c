@@ -179,6 +179,46 @@ static const BVDC_P_DisplayCscMatrix s_SDYCbCr_to_YDbDr = BVDC_P_MAKE_VEC_CSC_MA
 	   0.0000,  0.0000, -1.0040,  128.4742 )
 );
 
+#if 1 /* CMP_CSC outputs Smpte_170M for PAL formats due to HDMI out requirement */
+/* For PAL Composite/SVideo (SMPTE 170M SDYCrCb to PAL YUV) */
+static const BVDC_P_DisplayCscMatrix s_SDYCbCr_to_YUV = BVDC_P_MAKE_VEC_CSC_MATRIX
+(
+	-4096,
+	4095,
+	BVDC_P_MAKE_VEC_CSC
+	( 0.6267,  0.01510535,  -0.01877718,  -9.55745459,
+	  0.0000,  0.53571974,   0.01184764,  -70.0821091,
+	  0.0000, -0.01962559,   0.65820667,  -81.7247368 )
+);
+
+/* For PAL_M Composite/SVideo (SDYCrCb_to_?)
+ * I don't have a reference for this matrix.
+ */
+static const BVDC_P_DisplayCscMatrix s_SDYCbCr_to_YUV_M = BVDC_P_MAKE_VEC_CSC_MATRIX
+(
+	-4096,
+	4095,
+	BVDC_P_MAKE_VEC_CSC
+	( 0.5886,  0.014187026, -0.017635633,  1.480175248,
+	  0.0000,  0.546403929,  0.012083925, -71.48604901,
+	  0.0000, -0.020015336,  0.671277822, -83.36475779 )
+);
+
+/* For PAL_N/NC Composite/SVideo (SDYCrCb_to_nYUV)
+   The color space conversion matrix for pal_n is a little
+   different from other pal modes, there is a 7.5IRE pedestal
+ */
+static const BVDC_P_DisplayCscMatrix s_SDYCbCr_to_YUV_N = BVDC_P_MAKE_VEC_CSC_MATRIX
+(
+	-4096,
+	4095,
+	BVDC_P_MAKE_VEC_CSC
+	( 0.5886,  0.014187026, -0.017635633,  1.480175248,
+	  0.0000,  0.546403929,  0.012083925, -71.48604901,
+	  0.0000, -0.020015336,  0.671277822, -83.36475779 )
+);
+
+#else
 /* For PAL Composite/SVideo (SDYCrCb_to_YUV) */
 static const BVDC_P_DisplayCscMatrix s_SDYCbCr_to_YUV = BVDC_P_MAKE_VEC_CSC_MATRIX
 (
@@ -217,6 +257,7 @@ static const BVDC_P_DisplayCscMatrix s_SDYCbCr_to_YUV_N = BVDC_P_MAKE_VEC_CSC_MA
         0,       0,          0.7652,    -97.9487 )
 
 );
+#endif
 
 /* For NTSC Composite/SVideo (SDYCrCb_to_ntscYIQ)
    Color space convert CbYCr to YIQ + 7.5 IRE pedestal on Y

@@ -83,19 +83,6 @@ COMMON_DRM_BIN_DEPS_LIST = $(NEXUS_TOP)/../BSEAV/lib/security/common_drm/lib/$(C
 						$(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR)/libbcrypt.so \
 						$(B_OPENSSL_LIB_INSTALL_DIR)/lib*.*
 
-#add Playready LDFALGS
-ifeq ($(PLAYREADY_TEST),y)
-	COMMON_DRM_LDFLAGS += -lcmndrmprdy -L$(BSEAV_TOP)/lib/security/common_drm/${CMNDRM_PRDY_LIBDIR}
-	COMMON_DRM_BIN_DEPS_LIST += ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/${CMNDRM_PRDY_LIBDIR}/libcmndrmprdy.so
-
-ifeq ($(SAGE_SUPPORT),y)
-	COMMON_DRM_LDFLAGS += -L${BSEAV_TOP}/lib/playready/2.5/bin/lib -lplayreadypk_host
-else
-	COMMON_DRM_LDFLAGS += -L${BSEAV_TOP}/lib/playready/2.5/bin/lib -lplayreadypk
-endif
-
-endif
-
 # add SAGE specific LDFLAGS and append SRAI to the list of bin file dependencies
 ifeq ($(SAGE_SUPPORT),y)
 COMMON_DRM_LDFLAGS +=	-lsrai -L$(NEXUS_TOP)/../BSEAV/lib/security/sage/srai/lib \

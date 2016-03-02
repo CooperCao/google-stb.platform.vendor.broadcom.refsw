@@ -1,43 +1,43 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *****************************************************************************/
 /*****************************************************************************
 *
 * FILENAME: $Workfile: trunk/projects/ml507_zrc1SingleRF4CETarget/src/bbPrjStubs.c $
@@ -54,7 +54,9 @@
 /************************* INCLUDES *****************************************************/
 #include "bbMailAPI.h"
 #include "zigbee_common.h"
+#ifndef BYPASS_RPC
 #include "zigbee_socket_server.h"
+#endif
 #include "zigbee_api.h"
 #include "ha_registration.h"
 
@@ -81,8 +83,10 @@
             printf("Unexpected stub function %s is called, application should implement this\r\n\r\n", __FUNCTION__); \
         } while(0)
 
+#ifndef BYPASS_RPC
 void RF4CE_UnpairReq(RF4CE_UnpairReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_StartReq(RF4CE_StartReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
+#endif
 
 //void RF4CE_GDP_HeartbeatReq(RF4CE_GDP_HeartbeatReqDescr_t *request) {}
 //void RF4CE_GDP_PushAttributesInd(RF4CE_GDP_HostAttributesReqDescr_t *reqDescr) {}
@@ -97,9 +101,13 @@ void RF4CE_StartReq(RF4CE_StartReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 //void RF4CE_ZRC_GetSharedSecretInd(RF4CE_GDP_GetSharedSecretIndDescr_t *reqDescr) {}
 //void RF4CE_ZRC_CheckValidationInd(RF4CE_GDP_CheckValidationIndDescr_t *reqDescr) {}
 
+#ifndef BYPASS_RPC
 void RF4CE_ResetReq(RF4CE_ResetReqDescr_t *request)  { STUB_DUMP_ERROR_MSG; }
+#endif
 void RF4CE_ZRC2_GetAttributesReq(RF4CE_ZRC2_GetAttributesReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
+#ifndef BYPASS_RPC
 void RF4CE_ZRC2_SetAttributesReq(RF4CE_ZRC2_SetAttributesReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
+#endif
 //void RF4CE_GDP_PullAttributesReq(RF4CE_GDP_AttributeDescr_t *request) {}
 //void RF4CE_GDP_PushAttributesReq(RF4CE_GDP_AttributeDescr_t *request) {}
 void RF4CE_ZRC2_KeyExchangeReq(RF4CE_ZRC2_KeyExchangeReqDescr_t *request) { STUB_DUMP_ERROR_MSG;}
@@ -172,17 +180,21 @@ void ZBPRO_MAC_SetReq(MAC_SetReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; 
 void ZBPRO_MAC_StartReq(MAC_StartReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_MAC_AssociateResp(MAC_AssociateRespDescr_t *const respDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_MAC_OrphanResp(MAC_OrphanRespDescr_t *const respDescr) { STUB_DUMP_ERROR_MSG; }
+#ifndef BYPASS_RPC
 void ZBPRO_NWK_LeaveReq(ZBPRO_NWK_LeaveReqDescr_t *reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_NWK_SetKeyReq(ZBPRO_NWK_SetKeyReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_NWK_GetKeyReq(ZBPRO_NWK_GetKeyReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_NWK_RouteDiscoveryReq(ZBPRO_NWK_RouteDiscoveryReqDescr_t *reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZCL_SapIasAceAlarmInd(ZBPRO_ZCL_SapIasAceAlarmIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
-
+#endif
 void RF4CE_NWK_MacStatsReq(RF4CE_NWK_MacStatsReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_APS_EndpointRegisterReq(ZBPRO_APS_EndpointRegisterReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_APS_EndpointUnregisterReq(ZBPRO_APS_EndpointUnregisterReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
+#ifndef BYPASS_RPC
 void ZBPRO_APS_DataReq(ZBPRO_APS_DataReqDescr_t *const req) { STUB_DUMP_ERROR_MSG; }
+#endif
 void ZBPRO_APS_DataInd(ZBPRO_APS_DataIndParams_t *indParams) { STUB_DUMP_ERROR_MSG; }
+#ifndef BYPASS_RPC
 void ZBPRO_APS_BindReq(ZBPRO_APS_BindUnbindReqDescr_t *reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_APS_UnbindReq(ZBPRO_APS_BindUnbindReqDescr_t *reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_APS_GetReq(ZBPRO_APS_GetReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
@@ -204,6 +216,9 @@ void ZBPRO_ZDO_SimpleDescReq(ZBPRO_ZDO_SimpleDescReqDescr_t *const reqDescr) { S
 void ZBPRO_ZDO_ActiveEpReq(ZBPRO_ZDO_ActiveEpReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZDO_MatchDescReq(ZBPRO_ZDO_MatchDescReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZDO_DeviceAnnceReq(ZBPRO_ZDO_DeviceAnnceReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
+#endif
+void ZBPRO_ZDO_ServerDiscoveryReq(ZBPRO_ZDO_ServerDiscoveryReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
+#ifndef BYPASS_RPC
 void ZBPRO_ZDO_EndDeviceBindReq(ZBPRO_ZDO_EndDeviceBindReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZDO_BindReq(ZBPRO_ZDO_BindUnbindReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZDO_UnbindReq(ZBPRO_ZDO_BindUnbindReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
@@ -214,7 +229,9 @@ void ZBPRO_ZDO_MgmtNwkUpdateReq(ZBPRO_ZDO_MgmtNwkUpdateReqDescr_t *const reqDesc
 void ZBPRO_ZDO_MgmtBindReq(ZBPRO_ZDO_MgmtBindReqDescr_t *const  reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZDO_MgmtNwkUpdateUnsolResp(ZBPRO_ZDO_MgmtNwkUpdateUnsolRespDescr_t *const respDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZDO_MgmtLqiReq(ZBPRO_ZDO_MgmtLqiReqDescr_t *const  reqDescr) { STUB_DUMP_ERROR_MSG; }
+#endif
 void ZBPRO_ZDO_MgmtNwkUpdateUnsolInd(ZBPRO_ZDO_MgmtNwkUpdateUnsolIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+#ifndef BYPASS_RPC
 void ZBPRO_TC_NwkKeyUpdateReq(ZBPRO_TC_NwkKeyUpdateReqDescr_t *reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZCL_SetPowerSourceReq(ZBPRO_ZCL_SetPowerSourceReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZCL_ProfileWideCmdDiscoverAttrReq(ZBPRO_ZCL_ProfileWideCmdDiscoverAttrDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
@@ -274,6 +291,7 @@ void ZBPRO_ZCL_ColorControlCmdColorLoopSetReq(ZBPRO_ZCL_ColorControlCmdColorLoop
 void ZBPRO_ZCL_ColorControlCmdStopMoveStepReq(ZBPRO_ZCL_ColorControlCmdStopMoveStepReqDescr_t *const  reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZCL_ColorControlCmdMoveColorTemperatureReq(ZBPRO_ZCL_ColorControlCmdMoveColorTemperatureReqDescr_t *const  reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZCL_ColorControlCmdStepColorTemperatureReq(ZBPRO_ZCL_ColorControlCmdStepColorTemperatureReqDescr_t *const  reqDescr) { STUB_DUMP_ERROR_MSG; }
+#endif
 void ZBPRO_ZCL_IdentifyInd(ZBPRO_ZCL_IdentifyIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZCL_IdentifyCmdIdentifyQueryResponseIndEB(ZBPRO_ZCL_IdentifyCmdIdentifyQueryResponseIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZCL_GroupsCmdGetGroupMembershipResponseInd(ZBPRO_ZCL_GroupsCmdGetGroupMembershipIndParams_t   *const indParams) { STUB_DUMP_ERROR_MSG; }
@@ -321,22 +339,30 @@ void ZBPRO_ZCL_SapIasAceEmergencyInd(ZBPRO_ZCL_SapIasAceAlarmIndParams_t *const 
 void ZBPRO_ZCL_SapIasAceFireInd(ZBPRO_ZCL_SapIasAceAlarmIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZCL_SapIasAcePanicInd(ZBPRO_ZCL_SapIasAceAlarmIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZHA_CieDeviceEnrollInd(ZBPRO_ZHA_CieEnrollIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+#ifndef BYPASS_RPC
 void ZBPRO_ZHA_EzModeReq(ZBPRO_ZHA_EzModeReqDescr_t *reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZHA_CieDeviceEnrollReq(ZBPRO_ZHA_CieEnrollReqDescr_t *reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZHA_CieDeviceSetPanelStatusReq(ZBPRO_ZHA_CieSetPanelStatusReqDescr_t * const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void ZBPRO_ZHA_CieZoneSetBypassStateReq(ZBPRO_ZHA_CieZoneSetBypassStateReqDescr_t   *const descr) { STUB_DUMP_ERROR_MSG; }
+#endif
 void ZBPRO_ZHA_CieDeviceSetPanelStatusInd(ZBPRO_ZHA_CieSetPanelStatusIndParams_t   *const indParams) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_MAC_DataReq(MAC_DataReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
+#ifndef BYPASS_RPC
 void RF4CE_MAC_GetReq(MAC_GetReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
+#endif
 void RF4CE_MAC_ResetReq(MAC_ResetReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_MAC_RxEnableReq(MAC_RxEnableReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
+#ifndef BYPASS_RPC
 void RF4CE_MAC_SetReq(MAC_SetReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
+#endif
 void RF4CE_MAC_StartReq(MAC_StartReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_MAC_ScanReq(MAC_ScanReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_NWK_ResetReq(RF4CE_NWK_ResetReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_NWK_StartReq(RF4CE_NWK_StartReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
+#ifndef BYPASS_RPC
 void RF4CE_NWK_DataReq(RF4CE_NWK_DataReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_NWK_SetReq(RF4CE_NWK_SetReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
+#endif
 void RF4CE_NWK_RXEnableReq(RF4CE_NWK_RXEnableReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_NWK_UpdateKeyReq(RF4CE_NWK_UpdateKeyReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_NWK_UnpairReq(RF4CE_NWK_UnpairReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
@@ -346,18 +372,24 @@ void RF4CE_NWK_PairReq(RF4CE_NWK_PairReqDescr_t *request) { STUB_DUMP_ERROR_MSG;
 void RF4CE_NWK_AutoDiscoveryReq(RF4CE_NWK_AutoDiscoveryReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_NWK_DiscoveryResp(RF4CE_NWK_DiscoveryRespDescr_t *response) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_NWK_PairResp(RF4CE_NWK_PairRespDescr_t *response) { STUB_DUMP_ERROR_MSG; }
+#ifndef BYPASS_RPC
 void ZBPRO_NWK_PermitJoiningReq(ZBPRO_NWK_PermitJoiningReqDescr_t *reqDescr) { STUB_DUMP_ERROR_MSG; }
+#endif
 void RF4CE_SetSupportedDevicesReq(RF4CE_SetSupportedDevicesReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_CounterExpiredInd(RF4CE_PairingReferenceIndParams_t *indication) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_UnpairInd(RF4CE_PairingReferenceIndParams_t *indication) { STUB_DUMP_ERROR_MSG; }
+#ifndef BYPASS_RPC
 void RF4CE_ZRC1_GetAttributesReq(RF4CE_ZRC1_GetAttributeDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_ZRC1_SetAttributesReq(RF4CE_ZRC1_SetAttributeDescr_t *request) { STUB_DUMP_ERROR_MSG; }
+#endif
 void RF4CE_ZRC1_CommandDiscoveryReq(RF4CE_ZRC1_CommandDiscoveryReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_ZRC1_ControlCommandPressedReq(RF4CE_ZRC1_ControlCommandReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_ZRC1_ControlCommandReleasedReq(RF4CE_ZRC1_ControlCommandReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_ZRC1_ControllerBindReq(RF4CE_ZRC1_BindReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
+#ifndef BYPASS_RPC
 void RF4CE_ZRC1_VendorSpecificReq(RF4CE_ZRC1_VendorSpecificReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_ZRC1_TargetBindReq(RF4CE_ZRC1_BindReqDescr_t *request) {}
+#endif
 //void RF4CE_ZRC1_ControlCommandInd(RF4CE_ZRC1_ControlCommandIndParams_t *indication) {}
 //void RF4CE_ZRC1_VendorSpecificInd(RF4CE_ZRC1_VendorSpecificIndParams_t *indication) { STUB_DUMP_ERROR_MSG; }
 //void NVM_ReadFileInd(NVM_ReadFileIndDescr_t *indDescr) {}
@@ -368,8 +400,10 @@ void RF4CE_ZRC1_TargetBindReq(RF4CE_ZRC1_BindReqDescr_t *request) {}
 void RF4CE_ZRC2_ControlCommandPressedReq(RF4CE_ZRC2_ControlCommandReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_ZRC2_ControlCommandReleasedReq(RF4CE_ZRC2_ControlCommandReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 
+#ifndef BYPASS_RPC
 void RF4CE_ZRC_SetWakeUpActionCodeReq(RF4CE_ZRC_SetWakeUpActionCodeReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 void RF4CE_ZRC_GetWakeUpActionCodeReq(RF4CE_ZRC_GetWakeUpActionCodeReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+#endif
 void Mail_TestEngineAssertLogIdInd(TE_AssertLogIdCommandIndParams_t *const indParams)
 {
     printf("AssertLogId : %08X\n", indParams->number);
@@ -401,6 +435,7 @@ void TEST_LeaveAtomicSection(void)
 
 }
 
+#ifndef BYPASS_RPC
 void TEST_DbgLogStr(const char *const message)
 {
     printf(message);
@@ -415,6 +450,8 @@ uint32_t TEST_DbgAssert(uint32_t errorUid, const char *fileName, uint16_t line)
     fflush(stdout);
     return 0;
 }
+#endif
+
 void MailUartRxInterruptHandler(TE_Host2Uart1ReqDescr_t *const req) {}
 
 void Mail_Uart1ToHostInd(TE_Uart1ToHostReqParams_t *ind){
@@ -433,7 +470,9 @@ void RF4CE_GDP_StartValidationInd(RF4CE_PairingReferenceProfileIdIndParams_t *in
 void RF4CE_ZRC_StartValidationInd(RF4CE_PairingReferenceProfileIdIndParams_t *indication) { STUB_DUMP_ERROR_MSG; }
 //void RF4CE_ZRC_ClientNotificationInd(RF4CE_GDP_ClientNotificationIndParams_t *indication) {}
 //void RF4CE_ZRC_HeartbeatInd(RF4CE_GDP_HeartbeatIndParams_t *indication) {}
+#ifndef BYPASS_RPC
 void RF4CE_NWK_GetReq(RF4CE_NWK_GetReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
+#endif
 
 static void dumpMessage(uint8_t *msgBuf)
 {
@@ -446,8 +485,10 @@ void SYS_EventNtfy(SYS_EventNotifyParams_t *const event)
 {
     for (int i = 0; i < MAX_SOCKETS; i++){
         int socket = i;
+#ifndef BYPASS_RPC
         if(Zigbee_Socket_Is_Idle(socket))
             server_SYS_EventNtfy(event, socket);
+#endif
     }
     switch(event->id){
         case APP_EVENT_00:
@@ -473,32 +514,40 @@ void SYS_EventNtfy(SYS_EventNotifyParams_t *const event)
 
 void RF4CE_ZRC2_GetSharedSecretInd(RF4CE_ZRC2_GetSharedSecretIndDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 
-void DirectTV_Test_Get_Caps_Req(DirectTV_Test_Get_Caps_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+#ifndef BYPASS_RPC
+void Phy_Test_Get_Caps_Req(Phy_Test_Get_Caps_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 
-void DirectTV_Test_Set_Channel_Req(DirectTV_Test_Set_Channel_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+void Phy_Test_Set_Channel_Req(Phy_Test_Set_Channel_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 
-void DirectTV_Test_Continuous_Wave_Start_Req(DirectTV_Test_Continuous_Wave_Start_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+void Phy_Test_Continuous_Wave_Start_Req(Phy_Test_Continuous_Wave_Start_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 
-void DirectTV_Test_Continuous_Wave_Stop_Req(DirectTV_Test_Continuous_Wave_Stop_ReqDescr_t *req)  { STUB_DUMP_ERROR_MSG; }
+void Phy_Test_Continuous_Wave_Stop_Req(Phy_Test_Continuous_Wave_Stop_ReqDescr_t *req)  { STUB_DUMP_ERROR_MSG; }
 
-void DirectTV_Test_Transmit_Start_Req(DirectTV_Test_Transmit_Start_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+void Phy_Test_Transmit_Start_Req(Phy_Test_Transmit_Start_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 
-void DirectTV_Test_Transmit_Stop_Req(DirectTV_Test_Transmit_Stop_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+void Phy_Test_Transmit_Stop_Req(Phy_Test_Transmit_Stop_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 
-void DirectTV_Test_Receive_Start_Req(DirectTV_Test_Receive_Start_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+void Phy_Test_Receive_Start_Req(Phy_Test_Receive_Start_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 
-void DirectTV_Test_Receive_Stop_Req(DirectTV_Test_Receive_Stop_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+void Phy_Test_Receive_Stop_Req(Phy_Test_Receive_Stop_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 
-void DirectTV_Test_Echo_Start_Req(DirectTV_Test_Echo_Start_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+void Phy_Test_Echo_Start_Req(Phy_Test_Echo_Start_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 
-void DirectTV_Test_Echo_Stop_Req(DirectTV_Test_Echo_Stop_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+void Phy_Test_Echo_Stop_Req(Phy_Test_Echo_Stop_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 
-void DirectTV_Test_Energy_Detect_Scan_Req(DirectTV_Test_Energy_Detect_Scan_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+void Phy_Test_Energy_Detect_Scan_Req(Phy_Test_Energy_Detect_Scan_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 
-void DirectTV_Test_Get_Stats_Req(DirectTV_Test_Get_Stats_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+void Phy_Test_Get_Stats_Req(Phy_Test_Get_Stats_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 
-void DirectTV_Test_Reset_Stats_Req(DirectTV_Test_Reset_Stats_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+void Phy_Test_Reset_Stats_Req(Phy_Test_Reset_Stats_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
 
-void DirectTV_Test_Set_TX_Power_Req(DirectTV_Test_Set_TX_Power_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+void Phy_Test_Set_TX_Power_Req(Phy_Test_Set_TX_Power_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+
+void Phy_Test_SelectAntenna_Req(Phy_Test_Select_Antenna_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+
+void RF4CE_Get_Diag_Caps_Req(RF4CE_Diag_Caps_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+
+void RF4CE_Get_Diag_Req(RF4CE_Diag_ReqDescr_t *req) { STUB_DUMP_ERROR_MSG; }
+#endif
 
 /* eof bbPrjStubs.c */

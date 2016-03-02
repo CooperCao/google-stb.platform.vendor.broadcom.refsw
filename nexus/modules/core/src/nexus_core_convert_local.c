@@ -310,7 +310,11 @@ void NEXUS_Heap_ToString(const NEXUS_MemoryStatus *pStatus, char *buf, unsigned 
         n+= BKNI_Snprintf(buf, buf_size, "DRIVER%u", pStatus->memcIndex);
     }
     if (pStatus->memoryType & NEXUS_MEMORY_TYPE_SECURE && buf_size > n) {
-        n+= BKNI_Snprintf(&buf[n], buf_size-n, " (SECURE)");
+        if (pStatus->memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF) {
+           n+= BKNI_Snprintf(&buf[n], buf_size-n, " (SECURE, RUNTIME: OPEN)");
+        } else {
+           n+= BKNI_Snprintf(&buf[n], buf_size-n, " (SECURE)");
+        }
     }
 #else /* BDBG_DEBUG_BUILD */
     BSTD_UNUSED(pStatus);

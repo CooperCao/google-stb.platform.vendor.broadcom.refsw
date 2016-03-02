@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * (c) 2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -51,7 +51,7 @@ typedef enum
 {
     BIP_RtspSocketState_eIdle,           /* state after create when there are no pending messages on this socket */
     BIP_RtspSocketState_eMessagePending, /* there are one or more pending messages yet to be received by the app */
-    BIP_RtspSocketState_eError           /* error has occured on the socket: peer closed or network error */
+    BIP_RtspSocketState_eError           /* error has occurred on the socket: peer closed or network error */
 } BIP_RtspSocketState;
 
 typedef struct BIP_RtspSocketMessageInfo

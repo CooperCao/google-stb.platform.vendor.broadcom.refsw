@@ -83,6 +83,12 @@ enum nxserverlib_dolby_ms_type {
     nxserverlib_dolby_ms_type_max
 };
 
+enum nxserverlib_svp_type {
+    nxserverlib_svp_type_none,
+    nxserverlib_svp_type_cdb, /* Force CRR for video CDB */
+    nxserverlib_svp_type_cdb_urr /* Force CRR for video CDB + default to all secure only buffers */
+};
+
 struct nxserver_settings
 {
     BKNI_MutexHandle lock; /* mutex held by upper layer when NxClient functions are called.
@@ -94,7 +100,7 @@ struct nxserver_settings
     NEXUS_Certificate certificate; /* compared to NxClient_JoinSettings.certificate */
     bool transcode;
     NEXUS_MemoryConfigurationSettings memConfigSettings; /* pass in memconfig used to init system */
-    bool svp; /* configure Secure Video Path */
+    enum nxserverlib_svp_type svp; /* Secure Video Path: settings */
     unsigned growHeapBlockSize; /* NXCLIENT_DYNAMIC_HEAP will grow and shrink with these contiguous blocks.
                                    Should be >= the largest contiguous block requried. */
     unsigned timeout;

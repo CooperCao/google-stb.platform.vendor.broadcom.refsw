@@ -101,7 +101,7 @@ NXPL_EXPORT void NXPL_SetDisplayType(NXPL_PlatformHandle handle, NXPL_DisplayTyp
 #ifndef SINGLE_PROCESS
 /* only valid for surface compositor */
 /* gets the associated video pip window from the graphics window. */
-NEXUS_SurfaceClientHandle NXPL_CreateVideoWindowClient(void *native, unsigned windowId);
+NXPL_EXPORT NEXUS_SurfaceClientHandle NXPL_CreateVideoWindowClient(void *native, unsigned windowId);
 
 /* releases the pip back */
 NXPL_EXPORT void NXPL_ReleaseVideoWindowClient(NEXUS_SurfaceClientHandle handle);

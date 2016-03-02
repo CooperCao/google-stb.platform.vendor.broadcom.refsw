@@ -67,6 +67,7 @@ extern "C" {
 #define COLOR_STEP              0x000a0a0a
 #define COLOR_BLACK             0xFF000000
 #define COLOR_EGGSHELL          0xFFe1e1e1
+#define COLOR_YELLOW            0xFFAAAA00
 #define COLOR_GREEN             0xFF80c42f
 #define COLOR_GREY              0xFFa0a0a0
 #define COLOR_GREY_DARK         0xFF0d0d0d

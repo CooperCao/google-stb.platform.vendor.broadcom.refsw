@@ -652,8 +652,8 @@ int main(int argc, const char **argv)  {
     }
 
     NxClient_GetDefaultAllocSettings(&allocSettings);
-    allocSettings.simpleVideoDecoder = (input_type != input_type_decoder || (probe_results.num_video&&videoPid))?1:0;
-    allocSettings.simpleAudioDecoder = (input_type == input_type_hdmi || (probe_results.num_audio&&audioPid))?1:0;
+    allocSettings.simpleVideoDecoder = (videoPid && (input_type != input_type_decoder || probe_results.num_video))?1:0;
+    allocSettings.simpleAudioDecoder = (audioPid && (input_type == input_type_hdmi || probe_results.num_audio))?1:0;
     allocSettings.simpleEncoder = 1;
     rc = NxClient_Alloc(&allocSettings, &allocResults);
     if (rc) {BDBG_WRN(("unable to alloc transcode resources")); return -1;}
@@ -672,8 +672,7 @@ int main(int argc, const char **argv)  {
         connectSettings.simpleVideoDecoder[0].decoderCapabilities.supportedCodecs[probe_results.video[0].codec] = true;
     }
     else if (input_type == input_type_hdmi) {
-        connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxWidth =
-        connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxHeight = 0;
+        connectSettings.simpleVideoDecoder[0].decoderCapabilities.connectType = NxClient_VideoDecoderConnectType_eWindowOnly;
     }
     connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
     connectSettings.simpleEncoder[0].id = allocResults.simpleEncoder[0].id;

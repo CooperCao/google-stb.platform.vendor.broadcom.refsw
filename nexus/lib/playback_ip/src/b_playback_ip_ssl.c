@@ -1,5 +1,5 @@
 /***************************************************************************
-*     (c)2003-2015 Broadcom Corporation
+*     (c)2003-2016 Broadcom Corporation
 *
 *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -221,7 +221,7 @@ _http_ssl_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int sd, 
 
     /* Socket may have been closed */
     if (sslHandle->suspended ) {
-        BDBG_ERR(("%s: SSL resumption (%d)", __FUNCTION__, (unsigned int)sslHandle->session ));
+        BDBG_ERR(("%s: SSL resumption (%p)", __FUNCTION__, sslHandle->session ));
         sslHandle->ssl=SSL_new(sslHandle->ctx);
         if (!sslHandle->ssl) {
             BDBG_ERR(("%s: SSL resumption failed, SSL_new", __FUNCTION__ ));
@@ -356,7 +356,7 @@ _http_ssl_socket_write(void *voidHandle, volatile B_PlaybackIpState *playbackIpS
 
     /* Socket may have been closed */
     if (sslHandle->suspended ) {
-        BDBG_ERR(("%s: SSL resumption (%d)", __FUNCTION__, (unsigned int)sslHandle->session ));
+        BDBG_ERR(("%s: SSL resumption (%p)", __FUNCTION__, sslHandle->session ));
         sslHandle->ssl=SSL_new(sslHandle->ctx);
         if (!sslHandle->ssl) {
             BDBG_ERR(("%s: SSL resumption failed, SSL_new", __FUNCTION__ ));
@@ -535,7 +535,7 @@ int B_PlaybackIp_SslSessionOpen(
     sslHandle->sbio=BIO_new_socket(sd,BIO_NOCLOSE);
     SSL_set_bio(sslHandle->ssl,sslHandle->sbio,sslHandle->sbio);
 
-    BDBG_MSG(("%s: fd %d, SSL %x, networkTimeout %d SBIO %x \n", __FUNCTION__, sd, (unsigned int)sslHandle->ssl, sslHandle->networkTimeout, (unsigned int)sslHandle->sbio));
+    BDBG_MSG(("%s: fd %d, SSL %p, networkTimeout %d SBIO %p \n", __FUNCTION__, sd, sslHandle->ssl, sslHandle->networkTimeout, sslHandle->sbio));
 
     if (_ssl_connect(sslHandle))
         goto error;
@@ -676,7 +676,7 @@ int B_PlaybackIp_SslCloneSessionOpen(
     sslHandle->sbio=BIO_new_socket(sd,BIO_NOCLOSE);
     SSL_set_bio(sslHandle->ssl,sslHandle->sbio,sslHandle->sbio);
 
-    BDBG_MSG(("%s: fd %d, SSL %x, SBIO %x \n", __FUNCTION__, sd, (unsigned int)sslHandle->ssl, (unsigned int)sslHandle->sbio));
+    BDBG_MSG(("%s: fd %d, SSL %p, SBIO %p \n", __FUNCTION__, sd, sslHandle->ssl, sslHandle->sbio));
 
     SSL_set_session(sslHandle->ssl, srcHandle->session);
     sslHandle->session = srcHandle->session;

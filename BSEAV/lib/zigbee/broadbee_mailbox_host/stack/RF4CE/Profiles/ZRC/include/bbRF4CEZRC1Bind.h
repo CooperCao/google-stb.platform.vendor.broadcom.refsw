@@ -71,7 +71,10 @@ typedef enum _RF4CE_ZRC1_BindStatus_t
     RF4CE_ZRC1_BIND_ERROR_PAIRING,
     RF4CE_ZRC1_BIND_ERROR_NO_PAIRING_ENTRY,
     RF4CE_ZRC1_BIND_ERROR_TIMEOUT,
-    RF4CE_ZRC1_BIND_ERROR_NOT_SUPPORTED
+    RF4CE_ZRC1_BIND_ERROR_NOT_SUPPORTED,
+#ifdef _PHY_TEST_HOST_INTERFACE_
+    RF4CE_ZRC1_BIND_ERROR_DISCOVERY_TIMEOUT
+#endif
 } RF4CE_ZRC1_BindStatus_t;
 
 /************************* TYPES *******************************************************/
@@ -101,6 +104,8 @@ struct _RF4CE_ZRC1_BindReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service; /*!< Service field. */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC1_BindCallback_t callback; /*!< Callback on request completion. */
 };

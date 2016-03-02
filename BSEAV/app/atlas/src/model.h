@@ -231,6 +231,8 @@ public:
     CPlaylistDb *          getPlaylistDb(void)                                                 { return(_pPlaylistDb); }
     void                   setAudioCapture(CAudioCapture * pAudioCapture)                      { _pAudioCapture = pAudioCapture; }
     CAudioCapture *        getAudioCapture(void)                                               { return(_pAudioCapture); }
+    unsigned               getConnectId(eWindowType windowType = eWindowType_Max)              { return((eWindowType_Max == windowType) ? _connectId[_fullScreenWindowType] : _connectId[windowType]); }
+    void                   setConnectId(uint32_t connectId, eWindowType windowType = eWindowType_Max);
 #if NEXUS_HAS_VIDEO_ENCODER
     void      addEncode(CEncode * pEncode)    { _pEncode = pEncode; }
     void      removeEncode(CEncode * pEncode) { BSTD_UNUSED(pEncode); _pEncode = NULL; }
@@ -320,6 +322,7 @@ protected:
     CAutoDiscoveryClient * _pAutoDiscoveryClient;
     CPlaylistDb *          _pPlaylistDb;
     CAudioCapture *        _pAudioCapture;
+    unsigned               _connectId[eWindowType_Max];
 };
 
 #ifdef __cplusplus

@@ -621,7 +621,7 @@ bool glxx_compute_texture_uniforms(GLXX_SERVER_STATE_T *state, KHRN_FMEM_T *fmem
 
       V3D_TMU_SAMPLER_T sampler;
       memset(&sampler, 0, sizeof(sampler));
-      sampler.filter = V3D_TMU_FILTER_MIN_LIN_MAG_LIN;
+      sampler.filter = V3D_TMU_FILTER_MIN_NEAR_MAG_NEAR;
       uint8_t hw_sampler[V3D_TMU_SAMPLER_PACKED_SIZE];
       v3d_pack_tmu_sampler(hw_sampler, &sampler);
       texture_unif->hw_param1 = khrn_fmem_add_tmu_sampler(fmem, hw_sampler, /*extended=*/false);
@@ -635,6 +635,7 @@ bool glxx_compute_texture_uniforms(GLXX_SERVER_STATE_T *state, KHRN_FMEM_T *fmem
 
       // setup indirect record
       V3D_TMU_INDIRECT_T tmu_indirect = { 0, };
+      tmu_indirect.filter = V3D_TMU_FILTER_MIN_NEAR_MAG_NEAR;
       tmu_indirect.arr_str = 4*4*4;// For 3D textures this is used to init the slice_pitch
       tmu_indirect.base = addr_base;
       tmu_indirect.width = width;

@@ -145,6 +145,8 @@ struct _RF4CE_ZRC2_PullAttributesReqDescr_t
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;             /*!< Service field */
     uint8_t pairingRef;                             /*!< Service field */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC2_GetAttributesReqParams_t params;     /*!< Request parameters */
     RF4CE_ZRC2_PullAttributesReqCallback_t callback; /*!< Request callback */

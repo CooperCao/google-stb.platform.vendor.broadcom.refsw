@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2007-2015 Broadcom Corporation
+ * (c) 2007-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -149,6 +149,8 @@ Here is a diagram that shows the linkages for a hypothetical stream with:
 \endcode
 **/
 
+#define BIP_MEDIA_INFO_VERSION  "02022016"   /* BIP_MediaInfo version is maintained in MMDDYYYY format.It will be updated whenever there is a structural change in Info file.*/
+
 typedef struct BIP_MediaInfo *BIP_MediaInfoHandle;
 
 /**
@@ -156,6 +158,17 @@ typedef struct BIP_MediaInfo *BIP_MediaInfoHandle;
 Structure Definitions & APIs to retrieve Stream & Track Info associated with a various media inputs!
 ************************************************************************************************************************
 **/
+
+/**
+Summary:
+This enum defines mediaInfo type.
+**/
+typedef enum BIP_MediaInfoType
+{
+    BIP_MediaInfoType_eStream,                          /*!< Media type stream */
+    BIP_MediaInfoType_eUnknown,                         /*!< Media type unknown */
+    BIP_MediaInfoType_eMax
+}BIP_MediaInfoType;
 
 /**
 Summary:

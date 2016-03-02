@@ -16,9 +16,9 @@
  * Revision History:
  *
  * $brcm_Log: $
- * 
+ *
  ***************************************************************************/
- 
+
 #include "bstd.h"
 #include "bchp_4506.h"
 #include "bi2c.h"
@@ -57,7 +57,7 @@ BERR_Code BAST_4506_P_Open(
    BAST_Handle *h,                   /* [out] BAST handle */
    BCHP_Handle hChip,                /* [in] chip handle */
    void        *pReg,                /* [in] pointer to register or i2c handle */
-   BINT_Handle hInterrupt,           /* [in] Interrupt handle */   
+   BINT_Handle hInterrupt,           /* [in] Interrupt handle */
    const BAST_Settings *pDefSettings /* [in] default settings */
 )
 {
@@ -65,7 +65,7 @@ BERR_Code BAST_4506_P_Open(
    BAST_Handle hDev;
    BAST_4506_P_Handle *h4506Dev;
    uint8_t i;
-   
+
    BSTD_UNUSED(hInterrupt);
    BSTD_UNUSED(hChip);
 
@@ -118,7 +118,7 @@ BERR_Code BAST_4506_P_Open(
       done_0:
       BKNI_Free((void*)hDev);
       BKNI_Free((void*)h4506Dev);
-      
+
       *h = NULL;
       return retCode;
    }
@@ -207,7 +207,7 @@ BERR_Code BAST_4506_P_OpenChannel(
    /* allocate memory for the channel handle */
    ch = (BAST_P_ChannelHandle *)BKNI_Malloc(sizeof(BAST_P_ChannelHandle));
    BDBG_ASSERT(ch);
-   BKNI_Memcpy((void*)(&ch->settings), (void*)&cs, sizeof(BAST_ChannelSettings)); 
+   BKNI_Memcpy((void*)(&ch->settings), (void*)&cs, sizeof(BAST_ChannelSettings));
    ch->channel = (uint8_t)chnNo;
    ch->pDevice = h;
    h->pChannels[chnNo] = ch;
@@ -248,7 +248,7 @@ BERR_Code BAST_4506_P_OpenChannel(
       *pChannelHandle = NULL;
       return retCode;
    }
-   
+
    ch->pImpl = (void*)ch4506;
    *pChannelHandle = ch;
 
@@ -288,7 +288,7 @@ BERR_Code BAST_4506_P_GetDevice(
 )
 {
    *pDev = h->pDevice;
-   return BERR_SUCCESS; 
+   return BERR_SUCCESS;
 }
 
 
@@ -312,10 +312,10 @@ BERR_Code BAST_4506_P_InitAp(
 
    /* disable host interrupts */
    BAST_CHK_RETCODE(BAST_4506_P_EnableHostInterrupt(h, false));
-  
+
    /* reset the AP before downloading the microcode */
    BAST_CHK_RETCODE(BAST_4506_P_ResetAp(h));
-   
+
    /* disable interrupts */
    BAST_CHK_RETCODE(BAST_4506_P_DisableInterrupts(h));
 
@@ -348,20 +348,20 @@ BERR_Code BAST_4506_P_InitAp(
       for (retries = 0; retries < 3; retries++)
       {
          /* BDBG_MSG(("writing %d bytes from 0x%04X", n, addr)); */
-         if (BAST_4506_P_WriteMemory(h, addr, pImage, n) == BERR_SUCCESS) 
+         if (BAST_4506_P_WriteMemory(h, addr, pImage, n) == BERR_SUCCESS)
          {
 #ifdef BAST_VERIFY_DOWNLOAD
             BDBG_MSG(("verifying %d bytes from 0x%04X", n, addr));
             BAST_CHK_RETCODE(BAST_4506_P_ReadMemory(h, addr, (uint8_t *)pVerifyBuf, n));
             if (BKNI_Memcmp(pImage, pVerifyBuf, n) == 0)
-               break; 
+               break;
             BDBG_WRN(("data read back does not match\n"));
 #else
             /* check for host transfer error */
             BAST_CHK_RETCODE(BAST_ReadHostRegister(h, BCM4506_SH_AP_SFR_H_STAT1, &sb));
             if ((sb & BCM4506_STAT1_H_ER) == 0)
                break;
-            
+
             BDBG_WRN(("host transfer error\n"));
             BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_AP_SFR_H_STAT1, &sb));
 #endif
@@ -375,7 +375,7 @@ BERR_Code BAST_4506_P_InitAp(
 
       pImage += n;
    }
-   
+
    /* restore XDATA_PAGE to ROM */
    sb = 0x08;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_AP_SFR_XDATA_PAGE, &sb));
@@ -384,7 +384,7 @@ BERR_Code BAST_4506_P_InitAp(
    /* enable init done interrupt */
    sb = BCM4506_STAT2_INIT_DONE;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_AP_SFR_H_IE2, &sb));
-   BKNI_WaitForEvent(p4506->hInitDoneEvent, 0);   
+   BKNI_WaitForEvent(p4506->hInitDoneEvent, 0);
 #endif
 
    /* start running the AP */
@@ -393,7 +393,7 @@ BERR_Code BAST_4506_P_InitAp(
 
 #ifdef BAST_DONT_USE_INTERRUPT
    /* poll for AP init done */
-   for (n = 0; n < 11111; n++) 
+   for (n = 0; n < 11111; n++)
    {
       BAST_CHK_RETCODE(BAST_ReadHostRegister(h, BCM4506_SH_AP_SFR_H_STAT2, &sb));
       if (sb & BCM4506_STAT2_INIT_DONE)
@@ -408,8 +408,8 @@ BERR_Code BAST_4506_P_InitAp(
    /* wait for init done interrupt */
    if (BAST_4506_P_WaitForEvent(h, p4506->hInitDoneEvent, 1000) != BERR_SUCCESS)
    {
-      BDBG_ERR(("AP initialization timeout\n")); 
-      BERR_TRACE(retCode = BAST_ERR_AP_NOT_INIT);            
+      BDBG_ERR(("AP initialization timeout\n"));
+      BERR_TRACE(retCode = BAST_ERR_AP_NOT_INIT);
    }
 #endif
 
@@ -422,7 +422,7 @@ BERR_Code BAST_4506_P_InitAp(
          BDBG_ERR(("unable to set NETWORK_SPEC"));
       }
    }
-   
+
    if (retCode == BERR_SUCCESS)
    {
       /* determine chip id */
@@ -451,7 +451,7 @@ BERR_Code BAST_4506_P_SoftReset(
 {
    BERR_Code retCode;
    uint8_t buf[3];
-   
+
    buf[0] = 0x2D;
    buf[1] = 0x03;
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h, buf, 3, buf, true));
@@ -477,15 +477,15 @@ BERR_Code BAST_4506_P_GetApStatus(
    *pStatus = 0;
    BAST_CHK_RETCODE(BREG_I2C_Read(((BAST_4506_P_Handle *)(h->pImpl))->hRegister, h->settings.i2c.chipAddr, BCM4506_SH_AP_SFR_H_CTL1, buf, 4));
 
-   /* 
-      format is: 
+   /*
+      format is:
       buf[3] (bits 31:24) = H_STAT3
       buf[2] (bits 23:16) = H_STAT2
       buf[1] (bits 15:8) = H_STAT1
       buf[0] (bits 7:0) = H_CTL1
    */
    *pStatus = buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24);
-   
+
    done:
    return retCode;
 }
@@ -538,11 +538,11 @@ BERR_Code BAST_4506_P_ConfigGpio(
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_AP_SFR_GPIO_OW_1, &sb));
    sb = (uint8_t)(own_mask & 0xFF);
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_AP_SFR_GPIO_OW_0, &sb));
-   sb = (uint8_t)((read_mask >> 8) & 0xFF); 
+   sb = (uint8_t)((read_mask >> 8) & 0xFF);
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_AP_SFR_GPIOENB_1, &sb));
-   sb = (uint8_t)(read_mask & 0xFF); 
+   sb = (uint8_t)(read_mask & 0xFF);
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_AP_SFR_GPIOENB_0, &sb));
-   
+
    done:
    return retCode;
 }
@@ -562,7 +562,7 @@ BERR_Code BAST_4506_P_SetGpio(
    uint8_t hi, lo, sb;
 
    mask &= 0x0000FFFF;
-   
+
    BAST_CHK_RETCODE(BAST_ReadHostRegister(h, BCM4506_SH_AP_SFR_GPOUT_1, &hi));
    BAST_CHK_RETCODE(BAST_ReadHostRegister(h, BCM4506_SH_AP_SFR_GPOUT_0, &lo));
    x = (hi << 8) | lo;
@@ -678,19 +678,19 @@ BERR_Code BAST_4506_P_TuneAcquire(
    acq_ctl |= (pParams->acq_ctl & 0xC0000000);
 
    buf[0] = (uint8_t)(0x24 | (h->channel ? 0x40 : 0x00));
-   buf[1] = (uint8_t)((tunerFreq >> 24) & 0xFF); 
-   buf[2] = (uint8_t)((tunerFreq >> 16) & 0xFF); 
-   buf[3] = (uint8_t)((tunerFreq >> 8) & 0xFF); 
-   buf[4] = (uint8_t)(tunerFreq & 0xFF); 
+   buf[1] = (uint8_t)((tunerFreq >> 24) & 0xFF);
+   buf[2] = (uint8_t)((tunerFreq >> 16) & 0xFF);
+   buf[3] = (uint8_t)((tunerFreq >> 8) & 0xFF);
+   buf[4] = (uint8_t)(tunerFreq & 0xFF);
    buf[5] = mode;
    buf[6] = (uint8_t)((pParams->symbolRate >> 24) & 0xFF);
    buf[7] = (uint8_t)((pParams->symbolRate >> 16) & 0xFF);
    buf[8] = (uint8_t)((pParams->symbolRate >> 8) & 0xFF);
    buf[9] = (uint8_t)(pParams->symbolRate & 0xFF);
-   buf[10] = (uint8_t)((pParams->carrierFreqOffset >> 24) & 0xFF); 
-   buf[11] = (uint8_t)((pParams->carrierFreqOffset >> 16) & 0xFF); 
-   buf[12] = (uint8_t)((pParams->carrierFreqOffset >> 8) & 0xFF); 
-   buf[13] = (uint8_t)(pParams->carrierFreqOffset & 0xFF); 
+   buf[10] = (uint8_t)((pParams->carrierFreqOffset >> 24) & 0xFF);
+   buf[11] = (uint8_t)((pParams->carrierFreqOffset >> 16) & 0xFF);
+   buf[12] = (uint8_t)((pParams->carrierFreqOffset >> 8) & 0xFF);
+   buf[13] = (uint8_t)(pParams->carrierFreqOffset & 0xFF);
    buf[14] = (uint8_t)((acq_ctl >> 24) & 0xFF);
    buf[15] = (uint8_t)((acq_ctl >> 16) & 0xFF);
    buf[16] = (uint8_t)((acq_ctl >> 8) & 0xFF);
@@ -715,10 +715,10 @@ BERR_Code BAST_4506_P_GetChannelStatus(
    BERR_Code retCode;
    uint32_t lpf;
    uint8_t buf[128], mode_buf[128];
-   
+
    buf[0] = 0x26 | (h->channel ? 0x40 : 0x00);
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h->pDevice, buf, 64, buf, true));
- 
+
    pStatus->bBertLocked = buf[1] & 0x40 ? true : false;
    pStatus->bDemodLocked = (buf[1] & 0x02) ? true : false;
    pStatus->bTunerLocked = (buf[1] & 0x08) ? true : false;
@@ -849,7 +849,7 @@ BERR_Code BAST_4506_P_GetChannelStatus(
          pStatus->mode = BAST_Mode_eUnknown;
          break;
    }
-   
+
    pStatus->symbolRate = (buf[3] << 24) | (buf[4] << 16) | (buf[5] << 8) | buf[6];
    pStatus->carrierOffset = (int32_t)((buf[7] << 24) | (buf[8] << 16) | (buf[9] << 8) | buf[10]);
    pStatus->tunerFreq = (buf[11] << 24) | (buf[12] << 16) | (buf[13] << 8) | buf[14];
@@ -939,7 +939,7 @@ BERR_Code BAST_4506_P_ResetStatus(
 {
    BERR_Code retCode;
    uint8_t buf[4];
-   
+
    buf[0] = 0x1B | (h->channel ? 0x40 : 0x00);
    buf[1] = 0xFF;
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h->pDevice, buf, 3, buf, true));
@@ -959,7 +959,7 @@ BERR_Code BAST_4506_P_SetDiseqcTone(
 {
    BERR_Code retCode;
    uint8_t buf[3];
-   
+
    buf[0] = 0x17 | (h->channel ? 0x40 : 0x00);
    buf[1] = bTone ? 0x22 : 0x20;
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h->pDevice, buf, 3, buf, true));
@@ -979,7 +979,7 @@ BERR_Code BAST_4506_P_GetDiseqcTone(
 {
    BERR_Code retCode;
    uint8_t buf[3];
-   
+
    buf[0] = 0x1A | (h->channel ? 0x40 : 0x00);
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h->pDevice, buf, 3, buf, true));
 
@@ -1000,7 +1000,7 @@ BERR_Code BAST_4506_P_SetDiseqcVoltage(
 {
    BERR_Code retCode;
    uint8_t buf[3];
-   
+
    buf[0] = 0x17 | (h->channel ? 0x40 : 0x00);
    buf[1] = bVtop ? 0x11 : 0x10;
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h->pDevice, buf, 3, buf, true));
@@ -1020,12 +1020,12 @@ BERR_Code BAST_4506_P_GetDiseqcVoltage(
 {
    BERR_Code retCode;
    uint8_t buf[3];
-   
+
    buf[0] = 0x34 | (h->channel ? 0x40 : 0x00);
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h->pDevice, buf, 3, buf, true));
-   
+
    *pVoltage = buf[1];
-   
+
    done:
    return retCode;
 }
@@ -1035,13 +1035,13 @@ BERR_Code BAST_4506_P_GetDiseqcVoltage(
  BAST_4506_P_EnableVsenseInterrupts()
 ******************************************************************************/
 BERR_Code BAST_4506_P_EnableVsenseInterrupts(
-   BAST_ChannelHandle h, 
+   BAST_ChannelHandle h,
    bool bEnable
 )
 {
    BSTD_UNUSED(h);
    BSTD_UNUSED(bEnable);
-   
+
    return BERR_NOT_SUPPORTED;
 }
 
@@ -1056,17 +1056,17 @@ BERR_Code BAST_4506_P_SendACW(
 {
    BERR_Code retCode;
    uint8_t buf[3], mask, ie;
-   
+
    buf[0] = 0x27 | (h->channel ? 0x40 : 0x00);
    buf[1] = acw;
-   
+
    /* set up diseqc irq */
    mask = h->channel ? BCM4506_STAT3_CH1_DS_DONE : BCM4506_STAT3_CH0_DS_DONE;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h->pDevice, BCM4506_SH_AP_SFR_H_FSTAT3, &mask));
    BAST_CHK_RETCODE(BAST_ReadHostRegister(h->pDevice, BCM4506_SH_AP_SFR_H_IE3, &ie));
    ie |= mask;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h->pDevice, BCM4506_SH_AP_SFR_H_IE3, &ie));
-   
+
    /* send DISEQC_ACW HAB command */
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h->pDevice, buf, 3, buf, true));
 
@@ -1087,7 +1087,7 @@ BERR_Code BAST_4506_P_SendDiseqcCommand(
    BERR_Code retCode;
    uint8_t ie, bytes_left, bytes_written;
    uint8_t buf[128], i, mask;
-   
+
    BDBG_ASSERT(sendBufLen <= 128);
 
    if (sendBufLen > 16)
@@ -1197,7 +1197,7 @@ BERR_Code BAST_4506_P_GetDiseqcStatus(
 
 /******************************************************************************
  BAST_ResetDiseqc()
-******************************************************************************/ 
+******************************************************************************/
 BERR_Code BAST_4506_P_ResetDiseqc(
    BAST_ChannelHandle h,    /* [in] BAST channel handle */
    uint8_t options          /* [in] reset options */
@@ -1217,7 +1217,7 @@ BERR_Code BAST_4506_P_ResetDiseqc(
 
 /******************************************************************************
  BAST_ResetFtm()
-******************************************************************************/ 
+******************************************************************************/
 BERR_Code BAST_4506_P_ResetFtm(
    BAST_Handle h    /* [in] BAST channel handle */
 )
@@ -1256,7 +1256,7 @@ BERR_Code BAST_4506_P_ReadFtm(
 
    checksum = buf[0] + buf[1];
    len = buf[1] & 0x7F;
-  
+
    if (len)
    {
       /* read the next len bytes in the HAB */
@@ -1274,7 +1274,7 @@ BERR_Code BAST_4506_P_ReadFtm(
 
       *n = len + 1;
       for (i = 0; i < *n; i++)
-         pBuf[i] = buf[i+1]; 
+         pBuf[i] = buf[i+1];
    }
 
    done:
@@ -1337,25 +1337,30 @@ BERR_Code BAST_4506_P_PowerDownFtm(
    BAST_Handle h  /* [in] BAST handle */
 )
 {
+#if 0
    BERR_Code retCode;
    uint8_t sb, buf[4];
-   
+
    buf[0] = 0x22;
    buf[1] = 0x10;
-  
+
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h, buf, 3, buf, true));
-   
+
    /* wait for power down task to complete */
    BKNI_Sleep(5);
-   
+
    /* power down ftm channels of pll */
    sb = BCM4506_SH_IND_PLL_PWRDN0;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_ADR, &sb));
    sb = 0x18;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_DAT, &sb));
-   
+
    done:
    return retCode;
+#else
+   BSTD_UNUSED(h);
+   return BERR_SUCCESS;
+#endif
 }
 
 
@@ -1366,31 +1371,36 @@ BERR_Code BAST_4506_P_PowerUpFtm(
    BAST_Handle h  /* [in] BAST handle */
 )
 {
+#if 0
    BERR_Code retCode;
    uint8_t sb, buf[4];
 
    buf[0] = 0x25;
    buf[1] = 0x10;
-  
+
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h, buf, 3, buf, true));
-   
+
    /* wait for power down task to complete */
    BKNI_Sleep(5);
-   
+
    /* power up ftm channels of pll */
    sb = BCM4506_SH_IND_PLL_PWRDN0;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_ADR, &sb));
    sb = 0xC0;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_DAT, &sb));
-   
+
    done:
    return retCode;
+#else
+   BSTD_UNUSED(h);
+   return BERR_SUCCESS;
+#endif
 }
 
 
 /******************************************************************************
  BAST_4506_P_WriteMi2c()
-******************************************************************************/ 
+******************************************************************************/
 BERR_Code BAST_4506_P_WriteMi2c(
    BAST_ChannelHandle h, /* [in] BAST channel handle */
    uint8_t slave_addr,   /* [in] address of the i2c slave device */
@@ -1400,13 +1410,13 @@ BERR_Code BAST_4506_P_WriteMi2c(
 {
    BERR_Code retCode;
    uint8_t buf[16], i;
-   
+
    BDBG_ASSERT((n <= 8) && (n > 0));
 
    buf[0] = 0x14 | (h->channel ? 0x40 : 0x00);
    buf[1] = n - 1;
    buf[2] = slave_addr;
-  
+
    for (i = 0; i < n; i++)
       buf[3+i] = i2c_buf[i];
 
@@ -1434,7 +1444,7 @@ BERR_Code BAST_4506_P_ReadMi2c(
 {
    BERR_Code retCode;
    uint8_t buf[20], i;
-   
+
    BDBG_ASSERT(out_n <= 8);
    BDBG_ASSERT((in_n > 0) && (in_n <= 8));
    BDBG_ASSERT(in_buf);
@@ -1442,7 +1452,7 @@ BERR_Code BAST_4506_P_ReadMi2c(
    buf[0] = 0x15 | (h->channel ? 0x40 : 0x00);
    buf[1] = (out_n | ((in_n - 1) << 4));
    buf[2] = slave_addr;
-  
+
    for (i = 0; i < out_n; i++)
       buf[3+i] = out_buf[i];
 
@@ -1473,7 +1483,7 @@ BERR_Code BAST_4506_P_GetSoftDecisionBuf(
    BERR_Code retCode;
    uint8_t i;
 
-#if 0 
+#if 0
    uint32_t val32;
 
    /* use IO MBOX to read soft decisions */
@@ -1482,7 +1492,7 @@ BERR_Code BAST_4506_P_GetSoftDecisionBuf(
       BAST_CHK_RETCODE(BAST_4506_P_ReadRegister(h, BCM4506_SDS_EQSFT, &val32));
       if (retCode != BERR_SUCCESS)
          break;
- 
+
       pI[i] = (val32 >> 24) & 0xFF;
       if (pI[i] & 0x80)
          pI[i] -= 0x100;
@@ -1509,7 +1519,7 @@ BERR_Code BAST_4506_P_GetSoftDecisionBuf(
       buf[i*8 + 5] = 0xFF;
       buf[i*8 + 6] = 0xFF;
       buf[i*8 + 7] = cs;
-   }   
+   }
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h->pDevice, buf, 120, buf, false));
    for (i = 0; i < 15; i++)
    {
@@ -1614,7 +1624,7 @@ BERR_Code BAST_4506_P_HabIsbEdit(
    buf[8] = (uint8_t)(or_mask >> 16);
    buf[9] = (uint8_t)(or_mask >> 8);
    buf[10] = (uint8_t)(or_mask & 0xFF);
-  
+
    return BAST_4506_P_SendHabCommand(h->pDevice, buf, 12, buf, true);
 }
 
@@ -1667,8 +1677,9 @@ BERR_Code BAST_4506_P_PowerDown(
    uint32_t options       /* [in] see BAST_CORE_* macros */
 )
 {
+#if 0
    uint8_t buf[4];
-   
+
    /* abort acquisition before power down */
    BAST_4506_P_AbortAcq(h);
 
@@ -1678,8 +1689,13 @@ BERR_Code BAST_4506_P_PowerDown(
       buf[1] |= (h->channel ? 0x02 : 0x01);
    if (options & BAST_CORE_DISEQC)
       buf[1] |= (h->channel ? 0x08 : 0x04);
-  
+
    return BAST_4506_P_SendHabCommand(h->pDevice, buf, 3, buf, true);
+#else
+   BSTD_UNUSED(h);
+   BSTD_UNUSED(options);
+   return BERR_SUCCESS;
+#endif
 }
 
 
@@ -1691,6 +1707,7 @@ BERR_Code BAST_4506_P_PowerUp(
    uint32_t options       /* [in] see BAST_CORE_* macros */
 )
 {
+#if 0
    uint8_t buf[4];
 
    buf[0] = 0x25;
@@ -1699,8 +1716,13 @@ BERR_Code BAST_4506_P_PowerUp(
       buf[1] |= (h->channel ? 0x02 : 0x01);
    if (options & BAST_CORE_DISEQC)
       buf[1] |= (h->channel ? 0x08 : 0x04);
-  
+
    return BAST_4506_P_SendHabCommand(h->pDevice, buf, 3, buf, true);
+#else
+   BSTD_UNUSED(h);
+   BSTD_UNUSED(options);
+   return BERR_SUCCESS;
+#endif
 }
 
 
@@ -1811,14 +1833,14 @@ BERR_Code BAST_4506_P_GetDiseqcEventHandle(
  BAST_4506_P_GetDiseqcVsenseEventHandle()
 ******************************************************************************/
 BERR_Code BAST_4506_P_GetDiseqcVsenseEventHandles(
-   BAST_ChannelHandle h, 
-   BKNI_EventHandle *hDiseqcOverVoltageEvent, 
+   BAST_ChannelHandle h,
+   BKNI_EventHandle *hDiseqcOverVoltageEvent,
    BKNI_EventHandle *hDiseqcUnderVoltageEvent)
 {
    BSTD_UNUSED(h);
    BSTD_UNUSED(hDiseqcOverVoltageEvent);
    BSTD_UNUSED(hDiseqcUnderVoltageEvent);
-   
+
    return BERR_NOT_SUPPORTED;
 }
 
@@ -1895,7 +1917,7 @@ BERR_Code BAST_4506_P_WriteMbox(
    buf[1] = (uint8_t)(*val >> 24);
    buf[2] = (uint8_t)(*val >> 16);
    buf[3] = (uint8_t)(*val >> 8);
-   buf[4] = (uint8_t)(*val & 0xFF); 
+   buf[4] = (uint8_t)(*val & 0xFF);
    buf[5] = (uint8_t)((reg & 0xFC) | 0x01);
    i = (buf[0] != p4506->last_mbox_15_8) ? 0 : 1;
    p4506->last_mbox_15_8 = buf[0];
@@ -2034,7 +2056,7 @@ BERR_Code BAST_4506_P_ReadMemory(BAST_Handle h, uint16_t addr, uint8_t *buf, uin
          hab[3] = (uint8_t)bytes_to_read;
          BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h, hab, (uint8_t)(5+bytes_to_read), hab, true));
          for (i = 0; i < bytes_to_read; i++)
-            buf[i] = hab[4+i]; 
+            buf[i] = hab[4+i];
          buf += bytes_to_read;
          addr += bytes_to_read;
       }
@@ -2043,7 +2065,7 @@ BERR_Code BAST_4506_P_ReadMemory(BAST_Handle h, uint16_t addr, uint8_t *buf, uin
    {
       BAST_CHK_RETCODE(BAST_4506_P_SetApWindow(h, BAST_WINDOW_IRAM + addr));
       BAST_CHK_RETCODE(BREG_I2C_Read(p4506->hRegister, h->settings.i2c.chipAddr, (uint8_t)(addr & 0x7F), buf, n));
-      p4506->last_page_16_15 = p4506->last_page_14_7 = 0xFF; 
+      p4506->last_page_16_15 = p4506->last_page_14_7 = 0xFF;
    }
 
    done:
@@ -2080,7 +2102,7 @@ BERR_Code BAST_4506_P_WriteMemory(BAST_Handle h, uint16_t addr, const uint8_t *b
          hab[1] = (addr >> 8) & 0xFF;
          hab[2] = addr & 0xFF;
          hab[3] = (uint8_t)bytes_to_write;
-         
+
          for (i = 0; i < bytes_to_write; i++)
          {
             hab[4+i] = buf[idx++];
@@ -2089,7 +2111,7 @@ BERR_Code BAST_4506_P_WriteMemory(BAST_Handle h, uint16_t addr, const uint8_t *b
          BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h, hab, (uint8_t)(5+bytes_to_write), hab, true));
          buf += bytes_to_write;
          addr += bytes_to_write;
-      } 
+      }
    }
    else
    {
@@ -2159,7 +2181,7 @@ BERR_Code BAST_4506_P_ReadConfig(
 
    hab[0] = 0x09;
    hab[1] = (addr >> 8);
-   hab[2] = (addr & 0xFF);   
+   hab[2] = (addr & 0xFF);
    hab[3] = len;
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h->pDevice, hab, (uint8_t)(5+len), hab, true));
 
@@ -2223,14 +2245,14 @@ BERR_Code BAST_4506_P_WriteConfig(
 
    hab[0] = 0x0A;
    hab[1] = (addr >> 8);
-   hab[2] = (addr & 0xFF);   
+   hab[2] = (addr & 0xFF);
    hab[3] = len;
 
    for (i = 0; i < len; i++)
       hab[i+4] = p[i];
 
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h->pDevice, hab, (uint8_t)(5+len), hab, true));
- 
+
    done:
    return retCode;
 }
@@ -2244,7 +2266,7 @@ BERR_Code BAST_4506_P_ResetAp(BAST_Handle h)
    BAST_4506_P_Handle *p4506 = (BAST_4506_P_Handle *)(h->pImpl);
    BERR_Code retCode;
    uint8_t sb;
-   
+
 #if (BAST_4506_VER==BCHP_VER_A0)
    uint8_t i;
 
@@ -2259,16 +2281,16 @@ BERR_Code BAST_4506_P_ResetAp(BAST_Handle h)
       BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_ADR, &sb);
       sb = 0x20;
       BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_DAT, &sb);
-      
+
       /* read back to verify write */
       sb = BCM4506_SH_IND_I2C_DLY_CONTROL;
       BAST_WriteHostRegister(h, BCM4506_SH_SFR_H_LOCAL_ADR, &sb);
       BAST_ReadHostRegister(h, BCM4506_SH_SFR_H_LOCAL_DAT, &sb);
-      
+
       /* continue after successful write */
       if (sb == 0x20)
          break;
-      
+
       /* abort if repeated writes unsuccessful */
       if ((i >= 9) && (sb != 0x20))
       {
@@ -2322,7 +2344,7 @@ BERR_Code BAST_4506_P_ResetAp(BAST_Handle h)
 
    sb = 0x00; /* release block reset */
    BAST_CHK_RETCODE(BAST_4506_P_WriteHostIndirectRegister(h, BCM4506_SH_IND_GLOBAL_RESET, &sb));
- 
+
    /* initialize JDEC */
    sb = BAST_JDEC;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_AP_SFR_JDEC, &sb));
@@ -2366,7 +2388,7 @@ BERR_Code BAST_4506_P_RunAp(BAST_Handle h)
    uint8_t   sb, sb2;
 
    /* check if the AP is currently running */
-   BAST_CHK_RETCODE(BAST_ReadHostRegister(h, BCM4506_SH_AP_SFR_H_CTL1, &sb)); 
+   BAST_CHK_RETCODE(BAST_ReadHostRegister(h, BCM4506_SH_AP_SFR_H_CTL1, &sb));
 
    if ((sb & BCM4506_AP_MASK) != BCM4506_AP_RUN)
    {
@@ -2385,7 +2407,7 @@ BERR_Code BAST_4506_P_RunAp(BAST_Handle h)
 
       /* clear AP_change state bit */
       sb2 = BCM4506_STAT1_AP_OP_CHG;
-      BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_AP_SFR_H_FSTAT1, &sb2)); 
+      BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_AP_SFR_H_FSTAT1, &sb2));
    }
    else
    {
@@ -2417,7 +2439,7 @@ BERR_Code BAST_4506_P_CheckHab(
       BDBG_WRN(("@@@ AP status=0x%08X | error=0x%X", (uint32_t)status, apError));
    }
 #endif
-   
+
    if ((status & BAST_APSTATUS_HAB_MASK) == BAST_APSTATUS_HAB_READY)
       retCode = BERR_SUCCESS;
    else if (apError)
@@ -2520,7 +2542,7 @@ BERR_Code BAST_4506_P_DecodeError(
          case 0x12:
             retCode = BAST_ERR_FTM_MSG_DROPPED;
             break;
-            
+
          case 0x14:
             retCode = BAST_ERR_POWERED_DOWN;
             break;
@@ -2543,19 +2565,19 @@ BERR_Code BAST_4506_P_DecodeError(
 BERR_Code BAST_4506_P_SendHabCommand(
    BAST_Handle h,      /* [in] BAST handle */
    uint8_t *write_buf, /* [in] specifies the HAB command to send (including space for checksum byte) */
-   uint8_t write_len,  /* [in] number of bytes in the HAB command (excluding terminator byte) */ 
-   uint8_t *read_buf,  /* [out] holds the data read from the HAB (must be at least write_len bytes long) */ 
+   uint8_t write_len,  /* [in] number of bytes in the HAB command (excluding terminator byte) */
+   uint8_t *read_buf,  /* [out] holds the data read from the HAB (must be at least write_len bytes long) */
    bool    bChecksum   /* [in] true = automatically compute checksum */
 )
 {
    BERR_Code retCode;
    uint8_t sb, i, cs;
-   
+
    if ((write_len > 127) || (write_len < 2))
       return (BERR_TRACE(BERR_INVALID_PARAMETER));
 
    BAST_CHK_RETCODE(BAST_4506_P_CheckHab(h));
-  
+
    /* zero out the HAB */
    sb = 0x0C;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_AP_SFR_AP_CMD, &sb));
@@ -2580,7 +2602,7 @@ BERR_Code BAST_4506_P_SendHabCommand(
 
    /* wait for the AP to service the HAB, and then read any return data */
    BAST_CHK_RETCODE(BAST_4506_P_ServiceHab(h, read_buf, write_len, (uint8_t)(write_buf[0] | 0x80), bChecksum));
- 
+
    done:
    return retCode;
 }
@@ -2591,7 +2613,7 @@ BERR_Code BAST_4506_P_SendHabCommand(
 ******************************************************************************/
 BERR_Code BAST_4506_P_ServiceHab(
    BAST_Handle h,   /* [in] BAST handle */
-   uint8_t *read_buf,  /* [out] holds the data read from the HAB */ 
+   uint8_t *read_buf,  /* [out] holds the data read from the HAB */
    uint8_t read_len,   /* [in] number of bytes to read from the HAB (including the checksum byte) */
    uint8_t ack_byte,   /* [in] value of the ack byte to expect */
    bool    bChecksum   /* [in] true = automatically compute checksum */
@@ -2615,11 +2637,11 @@ BERR_Code BAST_4506_P_ServiceHab(
    sb |= BCM4506_STAT1_HAB_DONE;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_AP_SFR_H_IE1, &sb));
 #endif
-   
+
    /* send the command */
    sb = BCM4506_AP_HABR;
    BAST_CHK_RETCODE(BAST_WriteHostRegister(h, BCM4506_SH_AP_SFR_H_CTL1, &sb));
-   
+
 #ifdef BAST_DONT_USE_INTERRUPT
    /* wait for HAB to be serviced (polling) */
    for (i = 0; i < 1111; i++)
@@ -2634,19 +2656,19 @@ BERR_Code BAST_4506_P_ServiceHab(
       goto done;
    }
 #else
-   /* wait for HAB done interrupt */  
+   /* wait for HAB done interrupt */
    if (BAST_4506_P_WaitForEvent(h, p4506->hHabDoneEvent, 500) == BERR_TIMEOUT)
    {
       uint8_t   h_stat[3], h_ie[3];
 
       BAST_CHK_RETCODE(BREG_I2C_Read(p4506->hRegister, h->settings.i2c.chipAddr, BCM4506_SH_AP_SFR_H_FSTAT1, h_stat, 3));
       BAST_CHK_RETCODE(BREG_I2C_Read(p4506->hRegister, h->settings.i2c.chipAddr, BCM4506_SH_AP_SFR_H_IE1, h_ie, 3));
-      BDBG_ERR(("HAB timeout: fstat1=0x%02X, fstat2=%02X, fstat3=0x%02X, ie1=0x%02X, ie2=0x%02X, ie3=0x%02X", h_stat[0], h_stat[1], h_stat[2], h_ie[0], h_ie[1], h_ie[2]));   
+      BDBG_ERR(("HAB timeout: fstat1=0x%02X, fstat2=%02X, fstat3=0x%02X, ie1=0x%02X, ie2=0x%02X, ie3=0x%02X", h_stat[0], h_stat[1], h_stat[2], h_ie[0], h_ie[1], h_ie[2]));
       BERR_TRACE(retCode = BAST_ERR_HAB_TIMEOUT);
       goto done;
    }
 #endif
-   
+
    /* get the HAB contents */
    BAST_CHK_RETCODE(BAST_4506_P_ReadHab(h, 0, read_buf, read_len));
 
@@ -2657,7 +2679,7 @@ BERR_Code BAST_4506_P_ServiceHab(
       BERR_TRACE(retCode = BAST_ERR_HAB_NO_ACK);
       goto done;
    }
-   
+
    /* validate the checksum */
    if (bChecksum)
    {
@@ -2681,7 +2703,7 @@ BERR_Code BAST_4506_P_ServiceHab(
 
 
 /******************************************************************************
- BAST_4506_P_EnableHostInterrupt() 
+ BAST_4506_P_EnableHostInterrupt()
 ******************************************************************************/
 BERR_Code BAST_4506_P_EnableHostInterrupt(
    BAST_Handle h, /* [in] BAST PI handle */
@@ -2690,7 +2712,7 @@ BERR_Code BAST_4506_P_EnableHostInterrupt(
 {
    BKNI_EnterCriticalSection();
    h->settings.i2c.interruptEnableFunc(bEnable, h->settings.i2c.interruptEnableFuncParam);
-   BKNI_LeaveCriticalSection();   
+   BKNI_LeaveCriticalSection();
 
    return BERR_SUCCESS;
 }
@@ -2698,7 +2720,7 @@ BERR_Code BAST_4506_P_EnableHostInterrupt(
 
 /******************************************************************************
  BAST_4506_P_EnableLockInterrupt()
-******************************************************************************/ 
+******************************************************************************/
 BERR_Code BAST_4506_P_EnableLockInterrupt(
    BAST_ChannelHandle h, /* [in] BAST channel handle */
    bool bEnable          /* [in] true = enable lock interrupts, false = disables lock interrupts */
@@ -2707,7 +2729,7 @@ BERR_Code BAST_4506_P_EnableLockInterrupt(
    /* BAST_4506_P_ChannelHandle *p4506 = (BAST_4506_P_ChannelHandle *)(h->pImpl); */
    BERR_Code retCode;
    uint8_t sb, h_stat3, h_ie3;
-   
+
    /* BAST_4506_P_EnableHostInterrupt(h->pDevice, false); */
 
    sb = h->channel ? 0x60 : 0x06;
@@ -2727,7 +2749,7 @@ BERR_Code BAST_4506_P_EnableLockInterrupt(
 
    done:
    /* BAST_4506_P_EnableHostInterrupt(h->pDevice, true); */
-   return retCode;   
+   return retCode;
 }
 
 
@@ -2755,7 +2777,7 @@ BERR_Code BAST_4506_P_EnableFtmInterrupt(
 
    done:
    /* BAST_4506_P_EnableHostInterrupt(h, true); */
-   return retCode; 
+   return retCode;
 }
 
 
@@ -2772,10 +2794,10 @@ BERR_Code BAST_4506_P_DecodeInterrupt(BAST_Handle h)
    read_again:
    BAST_CHK_RETCODE(BREG_I2C_Read(p4506->hRegister, h->settings.i2c.chipAddr, BCM4506_SH_AP_SFR_H_FSTAT1, h_fstat, 4));
    BAST_CHK_RETCODE(BREG_I2C_Read(p4506->hRegister, h->settings.i2c.chipAddr, BCM4506_SH_AP_SFR_H_IE2, h_ie, 3));
-   
+
    if (!h_fstat[0] && !h_fstat[1] && !h_fstat[2] && !h_fstat[3])
       return BERR_SUCCESS;
-   
+
    /* sanity check: there shouldn't be any bits in FSTATx that isn't set in IEx */
    if (((h_ie[0] & h_fstat[1]) != h_fstat[1]) || ((h_ie[1] & h_fstat[2]) != h_fstat[2]) || ((h_ie[2] & h_fstat[3]) != h_fstat[3]))
    {
@@ -2797,7 +2819,7 @@ BERR_Code BAST_4506_P_DecodeInterrupt(BAST_Handle h)
 
    if (h_fstat[0] & BCM4506_STAT1_HAB_DONE)
       BKNI_SetEvent(p4506->hHabDoneEvent);
-   
+
    if (h_fstat[1] & BCM4506_STAT2_INIT_DONE)
    {
       BKNI_SetEvent(p4506->hInitDoneEvent);
@@ -2805,7 +2827,7 @@ BERR_Code BAST_4506_P_DecodeInterrupt(BAST_Handle h)
       h_fstat[1] &= ~BCM4506_STAT2_INIT_DONE;
       bInitDone = 1;
    }
-      
+
    if (h_fstat[1] & BCM4506_STAT2_FSK)
    {
       BKNI_SetEvent(p4506->hFtmEvent);
@@ -2866,7 +2888,7 @@ BERR_Code BAST_4506_P_DecodeInterrupt(BAST_Handle h)
       BKNI_SetEvent(pChn->hPeakScanEvent);
       h_ie[0] &= ~BCM4506_STAT2_PEAK_SCAN_1;
    }
-   
+
    if (h_fstat[1] & BCM4506_STAT2_PEAK_SCAN_0)
    {
       /* channel 0 peak scan interrupt */
@@ -2876,7 +2898,7 @@ BERR_Code BAST_4506_P_DecodeInterrupt(BAST_Handle h)
    }
 
    /* clear the interrupt status */
-   BAST_CHK_RETCODE(BREG_I2C_Write(p4506->hRegister, h->settings.i2c.chipAddr, BCM4506_SH_AP_SFR_H_FSTAT1, h_fstat, 4));   
+   BAST_CHK_RETCODE(BREG_I2C_Write(p4506->hRegister, h->settings.i2c.chipAddr, BCM4506_SH_AP_SFR_H_FSTAT1, h_fstat, 4));
 
    if (h_ie[0] || h_ie[1] || h_ie[2] || bInitDone)
    {
@@ -2896,10 +2918,10 @@ BERR_Code BAST_4506_P_HandleInterrupt_isr(
 )
 {
    BDBG_ASSERT(h);
-   
+
    h->settings.i2c.interruptEnableFunc(false, h->settings.i2c.interruptEnableFuncParam);
-   BKNI_SetEvent(((BAST_4506_P_Handle *)(h->pImpl))->hApiEvent);   
-   BKNI_SetEvent(((BAST_4506_P_Handle *)(h->pImpl))->hInterruptEvent);  
+   BKNI_SetEvent(((BAST_4506_P_Handle *)(h->pImpl))->hApiEvent);
+   BKNI_SetEvent(((BAST_4506_P_Handle *)(h->pImpl))->hInterruptEvent);
    return BERR_SUCCESS;
 }
 
@@ -2912,11 +2934,11 @@ BERR_Code BAST_4506_P_ProcessInterruptEvent(
 )
 {
    BERR_Code retCode;
-   
+
    BDBG_ASSERT(h);
    BAST_CHK_RETCODE(BAST_4506_P_DecodeInterrupt(h));
    BAST_4506_P_EnableHostInterrupt(h, true);
-   
+
    done:
    return retCode;
 }
@@ -2924,7 +2946,7 @@ BERR_Code BAST_4506_P_ProcessInterruptEvent(
 
 /******************************************************************************
  BAST_4506_P_DisableInterrupts()
-******************************************************************************/ 
+******************************************************************************/
 BERR_Code BAST_4506_P_DisableInterrupts(
    BAST_Handle h   /* [in] BAST handle */
 )
@@ -2932,10 +2954,10 @@ BERR_Code BAST_4506_P_DisableInterrupts(
    BAST_4506_P_Handle *p4506 = (BAST_4506_P_Handle *)(h->pImpl);
    BERR_Code err;
    const uint8_t val[4] = {0, 0, 0, 0};
-   
+
    /* clear IEx registers */
    err = BREG_I2C_Write(p4506->hRegister, h->settings.i2c.chipAddr, BCM4506_SH_AP_SFR_H_IE1, val, 4);
-   return err;   
+   return err;
 }
 
 
@@ -2955,12 +2977,12 @@ BERR_Code BAST_4506_P_WaitForEvent(
 #ifndef BAST_ALT_IMPL
    BAST_4506_P_EnableHostInterrupt(h, true);
    while (1)
-   {   
+   {
       retCode = BKNI_WaitForEvent(p4506->hApiEvent, timeoutMsec);
 
       if ((retCode == BERR_TIMEOUT) || (retCode == BERR_OS_ERROR)) {
          break;
-      } 
+      }
       else if (retCode == BERR_SUCCESS)
       {
          BAST_4506_P_DecodeInterrupt(h);
@@ -2972,7 +2994,7 @@ BERR_Code BAST_4506_P_WaitForEvent(
 
    BAST_4506_P_EnableHostInterrupt(h, true);
 #else
-   /* First of all, verify whether we already got a message */     
+   /* First of all, verify whether we already got a message */
    BAST_4506_P_DecodeInterrupt(h);
    BAST_4506_P_EnableHostInterrupt(h, true);
 
@@ -2982,10 +3004,10 @@ BERR_Code BAST_4506_P_WaitForEvent(
       while (1)
       {
          retCode = BKNI_WaitForEvent(p4506->hApiEvent, timeoutMsec);
-     
+
          if ((retCode == BERR_TIMEOUT) || (retCode == BERR_OS_ERROR)) {
              break;
-         }  
+         }
          else if (retCode == BERR_SUCCESS)
          {
             BAST_4506_P_DecodeInterrupt(h);
@@ -3011,7 +3033,7 @@ BERR_Code BAST_4506_P_AbortAcq(
 
    buf[0] = 0x10 | (h->channel ? 0x40 : 0x00);
    buf[1] = buf[0];
-  
+
    return BAST_4506_P_SendHabCommand(h->pDevice, buf, 2, buf, true);
 }
 
@@ -3027,14 +3049,14 @@ BERR_Code BAST_4506_P_ConfigLna(
 {
 #if 0
    uint8_t buf[4];
-   
+
    if (int_config == BAST_LnaIntConfig_eIn2Out1_In2Out2_DaisyOff)
       return BERR_NOT_SUPPORTED;
 
    buf[0] = 0x11;
    buf[1] = (uint8_t)(int_config & 0xF);
    buf[1] |= (uint8_t)((ext_config << 4) & 0xF0);
-  
+
    return BAST_4506_P_SendHabCommand(h, buf, 3, buf, true);
 #else
    BERR_Code retCode;
@@ -3042,7 +3064,7 @@ BERR_Code BAST_4506_P_ConfigLna(
    BAST_Bcm3445OutputChannel out;
    BAST_ChannelHandle hChn0 = h->pChannels[0];
    BAST_ChannelHandle hChn1 = h->pChannels[1];
-   
+
    BDBG_ASSERT(hChn0);
    BDBG_ASSERT(hChn1);
 
@@ -3086,7 +3108,7 @@ BERR_Code BAST_4506_P_ConfigLna(
          break;
       default:
          retCode = BERR_NOT_SUPPORTED;
-         
+
          exit_error:
          return BERR_TRACE(retCode);
    }
@@ -3157,7 +3179,7 @@ BERR_Code BAST_4506_P_GetLnaStatus(
    BAST_ChannelHandle hChn0 = h->pChannels[0];
    BAST_ChannelHandle hChn1 = h->pChannels[1];
    BAST_4506_P_Handle *p4506 = (BAST_4506_P_Handle *)(h->pImpl);
-   
+
    /* initialize struct elements to avoid compiler warnings */
    chnStatus.tuner_input = BAST_Bcm3445OutputChannel_eNone;
    chnStatus.out_cfg = BAST_Bcm3445OutputConfig_eOff;
@@ -3170,7 +3192,7 @@ BERR_Code BAST_4506_P_GetLnaStatus(
       exit_error:
       return BERR_TRACE(retCode);
    }
-   
+
    tuner0 = chnStatus.tuner_input;
    out0 = chnStatus.out_cfg;
 
@@ -3183,7 +3205,7 @@ BERR_Code BAST_4506_P_GetLnaStatus(
       retCode = BAST_4506_P_GetBcm3445Status(hChn1, &chnStatus);
       if (retCode != BERR_SUCCESS)
          goto exit_error;
-      
+
       tuner1 = chnStatus.tuner_input;
       out1 = chnStatus.out_cfg;
       pStatus->agc1 = chnStatus.agc;
@@ -3350,7 +3372,7 @@ BERR_Code BAST_4506_P_GetPeakScanEventHandle(
  BAST_4506_P_EnableStatusInterrupts()
 ******************************************************************************/
 BERR_Code BAST_4506_P_EnableStatusInterrupts(
-   BAST_ChannelHandle h, 
+   BAST_ChannelHandle h,
    bool bEnable
 )
 {
@@ -3365,7 +3387,7 @@ BERR_Code BAST_4506_P_EnableStatusInterrupts(
       h_ie4 |= sb;
       BAST_CHK_RETCODE(BAST_WriteHostRegister(h->pDevice, BCM4506_SH_AP_SFR_H_IE4, &h_ie4));
    }
-   
+
    done:
    return retCode;
 }
@@ -3419,7 +3441,7 @@ BERR_Code BAST_4506_P_MapBcm3445ToTuner(
 )
 {
    uint8_t buf[4];
-   
+
    BDBG_ASSERT(h);
    if (mi2c == BAST_Mi2cChannel_e2)
       return (BERR_TRACE(BERR_INVALID_PARAMETER));
@@ -3449,7 +3471,7 @@ BERR_Code BAST_4506_P_GetBcm3445Status(
 
    buf[0] = 0x32 | (h->channel ? 0x40 : 0x00);
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h->pDevice, buf, 8, buf, true));
-   
+
    /* no status if outputs not mapped */
    if (buf[2] == 0)
       return BERR_TRACE(BERR_NOT_INITIALIZED);
@@ -3483,15 +3505,15 @@ BERR_Code BAST_4506_P_ReadIdata(BAST_Handle h, uint8_t page, uint8_t addr, uint8
       return BERR_TRACE(BERR_NOT_INITIALIZED); /* AP is not running */
 
    hab[0] = 0x03;
-   hab[1] = addr; 
+   hab[1] = addr;
    hab[2] = page;
    hab[3] = n;
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h, hab, (uint8_t)(5+n), hab, true));
    for (i = 0; i < n; i++)
       buf[i] = hab[4+i];
-   
+
    done:
-   return retCode; 
+   return retCode;
 }
 
 
@@ -3513,7 +3535,7 @@ BERR_Code BAST_4506_P_ReadXdataPage(BAST_Handle h, uint8_t page, uint16_t offset
 
    hab[0] = 0x1D;
    hab[1] = page;
-   hab[2] = offset >> 8; 
+   hab[2] = offset >> 8;
    hab[3] = (offset & 0xFF);
    hab[4] = n;
    for (i = 0; i < n; i++)
@@ -3522,9 +3544,9 @@ BERR_Code BAST_4506_P_ReadXdataPage(BAST_Handle h, uint8_t page, uint16_t offset
    BAST_CHK_RETCODE(BAST_4506_P_SendHabCommand(h, hab, (uint8_t)(6+n), hab, true));
    for (i = 0; i < n; i++)
       buf[i] = hab[5+i];
-   
+
    done:
-   return retCode; 
+   return retCode;
 }
 
 
@@ -3632,7 +3654,7 @@ BERR_Code BAST_4506_P_SetTunerFilter(BAST_ChannelHandle h, uint32_t cutoffHz)
    else
       tuner_ctl |= 0x08;
    retCode = BAST_4506_P_WriteConfig(h, BCM4506_CONFIG_TUNER_CTL, &tuner_ctl, BCM4506_CONFIG_LEN_TUNER_CTL);
-  
+
    done:
    return retCode;
 }
@@ -3672,11 +3694,11 @@ BERR_Code BAST_4506_P_SetOutputTransportSettings(BAST_ChannelHandle h, BAST_Outp
 {
    uint16_t xportCtl = 0;
    uint8_t buf[2];
-   
+
    if (pSettings->bSerial)
-      xportCtl |= BCM4506_XPORT_CTL_SERIAL;      
+      xportCtl |= BCM4506_XPORT_CTL_SERIAL;
    if (pSettings->bClkInv)
-      xportCtl |= BCM4506_XPORT_CTL_CLKINV;      
+      xportCtl |= BCM4506_XPORT_CTL_CLKINV;
    if (pSettings->bClkSup)
       xportCtl |= BCM4506_XPORT_CTL_CLKSUP;
    if (pSettings->bVldInv)
@@ -3696,16 +3718,16 @@ BERR_Code BAST_4506_P_SetOutputTransportSettings(BAST_ChannelHandle h, BAST_Outp
    if (pSettings->bHead4)
       xportCtl |= BCM4506_XPORT_CTL_HEAD4;
    if (pSettings->bDelHeader)
-      xportCtl |= BCM4506_XPORT_CTL_DELH;     
+      xportCtl |= BCM4506_XPORT_CTL_DELH;
    if (pSettings->bOpllBypass)
-      xportCtl |= BCM4506_XPORT_CTL_BYPASS_OPLL;    
+      xportCtl |= BCM4506_XPORT_CTL_BYPASS_OPLL;
    if (pSettings->bchMpegErrorMode == BAST_BchMpegErrorMode_eBchOrCrc8)
       xportCtl |= 0;
    else if (pSettings->bchMpegErrorMode == BAST_BchMpegErrorMode_eCrc8)
       xportCtl |= BCM4506_XPORT_CTL_CRC8_CHECK;
-   else if (pSettings->bchMpegErrorMode == BAST_BchMpegErrorMode_eBch)  
+   else if (pSettings->bchMpegErrorMode == BAST_BchMpegErrorMode_eBch)
       xportCtl |= BCM4506_XPORT_CTL_BCH_CHECK;
-   else 
+   else
       xportCtl |= (BCM4506_XPORT_CTL_CRC8_CHECK | BCM4506_XPORT_CTL_BCH_CHECK);
 
    buf[0] = (xportCtl >> 8) & 0xFF;
@@ -3729,58 +3751,58 @@ BERR_Code BAST_4506_P_GetOutputTransportSettings(BAST_ChannelHandle h, BAST_Outp
 
    xportCtl = (buf[0] << 8) | buf[1];
 
-   if (xportCtl & BCM4506_XPORT_CTL_SERIAL)  
+   if (xportCtl & BCM4506_XPORT_CTL_SERIAL)
       pSettings->bSerial = true;
    else
-      pSettings->bSerial = false;   
-   if (xportCtl & BCM4506_XPORT_CTL_CLKINV) 
-      pSettings->bClkInv = true; 
+      pSettings->bSerial = false;
+   if (xportCtl & BCM4506_XPORT_CTL_CLKINV)
+      pSettings->bClkInv = true;
    else
       pSettings->bClkInv = false;
    if (xportCtl & BCM4506_XPORT_CTL_CLKSUP)
       pSettings->bClkSup = true;
    else
-      pSettings->bClkSup = false;   
+      pSettings->bClkSup = false;
    if (xportCtl & BCM4506_XPORT_CTL_VLDINV)
       pSettings->bVldInv = true;
    else
-      pSettings->bVldInv = false;   
+      pSettings->bVldInv = false;
    if (xportCtl & BCM4506_XPORT_CTL_SYNCINV)
       pSettings->bSyncInv = true;
    else
-      pSettings->bSyncInv = false;   
+      pSettings->bSyncInv = false;
    if (xportCtl & BCM4506_XPORT_CTL_ERRINV)
       pSettings->bErrInv = true;
    else
-      pSettings->bErrInv = false;   
+      pSettings->bErrInv = false;
    if (xportCtl & BCM4506_XPORT_CTL_XBERT)
       pSettings->bXbert = true;
    else
-      pSettings->bXbert = false;   
+      pSettings->bXbert = false;
    if (xportCtl & BCM4506_XPORT_CTL_TEI)
       pSettings->bTei = true;
    else
-      pSettings->bTei = false;   
+      pSettings->bTei = false;
    if (xportCtl & BCM4506_XPORT_CTL_DELAY)
       pSettings->bDelay = true;
    else
-      pSettings->bDelay = false;   
+      pSettings->bDelay = false;
    if (xportCtl & BCM4506_XPORT_CTL_SYNC1)
       pSettings->bSync1 = true;
    else
-      pSettings->bSync1 = false;   
+      pSettings->bSync1 = false;
    if (xportCtl & BCM4506_XPORT_CTL_HEAD4)
       pSettings->bHead4 = true;
    else
-      pSettings->bHead4 = false;   
+      pSettings->bHead4 = false;
    if (xportCtl & BCM4506_XPORT_CTL_DELH)
-      pSettings->bDelHeader = true;    
+      pSettings->bDelHeader = true;
    else
-      pSettings->bDelHeader = false;   
+      pSettings->bDelHeader = false;
    if (xportCtl & BCM4506_XPORT_CTL_BYPASS_OPLL)
       pSettings->bOpllBypass = true;
    else
-      pSettings->bOpllBypass = false; 
+      pSettings->bOpllBypass = false;
 
    if ((xportCtl & BCM4506_XPORT_CTL_CRC8_CHECK) &&  ((xportCtl & BCM4506_XPORT_CTL_BCH_CHECK)==0))
       pSettings->bchMpegErrorMode = BAST_BchMpegErrorMode_eCrc8;
@@ -3790,7 +3812,7 @@ BERR_Code BAST_4506_P_GetOutputTransportSettings(BAST_ChannelHandle h, BAST_Outp
       pSettings->bchMpegErrorMode = BAST_BchMpegErrorMode_eBchAndCrc8;
    else
       pSettings->bchMpegErrorMode = BAST_BchMpegErrorMode_eBchOrCrc8;
-      
+
    return BERR_SUCCESS;
 }
 
@@ -3803,7 +3825,7 @@ BERR_Code BAST_4506_P_SetDiseqcSettings(BAST_ChannelHandle h, BAST_DiseqcSetting
    BERR_Code retCode;
    uint8_t diseqcCtl = 0;
    uint8_t rrto[4];
-   
+
    if (pSettings->bEnvelope)
       diseqcCtl |= BCM4506_DISEQC_CTL2_ENVELOPE;
    if (pSettings->bToneAlign)
@@ -3826,27 +3848,27 @@ BERR_Code BAST_4506_P_SetDiseqcSettings(BAST_ChannelHandle h, BAST_DiseqcSetting
    if (pSettings->bDisableRxOnly)
       diseqcCtl |= BCM4506_DISEQC_CTL2_DISABLE_RX_ONLY;
    BAST_CHK_RETCODE(BAST_4506_P_WriteConfig(h, BCM4506_CONFIG_DISEQC_CTL2, &diseqcCtl, BCM4506_CONFIG_LEN_DISEQC_CTL2));
-   
+
    /* set rrto */
    rrto[0] = (uint8_t)(pSettings->rrtoUsec >> 24);
    rrto[1] = (uint8_t)(pSettings->rrtoUsec >> 16);
    rrto[2] = (uint8_t)(pSettings->rrtoUsec >> 8);
    rrto[3] = (uint8_t)(pSettings->rrtoUsec & 0xFF);
    BAST_CHK_RETCODE(BAST_4506_P_WriteConfig(h, BCM4506_CONFIG_RRTO_USEC, rrto, BCM4506_CONFIG_LEN_RRTO_USEC));
-   
+
    /* set rx bit threshold */
    pSettings->bitThreshold = 0;  /* not implemented */
-   
+
    /* set tone detect threshold */
    BAST_CHK_RETCODE(BAST_4506_P_WriteConfig(h, BCM4506_CONFIG_DISEQC_TONE_THRESHOLD, &(pSettings->toneThreshold), BCM4506_CONFIG_LEN_DISEQC_TONE_THRESHOLD));
-   
+
    /* set pretx delay */
    BAST_CHK_RETCODE(BAST_4506_P_WriteConfig(h, BCM4506_CONFIG_DISEQC_PRETX_DELAY, &(pSettings->preTxDelay), BCM4506_CONFIG_LEN_DISEQC_PRETX_DELAY));
-   
+
    /* set vsense thresholds */
    pSettings->vsenseThresholdHi = 0;   /* not implemented */
    pSettings->vsenseThresholdLo = 0;   /* not implemented */
-   
+
    done:
    return retCode;
 }
@@ -3860,14 +3882,14 @@ BERR_Code BAST_4506_P_GetDiseqcSettings(BAST_ChannelHandle h, BAST_DiseqcSetting
    BERR_Code retCode;
    uint8_t diseqcCtl;
    uint8_t buf[4];
-   
+
    BAST_CHK_RETCODE(BAST_4506_P_ReadConfig(h, BCM4506_CONFIG_DISEQC_CTL2, &diseqcCtl, BCM4506_CONFIG_LEN_DISEQC_CTL2));
-   if (diseqcCtl & BCM4506_DISEQC_CTL2_ENVELOPE)  
+   if (diseqcCtl & BCM4506_DISEQC_CTL2_ENVELOPE)
       pSettings->bEnvelope = true;
    else
       pSettings->bEnvelope = false;
-   if (diseqcCtl & BCM4506_DISEQC_CTL2_TONE_ALIGN) 
-      pSettings->bToneAlign = true; 
+   if (diseqcCtl & BCM4506_DISEQC_CTL2_TONE_ALIGN)
+      pSettings->bToneAlign = true;
    else
       pSettings->bToneAlign = false;
    if (diseqcCtl & BCM4506_DISEQC_CTL2_DISABLE_RRTO)
@@ -3901,26 +3923,26 @@ BERR_Code BAST_4506_P_GetDiseqcSettings(BAST_ChannelHandle h, BAST_DiseqcSetting
    if (diseqcCtl & BCM4506_DISEQC_CTL2_DISABLE_RX_ONLY)
       pSettings->bDisableRxOnly = true;
    else
-      pSettings->bDisableRxOnly = false; 
-   
+      pSettings->bDisableRxOnly = false;
+
    /* get rrto */
    BAST_CHK_RETCODE(BAST_4506_P_ReadConfig(h, BCM4506_CONFIG_RRTO_USEC, buf, BCM4506_CONFIG_LEN_RRTO_USEC));
    pSettings->rrtoUsec = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
    pSettings->rrtoUsec &= 0xFFFFF;
-   
+
    /* get rx bit threshold */
    pSettings->bitThreshold = 0;  /* not implemented */
-   
+
    /* get tone detect threshold */
    BAST_CHK_RETCODE(BAST_4506_P_ReadConfig(h, BCM4506_CONFIG_DISEQC_TONE_THRESHOLD, &(pSettings->toneThreshold), BCM4506_CONFIG_LEN_DISEQC_TONE_THRESHOLD));
-   
+
    /* get pretx delay */
    BAST_CHK_RETCODE(BAST_4506_P_ReadConfig(h, BCM4506_CONFIG_DISEQC_PRETX_DELAY, &(pSettings->preTxDelay), BCM4506_CONFIG_LEN_DISEQC_PRETX_DELAY));
-   
+
    /* get vsense thresholds */
    pSettings->vsenseThresholdHi = 0;   /* not implemented */
    pSettings->vsenseThresholdLo = 0;   /* not implemented */
-   
+
    done:
    return retCode;
 }
@@ -3969,7 +3991,7 @@ BERR_Code BAST_4506_P_SetFskChannel(BAST_Handle h, BAST_FskChannel fskTxChannel,
 
    if ((fskTxChannel > BAST_FskChannel_e1) || (fskRxChannel > BAST_FskChannel_e1))
       return BERR_INVALID_PARAMETER;
-   
+
    /* the following configuration is not supported */
    if ((fskTxChannel == BAST_FskChannel_e1) && (fskRxChannel == BAST_FskChannel_e0))
       return BERR_NOT_SUPPORTED;
@@ -3980,7 +4002,7 @@ BERR_Code BAST_4506_P_SetFskChannel(BAST_Handle h, BAST_FskChannel fskTxChannel,
       sb = BAST_FskChannelConfig_eCh0Tx_Ch1Rx;
    else
       sb = BAST_FskChannelConfig_eCh1Tx_Ch1Rx;
-  
+
    return BAST_WriteConfig(h->pChannels[0], BCM4506_CONFIG_FTM_CH_SELECT, &sb, BCM4506_CONFIG_LEN_FTM_CH_SELECT);
 }
 
@@ -4018,14 +4040,14 @@ BERR_Code BAST_4506_P_GetFskChannel(BAST_Handle h, BAST_FskChannel *fskTxChannel
 
 /******************************************************************************
  BAST_4506_P_SetPeakScanSymbolRateRange()
-******************************************************************************/  
+******************************************************************************/
 BERR_Code BAST_4506_P_SetPeakScanSymbolRateRange(
    BAST_ChannelHandle h,             /* [in] BAST channel handle */
    uint32_t           minSymbolRate, /* [in] minimum symbol rate in sym/sec */
    uint32_t           maxSymbolRate  /* [in] maximum symbol rate in sym/sec */
 )
 {
-   BERR_Code retCode; 
+   BERR_Code retCode;
    uint8_t buf[4];
 
    if ((minSymbolRate == 0) || (maxSymbolRate == 0))
@@ -4033,17 +4055,17 @@ BERR_Code BAST_4506_P_SetPeakScanSymbolRateRange(
       minSymbolRate = 0;
       maxSymbolRate = 0;
    }
-   else if ((minSymbolRate < 1000000) || (maxSymbolRate < 1000000) || 
+   else if ((minSymbolRate < 1000000) || (maxSymbolRate < 1000000) ||
        (minSymbolRate > 45000000) || (maxSymbolRate > 45000000) ||
        (minSymbolRate > maxSymbolRate))
    {
       return BERR_TRACE(BERR_INVALID_PARAMETER);
    }
-  
+
    buf[0] = (uint8_t)((minSymbolRate >> 24) & 0xFF);
    buf[1] = (uint8_t)((minSymbolRate >> 16) & 0xFF);
    buf[2] = (uint8_t)((minSymbolRate >> 8) & 0xFF);
-   buf[3] = (uint8_t)(minSymbolRate & 0xFF);   
+   buf[3] = (uint8_t)(minSymbolRate & 0xFF);
    retCode = BAST_4506_P_WriteConfig(h, BCM4506_CONFIG_PEAK_SCAN_SYM_RATE_MIN, buf, BCM4506_CONFIG_LEN_PEAK_SCAN_SYM_RATE_MIN);
    if (retCode)
       goto done;
@@ -4051,13 +4073,13 @@ BERR_Code BAST_4506_P_SetPeakScanSymbolRateRange(
    buf[0] = (uint8_t)((maxSymbolRate >> 24) & 0xFF);
    buf[1] = (uint8_t)((maxSymbolRate >> 16) & 0xFF);
    buf[2] = (uint8_t)((maxSymbolRate >> 8) & 0xFF);
-   buf[3] = (uint8_t)(maxSymbolRate & 0xFF);   
+   buf[3] = (uint8_t)(maxSymbolRate & 0xFF);
    retCode = BAST_4506_P_WriteConfig(h, BCM4506_CONFIG_PEAK_SCAN_SYM_RATE_MAX, buf, BCM4506_CONFIG_LEN_PEAK_SCAN_SYM_RATE_MAX);
 
    done:
    if (retCode != BERR_SUCCESS)
    {
-      return BERR_TRACE(retCode);   
+      return BERR_TRACE(retCode);
    }
    return retCode;
 }
@@ -4065,14 +4087,14 @@ BERR_Code BAST_4506_P_SetPeakScanSymbolRateRange(
 
 /******************************************************************************
  BAST_4506_P_GetPeakScanSymbolRateRange()
-******************************************************************************/  
+******************************************************************************/
 BERR_Code BAST_4506_P_GetPeakScanSymbolRateRange(
    BAST_ChannelHandle h,               /* [in] BAST channel handle */
    uint32_t           *pMinSymbolRate, /* [out] minimum symbol rate in sym/sec */
    uint32_t           *pMaxSymbolRate  /* [out] maximum symbol rate in sym/sec */
 )
 {
-   BERR_Code retCode; 
+   BERR_Code retCode;
    uint8_t buf[4];
 
    if ((pMinSymbolRate == NULL) || (pMaxSymbolRate == NULL))
@@ -4084,7 +4106,7 @@ BERR_Code BAST_4506_P_GetPeakScanSymbolRateRange(
    if (retCode != BERR_SUCCESS)
       goto done;
    *pMinSymbolRate = (uint32_t)((buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3]);
-   
+
    retCode = BAST_4506_P_ReadConfig(h, BCM4506_CONFIG_PEAK_SCAN_SYM_RATE_MAX, buf, BCM4506_CONFIG_LEN_PEAK_SCAN_SYM_RATE_MAX);
    if (retCode != BERR_SUCCESS)
       goto done;

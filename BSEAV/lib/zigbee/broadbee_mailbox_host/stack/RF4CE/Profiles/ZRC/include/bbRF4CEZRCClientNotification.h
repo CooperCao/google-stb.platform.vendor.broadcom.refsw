@@ -175,6 +175,8 @@ struct _RF4CE_GDP2_ClientNotificationReqDescr_t
     SYS_SchedulerTaskDescriptor_t                taskDescr;                     /*!< Service task descriptor. */
 
     SYS_TimeoutTask_t                            onExpiredTimerDescr;           /*!< Expiration timer descriptor. */
+#else
+	void *context;
 #endif
 
     /* Structured data. */

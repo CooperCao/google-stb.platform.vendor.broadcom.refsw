@@ -108,7 +108,7 @@ typedef enum BCMD_MemAuth_OutCmdField_e
     BCMD_MemAuth_OutCmdField_eSigEndAddr1 = (22 << 2) + 0,
 
     BCMD_MemAuth_OutCmdField_eRegion0Status = (7 << 2) + 3,
-    BCMD_MemAuth_OutCmdField_eRegionXStatus = (7 << 2) + 3,
+    BCMD_MemAuth_OutCmdField_eRegionXStatus = (7 << 2) + 2,
 
     BCMD_MemAuth_OutCmdField_eMax
 

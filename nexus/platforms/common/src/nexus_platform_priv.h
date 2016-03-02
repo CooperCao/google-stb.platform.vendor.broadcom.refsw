@@ -128,17 +128,6 @@ typedef struct NEXUS_MemoryRtsSettings
         bool splitBufferHevc;
     } avd[NEXUS_MAX_XVD_DEVICES];
 #endif
-#if NEXUS_MAX_VIDEO_ENCODERS
-    struct {
-        unsigned device;
-        unsigned channel;
-    } videoEncoder[NEXUS_MAX_VIDEO_ENCODERS];
-#endif
-#if NEXUS_MAX_VCE_DEVICES
-    struct {
-        unsigned memcIndex; /* for picture heap */
-    } vce[NEXUS_MAX_VCE_DEVICES];
-#endif
 } NEXUS_MemoryRtsSettings;
 
 /***************************************************************************

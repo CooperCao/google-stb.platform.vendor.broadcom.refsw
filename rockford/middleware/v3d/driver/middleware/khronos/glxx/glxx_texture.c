@@ -1393,7 +1393,9 @@ void glxx_texture_bind_images(GLXX_TEXTURE_T *texture, uint32_t levels, MEM_HAND
    texture->blob_mip_count = levels;
    for (i = 0; i < levels; i++) {
       KHRN_IMAGE_T *image;
+#ifndef NDEBUG
       KHRN_IMAGE_WRAP_T blob_wrap;
+#endif
 
       vcos_assert(images[i] != MEM_INVALID_HANDLE);
       vcos_assert(texture->mh_mipmaps[buf][i] == MEM_INVALID_HANDLE);

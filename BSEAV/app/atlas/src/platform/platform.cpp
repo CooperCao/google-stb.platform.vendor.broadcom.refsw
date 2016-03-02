@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -196,18 +196,20 @@ NEXUS_VideoFormat CPlatform::getDisplayMaxVideoFormat(int numDisplay)
     }
     else
     {
-        /* for platfoms that do not support NEXUS_GetDefaultMemoryConfigurationSettings() */
-        for (int i = 0; i < NEXUS_MAX_HEAPS; i++)
+        int                       format       = 0;
+        NEXUS_VideoFormat         maxFormat    = NEXUS_VideoFormat_eUnknown;
+        NEXUS_DisplayCapabilities capabilities;
+
+        NEXUS_GetDisplayCapabilities(&capabilities);
+
+        for (format = 0; format < NEXUS_VideoFormat_eMax; format++)
         {
-            if (0 == numDisplay)
+            if (true == capabilities.displayFormatSupported[format])
             {
-                /*maxFormat = MAX(maxFormat, _platformSettings.displayModuleSettings.displayHeapSettings[i].quadHdBuffers.format);*/
-                maxFormat = MAX(maxFormat, _platformSettings.displayModuleSettings.displayHeapSettings[i].fullHdBuffers.format);
-                maxFormat = MAX(maxFormat, _platformSettings.displayModuleSettings.displayHeapSettings[i].hdBuffers.format);
-            }
-            else
-            {
-                maxFormat = MAX(maxFormat, _platformSettings.displayModuleSettings.displayHeapSettings[i].sdBuffers.format);
+                if (videoFormatToVertRes(maxFormat) < videoFormatToVertRes((NEXUS_VideoFormat)format))
+                {
+                    maxFormat = (NEXUS_VideoFormat)format;
+                }
             }
         }
     }
@@ -225,7 +227,10 @@ NEXUS_VideoFormat CPlatform::getDecoderMaxVideoFormat(int numDecoder)
     }
     else
     {
-        maxFormat = _platformSettings.videoDecoderModuleSettings.maxDecodeFormat;
+        NEXUS_VideoDecoderCapabilities capabilities;
+
+        NEXUS_GetVideoDecoderCapabilities(&capabilities);
+        maxFormat = capabilities.memory[numDecoder].maxFormat;
     }
 
     return(maxFormat);

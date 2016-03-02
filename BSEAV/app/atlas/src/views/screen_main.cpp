@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -82,6 +82,8 @@ CScreenMain::CScreenMain(
     _pLabelConnectionStatus(NULL),
     _pLabelPlaybackName(NULL),
     _pLabelPlaybackNameShadow(NULL),
+    _pLabelDebugName(NULL),
+    _pLabelDebugNameShadow(NULL),
     _pMainMenu(NULL),
     _Display(NULL),
     _Decode(NULL),
@@ -368,6 +370,29 @@ eRet CScreenMain::initialize(CModel * pModel)
         _pLabelPlaybackNameShadow->setTextColor(COLOR_BLACK);
         _pLabelPlaybackNameShadow->setText("Now Playing:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
         _pLabelPlaybackNameShadow->show(false);
+    }
+
+    /* debug widget */
+    {
+        MRect rectDebugName(50, graphicsHeight - 60, graphicsWidth - 100, 25);
+
+        _pLabelDebugName = new CWidgetLabel("CScreenMain::_pLabelDebugName", getEngine(), this, rectDebugName, font14);
+        CHECK_PTR_ERROR_GOTO("unable to allocate label widget", _pLabelDebugName, ret, eRet_OutOfMemory, error);
+        _pLabelDebugName->setBevel(0);
+        _pLabelDebugName->setBackgroundFillMode(fill_eNone); /* no background so text overlays */
+        _pLabelDebugName->setTextColor(COLOR_YELLOW);
+        _pLabelDebugName->setText("Lua Debug:", bwidget_justify_horiz_right, bwidget_justify_vert_middle);
+        _pLabelDebugName->show(false);
+
+        rectDebugName.moveBy(1, 1);
+
+        _pLabelDebugNameShadow = new CWidgetLabel("CScreenMain::_pLabelDebugNameShadow", getEngine(), this, rectDebugName, font14);
+        CHECK_PTR_ERROR_GOTO("unable to allocate label widget", _pLabelDebugNameShadow, ret, eRet_OutOfMemory, error);
+        _pLabelDebugNameShadow->setBevel(0);
+        _pLabelDebugNameShadow->setBackgroundFillMode(fill_eNone); /* no background so text overlays */
+        _pLabelDebugNameShadow->setTextColor(COLOR_BLACK);
+        _pLabelDebugNameShadow->setText("Lua Debug:", bwidget_justify_horiz_right, bwidget_justify_vert_middle);
+        _pLabelDebugNameShadow->show(false);
     }
 
     /* scan status widget */
@@ -726,6 +751,8 @@ void CScreenMain::uninitialize()
     DEL(_pLabelConnectionStatus);
     DEL(_pLabelPlaybackNameShadow);
     DEL(_pLabelPlaybackName);
+    DEL(_pLabelDebugNameShadow);
+    DEL(_pLabelDebugName);
     DEL(_pLabelPlaybackLength);
     DEL(_pLabelPlaybackState);
     DEL(_pProgressPlayback);
@@ -779,14 +806,13 @@ eRet CScreenMain::registerObserver(
 
 void CScreenMain::processNotification(CNotification & notification)
 {
-    MListItr <CPanel> itr(&_panelList);
     CPanel *          pPanel = NULL;
     eRet              ret    = eRet_Ok;
 
     /* we could have simply handled all the incomming notifications for all the panels
      * here, but instead we'll split them off and keep the notification handling code
      * and the respective panel code in the same file */
-    for (pPanel = itr.first(); pPanel; pPanel = itr.next())
+    for (pPanel = _panelList.first(); pPanel; pPanel = _panelList.next())
     {
         pPanel->processNotification(notification);
     }
@@ -1215,6 +1241,23 @@ void CScreenMain::processNotification(CNotification & notification)
     }
     break;
 
+    case eNotify_Debug:
+    {
+        MString * pStringDebug = (MString *)notification.getData();
+
+        if (NULL == pStringDebug)
+        {
+            showDebugTitle(false);
+        }
+        else
+        {
+            BDBG_WRN(("=====> Lua Debug: %s", (*pStringDebug).s()));
+            showDebugTitle((true == pStringDebug->isEmpty()) ? false : true);
+            setDebugTitle(*pStringDebug);
+        }
+    }
+    break;
+
     default:
         break;
     } /* switch */
@@ -1262,6 +1305,22 @@ eRet CScreenMain::setPlaybackTitle(const char * str)
 
     return(eRet_Ok);
 } /* setPlaybackTitle */
+
+eRet CScreenMain::showDebugTitle(bool bShow)
+{
+    _pLabelDebugNameShadow->show(bShow);
+    _pLabelDebugName->show(bShow);
+
+    return(eRet_Ok);
+} /* showDebugTitle */
+
+eRet CScreenMain::setDebugTitle(const char * str)
+{
+    _pLabelDebugNameShadow->setText(str);
+    _pLabelDebugName->setText(str);
+
+    return(eRet_Ok);
+} /* setDebugTitle */
 
 eRet CScreenMain::updatePip()
 {
@@ -1730,7 +1789,20 @@ void CScreenMain::setChannelIndicator(
     if (NULL != pChannelMgr)
     {
         /* add record/encode indicator for each recording channelmgr channel */
-        for (pChannel = pChannelMgr->getFirstChannel();
+
+        /* main channel list */
+        for (pChannel = pChannelMgr->getFirstChannel(eWindowType_Main);
+             pChannel;
+             pChannel = pChannelMgr->getNextChannel(pChannel, false))
+        {
+            ret = addRecordEncodeIndicator(pChannel);
+            if (eRet_Ok == ret)
+            {
+                bUpdated = true;
+            }
+        }
+        /* pip channel list */
+        for (pChannel = pChannelMgr->getFirstChannel(eWindowType_Pip);
              pChannel;
              pChannel = pChannelMgr->getNextChannel(pChannel, false))
         {

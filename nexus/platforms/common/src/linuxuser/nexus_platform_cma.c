@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #include "nexus_platform_priv.h"
 #include "bchp_common.h"
@@ -906,21 +896,55 @@ err_alloc:
 
 NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings(const NEXUS_PlatformSettings *pSettings, const NEXUS_PlatformMemory *pMemory, NEXUS_Core_Settings *pCoreSettings)
 {
+    NEXUS_Error rc;
     bool useCma = pMemory->osRegion[0].cma;
     if(!useCma) {
         unsigned i;
+        bool dynamicHeaps = false;
+        bool pinnedHeaps = false;
         for (i=0;i<NEXUS_MAX_HEAPS;i++) {
             if(pSettings->heap[i].size==0) {
                 continue;
             }
+            if(pSettings->heap[i].offset) {
+                pinnedHeaps = true;
+            }
             if(pSettings->heap[i].memoryType & NEXUS_MEMORY_TYPE_DYNAMIC) {
-                break;
+                dynamicHeaps = true;
             }
         }
-        if(i==NEXUS_MAX_HEAPS) { /* no dynamic heaps */
-            return NEXUS_Platform_P_SetCoreCmaSettings_priv(pSettings->heap, pMemory, pCoreSettings, false);
+        if(pinnedHeaps) { /* verify that all heaps are pinned */
+            unsigned max_dcache_line_size = pMemory->max_dcache_line_size;
+            for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+                if(pSettings->heap[i].memoryType & NEXUS_MEMORY_TYPE_DYNAMIC) {
+                    continue;
+                }
+                if(pSettings->heap[i].size==0) {
+                    continue;
+                }
+                if(pSettings->heap[i].size<0) {
+                    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+                }
+                if(pSettings->heap[i].offset==0) {
+                    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+                }
+                pCoreSettings->heapRegion[i].offset = pSettings->heap[i].offset;
+                pCoreSettings->heapRegion[i].length = pSettings->heap[i].size;
+                pCoreSettings->heapRegion[i].memcIndex = pSettings->heap[i].memcIndex;
+                pCoreSettings->heapRegion[i].memoryType = pSettings->heap[i].memoryType;
+                pCoreSettings->heapRegion[i].heapType = pSettings->heap[i].heapType;
+                if (max_dcache_line_size > pCoreSettings->heapRegion[i].alignment) {
+                    pCoreSettings->heapRegion[i].alignment = max_dcache_line_size;
+                }
+            }
+        }
+        if(!dynamicHeaps) { /* no dynamic heaps */
+            if(!pinnedHeaps) {
+                rc = NEXUS_Platform_P_SetCoreCmaSettings_priv(pSettings->heap, pMemory, pCoreSettings, false);
+            } else {
+                rc = NEXUS_SUCCESS;
+            }
         } else {
-            NEXUS_Error rc;
             NEXUS_PlatformHeapSettings *heap;
             heap = BKNI_Malloc(sizeof(pSettings->heap));
             if(heap==NULL) { return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);}
@@ -934,10 +958,12 @@ NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings(const NEXUS_PlatformSettings *pS
                     heap[i].size = 0;
                 }
             }
-            rc = NEXUS_Platform_P_SetCoreCmaSettings_priv(heap, pMemory, pCoreSettings, false);
-            if(rc!=NEXUS_SUCCESS) {
-                BKNI_Free(heap);
-                return BERR_TRACE(rc);
+            if(!pinnedHeaps) {
+                rc = NEXUS_Platform_P_SetCoreCmaSettings_priv(heap, pMemory, pCoreSettings, false);
+                if(rc!=NEXUS_SUCCESS) {
+                    BKNI_Free(heap);
+                    return BERR_TRACE(rc);
+                }
             }
             /* 2. Allocate dynamic heaps in CMA regions */
             for (i=0;i<NEXUS_MAX_HEAPS;i++) {
@@ -951,12 +977,13 @@ NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings(const NEXUS_PlatformSettings *pS
             }
             rc = NEXUS_Platform_P_SetCoreCmaSettings_priv(heap, pMemory, pCoreSettings, true);
             BKNI_Free(heap);
-            return rc;
         }
         /* XXX TODO need to test presence of dynamic heaps, and then get CMA copy of NEXUS_PlatformMemory and run NEXUS_Platform_P_SetCoreCmaSettings_priv for dynamic heaps */
     } else {
-        return NEXUS_Platform_P_SetCoreCmaSettings_priv(pSettings->heap, pMemory, pCoreSettings, true);
+        rc = NEXUS_Platform_P_SetCoreCmaSettings_priv(pSettings->heap, pMemory, pCoreSettings, true);
     }
+    if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
+    return NEXUS_Platform_P_SetCoreCmaSettings_Verify(pSettings, pCoreSettings, pMemory);
 }
 
 static NEXUS_Error NEXUS_Platform_P_GetHostCmaMemory(NEXUS_PlatformMemory *pMemory, unsigned cma_offset)
@@ -1022,7 +1049,7 @@ static NEXUS_Error NEXUS_Platform_P_GetHostCmaMemory(NEXUS_PlatformMemory *pMemo
 
 static bool NEXUS_Platform_P_RangeTestIntersect(const nexus_p_memory_range *outer, NEXUS_Addr addr, size_t size)
 {
-    return (outer->addr < addr+size) && (addr < outer->addr + outer->size);
+    return NEXUS_Platform_P_TestIntersect(outer->addr, outer->size, addr, size);
 }
 
 NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)

@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * (c) 2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -43,7 +43,7 @@
 #include "atlas.h"
 #include "atlas_cfg.h"
 #include "convert.h"
-#include "channel.h"
+#include "channel_bip.h"
 
 BDBG_MODULE(atlas_playlist);
 
@@ -160,10 +160,10 @@ const char * CPlaylist::getMetadataValue(int index)
     return(NULL);
 }
 
-void CPlaylist::dump(bool bForce)
+void CPlaylist::dump(bool bForce, int index)
 {
-    BDBG_Level level;
-    CChannel * pChannel = NULL;
+    BDBG_Level    level;
+    CChannelBip * pChannelBip = NULL;
 
     if (true == bForce)
     {
@@ -171,13 +171,38 @@ void CPlaylist::dump(bool bForce)
         BDBG_SetModuleLevel("atlas_playlist", BDBG_eMsg);
     }
 
-    for (pChannel = _channelList.first(); pChannel; pChannel = _channelList.next())
+    BDBG_WRN(("Playlist:%s", getName().s()));
+
+    if (0 == index)
     {
-        BDBG_MSG(("channel:%s", pChannel->getName().s()));
+        for (pChannelBip = (CChannelBip *)_channelList.first(); pChannelBip; pChannelBip = (CChannelBip *)_channelList.next())
+        {
+            BDBG_WRN(("%s %d", pChannelBip->getUrlPath().s(), pChannelBip->getProgram()));
+        }
+    }
+    else
+    {
+        pChannelBip = (CChannelBip *)_channelList[index - 1];
+        if (NULL != pChannelBip)
+        {
+            BDBG_WRN(("%s %d", pChannelBip->getUrlPath().s(), pChannelBip->getProgram()));
+        }
     }
 
     if (true == bForce)
     {
         BDBG_SetModuleLevel("atlas_playlist", level);
+    }
+
+    /* notify observer of channel shown (Lua uses as response to request) */
+    {
+        /* if requested index is > 0 then return corresponding 1 index based playlist
+           with notification */
+        if (0 < index)
+        {
+            pChannelBip = (CChannelBip *)_channelList[index - 1];
+        }
+
+        notifyObservers(eNotify_PlaylistShown, pChannelBip);
     }
 } /* dump */

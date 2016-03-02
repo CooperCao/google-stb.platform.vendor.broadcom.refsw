@@ -1170,6 +1170,7 @@ void xcode_loopback_setup( TranscodeContext  *pContext )
 	NEXUS_StcChannel_GetDefaultSettings(BTST_LOOPBACK_STC_IDX, &stcSettings);
 	stcSettings.timebase = NEXUS_Timebase_e0;
 	stcSettings.mode = NEXUS_StcChannelMode_eAuto;
+	stcSettings.autoConfigTimebase = false;
 	pContext->stcChannelLoopback = NEXUS_StcChannel_Open(BTST_LOOPBACK_STC_IDX, &stcSettings);
 	BDBG_MSG(("Transcoder%d opened Loopback STC [%p].", pContext->contextId, pContext->stcChannelLoopback));
 #if BTST_ENABLE_AV_SYNC
@@ -4083,6 +4084,7 @@ static int open_transcode(
 			stcSettings.modeSettings.pcr.pidChannel = (pInputSettings->iPcrPid != pInputSettings->iVideoPid)?
 				pContext->pcrPidChannel : /* different PCR PID */
 				pContext->videoPidChannel; /* PCR happens to be on video pid */
+			stcSettings.autoConfigTimebase = true;/* decoder STC auto config timebase so no need to manually config timebase */
 			pContext->stcVideoChannel = NEXUS_StcChannel_Open(BTST_XCODE_VIDEO_STC_IDX(pContext->contextId), &stcSettings);
 			BDBG_MSG(("Transcoder%d opened source vSTC [%p].", pContext->contextId, pContext->stcVideoChannel));
 
@@ -4094,6 +4096,7 @@ static int open_transcode(
 			stcSettings.timebase = NEXUS_Timebase_e0+pContext->contextId;/* should be the same timebase for end-to-end locking */
 			stcSettings.mode = NEXUS_StcChannelMode_eAuto;/* for encoder&mux, only timebase matters */
 			stcSettings.pcrBits = NEXUS_StcChannel_PcrBits_eFull42;/* ViCE2 requires 42-bit STC broadcast */
+			stcSettings.autoConfigTimebase = false;/* encoder STC must NOT auto config timebase; NOTE this must be false at open */
 			pContext->stcChannelTranscode = NEXUS_StcChannel_Open(BTST_XCODE_OTHER_STC_IDX(pContext->contextId), &stcSettings);
 			BDBG_MSG(("Transcoder%d opened encoder STC [%p].", pContext->contextId, pContext->stcChannelTranscode));
 
@@ -4147,10 +4150,12 @@ static int open_transcode(
 			stcSettings.timebase = NEXUS_Timebase_e0+pContext->contextId;
 			stcSettings.mode = NEXUS_StcChannelMode_eAuto;
 			stcSettings.modeSettings.Auto.transportType = pInputSettings->eStreamType;
+			stcSettings.autoConfigTimebase = true;/* decoder STC auto config timebase */
 			pContext->stcVideoChannel = NEXUS_StcChannel_Open(BTST_XCODE_VIDEO_STC_IDX(pContext->contextId), &stcSettings);
 			BDBG_MSG(("Transcoder%d opened source vSTC [%p].", pContext->contextId, pContext->stcVideoChannel));
 
 			/* NRT mode uses separate STCs for audio and video decoders; */
+			stcSettings.autoConfigTimebase = false;/* encoder STC must NOT auto config timebase; NOTE must set false at open */
 			pContext->stcAudioChannel = (pContext->bNonRealTime && pInputSettings->bAudioInput)?
 				NEXUS_StcChannel_Open(BTST_XCODE_OTHER_STC_IDX(pContext->contextId), &stcSettings) :
 				pContext->stcVideoChannel;
@@ -4164,6 +4169,7 @@ static int open_transcode(
 				stcSettings.timebase = NEXUS_Timebase_e0+pContext->contextId;/* should be the same timebase for end-to-end locking */
 				stcSettings.mode = NEXUS_StcChannelMode_eAuto;/* for encoder&mux, only timebase matters */
 				stcSettings.pcrBits = NEXUS_StcChannel_PcrBits_eFull42;/* ViCE2 requires 42-bit STC broadcast */
+				stcSettings.autoConfigTimebase = false;/* encoder STC must NOT auto config timebase */
 				pContext->stcChannelTranscode = NEXUS_StcChannel_Open(BTST_XCODE_OTHER_STC_IDX(pContext->contextId), &stcSettings);
 			}
 			BDBG_MSG(("Transcoder%d opened encoder STC [%p].", pContext->contextId, pContext->stcChannelTranscode));
@@ -4218,6 +4224,7 @@ static int open_transcode(
 		NEXUS_StcChannel_GetDefaultSettings(NEXUS_ANY_ID, &stcSettings);
 		stcSettings.timebase = NEXUS_Timebase_e0+pContext->contextId;
 		stcSettings.mode = NEXUS_StcChannelMode_eAuto;
+		stcSettings.autoConfigTimebase = false; /* hdmi input timebase will be configured by hdmi input module! */
 		pContext->stcVideoChannel = NEXUS_StcChannel_Open(BTST_XCODE_VIDEO_STC_IDX(pContext->contextId), &stcSettings);
 		BDBG_MSG(("Transcoder%d opened source vSTC [%p].", pContext->contextId, pContext->stcVideoChannel));
 
@@ -4229,6 +4236,7 @@ static int open_transcode(
 		stcSettings.timebase = NEXUS_Timebase_e0+pContext->contextId;/* should be the same timebase for end-to-end locking */
 		stcSettings.mode = NEXUS_StcChannelMode_eAuto;/* for encoder&mux, only timebase matters */
 		stcSettings.pcrBits = NEXUS_StcChannel_PcrBits_eFull42;/* ViCE2 requires 42-bit STC broadcast */
+		stcSettings.autoConfigTimebase = false;/* encoder STC must NOT auto config timebase */
 		pContext->stcChannelTranscode = NEXUS_StcChannel_Open(BTST_XCODE_OTHER_STC_IDX(pContext->contextId), &stcSettings);
 		BDBG_MSG(("Transcoder%d opened encoder STC [%p].", pContext->contextId, pContext->stcChannelTranscode));
 	}

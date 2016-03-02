@@ -88,7 +88,7 @@ Token *glsl_token_construct_ppnumberi(int i)    // clean
    return glsl_token_construct(PPNUMBERI, data);
 }
 
-bool glsl_token_equals(Token *t1, Token *t2)   // clean
+bool glsl_token_equals(Token *t1, Token *t2, bool subcmp)   // clean
 {
    if (t1->type != t2->type)
       return false;
@@ -98,9 +98,9 @@ bool glsl_token_equals(Token *t1, Token *t2)   // clean
    case PPNUMBERU:
       return !strcmp(t1->data.s, t2->data.s);
    case PPNUMBERI:
-      return t1->data.i == t2->data.i;
+      return (t1->data.i == t2->data.i) && (subcmp ? !strcmp(t1->data.s, t2->data.s) : true);
    case PPNUMBERF:
-      return t1->data.f == t2->data.f;
+      return (t1->data.f == t2->data.f) && (subcmp ? !strcmp(t1->data.s, t2->data.s) : true);
    default:
       return true;
    }
@@ -156,7 +156,7 @@ TokenList *glsl_tokenlist_union(TokenList *hs0, TokenList *hs1)
 bool glsl_tokenlist_equals(TokenList *t1, TokenList *t2)
 {
    while (t1) {
-      if (!t2 || !glsl_token_equals(t1->token, t2->token))
+      if (!t2 || !glsl_token_equals(t1->token, t2->token, false))
          return false;
 
       t1 = t1->next;
@@ -169,7 +169,7 @@ bool glsl_tokenlist_equals(TokenList *t1, TokenList *t2)
 bool glsl_tokenlist_contains(TokenList *hs, Token *t)
 {
    while (hs) {
-      if (glsl_token_equals(hs->token, t))
+      if (glsl_token_equals(hs->token, t, false))
          return true;
 
       hs = hs->next;
@@ -214,7 +214,7 @@ TokenSeq *glsl_tokenseq_construct(Token *token, TokenList *hide, TokenSeq *next)
 bool glsl_tokenseq_equals(TokenSeq *t1, TokenSeq *t2)
 {
    while (t1) {
-      if (!t2 || !glsl_token_equals(t1->token, t2->token))
+      if (!t2 || !glsl_token_equals(t1->token, t2->token, true))
          return false;
 
       t1 = t1->next;

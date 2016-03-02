@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -78,19 +78,27 @@ public:
             ) :
         _id(id),
         _waitId(waitId),
-        _waitTimeout(waitTimeout) {}
+        _waitTimeout(waitTimeout),
+        _bTimedOut(false),
+        _numReturnVals(1) {}
     virtual ~CLuaEvent() {}
 
     virtual void * getDataPtr(void) { return(NULL); }
 
-    eNotification getId(void)               { return(_id); }
-    eNotification getWaitNotification(void) { return(_waitId); }
-    int           getWaitTimeout(void)      { return(_waitTimeout); }
+    eNotification getId(void)                         { return(_id); }
+    eNotification getWaitNotification(void)           { return(_waitId); }
+    int           getWaitTimeout(void)                { return(_waitTimeout); }
+    void          setTimedOut(bool bTimedOut)         { _bTimedOut = bTimedOut; }
+    bool          isTimedOut(void)                    { return(_bTimedOut); }
+    int           getNumReturnVals(void)              { return(_numReturnVals); }
+    void          setNumReturnVals(int numReturnVals) { _numReturnVals = numReturnVals; }
 
 protected:
     eNotification _id;
     eNotification _waitId;
     int           _waitTimeout;
+    bool          _bTimedOut;
+    int           _numReturnVals;
 };
 
 template<class T>
@@ -133,10 +141,11 @@ public:
     void             addEvent(CLuaEvent * pEvent);
     CLuaEvent *      getEvent(void);
     CLuaEvent *      removeEvent(void);
-    void             trigger(CLuaEvent * pEvent);
+    eRet             trigger(CLuaEvent * pEvent);
     bool             handleInput(char * pLine);
     void             processNotification(CNotification & notification);
-    void             setModel(CModel * pModel) { _pModel = pModel; }
+    CLuaEvent *      getBusyLuaEvent(void)     { return(&_busyLuaEvent); }
+    void             setModel(CModel * pModel) { _pModel = pModel;  }
     CModel *         getModel(void)            { return(_pModel); }
 
 public:
@@ -148,10 +157,10 @@ protected:
     B_ThreadHandle    _threadShell;
     bool              _shellStarted;
     MList <CLuaEvent> _eventList;
-    CLuaEvent         _busyLuaEvent;
     B_MutexHandle     _eventMutex;
     B_EventHandle     _busyEvent;
     CWidgetEngine *   _pWidgetEngine;
+    CLuaEvent         _busyLuaEvent;
     CConfig *         _pConfig;
     CConfiguration *  _pCfg;
     CModel *          _pModel;

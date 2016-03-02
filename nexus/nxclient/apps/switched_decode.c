@@ -107,9 +107,13 @@ static struct {
 static int start_local_graphics(void)
 {
     NEXUS_Graphics2DFillSettings fillSettings;
+    struct bgui_settings gui_settings;
 
     /* main app must use NxClient for graphics */
-    g_app.gui = bgui_create(720, 480);
+    bgui_get_default_settings(&gui_settings);
+    gui_settings.width = 720;
+    gui_settings.height = 480;
+    g_app.gui = bgui_create(&gui_settings);
     if (!g_app.gui) return -1;
 
     /* put a small red box in the upper right corner */

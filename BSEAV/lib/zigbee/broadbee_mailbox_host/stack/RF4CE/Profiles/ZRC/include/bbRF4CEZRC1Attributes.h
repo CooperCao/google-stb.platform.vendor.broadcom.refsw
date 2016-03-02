@@ -71,7 +71,25 @@ typedef enum _RF4CE_ZRC1_AttributesID_t
                                                                passed to the pair request primitive during the push
                                                                button pairing procedure. */
     RF4CE_ZRC1_APL_COMMAND_DISCOVERY              = 0x83, /*!< ZRC 1. Command discovery value. */
-    RF4CE_ZRC1_APL_AUTODISCOVERY_PAIR_TIMEOUT     = 0x84  /*!< Custom attribute. */
+                                                          /* Overlapped with GDP2.0 POWER_STATUS -wzz 2016.01.27*/
+    RF4CE_ZRC1_APL_AUTODISCOVERY_PAIR_TIMEOUT     = 0x84, /*!< Custom attribute. */
+                                                          /* Overlapped with RF4CE_ZRC2_POLL_CONSTRAINTS -wzz 2016.01.27*/
+#ifdef _PHY_TEST_HOST_INTERFACE_
+    /* A self-defined attribute is created here for customer requirement.
+        Max auto-discovery duration is a constant in ZRC1.1 spec.
+        ZRC2.0 has aplcBindWindowDuration(RF4CE_GDP_APLC_BIND_WINDOW_DURATION).
+        The self-defined attribute GDP_AUTO_DISC_DURATION may represent both of them.
+        Besides, we may consider to merge common attributes currently in ZRC1 and ZRC2 systematically to GDP module.
+        -wzz 2016.01.27
+    */
+    GDP_AUTO_DISC_DURATION                        = 0x8C,
+
+    /* A self-defined attribute is created here for customer requirement.
+        This attribute will be used to set the TX Power during the Key Exchange time only.
+        Currently, we have this in ZRC1 attribute section, but it should be on GDP to combine with ZRC 2.0.
+    */
+    GDP_TX_POWER_KEY_EXCHANGE                     = 0x8D
+#endif
 } RF4CE_ZRC1_AttributesID_t;
 
 /**//**
@@ -94,6 +112,16 @@ typedef enum _RF4CE_ZRC_AttributeStatus_t
 /**//**
  * \brief RF4CE ZRC on board attributes initialization.
  */
+#if (!defined(_PHY_TEST_HOST_INTERFACE_))
+#define INIT_ZRC1_ATTRIBUTES \
+{ \
+    .aplZRC1KeyRepeatInterval = RF4CE_ZRC1_APLC_MAX_KEY_REPEAT_INTERVAL >> 1, \
+    .aplZRC1KeyRepeatWaitTime = RF4CE_ZRC1_APLC_MAX_KEY_REPEAT_INTERVAL << 1, \
+    .aplZRC1KeyExchangeTransferCount = RF4CE_ZRC1_APLC_MIN_KEY_EXCHANGE_TRANSFER_COUNT, \
+    .aplZRC1CommandDiscovery = RF4CE_ZRC_DEFAULT_HDMI_BANK, \
+    .aplZRC1AutodiscoveryPairTimeout = RF4CE_ZRC1_MAX_PAIR_INDICATION_WAIT_TIME \
+}
+#else
 #define INIT_ZRC1_ATTRIBUTES \
 { \
     .aplZRC1KeyRepeatInterval = RF4CE_ZRC1_APLC_MAX_KEY_REPEAT_INTERVAL >> 1, \
@@ -101,7 +129,10 @@ typedef enum _RF4CE_ZRC_AttributeStatus_t
     .aplZRC1KeyExchangeTransferCount = RF4CE_ZRC1_APLC_MIN_KEY_EXCHANGE_TRANSFER_COUNT, \
     .aplZRC1CommandDiscovery = RF4CE_ZRC_DEFAULT_HDMI_BANK, \
     .aplZRC1AutodiscoveryPairTimeout = RF4CE_ZRC1_MAX_PAIR_INDICATION_WAIT_TIME, \
+    .aplGDPAutoDiscoveryDuration = RF4CE_ZRC1_AUTO_DISCOVERY_DURATION, \
+    .aplGDPTxPowerKeyExchange = RF4CE_GDP1_TX_POWER_KEY_EXCHANGE \
 }
+#endif
 
 /************************* TYPES *******************************************************/
 /**//**
@@ -119,6 +150,10 @@ typedef struct _RF4CE_ZRC1_Attributes_t
                                                        button pairing procedure. */
     uint8_t aplZRC1CommandDiscovery[32];          /*!< ZRC 1. Command discovery bitmap. */
     uint16_t aplZRC1AutodiscoveryPairTimeout;
+#ifdef _PHY_TEST_HOST_INTERFACE_
+    uint32_t aplGDPAutoDiscoveryDuration;         /*!< Self-defined attribute for total Binding Timeout. */
+    int8_t aplGDPTxPowerKeyExchange;              /*!< Self-defined attribute for Tx Power during Key Exchange. */
+#endif
 } RF4CE_ZRC1_Attributes_t;
 
 /**//**
@@ -136,6 +171,10 @@ typedef union _RF4CE_ZRC1_Attribute_t
                                                        button pairing procedure. */
     uint8_t aplZRC1CommandDiscovery[32];          /*!< ZRC 1. Command discovery bitmap. */
     uint16_t aplZRC1AutodiscoveryPairTimeout;
+#ifdef _PHY_TEST_HOST_INTERFACE_
+    uint32_t aplGDPAutoDiscoveryDuration;         /*!< Self-defined attribute for total Binding Timeout. */
+    int8_t aplGDPTxPowerKeyExchange;              /*!< Self-defined attribute for Tx Power during Key Exchange. */
+#endif
 } RF4CE_ZRC1_Attribute_t;
 
 /**//**
@@ -197,10 +236,10 @@ typedef void (*RF4CE_ZRC1_SetAttributeCallback_t)(RF4CE_ZRC1_SetAttributeDescr_t
  */
 struct _RF4CE_ZRC1_GetAttributeDescr_t
 {
-#ifdef _HOST_
-    /* void *context; */
-#else
+#ifndef _HOST_
     RF4CE_NWK_RequestService_t service;
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC1_GetAttributeReqParams_t params;
     RF4CE_ZRC1_GetAttributeCallback_t callback;
@@ -213,6 +252,8 @@ struct _RF4CE_ZRC1_SetAttributeDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC1_SetAttributeReqParams_t params;
     RF4CE_ZRC1_SetAttributeCallback_t callback;

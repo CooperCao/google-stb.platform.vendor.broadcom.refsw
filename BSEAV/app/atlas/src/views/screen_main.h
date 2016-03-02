@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -156,6 +156,8 @@ public:
     eRet    showConnectionStatus(bool bConnected, const char * strText, uint32_t timeout = 3000);
     eRet    showPlaybackTitle(bool bShow = true);
     eRet    setPlaybackTitle(const char * str);
+    eRet    showDebugTitle(bool bShow = true);
+    eRet    setDebugTitle(const char * str);
     eRet    updatePlaybackProgress(void);
     eRet    updateChannelProgress(void);
     eRet    updatePip(void);
@@ -188,6 +190,8 @@ protected:
     CWidgetLabel *    _pLabelConnectionStatus;
     CWidgetLabel *    _pLabelPlaybackName;
     CWidgetLabel *    _pLabelPlaybackNameShadow;
+    CWidgetLabel *    _pLabelDebugName;
+    CWidgetLabel *    _pLabelDebugNameShadow;
     CWidgetMenu *     _pMainMenu;
     CWidgetButton *   _Display;
     CWidgetButton *   _Decode;

@@ -1,5 +1,5 @@
 /********************************************************************************************
-*     (c)2004-2015 Broadcom Corporation                                                     *
+*     (c)2004-2016 Broadcom Corporation                                                     *
 *                                                                                           *
 *  This program is the proprietary software of Broadcom Corporation and/or its licensors,   *
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and      *
@@ -95,7 +95,7 @@ typedef struct B_DTCP_IP_Connection
     B_EventHandle  hConnTerminated;     /*!< connection thread terminated event handle */
     B_EventHandle  hReaderTerminated;       /*!< Reader thread terminated event handle */
 
-    B_TransportEvent_T EventType;       /*!< Type of the occured event.*/
+    B_TransportEvent_T EventType;       /*!< Type of the occurred event.*/
     B_EventHandle  hNetEvent;           /*!< Data ready or network error event handle */
     B_EventHandle  hBufCleared;         /*!< event indicating buffer has been read out by other threads. */
     bool bufRead;

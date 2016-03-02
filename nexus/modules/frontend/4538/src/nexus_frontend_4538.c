@@ -707,7 +707,6 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init4538_PostInitAP(NEXUS_4538Device *
     if (pDevice->settings.mtsif[0].clockRate != 0) {
         uint32_t val;
         unsigned divider;
-        int div = 20; /* 2160MHz / div : for 108MHz, div == 20 */
         BHAB_ReadRegister(pDevice->hab,0x90108,&val);
         switch (pDevice->settings.mtsif[0].clockRate) {
         case 81000000: /* 81 MHz. */
@@ -747,7 +746,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init4538_PostInitAP(NEXUS_4538Device *
             break;
         }
         val &= 0xFFFFFF00;
-        val |= div;
+        val |= divider;
         BHAB_WriteRegister(pDevice->hab,0x90108,&val);
     }
 

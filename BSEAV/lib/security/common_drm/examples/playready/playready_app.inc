@@ -36,10 +36,6 @@
 # ANY LIMITED REMEDY.
 #
 ###############################################################################################
-
-
-PLAYREADY_TEST = y
-
 ifeq ($(NXCLIENT_SUPPORT),y)
 DRM_APPS = test_prpd
 else

@@ -1020,3 +1020,85 @@ static NEXUS_Error NEXUS_Platform_P_CalculateBootParams(struct NEXUS_Platform_P_
     if(rc!=NEXUS_SUCCESS) { return BERR_TRACE(rc);}
     return NEXUS_SUCCESS;
 }
+
+static bool NEXUS_Platform_P_TestIntersect(NEXUS_Addr addr1, size_t size1, NEXUS_Addr addr2, size_t size2)
+{
+    return (addr1 < addr2+size2) && (addr2 < addr1 + size1);
+}
+
+static bool NEXUS_Platform_P_TestContain(NEXUS_Addr addr1, size_t size1, NEXUS_Addr addr2, size_t size2)
+{
+    return (addr2 >= addr1) && (addr2 + size2 <= addr1 + size1);
+}
+
+
+static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Verify(const NEXUS_PlatformSettings *pSettings, const NEXUS_Core_Settings *pCoreSettings, const NEXUS_PlatformMemory *pMemory)
+{
+    unsigned i;
+    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+        const NEXUS_PlatformHeapSettings *heap = &pSettings->heap[i];
+        const NEXUS_Core_MemoryRegion *region;
+        size_t size;
+        unsigned j;
+        if(heap->size==0) {
+            continue;
+        }
+        region = &pCoreSettings->heapRegion[i];
+        if(heap->size>0) {
+            size = heap->size;
+        } else {
+            size = -heap->size;
+        }
+        if(region->length < size) {
+            BDBG_ERR(("heap[%u] at %u smaller %u then requested", i, (unsigned)region->length, (unsigned)size));
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+        if(heap->alignment) {
+            if(region->offset % heap->alignment != 0) {
+                BDBG_ERR(("heap[%u] at offset " BDBG_UINT64_FMT " not %u aligned", i, BDBG_UINT64_ARG(region->offset), (unsigned)heap->alignment));
+                return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            }
+        }
+        if(heap->placement.sage) {
+            const unsigned _256M = 256 * 1024 * 1024;
+            const unsigned _1024M = 1024 * 1024 * 1024;
+            if(
+               NEXUS_Platform_P_TestIntersect(region->offset, region->length, _256M, 0) ||
+               NEXUS_Platform_P_TestIntersect(region->offset, region->length, _1024M, 0)) {
+                BDBG_ERR(("heap[%u] at " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT " can't cross 256M or 1024M boundary", i, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length)));
+                return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            }
+        }
+        for (j=0;j<NEXUS_MAX_HEAPS;j++) {
+            const NEXUS_Core_MemoryRegion *testRegion = &pCoreSettings->heapRegion[j];
+            if(pSettings->heap[j].size==0) {
+                continue;
+            }
+            if(i==j) {
+                continue;
+            }
+            if(NEXUS_Platform_P_TestIntersect(region->offset, region->length, testRegion->offset, testRegion->length)) {
+                BDBG_ERR(("heap[%u] at " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT " intersects with heap[%u] " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT , i, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length), j, BDBG_UINT64_ARG(testRegion->offset), BDBG_UINT64_ARG(testRegion->offset+testRegion->length)));
+                return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            }
+        }
+        for (j=0;j<NEXUS_MAX_HEAPS;j++) {
+            const NEXUS_PlatformOsRegion *osRegion = &pMemory->osRegion[j];
+            if(osRegion->length==0) {
+                continue;
+            }
+            if(NEXUS_Platform_P_TestContain(osRegion->base, osRegion->length, region->offset, region->length)) {
+                if(heap->memcIndex != osRegion->memcIndex) {
+                    BDBG_ERR(("heap[%u] at MEMC%u " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT " allocated from MEMC%u " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT , i, heap->memcIndex, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length), osRegion->memcIndex, BDBG_UINT64_ARG(osRegion->base), BDBG_UINT64_ARG(osRegion->base+osRegion->length)));
+                    return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                }
+                break;
+            }
+        }
+        if(j==NEXUS_MAX_HEAPS) {
+            BDBG_ERR(("heap[%u] at " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT " allocated outside of known MEMC ranges", i, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length)));
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+    }
+    return NEXUS_SUCCESS;
+}

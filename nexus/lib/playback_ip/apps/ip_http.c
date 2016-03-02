@@ -1,5 +1,5 @@
 /***************************************************************************
- *     (c)2007-2015 Broadcom Corporation
+ *     (c)2007-2016 Broadcom Corporation
  *
  *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -389,14 +389,14 @@ sendHttpResponse(IpStreamerConfig *ipStreamerCfg, int sd, B_PlaybackIpPsiInfo *p
         else {
             /* File playback */
             if (ipStreamerCfg->fileOffsetEnabled) {
-                bytesCopied = snprintf(response, bytesLeft, "Range: bytes=%lld-", ipStreamerCfg->beginFileOffset);
+                bytesCopied = snprintf(response, bytesLeft, "Range: bytes=%lld-", (long long)ipStreamerCfg->beginFileOffset);
                 bytesLeft -= bytesCopied;
                 response += bytesCopied;
                 if (!ipStreamerCfg->endFileOffset) {
                     ipStreamerCfg->endFileOffset = psi->contentLength - 1;
                 }
                 contentLength = ipStreamerCfg->endFileOffset - ipStreamerCfg->beginFileOffset + 1;
-                bytesCopied = snprintf(response, bytesLeft, "%lld/%lld\r\n", ipStreamerCfg->endFileOffset, psi->contentLength);
+                bytesCopied = snprintf(response, bytesLeft, "%lld/%lld\r\n", (long long)ipStreamerCfg->endFileOffset, (long long)psi->contentLength);
                 bytesLeft -= bytesCopied;
                 response += bytesCopied;
             }
@@ -409,7 +409,7 @@ sendHttpResponse(IpStreamerConfig *ipStreamerCfg, int sd, B_PlaybackIpPsiInfo *p
             if (!ipStreamerCfg->hlsSession)
             {
                 /* we dont specify contentLength for HLS streaming case as we encode the content before streaming and thus segment length is not apriori known */
-                bytesCopied = snprintf(response, bytesLeft, "Content-Length: %lld\r\n", contentLength);
+                bytesCopied = snprintf(response, bytesLeft, "Content-Length: %lld\r\n", (long long)contentLength);
                 bytesLeft -= bytesCopied;
                 response += bytesCopied;
             }
@@ -418,14 +418,14 @@ sendHttpResponse(IpStreamerConfig *ipStreamerCfg, int sd, B_PlaybackIpPsiInfo *p
                 contentLength = 9999999;  /* Support for Osmo4 Dash player */
                 /* we dont specify contentLength for HLS streaming case as we encode the content before streaming and thus segment length is not apriori known
                       but for the Osmo4 player its looking for the Content Length before playing*/
-                bytesCopied = snprintf(response, bytesLeft, "Content-Length: %lld\r\n", contentLength);
+                bytesCopied = snprintf(response, bytesLeft, "Content-Length: %lld\r\n", (long long)contentLength);
                 bytesLeft -= bytesCopied;
                 response += bytesCopied;
             }
         }
         if (psi->psiValid) {
             BDBG_MSG(("Content length %lld, PSI info vpid %d, vcodec %d, pcr pid %d, apid %d, acodec %d, transport type %d",
-                contentLength, psi->videoPid, psi->videoCodec, psi->pcrPid,
+                (long long)contentLength, psi->videoPid, psi->videoCodec, psi->pcrPid,
                 psi->audioPid, psi->audioCodec, psi->mpegType));
             bytesCopied = snprintf(response, bytesLeft,
                 "BCM-Video-Pid: %d\r\n"

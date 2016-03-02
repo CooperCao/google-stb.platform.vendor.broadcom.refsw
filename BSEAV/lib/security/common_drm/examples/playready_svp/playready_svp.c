@@ -147,6 +147,12 @@ static uint8_t	sSessionIdBuf[DRM_PRDY_SESSION_ID_LEN];
 
 /* stream type */
 int vc1_stream = 0;
+
+/* Use secure buffers for playback if true
+* Secure buffers only apply when SAGE enabled, always false otherwise.
+* Should be FALSE for SAGE_SECURE_MODE=1, and TRUE for SAGE_SECURE_MODE 5/6/9 */
+bool secure_pic_buffers = false;
+
 typedef app_ctx * app_ctx_t;
 static int video_decode_hdr;
 
@@ -1539,6 +1545,7 @@ int initSecureClock( DRM_Prdy_Handle_t drm)
                                                         1,
                                                         150,
                                                         (unsigned char**)&(timeChResp),
+							1024*5,
                                                         &startOffset,
                                                         &length);
     if( post_ret != 0)
@@ -1579,6 +1586,16 @@ clean_exit:
 }
 #endif
 
+void print_usage(char *program)
+{
+    BDBG_ERR(("%s usage:", program));
+    BDBG_ERR(("\t %s <input file> [option(s)]", program));
+    BDBG_ERR(("\t -vc1     stream is vc1"));
+#if USE_SVP
+    BDBG_ERR(("\t -secure  Use secure picture buffers (SAGE_SECURE_MODE != 1)"));
+#endif
+}
+
 int main(int argc, char* argv[])
 {
     NxClient_JoinSettings joinSettings;
@@ -1601,14 +1618,33 @@ int main(int argc, char* argv[])
     uint32_t            secClkStatus; /* secure clock status */
 
     if (argc < 2) {
-        BDBG_ERR(("Usage : %s <input_file> [-vc1]", argv[0]));
+        print_usage(argv[0]);
         return -1;
     }
 
-    if ((argc == 3) && (strcmp(argv[2], "-vc1") == 0))
-        vc1_stream = 1;
+    while(argc>2)
+    {
+        argc--;
+        if(strcmp(argv[argc], "-vc1") == 0)
+        {
+            vc1_stream = 1;
+        }
+#if USE_SVP
+        /* Secure picture buffers only apply w/ SAGE enabled... only allow
+        * setting this w/ SAGE */
+        else if(strcmp(argv[argc], "-secure") == 0)
+        {
+            secure_pic_buffers = true;
+        }
+#endif
+        else
+        {
+            BDBG_ERR(("Unrecognized option: %s", argv[argc]));
+        }
+    }
 
-    BDBG_MSG(("@@@ MSG Check Point Start vc1_stream %d--", vc1_stream));
+    BDBG_MSG(("@@@ MSG Check Point Start: vc1_stream=%d --  URR=%d",
+              vc1_stream, secure_pic_buffers));
 
     NxClient_GetDefaultJoinSettings(&joinSettings);
     snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "pr_piff_playback");
@@ -1698,9 +1734,12 @@ int main(int argc, char* argv[])
     connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;
     connectSettings.simpleVideoDecoder[0].surfaceClientId = allocResults.surfaceClient[0].id;
     connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
-#if USE_SVP
-    connectSettings.simpleVideoDecoder[0].decoderCapabilities.secureVideo = true;
-#endif
+    if (secure_pic_buffers)
+    {
+        /* Request a secure decoder, i.e. secure picture buffers, i.e. URR
+        * Should only do this if SAGE is in use, and when SAGE_SECURE_MODE is NOT 1 */
+        connectSettings.simpleVideoDecoder[0].decoderCapabilities.secureVideo = true;
+    }
     rc = NxClient_Connect(&connectSettings, &connectId);
     if (rc)
     {

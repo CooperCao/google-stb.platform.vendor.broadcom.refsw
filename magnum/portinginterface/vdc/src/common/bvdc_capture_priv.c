@@ -449,14 +449,15 @@ static BERR_Code BVDC_P_Capture_SetPictureRect_isr
 		ulCapInHeight /= BVDC_P_FIELD_PER_FRAME;
 	}
 
-	/* SW7445-2893/SW7445-2936 padding one line to delay eop */
+	/* SW7445-2893/SW7445-2936 padding one line to delay eop. */
 #if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM)
-	if(!pPicture->bMosaicMode)
+	if(!pPicture->bMosaicMode && pPicture->bEnableDcxm)
 	{
-		ulCapInHeight++;
-		ulHeight++;
+		ulCapInHeight += BVDC_P_DCXM_CAP_PADDING_WORKAROUND;
+		ulHeight += BVDC_P_DCXM_CAP_PADDING_WORKAROUND;
 	}
 #endif
+
 
 	/* set capture size */
 	BVDC_P_CAP_GET_REG_DATA(CAP_0_PIC_SIZE) &= ~(

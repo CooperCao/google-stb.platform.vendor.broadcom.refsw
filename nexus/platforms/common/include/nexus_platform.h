@@ -461,6 +461,24 @@ NEXUS_Error NEXUS_Platform_SetThermalScaling_driver(
     unsigned scale_factor,
     unsigned num_trip_points
     );
+
+/* If a heap's security is toggled on/off at run time (external to Nexus), this notifies
+Nexus so it can add or remove any additional monitoring. This does not actually make a heap secure
+or unsecure.
+
+NEXUS_HeapRuntimeSettings.secure = true should be set before actually making it secure.
+NEXUS_HeapRuntimeSettings.secure = false should be set after actually making it unsecure.
+*/
+void NEXUS_Platform_GetHeapRuntimeSettings(
+    NEXUS_HeapHandle heap,
+    NEXUS_HeapRuntimeSettings *pSettings
+    );
+
+NEXUS_Error NEXUS_Platform_SetHeapRuntimeSettings(
+    NEXUS_HeapHandle heap,
+    const NEXUS_HeapRuntimeSettings *pSettings
+    );
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

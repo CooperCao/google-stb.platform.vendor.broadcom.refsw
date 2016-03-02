@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2010-2014 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ ******************************************************************************/
 #ifndef NEXUS_SIMPLE_ENCODER_H__
 #define NEXUS_SIMPLE_ENCODER_H__
 
@@ -182,8 +171,9 @@ Modify the behavior of the next NEXUS_SimpleEncoder_Stop call.
 **/
 typedef enum NEXUS_SimpleEncoderStopMode
 {
-    NEXUS_SimpleEncoderStopMode_eAll, /* by default, next NEXUS_SimpleEncoder_Stop will stop simple encoder's both audio/video pipes */
-    NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly, /* Do not stop audio. Not supported with stream mux, and only for RT mode; */
+    NEXUS_SimpleEncoderStopMode_eAll, /* NEXUS_SimpleEncoder_Stop will stop entire audio/video/mux pipeline. */
+    NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly, /* Do not stop audio. Stops video encoder and mux. Only supported for RT mode.
+        After this, user can do an eAll stop or can call Start again with the same NEXUS_SimpleEncoderStartSettings. */
     NEXUS_SimpleEncoderStopMode_eMax
 } NEXUS_SimpleEncoderStopMode;
 

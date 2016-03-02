@@ -19,6 +19,12 @@
 
    TokenData pptoken;
 
+   static int yyinput(char *buf, int buf_size);
+
+   #undef YY_BUF_SIZE
+   #define YY_BUF_SIZE 256
+   #define YY_INPUT(buf,result,max_size) { result = yyinput(buf,(int)max_size); }
+
    extern void yyerror(char *c);
 
    /*
@@ -30,8 +36,12 @@
 #endif
 %}
 
-%option noyyalloc noyyrealloc noyyfree
+%option prefix="pp"
+%option never-interactive
+%option batch
 %option nounistd
+%option nounput
+%option noyyalloc noyyrealloc noyyfree
 
 IDENT    [_a-zA-Z][_a-zA-Z0-9]*
 PPNUM    "."?[0-9]([0-9]|[_a-zA-Z]|[eEpP][+-]|".")*
@@ -106,7 +116,7 @@ INTHEX   "0"[xX][0-9a-fA-F]+
    /*
       tokens for the shading language itself (keywords)
 
-      ATTRIBUTE _CONST _BOOL FLOAT INT
+      ATTRIBUTE _CONST _BOOL _FLOAT _INT
       BREAK CONTINUE DO ELSE FOR IF DISCARD RETURN
       BVEC2 BVEC3 BVEC4 IVEC2 IVEC3 IVEC4 VEC2 VEC3 VEC4
       _MAT2 MAT3 MAT4 _IN _OUT INOUT UNIFORM VARYING
@@ -119,7 +129,7 @@ INTHEX   "0"[xX][0-9a-fA-F]+
 "attribute"                return ATTRIBUTE;
 "const"                    return _CONST;
 "bool"                     return _BOOL;
-"float"                    return FLOAT;
+"float"                    return _FLOAT;
 "int"                      return _INT;
 "break"                    return BREAK;
 "continue"                 return CONTINUE;
@@ -318,12 +328,14 @@ INTHEX   "0"[xX][0-9a-fA-F]+
 {FRAC}{EXP}?|{DS}{EXP} {
                           // Cast from double and then copy bits.
                           pptoken.f = float_to_bits((float)atof(pptext));
+                          pptoken.s = strdup_fast(pptext);
                           return PPNUMBERF;
                        }
 
 {INTDEC}|{INTOCT}|{INTHEX} {
                               // Base of 0 does automatic dec/oct/hex recognition.
                               pptoken.i = (const_int)strtol(yytext, (char**)NULL, 0);
+                              pptoken.s = strdup_fast(pptext);
                               return PPNUMBERI;
                            }
 
@@ -364,19 +376,32 @@ INTHEX   "0"[xX][0-9a-fA-F]+
 
 %%
 
+static struct ShaderSource {
+   int         Count;
+   const char *const *Values;
+   const char *CurrentPosition;
+   int         Index;
+} s_ShaderSource;
 static YY_BUFFER_STATE s_CurrentBufferState;
+static bool including = false;
 
 // When the lexer starts, set it to read the header.
-void glsl_init_lexer(void)
+void glsl_init_lexer(int sourcec, const char * const *sourcev)
 {
    g_LineNumber = LINE_NUMBER_UNDEFINED;
    g_FileNumber = -1;
 
-   g_ShaderSourceCurrentIndex = -1;
-   s_CurrentBufferState = pp_scan_string(sampler_functions);
+   s_ShaderSource.Count = sourcec;
+   s_ShaderSource.Values = sourcev;
+
+   s_ShaderSource.Index           =  -1;
+   s_ShaderSource.CurrentPosition = "";
+
+   // Create buffer to use with YY_INPUT
+   s_CurrentBufferState = pp_create_buffer(NULL, YY_BUF_SIZE - 2);
+   pp_switch_to_buffer(s_CurrentBufferState);
 }
 
-static bool including = false;
 void glsl_include(const char *s)
 {
     /* We don't support including from inside an include */
@@ -394,20 +419,15 @@ void glsl_term_lexer(void)
 void * ppalloc (size_t bytes)
 {
    uint32_t *result = (uint32_t *)glsl_fastmem_malloc(bytes + sizeof(uint32_t), true);
-
    result[0] = (uint32_t)bytes;
-
    return result + 1;
 }
 
 void * pprealloc (void * ptr, size_t bytes)
 {
    size_t old_bytes = ptr ? (size_t)((uint32_t *)ptr)[-1] : 0;
-
    void *result = ppalloc(bytes);
-
    memcpy(result, ptr, bytes < old_bytes ? bytes : old_bytes);
-
    return result;
 }
 
@@ -421,66 +441,141 @@ void ppfree (void * ptr) {
 // This allows you to switch buffers.
 int ppwrap(void)
 {
-    if (including) {
-        pppop_buffer_state();
-        including = false;
-        return 0;
-    }
+   if (including) {
+      pppop_buffer_state();
+      including = false;
+      return 0;
+   }
+   return 1;         // EOF
+}
 
-    // Delete current buffer.
-    pp_delete_buffer(s_CurrentBufferState);
+// If we have reached the end of current source buffer, move to the next one. This may reset the line number.
+static void pp_ensure_source()
+{
+   /*
+      Look to next buffer. We have
 
-    g_LineNumber = 1;
-    g_FileNumber++;
+      g_ShaderSourceCurrentIndex                   string in progress
+      -1                                           sampler functions
+      0                                           first shader source
+      :     :     :
+      g_ShaderSourceCount-1                       last shader source
+      g_ShaderSourceCount                         \n
+      g_ShaderSourceCount+1                       last constant function
+      :     :     :
+      g_ShaderSourceCount+CONST_FUNCTION_COUNT    first constant function
+   */
 
-    /*
-       after we've done the sampler functions, allow a #version command
-     */
+   while (*s_ShaderSource.CurrentPosition == '\0') {
+      g_LineNumber = 1;
 
-    if (g_ShaderSourceCurrentIndex == -1)
-        glsl_directive_allow_version();
-
-    /*
-       when we're about to do the builtins, remove all macro definitions
-     */
-
-    if (g_ShaderSourceCurrentIndex == g_ShaderSourceCount)
-        glsl_directive_reset_macros();
-
-    /*
-       Look to next buffer. We have
-
-       g_ShaderSourceCurrentIndex                   string in progress
-       -1                                           sampler functions
-       0                                           first shader source
-       :     :     :
-       g_ShaderSourceCount-1                       last shader source
-       g_ShaderSourceCount                         \n
-       g_ShaderSourceCount+1                       last constant function
-       :     :     :
-       g_ShaderSourceCount+CONST_FUNCTION_COUNT    first constant function
-     */
-
-    while (g_ShaderSourceCurrentIndex < g_ShaderSourceCount+CONST_FUNCTION_COUNT) {
-        g_ShaderSourceCurrentIndex++;
-
-        if (g_ShaderSourceCurrentIndex < g_ShaderSourceCount) {
-            s_CurrentBufferState = pp_scan_string(g_ShaderSourceValues[g_ShaderSourceCurrentIndex]);
-            return 0;
-        } else if (g_ShaderSourceCurrentIndex == g_ShaderSourceCount) {
-            s_CurrentBufferState = pp_scan_string("\n");
-            return 0;
-        } else {
-            const unsigned int const_fun_idx = g_ShaderSourceCount+CONST_FUNCTION_COUNT-g_ShaderSourceCurrentIndex;
-            const char *body = constantFunctions[const_fun_idx].u.function_instance.const_function_body;
-            const bool seen = constantFunctions[const_fun_idx].u.function_instance.const_function_body_seen;
-
-            if (seen) {
-                s_CurrentBufferState = pp_scan_string(body);
-                return 0;
+      if (s_ShaderSource.Index == -1) {
+         s_ShaderSource.CurrentPosition = sampler_functions;
+      } else {
+         if (s_ShaderSource.Index < s_ShaderSource.Count) {
+            if (s_ShaderSource.Index == 0) {
+               glsl_directive_allow_version();
+               glsl_directive_allow_extension();
             }
-        }
-    }
+            s_ShaderSource.CurrentPosition = s_ShaderSource.Values[s_ShaderSource.Index];
+            g_FileNumber++;
+         } else if (s_ShaderSource.Index == s_ShaderSource.Count) {
+            glsl_directive_reset_macros();
+            s_ShaderSource.CurrentPosition = "\n";
+         } else if (s_ShaderSource.Index < s_ShaderSource.Count+CONST_FUNCTION_COUNT) {
+            bool seen = false;
+            int i;
+            // count down from the largest to smallest
+            for (i = s_ShaderSource.Count+CONST_FUNCTION_COUNT-s_ShaderSource.Index; i >= 0; i--, s_ShaderSource.Index++) {
+               const char *body = constantFunctions[i].u.function_instance.const_function_body;
+               seen = constantFunctions[i].u.function_instance.const_function_body_seen;
+               if (seen) {
+                  s_ShaderSource.CurrentPosition = body;
+                  break;
+               }
+            }
+         } else {
+            return;
+         }
+      }
 
-    return 1;         // EOF
+      s_ShaderSource.Index++;
+   }
+}
+
+// Helper method to skip given character from the source.
+static int pp_consume(char c)
+{
+   // ensure that we have data to read, this may reset the line number
+   pp_ensure_source();
+   if (*s_ShaderSource.CurrentPosition == c) {
+      // skip the consumed character
+      s_ShaderSource.CurrentPosition++;
+      return 1;
+   }
+   return 0;
+}
+
+// Called by flex to get more input
+static int yyinput(char* buf, int buf_size)
+{
+   int num = 0;
+
+   // Check whether there is unprocessed new-line buffered in flex.
+   // Flex requires at least one lookahead character before it commits to token's action
+   // so this happens reasonably frequently and it breaks our line numbering.
+   if (YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[0] == '\n' && &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[1] == buf) {
+      // \r is not used for anything in the lexer, so use it to flush the buffer
+      buf[num++] = '\r';
+      return num;
+   }
+
+   // Consume all line continuations here so that the lexer does not even see them.
+   // Note that single line continuation may be split among multiple source buffers.
+   // Line number modification is fine here because the lexer has already processed
+   // all previous (complete) tokens at this point (new-lines in particular).
+   // GLSL ES 1.0.17: The line continuation character (\) is not part of the language.
+   // GLSL ES 3.00.4: Backslash ('\'), used to indicate line continuation when immediately preceding a new-line.
+   while (pp_consume('\\')) {
+      if (1 /* Only ES2.0 supported */) {
+         // Line continuations are not supported before 3.0
+         // #version should have been processed by now
+         buf[num++] = '\\';
+         break;
+      } else if (pp_consume('\n')) {
+         g_LineNumber++;
+         if (pp_consume('\r') && g_LineNumber == 1)
+            g_LineNumber++; // do again if line number was just reset
+      } else if (pp_consume('\r')) {
+         g_LineNumber++;
+         if (pp_consume('\n') && g_LineNumber == 1)
+            g_LineNumber++; // do again if line number was just reset
+      } else {
+         // the backslash did not start line continuation so pass it to the lexer
+         buf[num++] = '\\';
+         break;
+      }
+   }
+
+   pp_ensure_source();
+
+   // Copy chunk of data to flex's buffer until we see something that needs to handled in this method
+   // (end of current source buffer or line continuation).
+   // Flex will process this buffer and call yyinput again once it is done with it.
+   while (*s_ShaderSource.CurrentPosition != '\0' && *s_ShaderSource.CurrentPosition != '\\' && num < buf_size) {
+      // Turn any \r, \n or pair into \n.
+      // GLSL ES 1.0 & 3.0: [Lines] are terminated by carriage-return or line-feed. If both are used together, it will count as only a single line termination.
+      char c = *(s_ShaderSource.CurrentPosition++);
+      if (c == '\n' || c == '\r') {
+         char c2 = *s_ShaderSource.CurrentPosition;
+         if ((c == '\n' && c2 == '\r') || (c == '\r' && c2 == '\n'))
+            s_ShaderSource.CurrentPosition++; // skip the other one
+
+         buf[num++] = '\n';
+      } else {
+         buf[num++] = c;
+      }
+   }
+
+   return num;
 }

@@ -1,3 +1,46 @@
+/******************************************************************************
+ *	  (c)2010-2013 Broadcom Corporation
+ *
+ * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.	  This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.	  TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.	  TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
+ * $brcm_Workfile: $
+ * $brcm_Revision: $
+ * $brcm_Date: $
+ *
+ *****************************************************************************/
+
 #if defined(_CFE_)
 #include "lib_types.h"
 #include "lib_string.h"
@@ -36,7 +79,7 @@
 /* debug macros */
 #define BDBG_NOP() (void ) 0
 #if defined (HOST_ONLY)
-#define BDBG_MODULE(module) 
+#define BDBG_MODULE(module)
 #else
 #define BDBG_MODULE(module) extern int bdbg_unused
 #endif
@@ -75,10 +118,10 @@
 #endif
 
 #if defined(NOOS) || defined (_CFE_)
-#define ESTB_CFG_SEM_DEF 
-#define ESTB_CFG_SEM_INIT(ctl) 
+#define ESTB_CFG_SEM_DEF
+#define ESTB_CFG_SEM_INIT(ctl)
 #define ESTB_CFG_SEM_WAIT(ctl)
-#define ESTB_CFG_SEM_POST(ctl) 
+#define ESTB_CFG_SEM_POST(ctl)
 
 #else
 
@@ -492,7 +535,7 @@ static int b_estb_cfg_get_value_by_label(unsigned int label, unsigned char *ptr,
 					ret = 0;
 					return ret;
 				} else if (node->state == NODE_STATE_LOADED) {
-					memmove(ptr,(unsigned char *)(ctl->data_block + node->v.data.off_w), 
+					memmove(ptr,(unsigned char *)(ctl->data_block + node->v.data.off_w),
 					       node->v.data.len);
 					*len = node->v.data.len;
 					ret = 0;
@@ -505,7 +548,7 @@ static int b_estb_cfg_get_value_by_label(unsigned int label, unsigned char *ptr,
 					ret = 0;
 					return ret;
 				} else if (node->state == NODE_STATE_LOADED) {
-					memmove(ptr,(unsigned char *)(ctl->data_block + node->v.data.off_w), 
+					memmove(ptr,(unsigned char *)(ctl->data_block + node->v.data.off_w),
 					       node->v.data.len);
 					*len = node->v.data.len;
 					ret = 0;
@@ -534,7 +577,7 @@ static int b_estb_cfg_get_uint32_by_label(unsigned int label, unsigned int *ptr)
 static int b_estb_cfg_get_txt_by_label(unsigned int label, char *ptr, int *len){
 	int ret = -1;
 
-	if ((ret = b_estb_cfg_get_value_by_label(label, (char *)ptr, len, NODE_TYPE_TXT)) >= 0) {
+	if ((ret = b_estb_cfg_get_value_by_label(label, (unsigned char *)ptr, len, NODE_TYPE_TXT)) >= 0) {
 		return ret;
 	}
 	BDBG_ERR(("failed to get txt for  label 0x%x\n", label));
@@ -688,7 +731,7 @@ static int b_estb_cfg_set_value_by_label(unsigned int label, unsigned char * ptr
 			} else if (type == NODE_TYPE_TXT) {
 				memset(&ctl->data_block[node->v.data.off_w], 0,
 				       node->v.data.len);
-				strncpy((char *)&ctl->data_block[node->v.data.off_w], ptr, len);
+				strncpy((char *)&ctl->data_block[node->v.data.off_w], (const char *)ptr, len);
 				node->v.data.len = len;
 				node->v.data.pad = PADDING(len);
 				ret = 0;
@@ -901,21 +944,21 @@ static void dump_bytes(unsigned char * ptr, int len) {
 static int b_estb_cfg_is_header_valid(struct b_estb_cfg_ctl * ctl, struct b_estb_cfg_hdr * nhdr, int file_len){
 	struct b_estb_cfg_hdr * hdr_block = &ctl->hdr_block;
 
-	if (my_ntohl(nhdr->file_size) != file_len) {
+	if (my_ntohl(nhdr->file_size) != (unsigned int)file_len) {
 		BDBG_ERR(("file length does not match, claim %d, actual %d\n", my_ntohl(nhdr->file_size), file_len));
 		return -1;
 	}
 	if (memcmp(hdr_block->magic, nhdr->magic, sizeof(hdr_block->magic)) != 0) {
 		BDBG_ERR(("%s header magic not match, expect %s, get %s, %d bytes\n", ctl->file_name, hdr_block->magic,
                   nhdr->magic, sizeof(hdr_block->magic)));
-		dump_bytes(hdr_block->magic, sizeof(hdr_block->magic));
+		dump_bytes((unsigned char *)hdr_block->magic, sizeof(hdr_block->magic));
 		return -1;
 	}
 
 	/* how about backward compatibility ? */
 	if (memcmp(hdr_block->ver_str, nhdr->ver_str, sizeof(hdr_block->ver_str)) != 0) {
 		BDBG_ERR(("header version not match, expect %s, get %s\n", hdr_block->ver_str, nhdr->ver_str));
-		dump_bytes(hdr_block->ver_str, sizeof(hdr_block->ver_str));
+		dump_bytes((unsigned char *)hdr_block->ver_str, sizeof(hdr_block->ver_str));
 		return -1;
 	}
 
@@ -961,7 +1004,7 @@ static int b_estb_cfg_is_data_valid(unsigned char * data, int data_len) {
 
 	do {
 		/* BDBG_MSG(("read offset %d, calculated offset %d, len %d\n", dhdr->off, off_c, dhdr->len)); */
-		if (dhdr->off != off_c || off_c > data_len) {
+		if (dhdr->off != (int)off_c || (int)off_c > data_len) {
 			BDBG_ERR(("%s: read offset %d and calculated offset %d does not match, or out of bound %d\n",
 				  __FUNCTION__, dhdr->off, off_c, data_len));
 #if 0
@@ -976,7 +1019,7 @@ static int b_estb_cfg_is_data_valid(unsigned char * data, int data_len) {
 		off_c += sizeof(struct b_estb_cfg_data_hdr);
         /* BDBG_MSG(("%s: off_C %d data_len %d\n", __FUNCTION__, off_c, data_len)); */
 
-	} while (off_c <= data_len);
+	} while ((int)off_c <= data_len);
 	return 0;
 }
 /*
@@ -996,7 +1039,7 @@ static int b_estb_cfg_update_data(struct b_estb_cfg_ctl * ctl, unsigned char * d
 	off_c += sizeof(struct b_estb_cfg_data_hdr);
 
 	do {
-		if (dhdr->off != off_c || off_c > data_len) {
+		if (dhdr->off != (int)off_c || (int)off_c > data_len) {
 			BDBG_ERR(("%s: read offset %d and calculated offset %d does not match, or out of bound %d\n",
 				  __FUNCTION__, dhdr->off, off_c, data_len));
 			return -1;
@@ -1004,14 +1047,14 @@ static int b_estb_cfg_update_data(struct b_estb_cfg_ctl * ctl, unsigned char * d
 		for ( i = 0; i < ctl->num_nodes; i++ ) {
 			node = &ctl->node_block[i];
 			label = node->label;
-			if (label == dhdr->label)
+			if ((int)label == dhdr->label)
 				break;
 		}
         /*
         BDBG_MSG(("%s i = %d, dhdr->off 0x%x, len 0x%x, pad 0x%x dhdr->label %x label %x\n",
                   __FUNCTION__, i, dhdr->off, dhdr->len, dhdr->pad, dhdr->label, label));
         */
-		if ( label == dhdr->label) {
+		if ( (int)label == dhdr->label) {
 			/* found node */
 			node->v.data.off_w = dhdr->off;
 			node->v.data.len = dhdr->len;
@@ -1026,7 +1069,7 @@ static int b_estb_cfg_update_data(struct b_estb_cfg_ctl * ctl, unsigned char * d
 		off_c += sizeof(struct b_estb_cfg_data_hdr);
         /* BDBG_MSG(("%s: off_C %d data_len %d\n", __FUNCTION__, off_c, data_len)); */
 
-	} while (off_c <= data_len);
+	} while ((int)off_c <= data_len);
 
 	return 0;
 }

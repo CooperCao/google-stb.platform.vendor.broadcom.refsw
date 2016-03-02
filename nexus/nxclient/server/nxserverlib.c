@@ -1,51 +1,43 @@
 /******************************************************************************
- *    (c)2011-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- *****************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "nxserverlib_impl.h"
 #include "nexus_display_vbi.h"
 
@@ -58,9 +50,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/poll.h>
-#ifdef NXSERVER_PMLIB_SUPPORT
-#include "pmlib.h"
-#endif
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -89,6 +78,7 @@ static void nxserver_hdcp_mute(struct b_session *session);
 static NEXUS_Error nxserver_load_hdcp_keys(struct b_session *session, NxClient_HdcpType hdcpType, NEXUS_MemoryBlockHandle block, unsigned blockOffset, unsigned size);
 static void nxserverlib_p_init_hdmi_drm_settings(NxClient_DisplaySettings * pSettings);
 static void nxserverlib_p_init_hdmi_drm(struct b_session * session);
+static void nxserver_check_hdcp(struct b_session *session);
 #endif
 
 static NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_session *session, const NxClient_DisplaySettings *pSettings);
@@ -165,7 +155,7 @@ nxclient_t NxClient_P_CreateClient(nxserver_t server, const NxClient_JoinSetting
     if (pid) {
         client->ipc = true;
         BKNI_Memset(pCert, 0, sizeof(pCert));
-        pCert->length = BKNI_Snprintf((char *)pCert->data, sizeof(pCert->data), "%u,%#x%#x,%s", server->nextId[b_resource_client], lrand48(), lrand48(), client->joinSettings.name);
+        pCert->length = BKNI_Snprintf((char *)pCert->data, sizeof(pCert->data), "%u,%#x%#x,%s", server->nextId[b_resource_client], (unsigned)lrand48(), (unsigned)lrand48(), client->joinSettings.name);
         if(pCert->length>=sizeof(pCert->data)-1) {
             BERR_TRACE(BERR_NOT_SUPPORTED);
             goto error;
@@ -203,7 +193,7 @@ nxclient_t NxClient_P_CreateClient(nxserver_t server, const NxClient_JoinSetting
             }
         }
         if (client->joinSettings.name[0]) {
-            BDBG_LOG(("%s(%p) registering as '%s' %s", client->joinSettings.name, client, (char *)pCert->data,
+            BDBG_LOG(("%s(%p) registering as '%s' %s", client->joinSettings.name, (void*)client, (char *)pCert->data,
                 clientModeStr[client->clientSettings.configuration.mode]));
         }
         client->nexusClient = NEXUS_Platform_RegisterClient(&client->clientSettings);
@@ -336,7 +326,7 @@ static void b_release_request(nxclient_t client, struct b_req *req)
 
     BDBG_OBJECT_ASSERT(req, b_req);
 
-    BDBG_MSG(("b_release_request req %p", req));
+    BDBG_MSG(("b_release_request req %p", (void*)req));
     /* disconnect from any connects */
     {
         struct b_connect *connect;
@@ -415,7 +405,7 @@ static void b_release_request(nxclient_t client, struct b_req *req)
     BDBG_OBJECT_DESTROY(req, b_req);
     BKNI_Free(req);
     if (revoke_failed) {
-        BDBG_ERR(("client %p will be destroyed because it has revoked resources", client));
+        BDBG_ERR(("client %p will be destroyed because it has revoked resources", (void*)client));
         nxserver_ipc_close_client(client);
     }
 }
@@ -458,10 +448,14 @@ void NxClient_P_DestroyClient(nxclient_t client)
         return;
     }
     if (client->joinSettings.name[0]) {
-        BDBG_LOG(("%s(%p) unregistered", client->joinSettings.name, client));
+        BDBG_LOG(("%s(%p) unregistered", client->joinSettings.name, (void*)client));
     }
-    BDBG_MSG(("NxClient_P_DestroyClient %p", client));
+    BDBG_MSG(("NxClient_P_DestroyClient %p", (void*)client));
 
+#if NEXUS_HAS_HDMI_OUTPUT
+    client->hdcp = NxClient_HdcpLevel_eNone;
+    nxserver_check_hdcp(client->session);
+#endif
     nxserverlib_p_stop_crc_capture(client);
 
     /* unregister client first so that decoder is stopped before destroying surfacecmp client to avoid flash of video */
@@ -642,7 +636,7 @@ NEXUS_Error NxClient_P_Alloc(nxclient_t client, const NxClient_AllocSettings *pS
 #endif
 
     req->results = *pResults;
-    BDBG_MSG(("NxClient_P_Alloc req %p, client %p", req, client));
+    BDBG_MSG(("NxClient_P_Alloc req %p, client %p", (void*)req, (void*)client));
     if (client->server->settings.client.nxclient_alloc && client->ipc) {
         client->server->settings.client.nxclient_alloc(client, pSettings, pResults);
     }
@@ -663,7 +657,7 @@ void NxClient_P_Free(nxclient_t client, const NxClient_AllocResults *pResults)
     for (req = BLST_D_FIRST(&client->requests); req; req = BLST_D_NEXT(req, link)) {
         BDBG_OBJECT_ASSERT(req, b_req);
         if (!BKNI_Memcmp(&req->results, pResults, sizeof(*pResults))) {
-            BDBG_MSG(("NxClient_P_Free client %p, req %p", client, req));
+            BDBG_MSG(("NxClient_P_Free client %p, req %p", (void*)client, (void*)req));
             b_release_request(client, req);
             break;
         }
@@ -774,7 +768,7 @@ static void b_connect_release(nxclient_t client, struct b_connect *connect)
 static void b_disconnect(nxclient_t client, struct b_connect *connect)
 {
     BDBG_OBJECT_ASSERT(connect, b_connect);
-    BDBG_MSG(("b_disconnect %p", connect));
+    BDBG_MSG(("b_disconnect %p", (void*)connect));
     b_connect_release(client, connect);
     BLST_D_REMOVE(&client->connects, connect, link);
     BDBG_OBJECT_DESTROY(connect, b_connect);
@@ -841,7 +835,7 @@ static int find_matching_reqs(struct b_connect *connect, const NxClient_ConnectS
     for (i=0;i<sizeof(accessor)/sizeof(accessor[0]);i++) {
         unsigned res = accessor[i].resource;
         if (connect->req[res]) {
-            BDBG_MSG(("  found req %p for %s", connect->req[res], b_resource_str[res]));
+            BDBG_MSG(("  found req %p for %s", (void*)connect->req[res], b_resource_str[res]));
         }
         else if (accessor[i].get_connect_id(pSettings,0)) {
             /* no need to unwind. the connect will be destroyed. also, don't short circuit so we can get full output */
@@ -909,7 +903,7 @@ NEXUS_Error NxClient_P_Connect(nxclient_t client, const NxClient_ConnectSettings
     BKNI_Memset(connect, 0, sizeof(*connect));
     BDBG_OBJECT_SET(connect, b_connect);
     BLST_D_INSERT_HEAD(&client->connects, connect, link);
-    BDBG_MSG(("NxClient_P_Connect %p, client %p", connect, client));
+    BDBG_MSG(("NxClient_P_Connect %p, client %p", (void*)connect, (void*)client));
 
     connect->settings = *pSettings;
     /* adjust settings for backward compat */
@@ -960,7 +954,7 @@ NEXUS_Error NxClient_P_RefreshConnect(nxclient_t client, unsigned connectId)
     struct b_connect *connect = lookup_connect(client, connectId);
     if (connect) {
         int rc;
-        BDBG_MSG(("NxClient_P_RefreshConnect %p", connect));
+        BDBG_MSG(("NxClient_P_RefreshConnect %p", (void*)connect));
         rc = b_connect_acquire(client, connect);
         if (rc) {
             BDBG_WRN(("NxClient_RefreshConnect failed: resources not available (%d)", rc));
@@ -974,7 +968,7 @@ void NxClient_P_Disconnect(nxclient_t client, unsigned connectId)
 {
     struct b_connect *connect = lookup_connect(client, connectId);
     if (connect) {
-        BDBG_MSG(("NxClient_P_Disconnect %p", connect));
+        BDBG_MSG(("NxClient_P_Disconnect %p", (void*)connect));
         if (client->server->settings.client.nxclient_disconnect && client->ipc) {
             client->server->settings.client.nxclient_disconnect(client, connectId);
         }
@@ -1640,7 +1634,7 @@ static void make_cursor(NEXUS_SurfaceHandle surface, const NEXUS_SurfaceCreateSe
 }
 
 #if NEXUS_HAS_HDMI_OUTPUT
-void nxserver_check_hdcp(struct b_session *session)
+static void nxserver_check_hdcp(struct b_session *session)
 {
     nxclient_t client;
     NxClient_HdcpLevel hdcp = session->server->settings.hdcp.alwaysLevel;
@@ -1830,7 +1824,7 @@ static void nxserver_hdcp_mute(struct b_session *session)
 
         NxClient_P_SetSessionAudioSettings(session, &session->audioSettings);
     }
-    BDBG_MSG(("nxserver_hdcp_mute:%p %d", session, session->hdcp_mute));
+    BDBG_MSG(("nxserver_hdcp_mute:%p %d", (void*)session, session->hdcp_mute));
 }
 
 static void hdmiOutputHdcpStateChanged(void *pContext, int param)
@@ -1939,6 +1933,9 @@ static void nxserver_load_hdcpkey_files(struct b_session *session)
 
 loadHdcp1xKeys:
 #else
+    if (psettings->hdcp.hdcp2xBinFile) {
+        BDBG_ERR(("HDCP2.x not supported. Recompile with NEXUS_HDCP_SUPPORT=y."));
+    }
     BSTD_UNUSED(seekPos) ;
 #endif
     if ( rc ) {
@@ -2183,6 +2180,7 @@ static int init_session(nxserver_t server, unsigned index)
         for (session_display_index=0;session_display_index<NXCLIENT_MAX_DISPLAYS;session_display_index++) {
             if (!server->settings.externalApp.display[session_display_index].handle) break;
             session->display[session_display_index].global_index = server->global_display_index;
+            server->global_display_index++;
             session->display[session_display_index].display = server->settings.externalApp.display[session_display_index].handle;
             NEXUS_Display_GetSettings(session->display[session_display_index].display, &displaySettings);
             NEXUS_VideoFormat_GetInfo(displaySettings.format, &session->display[session_display_index].formatInfo);
@@ -2604,9 +2602,6 @@ nxserver_t nxserverlib_init(const struct nxserver_settings *settings)
     BDBG_ASSERT(!rc);
 
     NEXUS_Platform_GetStandbySettings(&server->standby.standbySettings.settings);
-#ifdef NXSERVER_PMLIB_SUPPORT
-    server->standby.pm_ctx = brcm_pm_init();
-#endif
 
     g_server = server;
     return server;
@@ -2619,6 +2614,11 @@ error:
 void nxserverlib_uninit(nxserver_t server)
 {
     unsigned i;
+    NxClient_StandbySettings standbySettings;
+
+    /* Bring server out of standby so that uninit can complete */
+    standbySettings.settings.mode = NEXUS_PlatformStandbyMode_eOn;
+    bserver_set_standby_settings(server, &standbySettings);
 
     /* stop the server before closing resources that may be in use by clients.
     if it's an untrusted client, handle verification may fail the call. but a trusted client bypasses the
@@ -3541,6 +3541,7 @@ static void standby_thread(void *context)
                     if (rc) rc = BERR_TRACE(rc);
                 }
 #endif
+                bserver_acquire_audio_mixers(session->main_audio, false);
             }
         }
     }
@@ -3555,24 +3556,6 @@ static void standby_thread(void *context)
     }
 
     server->standby.state = b_standby_state_applied;
-
-#ifdef NXSERVER_PMLIB_SUPPORT
-    if(standbySettings.mode == NEXUS_PlatformStandbyMode_ePassive) {
-        brcm_pm_suspend(server->standby.pm_ctx, BRCM_PM_STANDBY);
-    } else if(standbySettings.mode == NEXUS_PlatformStandbyMode_eDeepSleep) {
-        if(server->standby.standbySettings.mode == NxClient_StandbyCpuMode_eWarmBoot)
-            brcm_pm_suspend(server->standby.pm_ctx, BRCM_PM_SUSPEND);
-        else {
-#if PMLIB_VER == 314
-            system("poweroff");
-#else
-            system("echo 1 > /sys/devices/platform/brcmstb/halt_mode");
-            system("halt");
-#endif
-            return;
-        }
-    }
-#endif
 
 done:
     if(rc) NEXUS_Platform_GetStandbySettings(&server->standby.standbySettings.settings);
@@ -3650,7 +3633,7 @@ static NEXUS_Error bserver_set_standby_settings(nxserver_t server, const NxClien
                 hotplug_callback_locked(session, 0);
             }
 #endif
-
+            bserver_acquire_audio_mixers(session->main_audio, true);
             nxserver_p_acquire_release_all_resources(session, true);
         }
 

@@ -1,5 +1,5 @@
 /********************************************************************************************
-*     (c)2004-2015 Broadcom Corporation                                                     *
+*     (c)2004-2016 Broadcom Corporation                                                     *
 *                                                                                           *
 *  This program is the proprietary software of Broadcom Corporation and/or its licensors,   *
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and      *
@@ -1303,7 +1303,7 @@ BERR_Code B_DTCP_IP_OnNewConnection(void * ctx, void * UserData)
 
     /*
      * We reached here if:
-     * 1. any error occured when processing AKE commands.
+     * 1. any error occurred when processing AKE commands.
      * 2. Connection was closed by either source or sink.
      */
     if (retValue != BERR_SUCCESS && pAkeSession->CurrentState != B_AkeState_eCompleted)

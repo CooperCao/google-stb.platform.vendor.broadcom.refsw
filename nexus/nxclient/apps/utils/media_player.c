@@ -1179,10 +1179,5 @@ int media_player_get_set_tr69c_info(void *context, enum b_tr69c_type type, union
 }
 #endif
 #else
-#include <stdio.h>
-int main(void)
-{
-    printf("This application is not supported on this platform (needs playback and simple_decoder)!\n");
-    return 0;
-}
+typedef unsigned unused;
 #endif

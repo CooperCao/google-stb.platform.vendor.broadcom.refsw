@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * (c) 2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -165,24 +165,53 @@ eRet CPlaylistDb::removePlaylist(
     return(ret);
 } /* removePlaylist */
 
-void CPlaylistDb::dump(bool bForce)
+void CPlaylistDb::dump(bool bForce, int index)
 {
     BDBG_Level  level;
     CPlaylist * pPlaylist = NULL;
 
     if (true == bForce)
     {
-        BDBG_GetModuleLevel("atlas_playlist", &level);
-        BDBG_SetModuleLevel("atlas_playlist", BDBG_eMsg);
+        BDBG_GetModuleLevel("atlas_playlist_db", &level);
+        BDBG_SetModuleLevel("atlas_playlist_db", BDBG_eMsg);
     }
 
+    BDBG_MSG(("Discovered Atlas Playlists"));
+    BDBG_MSG(("=========================="));
     for (pPlaylist = _playlistList.first(); pPlaylist; pPlaylist = _playlistList.next())
     {
-        BDBG_MSG(("playlist:%s", pPlaylist->getName().s()));
+        CChannel * pChannel = NULL;
+
+        if (0 == pPlaylist->numChannels())
+        {
+            continue;
+        }
+        pChannel = pPlaylist->getChannel(0);
+        if (NULL == pChannel)
+        {
+            BDBG_MSG(("discovered playlist (%s) does not have an IP address", pPlaylist->getName().s()));
+            continue;
+        }
+
+        BDBG_MSG(("%s %s", pChannel->getHost().s(), pPlaylist->getName().s()));
     }
 
     if (true == bForce)
     {
-        BDBG_SetModuleLevel("atlas_playlist", level);
+        BDBG_SetModuleLevel("atlas_playlist_db", level);
+    }
+
+    /* notify observer of playlist shown (Lua uses as response to request) */
+    {
+        CPlaylist * pPlaylist = NULL;
+
+        /* if requested index is > 0 then return corresponding 1 index based playlist
+           with notification */
+        if (0 < index)
+        {
+            pPlaylist = _playlistList[index - 1];
+        }
+
+        notifyObservers(eNotify_DiscoveredPlaylistsShown, pPlaylist);
     }
 } /* dump */

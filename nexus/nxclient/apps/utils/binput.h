@@ -91,6 +91,9 @@ struct binput_settings
     NEXUS_CallbackDesc codeAvailable;
     const char *script;
     const char *script_file;
+#if NEXUS_HAS_IR_INPUT && !NXCLIENT_SUPPORT
+    NEXUS_IrInputMode irInputMode;
+#endif
 };
 void binput_get_default_settings(struct binput_settings *psettings);
 binput_t binput_open(const struct binput_settings *psettings);

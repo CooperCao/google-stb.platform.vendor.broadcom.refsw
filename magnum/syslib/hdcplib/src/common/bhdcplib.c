@@ -936,7 +936,9 @@ BERR_Code BHDCPlib_StartAuthentication(BHDCPlib_Handle hHDCPlib)
 
 #if BHDCPLIB_HAS_HDCP_2X_SUPPORT && defined(BHDCPLIB_HAS_SAGE)
 	if (hHDCPlib->stDependencies.eVersion == BHDM_HDCP_Version_e2_2) {
-		return BHDCPlib_P_Hdcp2x_StartAuthentication(hHDCPlib);
+		rc = BHDCPlib_P_Hdcp2x_StartAuthentication(hHDCPlib);
+		BHDCPlib_P_ShowStateChange(hHDCPlib, currentState) ;
+		return rc ;
 	}
 #endif
 

@@ -146,6 +146,7 @@ struct decoder {
     NEXUS_ParserBand parserBand;
     live_decode_channel_t channel;
     live_decode_start_settings start_settings;
+    unsigned video_pid, audio_pid; /* scan override */
 
     unsigned chNum; /* global number */
     struct frontend *frontend;
@@ -342,11 +343,17 @@ static int start_priming(struct decoder *d)
     frontend->refcnt++;
 
     d->start_settings.parserBand = d->parserBand;
-    if (d->start_settings.video.pid == 0x1fff) {
+    if (d->video_pid != 0x1fff) {
+        d->start_settings.video.pid = d->video_pid;
+    }
+    else {
         d->start_settings.video.pid = map->scan_results.program_info[d->program].video_pids[0].pid;
         d->start_settings.video.codec = map->scan_results.program_info[d->program].video_pids[0].codec;
     }
-    if (d->start_settings.audio.pid == 0x1fff) {
+    if (d->audio_pid != 0x1fff) {
+        d->start_settings.audio.pid = d->audio_pid;
+    }
+    else {
         d->start_settings.audio.pid = map->scan_results.program_info[d->program].audio_pids[0].pid;
         d->start_settings.audio.codec = map->scan_results.program_info[d->program].audio_pids[0].codec;
     }
@@ -489,6 +496,7 @@ int main(int argc, const char **argv)
     live_decode_t decode;
     live_decode_create_settings create_settings;
     live_decode_start_settings start_settings;
+    unsigned video_pid = 0x1fff, audio_pid = 0x1fff;
     struct decoder *d;
     struct frontend *frontend;
     bool prompt = false;
@@ -600,10 +608,10 @@ int main(int argc, const char **argv)
             create_settings.video.channelChangeMode = lookup(g_channelChangeMode, argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-video") && argc>curarg+1) {
-            start_settings.video.pid = strtoul(argv[++curarg], NULL, 0);
+            video_pid = strtoul(argv[++curarg], NULL, 0);
         }
         else if (!strcmp(argv[curarg], "-audio") && argc>curarg+1) {
-            start_settings.audio.pid = strtoul(argv[++curarg], NULL, 0);
+            audio_pid = strtoul(argv[++curarg], NULL, 0);
         }
         else if (!strcmp(argv[curarg], "-sync") && argc>curarg+1) {
             create_settings.sync = lookup(g_syncModeStrs, argv[++curarg]);
@@ -808,6 +816,8 @@ int main(int argc, const char **argv)
             continue;
         }
         dt->start_settings = start_settings;
+        dt->video_pid = video_pid;
+        dt->audio_pid = audio_pid;
         dt->channel = live_decode_create_channel(decode);
         BDBG_ASSERT(dt->channel);
         BLST_Q_INSERT_TAIL(&g_decoders, dt, link);

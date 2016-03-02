@@ -512,6 +512,8 @@ void NEXUS_Security_RegionVerification_UnInit_priv( void )
         }
     }
 
+    gRegVerModuleData.moduleInitialised = false;
+
     BDBG_LEAVE( NEXUS_Security_RegionVerification_UnInit_priv );
     return;
 }

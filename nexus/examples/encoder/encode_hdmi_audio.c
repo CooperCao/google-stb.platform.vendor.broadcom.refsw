@@ -177,6 +177,7 @@ int main(int argc, char **argv)
     stcSettings.timebase = NEXUS_Timebase_e0;/* should be the same timebase for end-to-end locking */
     stcSettings.mode = NEXUS_StcChannelMode_eAuto;
     stcSettings.pcrBits = NEXUS_StcChannel_PcrBits_eFull42;/* ViCE2 requires 42-bit STC broadcast */
+    stcSettings.autoConfigTimebase = false; /* don't let encoder stc auto config timebase */
     stcChannelTranscode = NEXUS_StcChannel_Open(1, &stcSettings);
 
     /* Bring up video display and outputs */
@@ -192,7 +193,7 @@ int main(int argc, char **argv)
     rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
     if ( !rc && hdmiStatus.connected )
     {
-        /* If current display format is not supported by monitor, switch to monitor's preferred format. 
+        /* If current display format is not supported by monitor, switch to monitor's preferred format.
            If other connected outputs do not support the preferred format, a harmless error will occur. */
         NEXUS_Display_GetSettings(display, &displaySettings);
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
@@ -215,7 +216,7 @@ int main(int argc, char **argv)
     audioProgram.input = NEXUS_HdmiInput_GetAudioConnector(hdmiInput);
     NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
     stcSettings.timebase = NEXUS_Timebase_e0;
-    stcSettings.autoConfigTimebase = false;
+    stcSettings.autoConfigTimebase = false; /* hdmi input module will auto config timebase clock */
     audioProgram.stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
 
     /* Open audio mux output */
@@ -290,7 +291,7 @@ int main(int argc, char **argv)
         const NEXUS_AudioMuxOutputFrame *desc[2];
         unsigned i,j;
         unsigned descs;
-        
+
         NEXUS_AudioMuxOutput_GetBuffer(audioMuxOutput, &desc[0], &size[0], &desc[1], &size[1]);
         if(size[0]==0 && size[1]==0) {
             NEXUS_AudioDecoderStatus astatus;
@@ -331,8 +332,8 @@ int main(int argc, char **argv)
                     if((desc[j][i].flags & NEXUS_AUDIOMUXOUTPUTFRAME_FLAG_METADATA) ==0) {/* ignore metadata descriptor in es capture */
                         fwrite((const uint8_t *)pDataBuffer + desc[j][i].offset, desc[j][i].length, 1, fout);
                     }
-                    fprintf(fdesc, "%8x %8x   %08x%08x %8x %5u %5d %8x %8x\n", desc[j][i].flags, desc[j][i].originalPts, 
-                        (uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr, 
+                    fprintf(fdesc, "%8x %8x   %08x%08x %8x %5u %5d %8x %8x\n", desc[j][i].flags, desc[j][i].originalPts,
+                        (uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr,
                         desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, desc[j][i].length);
                 }
                 bytes+= desc[j][i].length;

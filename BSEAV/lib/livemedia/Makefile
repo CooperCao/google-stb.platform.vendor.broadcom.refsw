@@ -1,5 +1,5 @@
 #############################################################################
-#    (c)2010-2015 Broadcom Corporation
+#    (c)2010-2016 Broadcom Corporation
 #
 # This program is the proprietary software of Broadcom Corporation and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,10 +57,7 @@ B_REFSW_ARCH=mipsel-linux
 export B_REFSW_ARCH
 endif
 
-ifneq ($(B_REFSW_DEBUG),n)
-B_REFSW_DEBUG=y
-export B_REFSW_DEBUG
-endif
+B_REFSW_DEBUG ?= y
 
 ifeq ($(B_REFSW_DEBUG),y)
 DEBUG_SUFFIX=debug

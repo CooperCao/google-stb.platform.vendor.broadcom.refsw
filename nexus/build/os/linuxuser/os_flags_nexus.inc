@@ -35,17 +35,6 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#   This file defines the NEXUS OS-specific flags for building in linuxuser mode.
-#
-# Revision History:
-#
-# $brcm_Log: $
-#
 ############################################################
 
 ############################################################
@@ -69,10 +58,9 @@ B_REFSW_SHAREABLE := y
 endif
 
 ifeq ($(B_REFSW_DEBUG),y)
-NEXUS_CFLAGS += -g -O${B_REFSW_OPTIMIZER_LEVEL}
-else
-NEXUS_CFLAGS += -O${B_REFSW_OPTIMIZER_LEVEL}
+NEXUS_CFLAGS += -g
 endif
+NEXUS_CFLAGS += -O${B_REFSW_OPTIMIZER_LEVEL}
 
 #
 # Allow for shared and non-shared builds.  Shared will be relocatable, non-shared will not.

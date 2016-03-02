@@ -47,13 +47,13 @@
 # 
 ############################################################
 
-NEXUS_TOP = $(NEXUS)
+NEXUS_TOP = $(URSR_TOP)/nexus
 
 ##
 #
 # 2. Include platform build objects
 #
-include $(NEXUS_TOP)/platforms/$(PLATFORM)/build/platform_app.inc
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
 #In case nexusMgr is built standalone
 ifeq ($(NEXUSMGR_LIBDIR),)
@@ -73,23 +73,20 @@ endif
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))   -DPIC -fpic
 CXXFLAGS = -Wall -Werror -fno-exceptions -fno-rtti -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT -fPIC -DPIC
 
-ifeq ($(findstring nexus,$(SC_PLATFORM)),nexus)
-CFLAGS += -D_SC_DIRECT_NEXUS_
-CXXFLAGS += -D_SC_DIRECT_NEXUS_
-endif
 
-ifeq ($(DEBUG),y)
-CFLAGS += -DBDBG_DEBUG_BUILD=1
-else
-CFLAGS += -DBDBG_DEBUG_BUILD=0
-endif
+#ifeq ($(DEBUG),y)
+#CFLAGS += -DBDBG_DEBUG_BUILD=1
+#else
+#CFLAGS += -DBDBG_DEBUG_BUILD=0
+#endif
 
-CXXFLAGS += -mips32 -D_GNU_SOURCE=1 -D_DEBUG  -O1
+CXXFLAGS += -D_GNU_SOURCE=1 -D_DEBUG  -O1
 
 all: nexusMgr
 clean: nexusMgr-clean
 
-nexusMgr: nexusMgr.c nexusMgr.h TestHarness.cpp TestHarness.h
+#nexusMgr: nexusMgr.c nexusMgr.h TestHarness.cpp TestHarness.h
+nexusMgr: nexusMgr.c nexusMgr.h
 	@echo "==========>Building NexusMgr"
 	@if ! [ -e "${NEXUSMGR_LIBDIR}" ]; then \
 		mkdir -p ${NEXUSMGR_LIBDIR}; \
@@ -99,13 +96,11 @@ nexusMgr: nexusMgr.c nexusMgr.h TestHarness.cpp TestHarness.h
 	fi;
 
 	@${CC} ${CFLAGS} -c nexusMgr.c -o ${NEXUSMGR_OBJDIR}/nexusMgr.o
-	@${CXX} ${CXXFLAGS} -c TestHarness.cpp -o ${NEXUSMGR_OBJDIR}/TestHarness.o
-	@${CXX} -shared -L${SC_BCM_NEXUS_LIBDIR} -lnexus ${NEXUSMGR_OBJDIR}/nexusMgr.o ${NEXUSMGR_OBJDIR}/TestHarness.o -o ${NEXUSMGR_LIBDIR}/libnexusMgr.so
+	@${CXX} -shared -L${SC_BCM_NEXUS_LIBDIR} -lnexus ${NEXUSMGR_OBJDIR}/nexusMgr.o -o ${NEXUSMGR_LIBDIR}/libnexusMgr.so
 
 
 nexusMgr-clean:
 	rm -f ${NEXUSMGR_OBJDIR}/nexusMgr.o
-	rm -f ${NEXUSMGR_OBJDIR}/TestHarness.o
 	@if [ -e "${NEXUSMGR_OBJDIR}" ]; then \
 		rmdir --ignore-fail-on-non-empty ${NEXUSMGR_OBJDIR}; \
 	fi;

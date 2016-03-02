@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_video_decoder_module.h"
@@ -435,7 +426,9 @@ static NEXUS_Error NEXUS_VideoDecoderModule_P_PostInit(void)
         xvdSettings.stFWMemConfig.uiGeneralHeapSize = pSettings->heapSize[i].general;  /* Context memory (not included FW, see below) */
         xvdSettings.stFWMemConfig.uiCabacHeapSize =   pSettings->heapSize[i].secure;   /* SVP secure memory */
         xvdSettings.stFWMemConfig.uiPictureHeapSize = pSettings->heapSize[i].picture;  /* picture memory */
-        xvdSettings.stFWMemConfig.uiPictureHeap1Size = pSettings->heapSize[i].secondaryPicture; /* for split picture buffer systems */
+        if (pSettings->heapSize[i].secondaryPicture > 1) {
+            xvdSettings.stFWMemConfig.uiPictureHeap1Size = pSettings->heapSize[i].secondaryPicture; /* for split picture buffer systems */
+        }
         /* TODO: replace pSettings->hostAccessibleHeapIndex with g_pCoreHandles->defaultHeapIndex */
         BDBG_MSG(("BXVD_Open %d: fw heap=%d, avd heap=%d", i, pSettings->hostAccessibleHeapIndex, pSettings->avdHeapIndex[i]));
         xvdSettings.uiAVDInstance = i;
@@ -445,7 +438,7 @@ static NEXUS_Error NEXUS_VideoDecoderModule_P_PostInit(void)
             xvdSettings.hPictureHeap = vDevice->mem;
         }
         if (xvdSettings.stFWMemConfig.uiPictureHeap1Size) {
-            if(pSettings->avdHeapIndex[i]==NEXUS_MAX_HEAPS || !g_pCoreHandles->heap[pSettings->secondaryPictureHeapIndex[i]].mma)
+            if(pSettings->secondaryPictureHeapIndex[i]==NEXUS_MAX_HEAPS || !g_pCoreHandles->heap[pSettings->secondaryPictureHeapIndex[i]].mma)
             {
                 xvdSettings.hPictureHeap1 = g_pCoreHandles->heap[pSettings->secure.secondaryPictureHeapIndex[i]].mma;
             }
@@ -740,6 +733,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_Init_Generic(NEXUS_VideoDecoderHandle videoDeco
     }
     videoDecoder->settings.maxFrameRate = NEXUS_VideoFrameRate_e60;
     videoDecoder->settings.colorDepth = 8; /* require app to select 10 bit */
+    videoDecoder->settings.userDataFilterThreshold = 60; /* 2 seconds */
 
     return NEXUS_SUCCESS;
 
@@ -4862,12 +4856,21 @@ static void NEXUS_VideoDecoder_P_ContextToStatus(NEXUS_VideoDecoderHandle decode
     pStatus->lastPicture = UnifiedPicture->stPictureType.bLastPicture;
     if ( false == pStatus->lastPicture )
     {
-        pStatus->surfaceCreateSettings.imageWidth = UnifiedPicture->stBufferInfo.stSource.uiWidth;
-        pStatus->surfaceCreateSettings.imageHeight = UnifiedPicture->stBufferInfo.stSource.uiHeight;
-        if ( true == UnifiedPicture->stClipping.bValid )
+        /* Temporary workaround for FWAVD-812 */
+        if ( UnifiedPicture->stBufferInfo.stDisplay.bValid && (decoder->startSettings.codec == NEXUS_VideoCodec_eVp8 || decoder->startSettings.codec == NEXUS_VideoCodec_eMpeg2) )
         {
-            pStatus->surfaceCreateSettings.imageWidth = pStatus->surfaceCreateSettings.imageWidth - (UnifiedPicture->stClipping.uiLeft +UnifiedPicture->stClipping.uiRight);
-            pStatus->surfaceCreateSettings.imageHeight = pStatus->surfaceCreateSettings.imageHeight - (UnifiedPicture->stClipping.uiTop + UnifiedPicture->stClipping.uiBottom);
+            pStatus->surfaceCreateSettings.imageWidth = UnifiedPicture->stBufferInfo.stDisplay.uiWidth;
+            pStatus->surfaceCreateSettings.imageHeight = UnifiedPicture->stBufferInfo.stDisplay.uiHeight;
+        }
+        else
+        {
+            pStatus->surfaceCreateSettings.imageWidth = UnifiedPicture->stBufferInfo.stSource.uiWidth;
+            pStatus->surfaceCreateSettings.imageHeight = UnifiedPicture->stBufferInfo.stSource.uiHeight;
+            if ( true == UnifiedPicture->stClipping.bValid )
+            {
+                pStatus->surfaceCreateSettings.imageWidth = pStatus->surfaceCreateSettings.imageWidth - (UnifiedPicture->stClipping.uiLeft +UnifiedPicture->stClipping.uiRight);
+                pStatus->surfaceCreateSettings.imageHeight = pStatus->surfaceCreateSettings.imageHeight - (UnifiedPicture->stClipping.uiTop + UnifiedPicture->stClipping.uiBottom);
+            }
         }
         pStatus->surfaceCreateSettings.lumaBuffer = NEXUS_VideoDecoder_P_MemoryBlockFromMma(decoder, UnifiedPicture->stBufferInfo.hLuminanceFrameBufferBlock);
         pStatus->surfaceCreateSettings.chromaBuffer = NEXUS_VideoDecoder_P_MemoryBlockFromMma(decoder, UnifiedPicture->stBufferInfo.hChrominanceFrameBufferBlock);

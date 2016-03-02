@@ -56,6 +56,7 @@ APPS = splashrun
 
 export NEXUS_POWER_MANAGEMENT=n
 export BMMA_USE_STUB=y
+export NEXUS_FILE_MUX_SUPPORT=n
 
 # These are the only supported targets
 PHONY := \
@@ -186,7 +187,7 @@ clean_apps:  ${BIN_DIR}/exists
 		-f ${CURDIR}/Makefile $@
 
 # Nexus features
-api:
+api: ${BIN_DIR}/exists
 	@echo "Build nexus API"
 	@$(MAKE) -C $(NEXUS_TOP)/build
 clean_api:

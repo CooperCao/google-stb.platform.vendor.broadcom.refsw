@@ -102,15 +102,18 @@ BHAB_INCLUDES += $(MAGNUM)/commonutils/fec/include
 BHAB_INCLUDES += $(MAGNUM)/commonutils/img
 
 ifneq ($(BHAB_3461_SUPPORT),)
-ifeq ($(BHAB_IMG_ONLY),)
 ifeq ($(BHAB_LEAP_UART_ENABLE),y)
 BHAB_DEFINES += BHAB_LEAP_UART_ENABLE
 endif
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/3461/
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/3461/
+BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/common/
 BHAB_INCLUDES += $(MAGNUM)/basemodules/chp/include/3461/rdb/hab/$(BHAB_3461_VER_LOWER)
+ifeq ($(BHAB_IMG_ONLY),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3461/bhab_3461.c
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3461/bhab_3461_priv.c
+endif
+ifeq ($(BHAB_IMG_EXTERNAL),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3461/bhab_3461_fw_$(BHAB_3461_VER_LOWER).c
 endif
 endif
@@ -143,7 +146,6 @@ endif
 endif
 
 ifneq ($(BHAB_3128_SUPPORT),)
-ifeq ($(BHAB_IMG_ONLY),)
 ifeq ($(BHAB_LEAP_UART_ENABLE),y)
 BHAB_DEFINES += BHAB_LEAP_UART_ENABLE
 endif
@@ -151,73 +153,92 @@ BHAB_312X_CHIP := 3128
 BHAB_RDB_CHIP := 3128
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/3128/
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/3128/
+BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/common/
+ifeq ($(BHAB_IMG_ONLY),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3128/bhab_3128.c
+endif
+ifeq ($(BHAB_IMG_EXTERNAL),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3128/bhab_3128_fw_c0.c
 endif
 endif
 
 ifneq ($(BHAB_7584_SUPPORT),)
-ifeq ($(BHAB_IMG_ONLY),)
 ifeq ($(BHAB_LEAP_UART_ENABLE),y)
 BHAB_DEFINES += BHAB_LEAP_UART_ENABLE
 endif
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/$(BCHP_CHIP)/
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/$(BCHP_CHIP)/
+BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/common/
+ifeq ($(BHAB_IMG_ONLY),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/$(BCHP_CHIP)/bhab_7584.c
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/$(BCHP_CHIP)/bhab_7584_priv.c
+endif
+ifeq ($(BHAB_IMG_EXTERNAL),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/$(BCHP_CHIP)/bhab_7584_fw_a0.c
 endif
 endif
 
 ifneq ($(BHAB_75845_SUPPORT),)
-ifeq ($(BHAB_IMG_ONLY),)
 ifeq ($(BHAB_LEAP_UART_ENABLE),y)
 BHAB_DEFINES += BHAB_LEAP_UART_ENABLE
 endif
 BHAB_RDB_CHIP := 75845
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/7584/
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/7584/
+BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/common/
+ifeq ($(BHAB_IMG_ONLY),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/7584/bhab_7584.c
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/7584/bhab_7584_priv.c
+endif
+ifeq ($(BHAB_IMG_EXTERNAL),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/7584/bhab_7584_fw_a0.c
 endif
 endif
 
 ifneq ($(BHAB_7563_SUPPORT),)
-ifeq ($(BHAB_IMG_ONLY),)
 ifeq ($(BHAB_LEAP_UART_ENABLE),y)
 BHAB_DEFINES += BHAB_LEAP_UART_ENABLE
 endif
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/7563/
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/7563/
+BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/common/
+ifeq ($(BHAB_IMG_ONLY),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/7563/bhab_7563.c
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/7563/bhab_7563_priv.c
+endif
+ifeq ($(BHAB_IMG_EXTERNAL),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/7563/bhab_7563_fw_$(BCHP_VER_LOWER).c
 endif
 endif
 
 ifneq ($(BHAB_75635_SUPPORT),)
-ifeq ($(BHAB_IMG_ONLY),)
 ifeq ($(BHAB_LEAP_UART_ENABLE),y)
 BHAB_DEFINES += BHAB_LEAP_UART_ENABLE
 endif
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/7563/
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/7563/
+BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/common/
+ifeq ($(BHAB_IMG_ONLY),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/7563/bhab_7563.c
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/7563/bhab_7563_priv.c
+endif
+ifeq ($(BHAB_IMG_EXTERNAL),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/7563/bhab_7563_fw_$(BCHP_VER_LOWER).c
 endif
 endif
 
 ifneq ($(BHAB_7364_SUPPORT),)
-ifeq ($(BHAB_IMG_ONLY),)
 ifeq ($(BHAB_LEAP_UART_ENABLE),y)
 BHAB_DEFINES += BHAB_LEAP_UART_ENABLE
 endif
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/$(BCHP_CHIP)/
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/
+BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/common/
+ifeq ($(BHAB_IMG_ONLY),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/$(BCHP_CHIP)/bhab_7364.c
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/bhab_leap_priv.c
+endif
+ifeq ($(BHAB_IMG_EXTERNAL),)
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/$(BCHP_CHIP)/bhab_7364_fw_$(BHAB_7364_VER_LOWER).c
 endif
 endif
@@ -255,6 +276,12 @@ BHAB_31xx_CHIP := 3109
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/8051/3109/
 BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/8051/
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/8051/3109/bhab_3109.c
+endif
+endif
+
+ifneq ($(filter y,$(BHAB_7364_SUPPORT) $(BHAB_3128_SUPPORT) $(BHAB_7584_SUPPORT) $(BHAB_75845_SUPPORT) $(BHAB_3461_SUPPORT) $(BHAB_7563_SUPPORT)),)
+ifeq ($(BHAB_IMG_EXTERNAL),)
+BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/common/bhab_ctfe_img.c
 endif
 endif
 

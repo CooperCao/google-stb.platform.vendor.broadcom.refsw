@@ -74,7 +74,7 @@ typedef enum
     BIP_ListenerState_eAcceptDone,    /*  Accept has completed typically from a CheckNow */
     BIP_ListenerState_eStopping,      /*  in the middle of an of calling a Listener stop*/
     BIP_ListenerState_eStopDone,      /*  Todo: currentlt not used */
-    BIP_ListenerState_eError,         /* error has occured on the socket: peer closed or network error */
+    BIP_ListenerState_eError,         /* error has occurred on the socket: peer closed or network error */
     /* TODO: need to define different socket states: listening, accepted, closing, etc. */
     BIP_ListenerState_eMax
 } BIP_ListenerState;

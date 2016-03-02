@@ -36,10 +36,6 @@
 # ANY LIMITED REMEDY.
 #
 ###############################################################################################
-
-
-PLAYREADY_TEST = y
-
 include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
 
 DRM_APPS = urr_toggling

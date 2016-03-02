@@ -16,7 +16,7 @@ Standalone GLSL compiler
 extern MacroList *directive_macros;
 
 extern void glsl_directive_allow_version(void);
-extern void glsl_directive_disallow_version(void);
+extern void glsl_directive_allow_extension(void);
 extern void glsl_directive_reset_macros(void);
 
 extern Token *glsl_directive_next_token(void);

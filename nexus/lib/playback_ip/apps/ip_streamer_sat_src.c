@@ -1,5 +1,5 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ *    (c)2008-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -236,8 +236,8 @@ satLockCallback(void *context, int param)
         return;
     }
 
-    BDBG_MSG(("sat Lock callback, frontend 0x%08x - demod lock status %s, symbolRate %d",
-                (unsigned)frontendHandle, (satStatus.demodLocked==0)?"UNLOCKED":"LOCKED", satStatus.symbolRate));
+    BDBG_MSG(("sat Lock callback, frontend %p - demod lock status %s, symbolRate %d",
+                frontendHandle, (satStatus.demodLocked==0)?"UNLOCKED":"LOCKED", satStatus.symbolRate));
     if (NEXUS_Frontend_GetDiseqcStatus(frontendHandle, &disqecStatus) != NEXUS_SUCCESS) {
         BDBG_WRN(("%s: NEXUS_Frontend_GetDiseqcStatus() failed"));
         return;

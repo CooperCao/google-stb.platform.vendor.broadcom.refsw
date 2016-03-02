@@ -225,7 +225,7 @@ static MailPendingAPICall_t *mailClientFillPostponeParcel(MailDescriptor_t *cons
         const uint16_t fId, uint8_t *const req)
 {
     MailPendingAPICall_t *const postponedCall = findEmptyPendingTableEntry(&mail->client);
-    SYS_DbgAssertComplex(postponedCall, MAILCLIENT_CAN_NOT_POSTPONE_REQUEST);
+    const MailClientParametersTableEntry_t *const reqInfo = mailClientTableGetAppropriateEntry(fId);
     if (postponedCall)
     {
         pthread_mutex_lock(&mail->client.pendingTableMutex);
@@ -239,6 +239,13 @@ static MailPendingAPICall_t *mailClientFillPostponeParcel(MailDescriptor_t *cons
                                   NULL;
         memcpy(&postponedCall->params, req + reqInfo->paramOffset, reqInfo->paramLength);
         pthread_mutex_unlock(&mail->client.pendingTableMutex);
+    }
+    else if (MAIL_INVALID_PAYLOAD_OFFSET != reqInfo->dataPointerOffset)
+    {
+        SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(
+                    (uint8_t *)req + reqInfo->paramOffset + reqInfo->dataPointerOffset);
+        if (SYS_CheckPayload(dataPointer))
+            SYS_FreePayload(dataPointer);
     }
     return postponedCall;
 }

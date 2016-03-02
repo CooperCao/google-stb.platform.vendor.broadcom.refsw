@@ -748,6 +748,8 @@ NEXUS_PictureDecoder_Start(NEXUS_PictureDecoderHandle decoder, const NEXUS_Pictu
 
     if(decoder->state != NEXUS_PictureDecoder_P_eStopped) { return BERR_TRACE(BERR_NOT_SUPPORTED); }
 
+    if ( decoder->wr_offset == 0 ) return BERR_TRACE(BERR_INVALID_PARAMETER);
+
     if(!pSettings) {
         NEXUS_PictureDecoder_GetDefaultStartSettings(&settings);
         pSettings = &settings;
@@ -821,9 +823,14 @@ NEXUS_PictureDecoder_Stop(NEXUS_PictureDecoderHandle decoder)
     NEXUS_Module_TaskCallback_Set(decoder->pictureParsedCallback, NULL);
     NEXUS_Module_TaskCallback_Set(decoder->segmentDecodedCallback, NULL);
 
-    BSID_GetDefaultStopSettings(&settings);
-    settings.bForceStop = true;
-    BSID_StopDecode(decoder->sid, &settings);
+    if ( decoder->state == NEXUS_PictureDecoder_P_eDecoding ||
+         decoder->state == NEXUS_PictureDecoder_P_eStreamInfo ||
+         decoder->state == NEXUS_PictureDecoder_P_eMoreInfoData ||
+         decoder->state == NEXUS_PictureDecoder_P_eMoreImageData ) {
+        BSID_GetDefaultStopSettings(&settings);
+        settings.bForceStop = true;
+        BSID_StopDecode(decoder->sid, &settings);
+    }
 
     NEXUS_PictureDecoder_P_Reset(decoder);
     hwState->acquired = NULL;

@@ -107,7 +107,6 @@ endif
 
 VIDEO_ENCODER_SUPPORT ?= y
 NEXUS_POWER_MANAGEMENT ?= y
-SAGE_SUPPORT ?= y
 
 #
 # by default, we include the following

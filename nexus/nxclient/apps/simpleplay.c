@@ -74,6 +74,7 @@ int main(int argc, const char **argv)
     media_player_create_settings create_settings;
     media_player_start_settings start_settings;
     bgui_t gui;
+    struct bgui_settings gui_settings;
     unsigned timeout = 0;
     bool prompt = false;
     NxClient_JoinSettings joinSettings;
@@ -111,7 +112,10 @@ int main(int argc, const char **argv)
     rc = NxClient_Join(&joinSettings);
     if (rc) return -1;
 
-    gui = bgui_create(10,10);
+    bgui_get_default_settings(&gui_settings);
+    gui_settings.width = 10;
+    gui_settings.height = 10;
+    gui = bgui_create(&gui_settings);
     bgui_fill(gui, 0);
     bgui_checkpoint(gui);
     bgui_submit(gui);

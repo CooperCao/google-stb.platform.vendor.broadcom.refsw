@@ -1,5 +1,5 @@
 #############################################################################
-# (c) 2003-2014 Broadcom Corporation
+# (c) 2003-2016 Broadcom Corporation
 #
 # This program is the proprietary software of Broadcom Corporation and/or its
 # licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -48,10 +48,11 @@
 # Outputs: BWIN_CFLAGS, BWIN_LDFLAGS
 
 BWIN_DIR = $(BSEAV)/lib/bwin
-ifneq ($(filter $(B_REFSW_DEBUG),n no_error_messages),)
-    DEBUG_SUFFIX=release
+B_REFSW_DEBUG ?= y
+ifeq ($(B_REFSW_DEBUG),y)
+DEBUG_SUFFIX=debug
 else
-    DEBUG_SUFFIX=debug
+DEBUG_SUFFIX=release
 endif
 
 BWIN_LIBDIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/bwin/lib/$(B_REFSW_ARCH).$(DEBUG_SUFFIX)

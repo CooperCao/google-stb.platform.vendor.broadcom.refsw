@@ -83,6 +83,15 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_KeySlot);
 
 void NEXUS_SecurityModule_Sweep_priv(void);
 
+
+/*
+Summary:
+    Dumps to the console details on MEMC ARCH violations that have occured since the function was
+    last called.
+*/
+void NEXUS_Security_PrintArchViolation_priv( void );
+
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

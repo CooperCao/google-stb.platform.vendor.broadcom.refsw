@@ -84,6 +84,8 @@ typedef struct _RF4CE_NWK_StartReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;     /*!< Helper request data */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_NWK_StartConfCallback_t callback; /*!< Callback for confirmation. */
 } RF4CE_NWK_StartReqDescr_t;
@@ -118,6 +120,8 @@ typedef struct _RF4CE_NWK_ResetReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;     /*!< Helper request data */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_NWK_ResetReqParams_t params;   /*!< Request parameters. */
     RF4CE_NWK_ResetConfCallback_t callback; /*!< Callback for confirmation. */

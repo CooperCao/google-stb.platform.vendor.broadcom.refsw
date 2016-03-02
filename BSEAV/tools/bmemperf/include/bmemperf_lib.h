@@ -151,5 +151,8 @@ int set_cpu_utilization( void );
 int get_cpu_utilization( bmemperf_cpu_percent *pcpuData );
 int bmemperf_getCpuUtilization( bmemperf_cpu_percent *pCpuData );
 int P_getCpuUtilization( void );
+#ifdef BMEMCONFIG_READ32_SUPPORTED
+char * getProductIdStr( void );
+#endif /* BMEMCONFIG_READ32_SUPPORTED */
 
 #endif /* __BMEMPERF_LIB_H__ */

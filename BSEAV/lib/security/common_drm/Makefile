@@ -57,6 +57,7 @@ COMMON_DRM_TOP := $(URSR_TOP)/BSEAV/lib/security/common_drm
 NEXUS_PLATFORM ?= $(PLATFORM)
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
+COMMOND_DRM_TOP=${NEXUS_TOP}/../BSEAV/lib/security/common_drm
 COMMON_DRM_OBJ_ROOT = ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm
 
 
@@ -359,6 +360,7 @@ PRDY_OBJS           := $(patsubst %.c,%.o, ${PLAYREADY_SOURCES})
 include lib/prdy_libdir.inc
 PRDY_FOR_LIB_INSTALL:= ${CMNDRM_PRDY_LIBDIR}
 PRDY_INSTALLED_LIBS	:= $(addprefix ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}/, ${PRDY_PUBLIC_LIBS})
+PRDY_INSTALLED_LIBS_FOR_NEXUS := $(addprefix ${COMMOND_DRM_TOP}/${PRDY_FOR_LIB_INSTALL}/, ${PRDY_PUBLIC_LIBS})
 endif
 
 ifeq ($(filter ${B_REFSW_ARCH}, arm-linux ), ${B_REFSW_ARCH})
@@ -422,10 +424,11 @@ endif
 ifeq ($(ANDROID_BUILD),y)
 all: ${F_PUBLIC_LIBS} ${F_PUBLIC_TL_LIBS}
 else
-all: prep_openssl prep_srai ${F_PUBLIC_LIBS} ${F_PUBLIC_TL_LIBS}
+all: prep_folder prep_openssl prep_srai ${F_PUBLIC_LIBS} ${F_PUBLIC_TL_LIBS}
 endif
 
 prep_folder:
+	@ mkdir -p ${COMMON_DRM_OBJ_ROOT}/
 	@ mkdir -p $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $(dir ${PLAYREADY_SOURCES} ${COMMON_DRM_TL_SOURCES}))
 ifeq ($(SAGE_SUPPORT),y)
 	@ mkdir -p $(dir ${F_INSTALLED_TL_LIBS})
@@ -441,7 +444,8 @@ prep_openssl:
 	@echo [..... prep_openssl with j option];
 	$(Q_)$(MAKE) -j8 -C $(B_OPENSSL_BUILD_DIR) > /dev/null
 
-playready: ${PRDY_PUBLIC_LIBS} prdyidirs ${PRDY_INSTALLED_LIBS}
+playready: ${PRDY_PUBLIC_LIBS} prdyidirs ${PRDY_INSTALLED_LIBS} ${PRDY_INSTALLED_LIBS_FOR_NEXUS}
+
 ifneq ($(findstring 2.5, ${MSDRM_PRDY_SDK_VERSION}), 2.5)
 	$(error invalid Playready SDK version ${MSDRM_PRDY_SDK_VERSION})
 endif
@@ -484,9 +488,13 @@ lib${PRDY_BASENAME}.a: ${PRDY_OBJS}
 	@ echo [Linking static library .... $@ ]
 	@ ${AR} rc ${COMMON_DRM_OBJ_ROOT}/$@ $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $^)
 
+# Install a copy of cmndrmprdy libs in the out of source build folder
+# Also, install a copy of cmndrmprdy libs in the source folder too. One of Nexus's extension will look for it there. Plus
+# Nexus doesn't force the rebuild of cmndrmprdy lib when it compiles.
 prdyidirs:
+	@ [ -d ${COMMON_DRM_OBJ_ROOT} ] || mkdir -p ${COMMON_DRM_OBJ_ROOT}
 	@ [ -d ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL} ] || mkdir -p ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}
-
+	@ [ -d ${COMMON_DRM_TOP}/${PRDY_FOR_LIB_INSTALL} ] || mkdir -p ${COMMON_DRM_TOP}/${PRDY_FOR_LIB_INSTALL}
 
 install: all ${F_INSTALLED_LIBS} ${F_INSTALLED_TL_LIBS}
 
@@ -499,10 +507,20 @@ ${COMMON_DRM_OBJ_ROOT}/lib/${CMNDRM_DIR}/%.so : %.so
 ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}/%.a : %.a
 	install -m 0755 ${COMMON_DRM_OBJ_ROOT}/$< $@
 
+# Install a copy of cmndrmprdy libs in the source folder too. One of Nexus's extension will look for it there. Plus
+# Nexus doesn't force the rebuild of cmndrmprdy lib when it compiles.
 ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}/%.so : %.so
 	install -m 0755 ${COMMON_DRM_OBJ_ROOT}/$< $@
 
-%.o: %.c prep_folder
+# Install a copy of cmndrmprdy libs in the source folder too. One of Nexus's extension will look for it there. Plus
+# Nexus doesn't force the rebuild of cmndrmprdy lib when it compiles.
+ ${COMMOND_DRM_TOP}/${PRDY_FOR_LIB_INSTALL}/%.a : %.a
+	install -m 0755 ${COMMON_DRM_OBJ_ROOT}/$< $@
+
+ ${COMMOND_DRM_TOP}/${PRDY_FOR_LIB_INSTALL}/%.so : %.so
+	install -m 0755 ${COMMON_DRM_OBJ_ROOT}/$< $@
+
+%.o: %.c
 	@ echo [Compiling with $(CC).... $< ]
 ifeq ($(SAGE_SUPPORT),y)
 	@ ${CC} ${CFLAGS} ${SAGE_CFLAGS} ${COMMON_DRM_TL_DEFINES} -c -o ${COMMON_DRM_OBJ_ROOT}/$@ $<

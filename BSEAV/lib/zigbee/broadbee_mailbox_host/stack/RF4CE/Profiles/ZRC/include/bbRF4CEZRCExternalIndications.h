@@ -78,11 +78,13 @@ typedef struct _RF4CE_ZRC1_ControlCommandIndParams_t
     SYS_DataPointer_t payload; /*!< Possible accompanying payload */
 } RF4CE_ZRC1_ControlCommandIndParams_t;
 
+#ifndef _PHY_TEST_HOST_INTERFACE_
 /**//**
  * \brief RF4CE ZRC 1.1 Vendor Specific Indication parameters structure.
  */
 typedef RF4CE_ZRC1_VendorSpecificReqParams_t RF4CE_ZRC1_VendorSpecificIndParams_t;
 
+#endif
 /**//**
  * \brief RF4CE ZRC2 Get Shared Secret Indication parameters.
  */

@@ -101,6 +101,9 @@ typedef enum _RF4CE_NWK_NIB_Ids_t
     RF4CE_NWK_SECURITY_CAPABLE,                /*!< Node capabilities: If the node is security capable. */
     RF4CE_NWK_POWER_SOURCE,                    /*!< Node capabilities: If the node is powered from mains. */
     RF4CE_NWK_FA_SCAN_THRESHOLD,
+    RF4CE_NWK_NUM_SUPPORTED_PROFILES,
+    RF4CE_NWK_SUPPORTED_PROFILES,
+    RF4CE_NWK_ANTENNA_AVAILABLE,
     RF4CE_NWK_ATTRIBUTE_MAXIMUM
 } RF4CE_NWK_NIB_Ids_t;
 
@@ -241,7 +244,10 @@ typedef union _RF4CE_NIB_AttributesAll_t
     uint8_t nwkChannelNormalization;                 /*!< Node capabilities: If the node is channel normalization capable. */
     uint8_t nwkSecurityCapable;                      /*!< Node capabilities: If the node is security capable. */
     uint8_t nwkPowerSource;                          /*!< Node capabilities: If the node is powered from mains. */
-    int8_t  nwkFaScanThreshold;                      /*!< Extension of constant RF4CE_NWKC_FA_SCAN_THRESHOLD */
+    uint8_t  nwkFaScanThreshold;                     /*!< Extension of constant RF4CE_NWKC_FA_SCAN_THRESHOLD */
+    uint8_t nwkNumSupportedProfiles;
+    uint8_t nwkSupportedProfiles[RF4CE_NWK_MAX_PROFILE_ID_LIST_LENGTH];
+    uint8_t antennaAvailable;
 } RF4CE_NIB_AttributesAll_t;
 
 /**//**
@@ -290,6 +296,8 @@ typedef struct _RF4CE_NWK_SetReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;   /*!< Service field */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_NWK_SetReqParams_t params;   /*!< Request containing structure */
     RF4CE_NWK_SetConfCallback_t callback; /*!< Callback for confirmation. */
@@ -330,6 +338,8 @@ typedef struct _RF4CE_NWK_GetReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;   /*!< Service field */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_NWK_GetReqParams_t params;   /*!< Request containing structure */
     RF4CE_NWK_GetConfCallback_t callback; /*!< Callback for confirmation. */

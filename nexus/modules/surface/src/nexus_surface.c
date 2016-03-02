@@ -294,6 +294,11 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
             goto error;
         }
         surface->plane.ulPitch = pCreateSettings->pitch;
+        surface->plane.ulBufSize = surface->plane.ulHeight * surface->plane.ulPitch;
+    }
+    if ((uint64_t)surface->plane.ulHeight * surface->plane.ulPitch > surface->plane.ulBufSize) {
+        BDBG_ERR(("surface too large: pitch %u x height %u", surface->plane.ulPitch, surface->plane.ulHeight));
+        goto error;
     }
 
     if ( pCreateSettings->pMemory )
@@ -316,12 +321,6 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
     } else {
         size_t sz = surface->plane.ulBufSize;
         unsigned alignment_in_bytes;
-
-        if( sz != (uint64_t)surface->plane.ulHeight * surface->plane.ulPitch) {
-            BDBG_ERR(("unable to allocate surface %ux%u", surface->plane.ulHeight, surface->plane.ulWidth));
-            rc=BERR_TRACE(BERR_INVALID_PARAMETER);
-            goto error;
-        }
 
         /* alignment applies to the backend of the buffer too. */
         alignment_in_bytes = 1 << pCreateSettings->alignment;

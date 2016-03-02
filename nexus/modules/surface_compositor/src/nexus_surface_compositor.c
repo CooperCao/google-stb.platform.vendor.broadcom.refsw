@@ -85,6 +85,9 @@ void NEXUS_SurfaceCompositorModule_P_Print(void)
                 client->serverSettings.composition.position.height,
                 client->serverSettings.composition.visible?'y':'n',
                 client->serverSettings.composition.zorder));
+            if (client == server->bypass_compose.client) {
+                BDBG_LOG(("  bypass client"));
+            }
             if (client->serverSettings.composition.clipRect.width || client->serverSettings.composition.clipRect.height) {
                 BDBG_LOG(("  clip %d,%d,%d,%d(%d,%d)",
                     client->serverSettings.composition.clipRect.x,

@@ -1375,8 +1375,10 @@ void NEXUS_GetVideoEncoderCapabilities( NEXUS_VideoEncoderCapabilities *pCapabil
     BKNI_Memset(pCapabilities, 0, sizeof(*pCapabilities));
     pCapabilities->videoEncoder[0].supported = true;
     pCapabilities->videoEncoder[0].displayIndex = 3;
+    pCapabilities->videoEncoder[0].memory = g_moduleSettings.videoEncoder[0].memory;
     pCapabilities->videoEncoder[1].supported = true;
     pCapabilities->videoEncoder[1].displayIndex = 2;
+    pCapabilities->videoEncoder[1].memory = g_moduleSettings.videoEncoder[1].memory;
 #else
     unsigned i, j;
     BKNI_Memset(pCapabilities, 0, sizeof(*pCapabilities));

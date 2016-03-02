@@ -1,5 +1,5 @@
 ############################################################
-#     (c)2008-2015 Broadcom Corporation
+#     (c)2008-2016 Broadcom Corporation
 #
 #  This program is the proprietary software of Broadcom Corporation and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -79,12 +79,12 @@ export PLAYBACK_IP_SUPPORT=y
 B_PLAYBACK_IP_LIB_DEFINES := PLAYBACK_IP_SUPPORT
 export HTTP_MP4_SUPPORT=y
 
-ifneq ($(filter $(B_REFSW_DEBUG),n no_error_messages),)
-    DEBUG_SUFFIX=release
+B_REFSW_DEBUG ?= y
+ifeq ($(B_REFSW_DEBUG),y)
+DEBUG_SUFFIX=debug
 else
-    DEBUG_SUFFIX=debug
+DEBUG_SUFFIX=release
 endif
-
 
 ifneq ($(LIVEMEDIA_SUPPORT),n)
     export LIVEMEDIA_SUPPORT=y

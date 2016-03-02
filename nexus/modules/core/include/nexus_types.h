@@ -638,6 +638,9 @@ the driver is in the kernel and the application is in user space). */
 /* DYNAMIC = heap could dynamically change it's size based, acquiring and releasing memory to OS, must be used in conjunction with NEXUS_MEMORY_TYPE_NOT_MAPPED or NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED */
 #define NEXUS_MEMORY_TYPE_DYNAMIC               0x0200
 
+/* NEXUS_MEMORY_TYPE_SECURE heap has been toggled off with NEXUS_Platform_SetRuntimeSettings */
+#define NEXUS_MEMORY_TYPE_SECURE_OFF            0x0400
+
 /* NEXUS_MemoryType macros are used to assemble commonly used NEXUS_MEMORY_TYPE combinations */
 
 /* cached and uncached CPU access from the driver only.

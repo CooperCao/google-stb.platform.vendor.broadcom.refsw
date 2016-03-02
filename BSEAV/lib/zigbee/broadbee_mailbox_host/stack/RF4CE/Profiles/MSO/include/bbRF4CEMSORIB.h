@@ -356,6 +356,8 @@ struct _RF4CE_MSO_SetRIBAttributeReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;           /*!< Service field. */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_MSO_SetRIBAttributeReqParams_t params;  /*!< Request parameters. */
     RF4CE_MSO_SetRIBAttributeCallback_t callback; /*!< Request callback. */
@@ -400,6 +402,8 @@ struct _RF4CE_MSO_GetRIBAttributeReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;           /*!< Service field. */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_MSO_GetRIBAttributeReqParams_t params;  /*!< Request parameters. */
     RF4CE_MSO_GetRIBAttributeCallback_t callback; /*!< Request callback. */

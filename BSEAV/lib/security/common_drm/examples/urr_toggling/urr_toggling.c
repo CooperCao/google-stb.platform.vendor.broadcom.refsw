@@ -1,53 +1,41 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Example to playback Playready DRM encrypted content
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #define LOG_NDEBUG 0
 
 #include "nexus_platform.h"
@@ -61,6 +49,7 @@
 #include "nexus_video_adj.h"
 #include "nexus_playback.h"
 #include "nexus_core_utils.h"
+#include "nexus_sage.h"
 
 #include "common_crypto.h"
 #include "drm_prdy_http.h"
@@ -1109,6 +1098,7 @@ int initSecureClock( DRM_Prdy_Handle_t drm)
                                                         1,
                                                         150,
                                                         (unsigned char**)&(timeChResp),
+							1024*5,
                                                         &startOffset,
                                                         &length);
     if( post_ret != 0)
@@ -1147,12 +1137,57 @@ clean_exit:
 }
 #endif
 
+static void setHeapsSecure(bool markSecure)
+{
+    NEXUS_PlatformConfiguration platformConfig;
+    int i;
+    bool secure, picture;
+    NEXUS_HeapRuntimeSettings heapSettings;
+    NEXUS_MemoryStatus status;
+    NEXUS_Error rc;
+
+    NEXUS_Platform_GetConfiguration(&platformConfig);
+    for (i=0;i<NEXUS_MAX_HEAPS;i++)
+    {
+        if(!platformConfig.heap[i])
+            continue;
+
+        rc=NEXUS_Heap_GetStatus(platformConfig.heap[i], &status);
+        if(rc)
+            continue;
+
+        secure=(status.memoryType & NEXUS_MEMORY_TYPE_SECURE) ? true : false;
+        picture=(status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) ? true : false;
+
+        if((!secure)||(!picture))
+            continue;
+
+        /* This heap is a secure picture buffer heap, update it's status */
+        NEXUS_Platform_GetHeapRuntimeSettings(platformConfig.heap[i], &heapSettings);
+
+        if(heapSettings.secure==markSecure)
+            continue;
+
+        BDBG_WRN(("Updating HEAP[%d] from %s to %s", i,
+                  heapSettings.secure ? "SECURE" : "CLEAR",
+                  markSecure ? "SECURE" : "CLEAR"));
+
+        heapSettings.secure=markSecure;
+        rc=NEXUS_Platform_SetHeapRuntimeSettings(platformConfig.heap[i], &heapSettings);
+        if(rc)
+        {
+            BDBG_ERR(("Failed NEXUS_Platform_SetHeapRuntimeSettings (0x%x)", rc));
+        }
+    }
+}
+
 int playback_svp(int argc, char* argv[])
 {
-        NxClient_JoinSettings joinSettings;
+    NxClient_JoinSettings joinSettings;
     NxClient_AllocSettings allocSettings;
     NxClient_AllocResults allocResults;
     NEXUS_Error rc;
+    NEXUS_SageStatus sageStatus;
 
     NxClient_ConnectSettings connectSettings;
     unsigned connectId;
@@ -1179,14 +1214,13 @@ int playback_svp(int argc, char* argv[])
 
     NxClient_GetDefaultJoinSettings(&joinSettings);
     snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "pr_piff_playback");
+    joinSettings.mode = NEXUS_ClientMode_eVerified;
     rc = NxClient_Join(&joinSettings);
     if (rc)
         return -1;
 
     /* print heaps on server side */
     NEXUS_Memory_PrintHeaps();
-
-
 
     NxClient_GetDefaultAllocSettings(&allocSettings);
     allocSettings.simpleVideoDecoder = 1;
@@ -1267,6 +1301,9 @@ int playback_svp(int argc, char* argv[])
 
     gui_init( surfaceClient );
 
+    /* DRM will toggle URR to "on"... tell nexus */
+    setHeapsSecure(true);
+
     playback_piff(videoDecoder,
                   audioDecoder,
                   drm_context,
@@ -1291,6 +1328,15 @@ int playback_svp(int argc, char* argv[])
 
     DRM_Prdy_Uninitialize(drm_context);
 
+    do
+    {
+        BKNI_Sleep(100);
+        rc=NEXUS_Sage_GetStatus(&sageStatus);
+    }while(sageStatus.urr.secured&&!rc);
+
+    /* DRM done toggle URR to "off"... tell nexus */
+    setHeapsSecure(false);
+
     NxClient_Disconnect(connectId);
     NxClient_Free(&allocResults);
     NxClient_Uninit();
@@ -1305,7 +1351,7 @@ clean_exit:
 #define VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
 #define VIDEO_PID 0x21
 
-int playbakc_clear(void)
+int playback_clear(void)
 {
     NxClient_JoinSettings joinSettings;
     NxClient_AllocSettings allocSettings;
@@ -1450,14 +1496,32 @@ error:
 
 int main(int argc, char* argv[])
 {
+    NxClient_JoinSettings joinSettings;
+    NEXUS_Error rc;
+
+    /* Nexus assumes heaps are secure at startup. Change to unsecure */
+    /* After this, mark as secure before DRM, and clear when DRM complete */
+    NxClient_GetDefaultJoinSettings(&joinSettings);
+    snprintf(joinSettings.name, NXCLIENT_MAX_NAME, argv[0]);
+    joinSettings.mode = NEXUS_ClientMode_eVerified;
+    rc = NxClient_Join(&joinSettings);
+    if (rc)
+        return -1;
+
+    setHeapsSecure(false);
+
+    NxClient_Uninit();
+
     while(1){
         if(playback_svp(argc, argv) != 0){
             fprintf(stderr, "playback_svp failed");
         }
-        if(playbakc_clear() != 0){
-            fprintf(stderr, "playbakc_clear failed");
+        if(playback_clear() != 0){
+            fprintf(stderr, "playback_clear failed");
         }
     }
+
+    return 0;
 }
 
 static int gui_init( NEXUS_SurfaceClientHandle surfaceClient )

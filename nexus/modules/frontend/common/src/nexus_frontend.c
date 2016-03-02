@@ -229,6 +229,7 @@ typedef struct NEXUS_FrontendHostMtsifConfig {
     struct {
         unsigned demodPb; /* PB number used on demod */
         bool connected; /* if connection specified in NEXUS_ParserBandSettings has been established (via tune) */
+        NEXUS_FrontendDeviceMtsifConfig *deviceConfig; /* device that is feeding the host PB */
     } hostPbSettings[NEXUS_NUM_PARSER_BANDS];
 } NEXUS_FrontendHostMtsifConfig;
 static struct NEXUS_FrontendHostMtsifConfig g_NEXUS_Frontend_P_HostMtsifConfig;
@@ -974,8 +975,28 @@ set_mapping:
                 BMXT_SetParserConfig(mxt, demodPb, &parserConfig);
                 BDBG_MSG(("MTSIF connect:    IB%u -> PB%u -> PB%u (TX%u, %p:%p) %s", demodIb, demodPb, hostPb, parserConfig.mtsifTxSelect,
                     (void *)frontend, (void *)mxt, pChainedConfig?(pConfig->slave?"(chain slave) ":"(chain master)"):""));
+
+                if ( (g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].connected) && /* if this hostPb is already being fed */
+                    (g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].deviceConfig != pConfig) )
+                {
+                    NEXUS_FrontendDeviceMtsifConfig *otherConfig = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].deviceConfig;
+                    BMXT_Handle otherMxt;
+                    unsigned otherDemodPb;
+                    BDBG_ASSERT(otherConfig);
+
+                    otherMxt = otherConfig->mxt;
+                    otherDemodPb = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].demodPb;
+
+                    BMXT_GetParserConfig(otherMxt, otherDemodPb, &parserConfig);
+                    otherConfig->demodPbSettings[otherDemodPb].enabled = parserConfig.Enable = false;
+                    BMXT_SetParserConfig(otherMxt, otherDemodPb, &parserConfig);
+                    BDBG_WRN(("MTSIF conflict: host PB%u is already receiving data from another MTSIF device (%p). Forcing disable of demod PB%u (IB%u -> PB%u -> PB%u)",
+                        hostPb, (void*)otherMxt, otherDemodPb, parserConfig.InputBandNumber, otherDemodPb, parserConfig.virtualParserNum));
+                }
+
                 g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].demodPb = demodPb;
                 g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].connected = true;
+                g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].deviceConfig = pConfig;
                 break;
             }
 next:
@@ -1056,6 +1077,7 @@ apply_settings:
             BDBG_MSG(("MTSIF disconnect: IB%u -> PB%u -> PB%u (%p:%p)", demodIb, demodPb, hostPb, (void *)frontend, (void *)mxt));
             g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].demodPb = 0;
             g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].connected = false;
+            g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].deviceConfig = 0;
 #if NEXUS_HAS_TSMF
             /* disable/reset the parser's TSMF config. otherwise, a new frontend -> host_PB connection may inadvertently get TSMF-filtered */
             BMXT_TSMF_SetParserConfig(mxt, demodPb, 0 /* don't care */, false);

@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2016 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -71,6 +71,8 @@ public:
     virtual CGraphics *          graphicsCreate(void);
     virtual CVideoWindow *       videoWindowInitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, eWindowType windowType);
     virtual void                 videoWindowUninitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow * pVideoWindow);
+    virtual CSimpleVideoDecode * videoDecodeCreate(eWindowType windowType);
+    virtual CSimpleAudioDecode * audioDecodeCreate(eWindowType windowType);
     virtual CStillDecode *       videoDecodeStillInitialize(void) { return(NULL); };
     virtual void                 videoDecodeStillUninitialize(void) { return; };
     virtual COutputHdmi *        outputHdmiInitialize(CDisplay * pDisplay);
@@ -84,6 +86,7 @@ public:
     virtual void                 outputSpdifUninitialize(COutputSpdif ** pOutputSpdif) { BSTD_UNUSED(pOutputSpdif); return; };
     virtual COutputAudioDac *    outputDacInitialize(void) { return(NULL); };
     virtual void                 outputDacUninitialize(COutputAudioDac ** pOutputDac) { BSTD_UNUSED(pOutputDac); return; };
+    virtual CSimpleAudioDecode * audioDecodeInitializePip(COutputHdmi * pOutputHdmi, COutputSpdif * pOutputSpdif, COutputAudioDac * pOutputAudioDac, COutputRFM * pOutputRFM, CStc * pStc, eWindowType winType);
 #ifdef NETAPP_SUPPORT
     virtual CBluetooth *         bluetoothCreate(void);
     virtual CAudioCapture *      audioCaptureInitialize(CBluetooth * pBluetooth);

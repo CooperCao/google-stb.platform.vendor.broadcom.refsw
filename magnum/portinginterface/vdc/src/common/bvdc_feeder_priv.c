@@ -3274,9 +3274,14 @@ static BERR_Code BVDC_P_Feeder_SetPlaybackStrideAddr_isr
 			/* bottom field starts from one frame line later; */
 			if(BAVC_Polarity_eBotField == ePolarity)
 			{
+				bool   bAddStride = true;
+
 #if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM)
-				if(hFeeder->bSupportDcxm && !pPicture->bEnableDcxm)
+				if(hFeeder->bSupportDcxm && pPicture->bEnableDcxm)
+					bAddStride = false;
 #endif
+
+				if(bAddStride)
 				{
 					/* one frame line stride */
 					ulDeviceAddr += ulStride;

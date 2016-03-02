@@ -126,7 +126,6 @@ module_param_string(devname, b_devname, sizeof(b_devname), 0);
 #endif
 
 #ifdef B_REFSW_ANDROID
-#include <linux/reboot.h>
 #include <linux/miscdevice.h>
 static struct miscdevice nexus_miscdevice = {
    .minor = MISC_DYNAMIC_MINOR,
@@ -274,33 +273,6 @@ nexus_driver_ioctl(struct file * file,
     return 0;
 }
 
-#ifdef B_REFSW_ANDROID
-#if NEXUS_POWER_MANAGEMENT
-static int nexus_driver_reboot_shutdown(struct notifier_block *nb, unsigned long action, void *data)
-{
-    /* Set timer for cold boot */
-    if (action == SYS_POWER_OFF) {
-        NEXUS_Error rc;
-        NEXUS_PlatformStandbySettings nexusStandbySettings;
-
-        NEXUS_Platform_GetStandbySettings(&nexusStandbySettings);
-        nexusStandbySettings.mode = NEXUS_PlatformStandbyMode_eDeepSleep;
-        rc = NEXUS_Platform_SetStandbySettings(&nexusStandbySettings);
-        if (rc) {
-            BERR_TRACE(NEXUS_NOT_AVAILABLE);
-            return NOTIFY_BAD;
-        }
-    }
-    return NOTIFY_DONE;
-}
-
-static struct notifier_block reboot_notifier = {
-    .notifier_call = nexus_driver_reboot_shutdown
-};
-#endif
-#endif
-
-
 int
 nexus_init_module(void)
 {
@@ -371,9 +343,6 @@ nexus_init_module(void)
 
 #ifdef B_REFSW_ANDROID
     misc_register(&nexus_miscdevice);
-#if NEXUS_POWER_MANAGEMENT
-    register_reboot_notifier(&reboot_notifier);
-#endif
 #else
     register_chrdev(NEXUS_DRIVER_MAJOR, b_devname, &nexus_driver_fops);
 #endif
@@ -389,9 +358,6 @@ void
 nexus_cleanup_module(void)
 {
 #ifdef B_REFSW_ANDROID
-#if NEXUS_POWER_MANAGEMENT
-    unregister_reboot_notifier(&reboot_notifier);
-#endif
     misc_deregister(&nexus_miscdevice);
 #else
     unregister_chrdev(NEXUS_DRIVER_MAJOR, b_devname);

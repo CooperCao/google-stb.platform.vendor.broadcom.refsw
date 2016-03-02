@@ -176,7 +176,7 @@ int main(int argc, const char **argv)
     NEXUS_Platform_GetClientConfiguration(&clientConfig);
 
     pContext->input = binput_open(NULL);
-    pContext->gui = bgui_create(1280,720);
+    pContext->gui = bgui_create(NULL);
     
     pContext->font = bfont_open(fontname);
     if (!pContext->font) {

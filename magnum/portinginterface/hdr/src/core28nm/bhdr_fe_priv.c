@@ -459,6 +459,7 @@ void BHDR_FE_P_OpenChannel(
 		    BCHP_FIELD_DATA(HDMI_RX_FE_0_CHANNEL_CTRL_0, DATARATE_MAP, 43328)
 		  | BCHP_FIELD_DATA(HDMI_RX_FE_0_CHANNEL_CTRL_0, RCLKRATIO_MAP, 21930) ;
 	BREG_Write32(hRegister, BCHP_HDMI_RX_FE_0_CHANNEL_CTRL_0 + ulOffset, Register) ;
+	BDBG_MSG(("CHANNEL_CTRL_0: %x", Register)) ;
 
 	/**********************/
 	/*   CHANNEL_CTRL_1   */
@@ -472,11 +473,14 @@ void BHDR_FE_P_OpenChannel(
 		    BCHP_FIELD_DATA(HDMI_RX_FE_0_CHANNEL_CTRL_1, SUBRATIO_MAP, 65444)
 		  | BCHP_FIELD_DATA(HDMI_RX_FE_0_CHANNEL_CTRL_1, DIVCK124_MAP, 21930) ;
 	BREG_Write32(hRegister, BCHP_HDMI_RX_FE_0_CHANNEL_CTRL_1 + ulOffset, Register) ;
+	BDBG_MSG(("CHANNEL_CTRL_1: %x", Register)) ;
 
 	/**********************/
 	/*   CHANNEL_CTRL_3  */
 	/**********************/
-	BREG_Write32(hRegister, BCHP_HDMI_RX_FE_0_CHANNEL_CTRL_3 + ulOffset , 0xF0) ;
+	Register = 0xFC ;
+	BREG_Write32(hRegister, BCHP_HDMI_RX_FE_0_CHANNEL_CTRL_3 + ulOffset, Register) ;
+	BDBG_MSG(("CHANNEL_CTRL_3: %x", Register)) ;
 
 	BDBG_LEAVE(BHDR_FE_P_OpenChannel) ;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
- *    (c)2008 Broadcom Corporation
+ *    (c)2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,27 +35,12 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
-#include "bstd.h"
-#include "bkni.h"
-
 #include "nexus_platform.h"
 #include "nexus_display.h"
 #include "nexus_video_window.h"
 #include "nexus_component_output.h"
 #include "nexus_video_decoder.h"
-#include "nexus_still_decoder.h"
-#include "nexus_ir_input.h"
 #include "nexus_surface.h"
 #include "nexus_graphics2d.h"
 #include "nexus_playpump.h"
@@ -66,6 +51,9 @@
 
 #include "bfile_stdio.h"
 #include "thumbnail.h"
+#include "thumbdecoder.h"
+#include "binput.h"
+#include "bgui.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -74,71 +62,38 @@
 
 BDBG_MODULE(thumbnail_demo);
 
-BKNI_EventHandle irInputEvent;
-NEXUS_DisplayHandle display;
-NEXUS_SurfaceHandle framebufferSurface;
-NEXUS_VideoWindowHandle window;
-NEXUS_VideoDecoderHandle videoDecoder;
-NEXUS_PlaybackHandle playback;
-NEXUS_PlaypumpHandle playpump;
-NEXUS_FilePlayHandle file;
-NEXUS_IrInputHandle irInput;
+static NEXUS_DisplayHandle display;
+static NEXUS_VideoWindowHandle window;
+static NEXUS_VideoDecoderHandle videoDecoder;
+static NEXUS_PlaybackHandle playback;
+static NEXUS_PlaypumpHandle playpump;
+static NEXUS_FilePlayHandle file;
+static binput_t binput;
+static bgui_t gui;
 
-static int thumbnail_show(const NEXUS_Rect *rect, NEXUS_SurfaceHandle stillSurface);
+#define THUMB_WIDTH 220
+#define THUMB_HEIGHT 120
+#define THUMB_GAP 10
+#define THUMB_EDGE 50
+
 static int thumbnail_border(NEXUS_SurfaceHandle stillSurface, unsigned color);
-
-static void ir_input_ready(void *context, int unused)
-{
-    BSTD_UNUSED(unused);
-    BKNI_SetEvent((BKNI_EventHandle)context);
-}
 
 thumbnail_data g_data;
 
-static void checkpoint_cb(void *context, int param)
-{
-    BSTD_UNUSED(param);
-    BKNI_SetEvent((BKNI_EventHandle)context);
-}
-
-void checkpoint(void)
-{
-    int rc;
-    rc = NEXUS_Graphics2D_Checkpoint(g_data.blitter, NULL);
-    if (rc == NEXUS_GRAPHICS2D_QUEUED) {
-        BKNI_WaitForEvent(g_data.blitterEvent, 0xffffffff);
-    }
-}
-
 int thumbnail_demo_init(void)
 {
-    NEXUS_SurfaceCreateSettings createSettings;
-    NEXUS_GraphicsSettings graphicsSettings;
-    NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_DisplaySettings displaySettings;
-    NEXUS_Graphics2DFillSettings fillSettings;
-    NEXUS_Graphics2DSettings graphics2DSettings;
-    NEXUS_Error rc;
     NEXUS_PlaybackSettings playbackSettings;
-    NEXUS_IrInputSettings irInputSettings;
     NEXUS_VideoFormatInfo displayFormatInfo;
+    struct bgui_settings gui_settings;
 
-    /* Bring up all modules for a platform in a default configuraiton for this platform */
-    NEXUS_Platform_GetDefaultSettings(&platformSettings);
-    platformSettings.openFrontend = false;
-    NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
-    BKNI_CreateEvent(&irInputEvent);
-    NEXUS_IrInput_GetDefaultSettings(&irInputSettings);
-    irInputSettings.dataReady.callback = ir_input_ready;
-    irInputSettings.dataReady.context = irInputEvent;
-    irInput = NEXUS_IrInput_Open(0, &irInputSettings);
+    binput = binput_open(NULL);
 
     NEXUS_Display_GetDefaultSettings(&displaySettings);
-    displaySettings.displayType = NEXUS_DisplayType_eAuto;
-    displaySettings.format = g_data.display_format;
+    displaySettings.format = NEXUS_VideoFormat_e720p;
     display = NEXUS_Display_Open(0, &displaySettings);
     NEXUS_Display_AddOutput(display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
     NEXUS_Display_AddOutput(display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
@@ -146,13 +101,6 @@ int thumbnail_demo_init(void)
     NEXUS_VideoFormat_GetInfo(displaySettings.format, &displayFormatInfo);
 
     window = NEXUS_VideoWindow_Open(display, 0);
-
-    g_data.blitter = NEXUS_Graphics2D_Open(0, NULL);
-    BKNI_CreateEvent(&g_data.blitterEvent);
-    NEXUS_Graphics2D_GetSettings(g_data.blitter, &graphics2DSettings);
-    graphics2DSettings.checkpointCallback.callback = checkpoint_cb;
-    graphics2DSettings.checkpointCallback.context = g_data.blitterEvent;
-    NEXUS_Graphics2D_SetSettings(g_data.blitter, &graphics2DSettings);
 
     /* use one playback for stills */
     g_data.playpump = NEXUS_Playpump_Open(0, NULL);
@@ -169,83 +117,68 @@ int thumbnail_demo_init(void)
     NEXUS_Playback_SetSettings(playback, &playbackSettings);
 
     videoDecoder = NEXUS_VideoDecoder_Open(0, NULL);
-    NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));
 
-    g_data.stillDecoder = NEXUS_StillDecoder_Open(videoDecoder, 0, NULL);
-
-    /* create graphics framebuffer */
-    NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
-    createSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
-    createSettings.width = displayFormatInfo.width;
-    createSettings.height = displayFormatInfo.height;
-    createSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
-    framebufferSurface = NEXUS_Surface_Create(&createSettings);
-
-    /* make fb transparent */
-    NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);
-    fillSettings.surface = framebufferSurface;
-    fillSettings.color = 0x00000000; /* transparent */
-    rc = NEXUS_Graphics2D_Fill(g_data.blitter, &fillSettings);
-    BDBG_ASSERT(!rc);
-    checkpoint();
-
-    /* force full screen framebuffer. no horizontal upscale. */
-    NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
-    graphicsSettings.position.width = displayFormatInfo.width;
-    graphicsSettings.position.height = displayFormatInfo.height;
-    graphicsSettings.clip.width = displayFormatInfo.width;
-    graphicsSettings.clip.height = displayFormatInfo.height;
-    graphicsSettings.enabled = true;
-    NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
-    NEXUS_Display_SetGraphicsFramebuffer(display, framebufferSurface);
+    bgui_get_default_settings(&gui_settings);
+    gui_settings.display = display;
+    gui = bgui_create(&gui_settings);
 
     return 0;
 }
 
 void thumbnail_demo_uninit(void)
 {
-    NEXUS_IrInput_Close(irInput);
+    unsigned i;
+    binput_close(binput);
+    NEXUS_VideoWindow_Close(window);
     NEXUS_Display_Close(display);
-    NEXUS_VideoDecoder_Close(videoDecoder);
     NEXUS_Playback_Destroy(playback);
-    BKNI_DestroyEvent(irInputEvent);
     NEXUS_Playpump_Close(playpump);
-
-    NEXUS_Graphics2D_Close(g_data.blitter);
-    BKNI_DestroyEvent(g_data.blitterEvent);
-    NEXUS_StillDecoder_Close(g_data.stillDecoder);
+    NEXUS_VideoDecoder_Close(videoDecoder);
+    for (i=0;i<DISPLAYED_THUMBNAILS;i++) {
+        if (g_data.thumbnail[i].surface) {
+            NEXUS_Surface_Destroy(g_data.thumbnail[i].surface);
+        }
+    }
     NEXUS_Playpump_Close(g_data.playpump);
-
-    NEXUS_Platform_Uninit();
+    bgui_destroy(gui);
 }
+
+static thumbdecoder_t g_thumbdecoder;
 
 static int thumbnail_show_stills(void)
 {
     unsigned i;
+    int rc;
+    bgui_fill(gui, 0);
     for (i=0;i<DISPLAYED_THUMBNAILS;i++) {
         NEXUS_Rect rect;
         unsigned time;
-        bthumbnail_extractor_status status;
+        NEXUS_Graphics2DBlitSettings blitSettings;
 
         /* use i+1 because there is no thumbnail at time 0. */
         time = g_data.base_time + (i+1)*g_data.spacing;
         if (g_data.thumbnail[i].time != time ||
             !g_data.thumbnail[i].surface)
         {
+            NEXUS_SurfaceCreateSettings surfaceCreateSettings;
+
             if (g_data.thumbnail[i].surface) {
                 NEXUS_Surface_Destroy(g_data.thumbnail[i].surface);
                 g_data.thumbnail[i].surface = NULL;
             }
             g_data.thumbnail[i].time = time;
             BDBG_MSG(("decode still[%d] from %d sec", i, time));
-            g_data.thumbnail[i].surface = thumbnail_decode_still(time);
-            if (!g_data.thumbnail[i].surface) {
-                continue;
-            }
-            else {
-                bthumbnail_extractor_get_status(g_data.thumbnail_extractor, &status);
-                BDBG_MSG(("got still[%d] from %d ms", i, status.timestamp));
-            }
+
+            NEXUS_Surface_GetDefaultCreateSettings(&surfaceCreateSettings);
+            /* must be larger enough for <= 15x downscale from 4K resolution */
+            surfaceCreateSettings.width = THUMB_WIDTH * 2;
+            surfaceCreateSettings.height = THUMB_HEIGHT * 2;
+            g_data.thumbnail[i].surface = NEXUS_Surface_Create(&surfaceCreateSettings);
+
+            rc = thumbdecoder_decode_still(g_thumbdecoder, time*1000, g_data.thumbnail[i].surface);
+            if (rc) return BERR_TRACE(rc);
+            if (!g_data.thumbnail[i].surface) return BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
+            BDBG_MSG(("got still[%d] from %d ms", i, time));
         }
 
         thumbnail_border(g_data.thumbnail[i].surface, time == g_data.current_time ? 0xFF00FF00 : 0xFF333333);
@@ -255,27 +188,18 @@ static int thumbnail_show_stills(void)
         rect.width = THUMB_WIDTH;
         rect.height = THUMB_HEIGHT;
 
-        thumbnail_show(&rect, g_data.thumbnail[i].surface);
+        NEXUS_Graphics2D_GetDefaultBlitSettings(&blitSettings);
+        blitSettings.colorOp = NEXUS_BlitColorOp_eCopySource;
+        blitSettings.alphaOp = NEXUS_BlitAlphaOp_eCopyConstant; /* YCrCb has no alpha, so we must set 0xFF */
+        blitSettings.constantColor = 0xFF000000; /* alpha is opaque */
+        blitSettings.source.surface = g_data.thumbnail[i].surface;
+        blitSettings.output.surface = bgui_surface(gui);
+        blitSettings.output.rect = rect;
+        rc = NEXUS_Graphics2D_Blit(bgui_blitter(gui), &blitSettings);
+        if (rc) return BERR_TRACE(rc);
     }
-    return 0;
-}
-
-static int thumbnail_show(const NEXUS_Rect *rect, NEXUS_SurfaceHandle stillSurface)
-{
-    NEXUS_Graphics2DBlitSettings blitSettings;
-    int rc;
-
-    NEXUS_Graphics2D_GetDefaultBlitSettings(&blitSettings);
-    blitSettings.colorOp = NEXUS_BlitColorOp_eCopySource;
-    blitSettings.alphaOp = NEXUS_BlitAlphaOp_eCopyConstant; /* YCrCb has no alpha, so we must set 0xFF */
-    blitSettings.constantColor = 0xFF000000; /* alpha is opaque */
-    blitSettings.source.surface = stillSurface;
-    blitSettings.output.surface = framebufferSurface;
-    blitSettings.output.rect = *rect;
-    rc = NEXUS_Graphics2D_Blit(g_data.blitter, &blitSettings);
-    if (rc) return BERR_TRACE(rc);
-    
-    checkpoint();
+    bgui_checkpoint(gui);
+    bgui_submit(gui);
     return 0;
 }
 
@@ -318,6 +242,7 @@ int thumbnail_play_video(void)
     NEXUS_PlaybackPidChannelSettings pidSettings;
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_Error rc;
+    NEXUS_VideoDecoderSettings videoDecoderSettings;
 
     file = NEXUS_FilePlay_OpenPosix(g_data.datafilename, g_data.indexfilename);
     if (!file) {
@@ -325,35 +250,45 @@ int thumbnail_play_video(void)
         return -1;
     }
 
+    NEXUS_VideoDecoder_GetSettings(videoDecoder, &videoDecoderSettings);
+    videoDecoderSettings.maxWidth = g_data.probe_results.video[0].width;
+    videoDecoderSettings.maxHeight = g_data.probe_results.video[0].height;
+    rc = NEXUS_VideoDecoder_SetSettings(videoDecoder, &videoDecoderSettings);
+    if (rc) return BERR_TRACE(rc);
+
+    rc = NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));
+    if (rc) return BERR_TRACE(rc);
+
     NEXUS_VideoDecoder_GetDefaultStartSettings(&startSettings);
 
     NEXUS_Playback_GetSettings(playback, &playbackSettings);
-    playbackSettings.playpumpSettings.transportType = g_data.transportType;
-    playbackSettings.playpumpSettings.timestamp.type = g_data.timestampType;
+    playbackSettings.playpumpSettings.transportType = g_data.probe_results.transportType;
+    playbackSettings.playpumpSettings.timestamp.type = g_data.probe_results.timestampType;
     rc = NEXUS_Playback_SetSettings(playback, &playbackSettings);
     BDBG_ASSERT(!rc);
 
     NEXUS_Playback_GetDefaultPidChannelSettings(&pidSettings);
     pidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
-    pidSettings.pidTypeSettings.video.codec = g_data.videoCodec;
+    pidSettings.pidTypeSettings.video.codec = g_data.probe_results.video[0].codec;
     pidSettings.pidTypeSettings.video.decoder = videoDecoder;
     pidSettings.pidTypeSettings.video.index = true;
-    startSettings.pidChannel = NEXUS_Playback_OpenPidChannel(playback, g_data.pid, &pidSettings);
+    startSettings.pidChannel = NEXUS_Playback_OpenPidChannel(playback, g_data.probe_results.video[0].pid, &pidSettings);
 
     startSettings.stcChannel = NULL; /* TODO */
-    startSettings.codec = g_data.videoCodec;
+    startSettings.codec = g_data.probe_results.video[0].codec;
 
     rc = NEXUS_Playback_Start(playback, file, NULL);
-    BDBG_ASSERT(!rc);
+    if (rc) return BERR_TRACE(rc);
 
     rc = NEXUS_VideoDecoder_Start(videoDecoder, &startSettings);
-    BDBG_ASSERT(!rc);
+    if (rc) return BERR_TRACE(rc);
 
     return 0;
 }
 
 void thumbnail_stop_video(void)
 {
+    NEXUS_VideoWindow_RemoveAllInputs(window);
     NEXUS_VideoDecoder_Stop(videoDecoder);
     NEXUS_Playback_Stop(playback);
     NEXUS_FilePlay_Close(file);
@@ -384,10 +319,13 @@ void thumbnail_jump(void)
 int thumbnail_demo_run(void)
 {
     bool done = false;
+    int rc;
 
     thumbnail_play_video();
 
-    thumbnail_decode_stills_init();
+    g_thumbdecoder = thumbdecoder_open();
+    rc = thumbdecoder_open_file(g_thumbdecoder, g_data.datafilename, g_data.indexfilename);
+    if (rc) return BERR_TRACE(rc);
 
     g_data.base_time = 0;
 
@@ -402,27 +340,30 @@ int thumbnail_demo_run(void)
     );
 
     while (!done) {
-        NEXUS_IrInputEvent event;
-        unsigned num;
-        bool overflow;
+        b_remote_key key;
         NEXUS_Error rc;
 
-        rc = BKNI_WaitForEvent(irInputEvent, 1000);
+        rc = binput_wait(binput, 1000);
         if (rc) continue; /* on timeout, try for another still */
 
-        NEXUS_IrInput_GetEvents(irInput, &event, 1, &num, &overflow);
-        if (event.repeat) continue;
+        binput_read_no_repeat(binput, &key);
 
-        switch (event.code) {
-        case 0x6037: thumbnail_scroll(+1); break;
-        case 0x7036: thumbnail_scroll(-1); break;
-        case 0xe011: thumbnail_jump(); break;
-        case 0xd012: done = true; break;
+        switch (key) {
+        case b_remote_key_right: thumbnail_scroll(+1); break;
+        case b_remote_key_left: thumbnail_scroll(-1); break;
+        case b_remote_key_select: thumbnail_jump(); break;
+        case b_remote_key_stop:
+        case b_remote_key_clear:
+        case b_remote_key_back:
+            done = true;
+            break;
+        default:
+            break;
         }
     }
 
+    thumbdecoder_close(g_thumbdecoder);
     thumbnail_stop_video();
 
     return 0;
 }
-

@@ -1,5 +1,5 @@
 /***************************************************************************
-*     (c)2003-2015 Broadcom Corporation
+*     (c)2003-2016 Broadcom Corporation
 *
 *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -366,7 +366,7 @@ _http_dtcp_ip_socket_read(void *voidHandle, B_PlaybackIpHandle playback_ip, int 
         fflush(fclear);
 #endif
     }
-    /* If padding occured; then adjust length and copy data back to original buffer */
+    /* If padding occurred; then adjust length and copy data back to original buffer */
     if (securityCtx->extended_len) {
         BDBG_MSG(("%s: extended bytes saved %d, rbuf_len %d ", __FUNCTION__, securityCtx->extended_len, rbuf_len));
         rbuf_len -= securityCtx->extended_len;

@@ -463,11 +463,35 @@ DrmRC DRM_Common_KeyConfigOperation(DrmCommonOperationStruct_t *pDrmCommonOpStru
     BDBG_ASSERT(drmCommonMutex != NULL);
     BKNI_AcquireMutex(drmCommonMutex);
     DRM_Common_Handle drmHnd;
+    NEXUS_Error nxs_rc = NEXUS_SUCCESS;
     DrmRC rc = DRM_Common_GetHandle(&drmHnd);
     if (Drm_Success == rc)
     {
+
+
+#if (COMMON_CRYPTO_ZEUS_VERSION == 42)
+        BDBG_MSG(("%s:COMMON_CRYPTO_ZEUS_VERSION  = %d",__FUNCTION__,COMMON_CRYPTO_ZEUS_VERSION  ));
+        if((pDrmCommonOpStruct->keyIvSettings.ivSize != 0)&&(pDrmCommonOpStruct->keyIvSettings.keySize==0))
+        {
+             pDrmCommonOpStruct->byPassKeyConfig= true;
+        }
+        else
+        {
+             pDrmCommonOpStruct->byPassKeyConfig= false;
+        }
+#endif
+
+        if (!pDrmCommonOpStruct->byPassKeyConfig)
+        {
+            nxs_rc = CommonCrypto_LoadKeyConfig(drmHnd->cryptHnd, &pDrmCommonOpStruct->keyConfigSettings);
+        }
+        else
+        {
+            BDBG_MSG(("%s:Skipping Key config",__FUNCTION__));
+        }
+
         /* Config the keyslot */
-        if(CommonCrypto_LoadKeyConfig(drmHnd->cryptHnd, &pDrmCommonOpStruct->keyConfigSettings) == NEXUS_SUCCESS)
+        if( nxs_rc == NEXUS_SUCCESS)
         {
             /* if there's no sw key or iv to load, assume were performing a route key 4 operation */
             if((pDrmCommonOpStruct->keyIvSettings.ivSize == 0) && (pDrmCommonOpStruct->keyIvSettings.keySize == 0))

@@ -183,5 +183,6 @@
 #define RF4CE_ZRC1_DISCOVERY_DURATION                   0x00186a
 #define RF4CE_ZRC1_AUTO_DISCOVERY_DURATION              0x1c9c38 /* (30 s) */
 #define RF4CE_ZRC1_MAX_PAIR_INDICATION_WAIT_TIME        2000 /* (1 s but necessary to increase as we'll receive the indication ONLY after the pairing took place) */
+#define RF4CE_GDP1_TX_POWER_KEY_EXCHANGE                  0     /* Default is 0 dBm. */
 
 #endif /* _RF4CE_ZRC_CONSTANTS_H */

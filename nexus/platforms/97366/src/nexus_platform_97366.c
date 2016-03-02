@@ -129,34 +129,6 @@ static void nexus_p_modifyMemoryRtsSettings(NEXUS_MemoryRtsSettings *pRtsSetting
 #else
     BSTD_UNUSED(pRtsSettings);
 #endif /* NEXUS_HAS_VIDEO_DECODER */
-#if NEXUS_HAS_VIDEO_ENCODER /* to be completed later*/
-    switch (pRtsSettings->boxMode)
-    {
-        default:
-        case 1:
-            pRtsSettings->vce[0].memcIndex     = 0;
-            break;
-        case 2: /* 7336 box mode 2 */
-            pRtsSettings->vce[0].memcIndex     = 0;
-            pRtsSettings->vce[1].memcIndex     = 0;
-            break;
-        case 3: /* 7366 box mode 3 */
-            /* NO ENCODER ALLOWED */
-            break;
-        case 4: /* 7336 box mode 4 - Dual decode (1080i60) no display */
-            pRtsSettings->vce[0].memcIndex     = 0;
-            pRtsSettings->vce[1].memcIndex     = 0;
-            break;
-        case 5: /* 7366 box mode 5 */
-            /* NO ENCODER ALLOWED */
-            break;
-        case 6: /* 7336 box mode 6 - Dual decode (1080i60) no display (32-bit DDR3-1866 )*/
-           pRtsSettings->vce[0].memcIndex     = 0;                       /* same as box-mode 4 */
-           pRtsSettings->vce[1].memcIndex     = 0;                       /* same as box-mode 4 */
-           break;
-
-    }
-#endif /* NEXUS_HAS_VIDEO_ENCODER */
 }
 
 static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfigurationSettings *pSettings )
@@ -181,7 +153,6 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
             pSettings->videoDecoder[1].maxFormat = NEXUS_VideoFormat_e1080p60hz;
             pSettings->videoDecoder[2].colorDepth = 10;
             pSettings->videoDecoder[2].maxFormat = NEXUS_VideoFormat_e1080p60hz;
-            pSettings->videoDecoder[3].used = false;
             break;
         case 2:
             pSettings->videoDecoder[0].colorDepth = 10;
@@ -190,7 +161,6 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
             pSettings->videoDecoder[1].maxFormat = NEXUS_VideoFormat_e1080p60hz;
             pSettings->videoDecoder[2].colorDepth = 10;
             pSettings->videoDecoder[2].maxFormat = NEXUS_VideoFormat_e1080p60hz;
-            pSettings->videoDecoder[3].used = false;
             break;
         case 3: /* 7366B0  4k decode only mode*/
             pSettings->videoDecoder[0].colorDepth = 10; /* TBD: how to diff between AVD and HEVC decoders */
@@ -199,7 +169,6 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
             pSettings->videoDecoder[1].colorDepth = 10;
             pSettings->videoDecoder[1].maxFormat = NEXUS_VideoFormat_e1080p60hz;
             pSettings->videoDecoder[2].used = false;
-            pSettings->videoDecoder[3].used = false;
             break;
         case 4: /* both decoders are 1080p60 HEVC 10 bit capable or single 4K decode, user must disable second decoder */
            pSettings->videoDecoder[0].colorDepth = 10; /* 10 bit 1080p60 HEVC */
@@ -207,7 +176,6 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
            pSettings->videoDecoder[1].colorDepth = 10; /* 10 bit 1080p60 HEVC */
            pSettings->videoDecoder[1].maxFormat = NEXUS_VideoFormat_e1080p60hz;
            pSettings->videoDecoder[2].used = false;
-           pSettings->videoDecoder[3].used = false;
            break;
         case 5: /* 7366B0  4k decode + Main & pip with high temp refresh DDR 2133 MHz */
            pSettings->videoDecoder[0].colorDepth = 10;
@@ -216,7 +184,6 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
            pSettings->videoDecoder[1].colorDepth = 10;
            pSettings->videoDecoder[1].maxFormat = NEXUS_VideoFormat_e1080p60hz;
            pSettings->videoDecoder[2].used = false;
-           pSettings->videoDecoder[3].used = false;
            break;
         case 6: /* Single decode at 4K in decoder 0, or dual decode max at 1080p60 10 bit but not at the same time */
           pSettings->videoDecoder[0].colorDepth = 10; /* 10 bit 1080p60 HEVC */
@@ -224,7 +191,6 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
           pSettings->videoDecoder[1].colorDepth = 10; /* 10 bit 1080p60 HEVC */
           pSettings->videoDecoder[1].maxFormat = NEXUS_VideoFormat_e1080p60hz;
           pSettings->videoDecoder[2].used = false;
-          pSettings->videoDecoder[3].used = false;
           break;
     }
 

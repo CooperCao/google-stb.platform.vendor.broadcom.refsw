@@ -77,7 +77,12 @@ static void process_rx_message(unsigned int *message_rx)
     case RPC_S2C_RF4CE_ZRC1_ControlCommandInd: /* 4.2.8 */
         client_RF4CE_ZRC1_ControlCommandInd(message_payload);
         break;
-
+    case (RPC_C2S_RF4CE_ZRC1_VendorSpecificReq | RPC_RESPONSE):
+        client_RF4CE_ZRC1_VendorSpecificReq_callback(message_payload);
+        break;
+    case RPC_S2C_RF4CE_ZRC1_VendorSpecificInd:
+        client_RF4CE_ZRC1_VendorSpecificInd(message_payload);
+        break;
 #ifdef TEST
     case RPC_S2C_ServerLoopbackInd:
         client_ServerLoopbackInd(g_pZigbeeCallback, message_payload);
@@ -122,6 +127,10 @@ static void process_rx_message(unsigned int *message_rx)
         client_RF4CE_ZRC1_GetAttributesReq_callback(message_payload);
         break;
 
+    case (RPC_C2S_RF4CE_ZRC1_SetAttributesReq | RPC_RESPONSE):
+        client_RF4CE_ZRC1_SetAttributesReq_callback(message_payload);
+        break;
+
     case (RPC_C2S_Mail_TestEngineEcho | RPC_RESPONSE):
         client_Mail_TestEngineEcho_callback(message_payload);
         break;
@@ -162,49 +171,57 @@ static void process_rx_message(unsigned int *message_rx)
     case (RPC_C2S_TE_Host2Uart1Req | RPC_RESPONSE):
         client_Mail_Host2Uart1_callback(message_payload);
         break;
-    case (RPC_C2S_DirectTV_Test_Get_Caps_Req | RPC_RESPONSE):
-        client_DirectTV_Test_Get_Caps_Req_callback(message_payload);
+    case (RPC_C2S_Phy_Test_Get_Caps_Req | RPC_RESPONSE):
+        client_Phy_Test_Get_Caps_Req_callback(message_payload);
         break;
-    case (RPC_C2S_DirectTV_Test_Set_Channel_Req | RPC_RESPONSE):
-        client_DirectTV_Test_Set_Channel_Req_callback(message_payload);
+    case (RPC_C2S_Phy_Test_Set_Channel_Req | RPC_RESPONSE):
+        client_Phy_Test_Set_Channel_Req_callback(message_payload);
         break;
-    case (RPC_C2S_DirectTV_Test_Continuous_Wave_Start_Req | RPC_RESPONSE):
-        client_DirectTV_Test_Continuous_Wave_Start_Req_callback(message_payload);
+    case (RPC_C2S_Phy_Test_Continuous_Wave_Start_Req | RPC_RESPONSE):
+        client_Phy_Test_Continuous_Wave_Start_Req_callback(message_payload);
         break;
-    case (RPC_C2S_DirectTV_Test_Continuous_Wave_Stop_Req | RPC_RESPONSE):
-        client_DirectTV_Test_Continuous_Wave_Stop_Req_callback(message_payload);
+    case (RPC_C2S_Phy_Test_Continuous_Wave_Stop_Req | RPC_RESPONSE):
+        client_Phy_Test_Continuous_Wave_Stop_Req_callback(message_payload);
         break;
-    case (RPC_C2S_DirectTV_Test_Transmit_Start_Req | RPC_RESPONSE):
-        client_DirectTV_Test_Transmit_Start_Req_callback(message_payload);
+    case (RPC_C2S_Phy_Test_Transmit_Start_Req | RPC_RESPONSE):
+        client_Phy_Test_Transmit_Start_Req_callback(message_payload);
         break;
-    case (RPC_C2S_DirectTV_Test_Transmit_Stop_Req | RPC_RESPONSE):
-        client_DirectTV_Test_Transmit_Stop_Req_callback(message_payload);
+    case (RPC_C2S_Phy_Test_Transmit_Stop_Req | RPC_RESPONSE):
+        client_Phy_Test_Transmit_Stop_Req_callback(message_payload);
         break;
-    case (RPC_C2S_DirectTV_Test_Receive_Start_Req | RPC_RESPONSE):
-        client_DirectTV_Test_Receive_Start_Req_callback(message_payload);
+    case (RPC_C2S_Phy_Test_Receive_Start_Req | RPC_RESPONSE):
+        client_Phy_Test_Receive_Start_Req_callback(message_payload);
         break;
-    case (RPC_C2S_DirectTV_Test_Receive_Stop_Req | RPC_RESPONSE):
-        client_DirectTV_Test_Receive_Stop_Req_callback(message_payload);
+    case (RPC_C2S_Phy_Test_Receive_Stop_Req | RPC_RESPONSE):
+        client_Phy_Test_Receive_Stop_Req_callback(message_payload);
         break;
-    case (RPC_C2S_DirectTV_Test_Echo_Start_Req | RPC_RESPONSE):
-        client_DirectTV_Test_Echo_Start_Req_callback(message_payload);
+    case (RPC_C2S_Phy_Test_Echo_Start_Req | RPC_RESPONSE):
+        client_Phy_Test_Echo_Start_Req_callback(message_payload);
         break;
-    case (RPC_C2S_DirectTV_Test_Echo_Stop_Req | RPC_RESPONSE):
-        client_DirectTV_Test_Echo_Stop_Req_callback(message_payload);
+    case (RPC_C2S_Phy_Test_Echo_Stop_Req | RPC_RESPONSE):
+        client_Phy_Test_Echo_Stop_Req_callback(message_payload);
         break;
-    case (RPC_C2S_DirectTV_Test_Energy_Detect_Scan_Req | RPC_RESPONSE):
-        client_DirectTV_Test_Energy_Detect_Scan_Req_callback(message_payload);
+    case (RPC_C2S_Phy_Test_Energy_Detect_Scan_Req | RPC_RESPONSE):
+        client_Phy_Test_Energy_Detect_Scan_Req_callback(message_payload);
         break;
-    case (RPC_C2S_DirectTV_Test_Get_Stats_Req | RPC_RESPONSE):
-        client_DirectTV_Test_Get_Stats_Req_callback(message_payload);
+    case (RPC_C2S_Phy_Test_Get_Stats_Req | RPC_RESPONSE):
+        client_Phy_Test_Get_Stats_Req_callback(message_payload);
         break;
-    case (RPC_C2S_DirectTV_Test_Reset_Stats_Req | RPC_RESPONSE):
-        client_DirectTV_Test_Get_Stats_Req_callback(message_payload);
+    case (RPC_C2S_Phy_Test_Reset_Stats_Req | RPC_RESPONSE):
+        client_Phy_Test_Get_Stats_Req_callback(message_payload);
         break;
-    case (RPC_C2S_DirectTV_Test_Set_TX_Power_Req | RPC_RESPONSE):
-        client_DirectTV_Test_Set_TX_Power_Req_callback(message_payload);
+    case (RPC_C2S_Phy_Test_Set_TX_Power_Req | RPC_RESPONSE):
+        client_Phy_Test_Set_TX_Power_Req_callback(message_payload);
         break;
-
+    case (RPC_C2S_Phy_Test_SelectAntenna_Req | RPC_RESPONSE):
+        client_Phy_Test_SelectAntenna_Req_callback(message_payload);
+        break;
+    case (RPC_C2S_RF4CE_Get_Diag_Caps_Req | RPC_RESPONSE):
+        client_RF4CE_Get_Diag_Caps_Req_callback(message_payload);
+        break;
+    case (RPC_C2S_RF4CE_Get_Diag_Req | RPC_RESPONSE):
+        client_RF4CE_Get_Diag_Req_callback(message_payload);
+        break;
     case (RPC_S2C_SYS_EVENTNTFY):
         client_SYS_EventNtfy(message_payload);
         break;

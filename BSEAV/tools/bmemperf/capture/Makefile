@@ -52,6 +52,13 @@ magnum = $(shell cd ../../../../magnum;pwd)
 
 include $(NEXUS_TOP)/examples/Makefile_prologue.inc
 
+ifeq ($(filter $(BCHP_CHIP),7445), $(BCHP_CHIP))
+ifeq ($(filter $(BCHP_VER),E0), $(BCHP_VER))
+BCHP_VER_LOWER=d0
+BCHP_VER=D0
+endif
+endif
+
 BCHP_VER_LOWER := $(shell awk 'BEGIN{print tolower("$(BCHP_VER)")}')
 
 ifeq ($(B_REFSW_ARCH),)

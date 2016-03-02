@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * (c) 2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -76,7 +76,7 @@ public:
     CPlaylist * getPlaylist(int index) { return(_playlistList.at(index)); }
     int         numPlaylists(void)     { return(_playlistList.total()); }
 
-    void dump(bool bForce = false);
+    void dump(bool bForce = false, int index = 0);
 
     CWidgetEngine * getWidgetEngine(void) { return(_pWidgetEngine); }
 

@@ -1924,6 +1924,28 @@ static int scanForTag(
 
 extern bmemconfig_box_info g_bmemconfig_box_info[BMEMCONFIG_MAX_BOXMODES];
 
+static int getProductIdMemc(
+    void
+    )
+{
+    unsigned int idx     = 0;
+    int          numMemc = 1;
+
+    /* loop through global array to find the specified boxmode */
+    for (idx = 0; idx < ( sizeof( g_bmemconfig_box_info )/sizeof( g_bmemconfig_box_info[0] )); idx++)
+    {
+        PRINTF( "~DEBUG~%s: g_bmemconfig_box_info[%d].strProductId is %s ... comparing with %s~", __FUNCTION__, idx, g_bmemconfig_box_info[idx].strProductId, getProductIdStr() );
+        if ( strcmp ( g_bmemconfig_box_info[idx].strProductId, getProductIdStr() ) == 0 )
+        {
+            numMemc = g_bmemconfig_box_info[idx].numMemc;
+            break;
+        }
+    }
+
+    /* we did not find the specified product id */
+    return( numMemc );
+}  /* getBoxModeMemc */
+
 static int getBoxModeMemc(
     int boxmode
     )
@@ -1954,9 +1976,12 @@ static int getBoxModeDropdown(
 {
     int   boxmode   = 0;
     int   remaining = len;
+    int   lNumberMemcs = 1;
     char *output    = buf;
 
     BKNI_Memset( buf, '\0', len );
+
+    lNumberMemcs = getProductIdMemc();
 
     for (boxmode = 0; boxmode<1010; boxmode++)
     {
@@ -1988,7 +2013,7 @@ static int getBoxModeDropdown(
         }
 
         /* if this boxmode's memc count matches the one we are compiling for */
-        if ( getBoxModeMemc( boxmode ) == NEXUS_NUM_MEMC )
+        if ( getBoxModeMemc( boxmode ) == lNumberMemcs )
         {
             written = snprintf( output, remaining, "<option value=%d %s >BoxMode %d:%s</option> ", boxmode,  ( boxmode == boxmodePlatform ) ? "selected" : "",
                     boxmode, settings.boxModeDescription );
@@ -5849,6 +5874,9 @@ int main(
     char     datetime[20];
     char     stateFilenameRestored[STATE_FILE_FULL_PATH_LEN];
     char     strTemp[128];
+
+	BKNI_Init();
+	BDBG_Init();
 
     BKNI_Memset( &platformSettings, 0, sizeof( platformSettings ));
     BKNI_Memset( &platformStatusPrevious, 0, sizeof( platformStatusPrevious ));

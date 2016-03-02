@@ -4867,6 +4867,29 @@ BERR_Code BHDM_EDID_GetPreferredColorimetry(
 	{
 		*eColorimetry = BAVC_GetDefaultMatrixCoefficients_isrsafe(
 			parameters->eVideoFmt, parameters->xvYccEnabled) ;
+
+		/* confirm the default matrix is supported by the attached Rx */
+		switch (*eColorimetry)
+		{
+		case BAVC_MatrixCoefficients_eXvYCC_709 :
+			if (!hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_exvYCC709])
+			{
+				BDBG_WRN(("Requested xvYCC BT709 is not supported by attached Rx; default to BT709")) ;
+				*eColorimetry = BAVC_MatrixCoefficients_eItu_R_BT_709 ;
+			}
+			break ;
+
+		case BAVC_MatrixCoefficients_eXvYCC_601 :
+			if (!hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_exvYCC601])
+			{
+				BDBG_WRN(("Requested xvYCC BT601 is not supported by attached Rx; default to 170M")) ;
+				*eColorimetry = BAVC_MatrixCoefficients_eSmpte_170M ;
+			}
+			break ;
+
+		default :
+			/* do nothing */ ;
+		}
 	}
 
 	/* disable the automatic use of BT2020; app must explictly enable BT2020 */

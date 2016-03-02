@@ -201,6 +201,7 @@ CREATE_WRAPPER_CLIENT_FUNCTION(ZBPRO_ZDO_SimpleDescReq_Call,            ZBPRO_ZD
 CREATE_WRAPPER_CLIENT_FUNCTION(ZBPRO_ZDO_ActiveEpReq_Call,              ZBPRO_ZDO_ActiveEpReqDescr_t,               ZBPRO_ZDO_REQ_ACTIVE_EP_FID);
 CREATE_WRAPPER_CLIENT_FUNCTION(ZBPRO_ZDO_MatchDescReq_Call,             ZBPRO_ZDO_MatchDescReqDescr_t,              ZBPRO_ZDO_REQ_MATCH_DESC_FID);
 CREATE_WRAPPER_CLIENT_FUNCTION(ZBPRO_ZDO_DeviceAnnceReq_Call,           ZBPRO_ZDO_DeviceAnnceReqDescr_t,            ZBPRO_ZDO_REQ_DEVICE_ANNCE_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(ZBPRO_ZDO_ServerDiscoveryReq_Call,       ZBPRO_ZDO_ServerDiscoveryReqDescr_t,        ZBPRO_ZDO_REQ_SERVER_DISCOVERY_FID);
 CREATE_WRAPPER_CLIENT_FUNCTION(ZBPRO_ZDO_EndDeviceBindReq_Call,         ZBPRO_ZDO_EndDeviceBindReqDescr_t,          ZBPRO_ZDO_REQ_ED_BIND_FID);
 CREATE_WRAPPER_CLIENT_FUNCTION(ZBPRO_ZDO_BindReq_Call,                  ZBPRO_ZDO_BindUnbindReqDescr_t,             ZBPRO_ZDO_REQ_BIND_FID);
 CREATE_WRAPPER_CLIENT_FUNCTION(ZBPRO_ZDO_UnbindReq_Call,                ZBPRO_ZDO_BindUnbindReqDescr_t,             ZBPRO_ZDO_REQ_UNBIND_FID);
@@ -390,20 +391,25 @@ CREATE_WRAPPER_CLIENT_FUNCTION(SYS_EventSubscribe_Call,  SYS_EventHandlerParams_
 CREATE_WRAPPER_CLIENT_FUNCTION(SYS_EventRaise_Call,                 SYS_EventNotifyParams_t,            SYS_EVENT_RAISE_FID);
 CREATE_WRAPPER_CLIENT_FUNCTION(SYS_EventNtfy_Call,       SYS_EventNotifyParams_t,       SYS_EVENT_NOTIFY_FID);
 
-CREATE_WRAPPER_CLIENT_FUNCTION(DirectTV_Test_Get_Caps_Req_Call,              DirectTV_Test_Get_Caps_ReqDescr_t,   RF4CE_CTRL_TEST_GET_CAPS_FID);
-CREATE_WRAPPER_CLIENT_FUNCTION(DirectTV_Test_Set_Channel_Req_Call,           DirectTV_Test_Set_Channel_ReqDescr_t,   RF4CE_CTRL_TEST_SET_CHANNEL_FID);
-CREATE_WRAPPER_CLIENT_FUNCTION(DirectTV_Test_Continuous_Wave_Start_Req_Call, DirectTV_Test_Continuous_Wave_Start_ReqDescr_t,   RF4CE_CTRL_TEST_CONTINUOUS_WAVE_START_FID);
-CREATE_WRAPPER_CLIENT_FUNCTION(DirectTV_Test_Continuous_Wave_Stop_Req_Call,  DirectTV_Test_Continuous_Wave_Stop_ReqDescr_t,   RF4CE_CTRL_TEST_CONTINUOUS_WAVE_STOP_FID);
-CREATE_WRAPPER_CLIENT_FUNCTION(DirectTV_Test_Transmit_Start_Req_Call,        DirectTV_Test_Transmit_Start_ReqDescr_t,   RF4CE_CTRL_TEST_TRANSMIT_START_FID);
-CREATE_WRAPPER_CLIENT_FUNCTION(DirectTV_Test_Transmit_Stop_Req_Call,         DirectTV_Test_Transmit_Stop_ReqDescr_t,   RF4CE_CTRL_TEST_TRANSMIT_STOP_FID);
-CREATE_WRAPPER_CLIENT_FUNCTION(DirectTV_Test_Receive_Start_Req_Call,         DirectTV_Test_Receive_Start_ReqDescr_t,   RF4CE_CTRL_TEST_RECEIVE_START_FID);
-CREATE_WRAPPER_CLIENT_FUNCTION(DirectTV_Test_Receive_Stop_Req_Call,          DirectTV_Test_Receive_Stop_ReqDescr_t,   RF4CE_CTRL_TEST_RECEIVE_STOP_FID);
-CREATE_WRAPPER_CLIENT_FUNCTION(DirectTV_Test_Echo_Start_Req_Call,            DirectTV_Test_Echo_Start_ReqDescr_t,   RF4CE_CTRL_TEST_ECHO_START_FID);
-CREATE_WRAPPER_CLIENT_FUNCTION(DirectTV_Test_Echo_Stop_Req_Call,             DirectTV_Test_Echo_Stop_ReqDescr_t,   RF4CE_CTRL_TEST_ECHO_STOP_FID);
-CREATE_WRAPPER_CLIENT_FUNCTION(DirectTV_Test_Energy_Detect_Scan_Req_Call,    DirectTV_Test_Energy_Detect_Scan_ReqDescr_t,   RF4CE_CTRL_TEST_ENERGY_DETECT_SCAN_FID);
-CREATE_WRAPPER_CLIENT_FUNCTION(DirectTV_Test_Get_Stats_Req_Call,             DirectTV_Test_Get_Stats_ReqDescr_t,   RF4CE_CTRL_TEST_GET_STATS_FID);
-CREATE_WRAPPER_CLIENT_FUNCTION(DirectTV_Test_Reset_Stats_Req_Call,           DirectTV_Test_Reset_Stats_ReqDescr_t,   RF4CE_CTRL_TEST_RESET_STATS_FID);
-CREATE_WRAPPER_CLIENT_FUNCTION(DirectTV_Test_Set_TX_Power_Req_Call,          DirectTV_Test_Set_TX_Power_ReqDescr_t,   RF4CE_CTRL_TEST_SET_TX_POWER_FID);
+# if defined(_PHY_TEST_HOST_INTERFACE_)
+CREATE_WRAPPER_CLIENT_FUNCTION(Phy_Test_Get_Caps_Req_Call,              Phy_Test_Get_Caps_ReqDescr_t,   RF4CE_CTRL_TEST_GET_CAPS_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(Phy_Test_Set_Channel_Req_Call,           Phy_Test_Set_Channel_ReqDescr_t,   RF4CE_CTRL_TEST_SET_CHANNEL_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(Phy_Test_Continuous_Wave_Start_Req_Call, Phy_Test_Continuous_Wave_Start_ReqDescr_t,   RF4CE_CTRL_TEST_CONTINUOUS_WAVE_START_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(Phy_Test_Continuous_Wave_Stop_Req_Call,  Phy_Test_Continuous_Wave_Stop_ReqDescr_t,   RF4CE_CTRL_TEST_CONTINUOUS_WAVE_STOP_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(Phy_Test_Transmit_Start_Req_Call,        Phy_Test_Transmit_Start_ReqDescr_t,   RF4CE_CTRL_TEST_TRANSMIT_START_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(Phy_Test_Transmit_Stop_Req_Call,         Phy_Test_Transmit_Stop_ReqDescr_t,   RF4CE_CTRL_TEST_TRANSMIT_STOP_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(Phy_Test_Receive_Start_Req_Call,         Phy_Test_Receive_Start_ReqDescr_t,   RF4CE_CTRL_TEST_RECEIVE_START_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(Phy_Test_Receive_Stop_Req_Call,          Phy_Test_Receive_Stop_ReqDescr_t,   RF4CE_CTRL_TEST_RECEIVE_STOP_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(Phy_Test_Echo_Start_Req_Call,            Phy_Test_Echo_Start_ReqDescr_t,   RF4CE_CTRL_TEST_ECHO_START_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(Phy_Test_Echo_Stop_Req_Call,             Phy_Test_Echo_Stop_ReqDescr_t,   RF4CE_CTRL_TEST_ECHO_STOP_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(Phy_Test_Energy_Detect_Scan_Req_Call,    Phy_Test_Energy_Detect_Scan_ReqDescr_t,   RF4CE_CTRL_TEST_ENERGY_DETECT_SCAN_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(Phy_Test_Get_Stats_Req_Call,             Phy_Test_Get_Stats_ReqDescr_t,   RF4CE_CTRL_TEST_GET_STATS_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(Phy_Test_Reset_Stats_Req_Call,           Phy_Test_Reset_Stats_ReqDescr_t,   RF4CE_CTRL_TEST_RESET_STATS_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(Phy_Test_Set_TX_Power_Req_Call,          Phy_Test_Set_TX_Power_ReqDescr_t,   RF4CE_CTRL_TEST_SET_TX_POWER_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(Phy_Test_SelectAntenna_Req_Call,         Phy_Test_Select_Antenna_ReqDescr_t, RF4CE_CTRL_TEST_SELECT_ANTENNA_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(RF4CE_Get_Diag_Caps_Req_Call,            RF4CE_Diag_Caps_ReqDescr_t,   RF4CE_CTRL_GET_DIAGNOSTICS_CAPS_FID);
+CREATE_WRAPPER_CLIENT_FUNCTION(RF4CE_Get_Diag_Req_Call,                 RF4CE_Diag_ReqDescr_t, RF4CE_CTRL_GET_DIAGNOSTIC_FID);
+# endif
 #else /* NOT MAILBOX_UNIT_TEST */
 
 /**********************************************************************************************************************/
@@ -604,6 +610,7 @@ CREATE_WRAPPER_CLIENT_FUNCTION(DirectTV_Test_Set_TX_Power_Req_Call,          Dir
     CREATE_WRAPPER_CLIENT_FUNCTION(ZBPRO_ZDO_ActiveEpReq,               ZBPRO_ZDO_ActiveEpReqDescr_t,               ZBPRO_ZDO_REQ_ACTIVE_EP_FID);
     CREATE_WRAPPER_CLIENT_FUNCTION(ZBPRO_ZDO_MatchDescReq,              ZBPRO_ZDO_MatchDescReqDescr_t,              ZBPRO_ZDO_REQ_MATCH_DESC_FID);
     CREATE_WRAPPER_CLIENT_FUNCTION(ZBPRO_ZDO_DeviceAnnceReq,            ZBPRO_ZDO_DeviceAnnceReqDescr_t,            ZBPRO_ZDO_REQ_DEVICE_ANNCE_FID);
+    CREATE_WRAPPER_CLIENT_FUNCTION(ZBPRO_ZDO_ServerDiscoveryReq,        ZBPRO_ZDO_ServerDiscoveryReqDescr_t,        ZBPRO_ZDO_REQ_SERVER_DISCOVERY_FID);
     CREATE_WRAPPER_CLIENT_FUNCTION(ZBPRO_ZDO_EndDeviceBindReq,          ZBPRO_ZDO_EndDeviceBindReqDescr_t,          ZBPRO_ZDO_REQ_ED_BIND_FID);
     CREATE_WRAPPER_CLIENT_FUNCTION(ZBPRO_ZDO_BindReq,                   ZBPRO_ZDO_BindUnbindReqDescr_t,             ZBPRO_ZDO_REQ_BIND_FID);
     CREATE_WRAPPER_CLIENT_FUNCTION(ZBPRO_ZDO_UnbindReq,                 ZBPRO_ZDO_BindUnbindReqDescr_t,             ZBPRO_ZDO_REQ_UNBIND_FID);

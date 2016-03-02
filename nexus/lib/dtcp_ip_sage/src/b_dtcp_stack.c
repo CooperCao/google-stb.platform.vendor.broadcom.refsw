@@ -1,5 +1,5 @@
 /********************************************************************************************
-*     (c)2004-2015 Broadcom Corporation                                                     *
+*     (c)2004-2016 Broadcom Corporation                                                     *
 *                                                                                           *
 *  This program is the proprietary software of Broadcom Corporation and/or its licensors,   *
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and      *
@@ -261,7 +261,7 @@ BERR_Code B_DTCP_AkeReceiveCmd(B_DTCP_Stack_T * pStack,
             BDBG_MSG(("%s\n", MsgBuffer));
         }
     }else if(event == B_Transport_eError){
-        BDBG_ERR(("Transport error occured while receiving AKE command\n"));
+        BDBG_ERR(("Transport error occurred while receiving AKE command\n"));
         retValue = BERR_SOCKET_ERROR;
     }else if(event == B_Transport_eClosed){
         BDBG_WRN(("Connection closed by remote host\n"));

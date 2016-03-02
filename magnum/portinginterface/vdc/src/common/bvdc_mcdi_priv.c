@@ -1,23 +1,43 @@
-/***************************************************************************
-*     Copyright (c) 2004-2014, Broadcom Corporation
-*     All Rights Reserved
-*     Confidential Property of Broadcom Corporation
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "brdc.h"
@@ -1369,6 +1389,36 @@ static void BVDC_P_Mcdi_BuildRul_Mcdi_FcbInit_isr
 		BCHP_FIELD_ENUM(MDI_FCB_0_DEBUG_CURRENT_FIELD_CONTROL_3, IT_APS_UPDATE_SEL        ,             IT_APS)|
 		BCHP_FIELD_DATA(MDI_FCB_0_DEBUG_CURRENT_FIELD_CONTROL_3, SADBYBUSY_THR      , BVDC_P_MCDI_SADBYBUSY_THR);
 	BVDC_P_SUBRUL_ONE_REG(pList, BCHP_MDI_FCB_0_DEBUG_CURRENT_FIELD_CONTROL_3, ulRegOffset, ulData);
+
+
+	/* SWSTB-963: adjust for HD setting: MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_7~9*/
+	BVDC_P_SUBRUL_START_BLOCK(pList, BCHP_MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_7, ulRegOffset,
+		BVDC_P_REGS_ENTRIES(MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_7, MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_9));
+
+	/* MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_7*/
+	ulData =
+		(bIsHD?
+		BCHP_FIELD_DATA(MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_7, REV32_BW_LG_FF_OFFSET, BVDC_P_MCDI_REV32_BW_LG_FF_OFFSET_HD):
+		BCHP_FIELD_ENUM(MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_7, REV32_BW_LG_FF_OFFSET, DEFAULT))|
+		BCHP_FIELD_ENUM(MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_7, REV32_BW_LG_FF_RATIO,  DEFAULT);
+	*pList->pulCurrent++ = ulData;
+
+	/* MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_8*/
+	ulData =
+		bIsHD?
+		(BCHP_FIELD_DATA(MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_8, REV32_BW_FEATHERING_MAX,     BVDC_P_MCDI_REV32_REV32_BW_FEATHERING_MAX_HD    )|
+		 BCHP_FIELD_DATA(MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_8, REV32_BW_FEATHERING_FF_DIFF, BVDC_P_MCDI_REV32_REV32_BW_FEATHERING_FF_DIFF_HD)):
+		(BCHP_FIELD_ENUM(MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_8, REV32_BW_FEATHERING_MAX,     DEFAULT)|
+		 BCHP_FIELD_ENUM(MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_8, REV32_BW_FEATHERING_FF_DIFF, DEFAULT));
+	*pList->pulCurrent++ = ulData;
+
+	/* MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_9*/
+	ulData =
+		(bIsHD?
+		BCHP_FIELD_DATA(MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_9, REV32_T_T1_FEATH_MIN,   BVDC_P_MCDI_REV32_REV32_T_T1_FEATH_MIN_HD):
+		BCHP_FIELD_ENUM(MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_9, REV32_T_T1_FEATH_MIN,   DEFAULT))|
+		BCHP_FIELD_ENUM(MDI_FCB_0_REV32_IT_FIELD_PHASE_CALC_CONTROL_9, REV32_T_T1_FEATH_RATIO, DEFAULT);
+	*pList->pulCurrent++ = ulData;
 #endif
 
 	BVDC_P_SUBRUL_ONE_REG(pList, BCHP_MDI_FCB_0_REV22_IT_FIELD_PHASE_CALC_CONTROL_0, ulRegOffset,

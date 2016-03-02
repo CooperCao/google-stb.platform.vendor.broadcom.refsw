@@ -149,6 +149,8 @@ struct _RF4CE_GDP2_IdentifyCapAnnounceReqDescr_t
 
         RF4CE_ZRC2_SetAttributesReqDescr_t        pushReqDescr;     /*!< Push Attributes request descriptor. */
     };
+#else
+	void *context;
 #endif
 
     /* Structured data. */
@@ -251,6 +253,8 @@ struct _RF4CE_GDP2_IdentifyReqDescr_t
     /* Structured data. */
     RF4CE_GDP2_ClientNotificationReqDescr_t  clientNotificationReq;     /*!< Embedded Client Notification request
                                                                             descriptor. */
+#else
+	void *context;
 #endif
 
     /* Structured data. */

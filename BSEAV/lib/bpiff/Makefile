@@ -1,5 +1,5 @@
 #############################################################################
-#    (c)2011-2014 Broadcom Corporation
+#    (c)2011-2016 Broadcom Corporation
 #
 # This program is the proprietary software of Broadcom Corporation and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,7 @@
 # Revision History:
 #
 # $brcm_Log: $
-# 
+#
 #############################################################################
 NEXUS_PLATFORM ?= $(PLATFORM)
 MAGNUM_TOP := $(shell cd ../../../magnum; pwd)
@@ -97,8 +97,8 @@ CFLAGS += -I$(NEXUS_TOP)/modules/security/$(BCHP_CHIP)/include/priv
 CFLAGS += -I$(NEXUS_TOP)/modules/core/$(BCHP_CHIP)/include
 CFLAGS += -I$(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/include
 CFLAGS += -I$(MAGNUM)/portinginterface/hsm/$(BCHP_CHIP)/${BCHP_VER}/common
-CFLAGS += -I$(BSEAV_TOP)/lib/security/common_drm/include/priv 
-CFLAGS += -I$(BSEAV_TOP)/lib/security/common_drm/include 
+CFLAGS += -I$(BSEAV_TOP)/lib/security/common_drm/include/priv
+CFLAGS += -I$(BSEAV_TOP)/lib/security/common_drm/include
 CFLAGS += -DPIC -fpic
 CFLAGS += $(addprefix -I, ${NEXUS_APP_INCLUDE_PATHS})
 
@@ -116,7 +116,7 @@ CFLAGS += -I$(BSEAV_TOP)/lib/media
 CFLAGS += -std=c99
 
 ############################################################################
-#                              
+#
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
 
 # DRM Makefile exclude the 'include' subfolder which is built with the makefile
@@ -132,16 +132,16 @@ LIB_BASENAME        := bpiff
 
 
 ############
-# Set F_SRC_EXCLUDES to the basenames of C/C++ files you would like to 
+# Set F_SRC_EXCLUDES to the basenames of C/C++ files you would like to
 # exclude from compilation.  By default, all *.c and *.cpp files will
-# be compiled.  
+# be compiled.
 #####
-#F_SRC_EXCLUDES      = 
+#F_SRC_EXCLUDES      =
 
 
 ############
-# Set F_PUBLIC_INCS to the basenames of include files that are to be 
-# used by other libraries or applications.  These files will be 
+# Set F_PUBLIC_INCS to the basenames of include files that are to be
+# used by other libraries or applications.  These files will be
 # installed into .../${BCHP_VER}/include/
 #####
 F_PUBLIC_INCS    	+= $(sort $(notdir $(shell find ${D_ALL_MODULE_DIR} -name '*.h')))
@@ -150,7 +150,7 @@ F_PUBLIC_INCS    	+= $(sort $(notdir $(shell find ${D_ALL_MODULE_DIR} -name '*.h
 #$(error ${F_PUBLIC_INCS})
 
 ############
-# If your library depends on another shared lib, you should add that 
+# If your library depends on another shared lib, you should add that
 # lib here (and any additional lib directories to search).
 #####
 #LDFLAGS				+= -L$(BSEAV_TOP)/lib/drmrootfs -ldrmrootfs
@@ -169,15 +169,16 @@ D_FOR_INC_INSTALL	:= include
 # You probably shouldn't have to modify the text below this point.
 #####
 F_PUBLIC_LIBS    	+= lib${LIB_BASENAME}.a lib${LIB_BASENAME}.so
-ifeq ($(B_REFSW_DEBUG),n)
-D_FOR_LIB_INSTALL	:= lib/retail
-else
+B_REFSW_DEBUG ?= y
+ifeq ($(B_REFSW_DEBUG),y)
 D_FOR_LIB_INSTALL	:= lib/debug
+else
+D_FOR_LIB_INSTALL	:= lib/retail
 endif
 
 F_SRCS	       		:= $(filter-out ${F_SRC_EXCLUDES}, $(notdir $(wildcard $(addsuffix /*.c, ${D_ALL_SUBDIRS}))))
 F_SRCS              += ${BSEAV_TOP}/lib/utils/bbase64.c
-F_SRCS_GPG          := 
+F_SRCS_GPG          :=
 F_PREBUILT_OBJS     := $(patsubst %.gpg,%.o,${F_SRCS_GPG})
 F_OBJS 		   		:= $(patsubst %.c,%.o, ${F_SRCS})  ${F_PREBUILT_OBJS}
 F_INSTALLED_LIBS	:= $(addprefix ${D_FOR_LIB_INSTALL}/, ${F_PUBLIC_LIBS})
@@ -192,7 +193,7 @@ all: prep_openssl ${F_PUBLIC_LIBS} copy
 
 prep_openssl:
 	$(MAKE) -C $(B_OPENSSL_BUILD_DIR)
-clean: 
+clean:
 	find -name '*.d' -o -name '*.o'  | xargs rm -f
 	rm -f ${BSEAV_TOP}/lib/utils/bbase64.o
 	ls *.a  | xargs rm -f
@@ -201,8 +202,8 @@ clean:
 
 distclean: clean
 #	find ./lib -name '*.a' -o -name '*.so' | xargs rm -f
-#	rm -f ${F_INSTALLED_LIBS} 
-#	rm -f ${D_FOR_INC_INSTALL}/*.h ${F_INSTALLED_LIBS} 
+#	rm -f ${F_INSTALLED_LIBS}
+#	rm -f ${D_FOR_INC_INSTALL}/*.h ${F_INSTALLED_LIBS}
 
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
 
@@ -211,26 +212,26 @@ distclean: clean
 ############################################################################
 #                             BUILD RULES
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
-lib${LIB_BASENAME}.so: ${F_OBJS} 
+lib${LIB_BASENAME}.so: ${F_OBJS}
 # TODO: linking with static OpenSSL library for now, need to generate shared libraries
 	${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-dy
 	${STRIP_COMMAND}
 
-lib${LIB_BASENAME}.a: ${F_OBJS} 
-	${AR} rc  $@  $^ 
+lib${LIB_BASENAME}.a: ${F_OBJS}
+	${AR} rc  $@  $^
 	${STRIP_COMMAND}
 
 idirs:
 	@ [ -d ${D_FOR_LIB_INSTALL} ] || mkdir -p ${D_FOR_LIB_INSTALL}
 	@ [ -d ${D_FOR_INC_INSTALL} ] || mkdir -p ${D_FOR_INC_INSTALL}
 
-install: all idirs ${F_INSTALLED_LIBS} 
+install: all idirs ${F_INSTALLED_LIBS}
 
 ${D_FOR_LIB_INSTALL}/%.a : %.a
-	install -m 0755 $< $@ 
+	install -m 0755 $< $@
 
 ${D_FOR_LIB_INSTALL}/%.so : %.so
-	install -m 0755 $< $@ 
+	install -m 0755 $< $@
 
 ${F_PREBUILT_OBJS} : %.o : %.obj
 	${BDVD_PPRINT.cp}
@@ -238,9 +239,9 @@ ${F_PREBUILT_OBJS} : %.o : %.obj
 
 %.o: %.c
 	@ echo [Compiling .... $< ]
-	@ ${CC} ${CFLAGS} -c -o $@ $< 
-	
-copy:	
+	@ ${CC} ${CFLAGS} -c -o $@ $<
+
+copy:
 	@echo [Copying proper bpiff lib version...]
 #cp -f $(BSEAV_TOP)/lib/security/common_drm/lib/$(CMNDRM_DIR)/libcmndrmprdy.so $(NEXUS_BIN_DIR)/
 	cp -f $(BSEAV_TOP)/lib/bpiff/libbpiff.so $(NEXUS_BIN_DIR)/

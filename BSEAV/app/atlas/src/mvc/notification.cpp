@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -115,6 +115,7 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_BluetoothA2DPStop).s(), "eNotify_Bluetooth
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ShowDiscoveredPlaylists).s(), "eNotify_ShowDiscoveredPlaylists") /* command  - show list of playlists discovered by atlas server */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ShowPlaylist).s(), "eNotify_ShowPlaylist")                       /* command  - show contents of given playlist */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_StreamChannel).s(), "eNotify_StreamChannel")                     /* command  - stream IP channel from remote server */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_Debug).s(), "eNotify_Debug")                                     /* command  - show debug message */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Exit).s(), "eNotify_Exit")                                       /* command  - exit atlas */
 
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Error).s(), "eNotify_Error")                               /* status   - error occurred */
@@ -182,6 +183,10 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_BluetoothListStatusDone).s(), "eNotify_Blu
 #endif /* ifdef NETAPP_SUPPORT */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaylistAdded).s(), "eNotify_PlaylistAdded")     /* status   - a playlist was added to the playlist database */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaylistRemoved).s(), "eNotify_PlaylistRemoved") /* status   - a playlist was removed from the playlist database */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_DecodeStarted).s(), "eNotify_DecodeStarted") /* status   - a video or audio decode has started decoding */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_DecodeStopped).s(), "eNotify_DecodeStopped") /* status   - a video or audio decode has stopped decoding */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_DiscoveredPlaylistsShown).s(), "eNotify_DiscoveredPlaylistsShown") /* status   - a discovered playlist has been displayed on console */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaylistShown).s(), "eNotify_PlaylistShown") /* status   - a playlist contents has been displayed on console */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Invalid).s(), "eNotify_Invalid")
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Max).s(), "eNotify_Max")
 ENUM_TO_MSTRING_END()

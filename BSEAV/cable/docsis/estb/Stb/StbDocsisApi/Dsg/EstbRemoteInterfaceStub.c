@@ -1,68 +1,51 @@
-//*****************************************************************************
-// DSG API interface code
-//****************************************************************************
-//
-// Copyright (c) 2004-2013 Broadcom Corporation
-//
-// This program is the proprietary software of Broadcom Corporation and/or
-// its licensors, and may only be used, duplicated, modified or distributed
-// pursuant to the terms and conditions of a separate, written license
-// agreement executed between you and Broadcom (an "Authorized License").
-// Except as set forth in an Authorized License, Broadcom grants no license      
-// (express or implied), right to use, or waiver of any kind with respect to
-// the Software, and Broadcom expressly reserves all rights in and to the
-// Software and all intellectual property rights therein.  IF YOU HAVE NO
-// AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
-// AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
-// SOFTWARE.  
-//  
-// Except as expressly set forth in the Authorized License,
-//
-// 1.     This program, including its structure, sequence and organization,
-// constitutes the valuable trade secrets of Broadcom, and you shall use all
-// reasonable efforts to protect the confidentiality thereof, and to use this
-// information only in connection with your use of Broadcom integrated circuit
-// products.
-//
-// 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
-// "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
-// OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
-// RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
-// IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
-// A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-// ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-// THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-//
-// 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
-// OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
-// INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
-// RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
-// HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
-// EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
-// WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
-// FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-//
-//*****************************************************************************
-//    Filename:       EstbRemoteInterfaceStub.c
-//    Author:         Kenny Lee & Pinar Taskiran
-//    Date:           07/07/04
-//
-//*****************************************************************************
-//    Revision History:     
-//                      0.1 Initial version.
-//*****************************************************************************
-//
-//*****************************************************************************
-//
-//   PURPOSE: Sample C interface functions to the V2 DSG-Compliant Cable Modem
-//		The example here is the DSG Management Application(MA) and the DSG CM 
-//      connected by ETHERNET/USB. The type of interface here is the Physical
-//      Interface.
-//      Please see Broadcom document "Interface To a DSG-Compliant CableModem"
-//      Further reading.
-//
-//*****************************************************************************
-//********************** Include Files ***************************************
+/******************************************************************************
+ *    (c)2010-2014 Broadcom Corporation
+ *
+ * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
+ * $brcm_Workfile: $
+ * $brcm_Revision: $
+ * $brcm_Date: $
+ *   PURPOSE: Sample C interface functions to the V2 DSG-Compliant Cable Modem
+*		The example here is the DSG Management Application(MA) and the DSG CM
+*      connected by ETHERNET/USB. The type of interface here is the Physical
+*      Interface.
+*      Please see Broadcom document "Interface To a DSG-Compliant CableModem"
+*      Further reading.
+ *****************************************************************************/
+
 #include "stdio.h"
 #include <stdlib.h>
 #include <string.h>
@@ -91,7 +74,7 @@
 #else
 #define PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP \
 	{0, 0, 0, PTHREAD_MUTEX_RECURSIVE_NP, __LOCK_INITIALIZER}
-#endif 
+#endif
 
 static pthread_mutex_t LnxDsgApiMutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
@@ -180,7 +163,7 @@ static int EstbToEcmSocketSendRx( int tpkt_size, unsigned char *pBuf, bool waitr
 	bzero((char*)&sin_dst, sizeof(sin_dst));
     sin_dst.sin_family = AF_INET;
     sin_dst.sin_port = htons(ECM_DSG_REQUEST_PORT);
-	sin_dst.sin_addr.s_addr = htonl(kRemoteEcmIpAddress); 
+	sin_dst.sin_addr.s_addr = htonl(kRemoteEcmIpAddress);
 
     FlushRxSocketBuffer();
 
@@ -224,7 +207,7 @@ static int EstbToEcmSocketSendRx( int tpkt_size, unsigned char *pBuf, bool waitr
 
         bzero((char*)&frominet, sizeof(frominet));
         bzero((char*)pBuf, tpkt_size);  // reuse TX buffer for RX buffer.
-        
+
         while(1)
         {
             FD_ZERO(&rfds);
@@ -236,14 +219,14 @@ static int EstbToEcmSocketSendRx( int tpkt_size, unsigned char *pBuf, bool waitr
             tv.tv_sec = eCmResponseTimeout;
             tv.tv_usec = 0;
 
-            retcode = select((sock_ctl_in + 1), &rfds, (fd_set *)0, (fd_set *)0, &tv);		
+            retcode = select((sock_ctl_in + 1), &rfds, (fd_set *)0, (fd_set *)0, &tv);
             if (retcode > 0)
             {
                 // Listen for NOTIFICATIONS
                 if(FD_ISSET(sock_ctl_in, &rfds))
                 {
                     // Configure CONTROL RX socket to receive packets from ECM.
-                    inetsize = sizeof(frominet); 
+                    inetsize = sizeof(frominet);
                     cnt = recvfrom(sock_ctl_in, (char*)pBuf, rxBufferSize, 0, (struct sockaddr*)&frominet, &inetsize);
                     if(  cnt > 0  )
                     {
@@ -272,7 +255,7 @@ static int EstbToEcmSocketSendRx( int tpkt_size, unsigned char *pBuf, bool waitr
             }
             else    // <0, interrupted signal
             {
-                #if defined(TARGETOS_Linux)  
+                #if defined(TARGETOS_Linux)
                 // Each serialize call into client control thread will cause 1 EINTR here,
                 // this is not an error from eCM, continue wait for ecm response
                 // Pick a number that is more that the max consecutive serialize calls anticipated
@@ -323,7 +306,7 @@ STATUS tudp_tx( int tpkt_size, unsigned char *pBuf, unsigned short port)
     //inet_pton(AF_INET, "127.0.0.1", &sin_dst.sin_addr);
 
 	// eSTB RI will always communicate to Remote IP Stack on eCM.
-	sin_dst.sin_addr.s_addr = htonl(kRemoteEcmIpAddress); 
+	sin_dst.sin_addr.s_addr = htonl(kRemoteEcmIpAddress);
 
 	/*printf("\n: Sending config pkt port %04x tpkt_size=%d socket = %d\n", port, tpkt_size, sock_ctl_out);
 	{
@@ -345,7 +328,7 @@ STATUS tudp_tx( int tpkt_size, unsigned char *pBuf, unsigned short port)
 	}
 	/*else
 	{
-		printf("\nTransmission is complete.\n");		    
+		printf("\nTransmission is complete.\n");
 	}*/
 
 	return(kFuncSuccess);
@@ -398,21 +381,21 @@ STATUS wait_for_ecm_response( int rpkt_size, unsigned char *pBuf)
 	{
 		FD_ZERO(&rfds);
 		FD_SET(sock_ctl_in, &rfds);
-		
+
         // The linux call to select will modify the timeout
         // value to reflect the time remaining.  Therefore,
         // we have to re-initialize before repeated calls to select.
 		tv.tv_sec = eCmResponseTimeout;
 		tv.tv_usec = 0;
-	
-		retcode = select((sock_ctl_in + 1), &rfds, (fd_set *)0, (fd_set *)0, &tv);		
+
+		retcode = select((sock_ctl_in + 1), &rfds, (fd_set *)0, (fd_set *)0, &tv);
 		if (retcode > 0)
 		{
 			// Listen for NOTIFICATIONS
 			if(FD_ISSET(sock_ctl_in, &rfds))
 			{
 				// Configure NOTIFICATION and DATA sockets to receive packets with eCM address.
-				inetsize = sizeof(frominet); 
+				inetsize = sizeof(frominet);
 
 				// recvfrom shoud not block now
 				// Use CONTROL RX Socket
@@ -423,7 +406,7 @@ STATUS wait_for_ecm_response( int rpkt_size, unsigned char *pBuf)
 				{
 					//printf("Rx response pkt from [ %s ]: UDP port %04x received packet with len %d\n", inet_ntoa(frominet.sin_addr),  ESTB_DSG_RESPONSE_PORT, cnt);
 					//if( frominet.sin_addr.s_addr == htonl(kRemoteEcmSrcIpAddress ) )
-					{				
+					{
 						//printf(" Transaction Id(%02x) \n", buf[0] );
 						if( cnt == buflen  )
 						{
@@ -432,7 +415,7 @@ STATUS wait_for_ecm_response( int rpkt_size, unsigned char *pBuf)
 								//printf(" Transaction Id(%02x) matched for TX/RX. cnt=%d\n", buf[0], cnt );
 
 								//printf(" Return result is kSuccess(%02x)\n", buf[2] );
-								memcpy(pBuf, buf, cnt);	
+								memcpy(pBuf, buf, cnt);
 							}
 							else
 							    printf(" Rx Transaction Id(0x%02x)!= 0x%02x. API %d\n", buf[0], pBuf[0], pBuf[1] );
@@ -464,7 +447,7 @@ STATUS wait_for_ecm_response( int rpkt_size, unsigned char *pBuf)
 		}
 		else    // <0, interrupted signal
 		{
-			#if defined(TARGETOS_Linux)  
+			#if defined(TARGETOS_Linux)
 			// Each serialize call into client control thread will cause 1 EINTR here,
 			// this is not an error from eCM, continue wait for ecm response
 			// Pick a number that is more that the max consecutive serialize calls anticipated
@@ -502,7 +485,7 @@ STATUS wait_for_ecm_response( int rpkt_size, unsigned char *pBuf)
 ******************************************************************************************/
 /*
  *  Set DSG operation mode to eCM
- *  Set the eCM's DSG mode according to mode: 
+ *  Set the eCM's DSG mode according to mode:
  *  0 == DSG disabled
  *  1 == DSG Basic Mode
  *  2 == DSG Advanced Mode
@@ -543,7 +526,7 @@ int DsgSetDSGMode( int mode )
     DsgConfig[0] = ++TransId;
 #endif
     DsgConfig[1] = kDsgSetMode;
-    DsgConfig[2] = mode;   
+    DsgConfig[2] = mode;
 
     ret_val = EstbToEcmSocketSendRx( 64, DsgConfig, true, false);
 
@@ -565,14 +548,14 @@ int DsgSetDSGMode( int mode )
 }
 
 /*
- * Set the eCM's DOCSIS mode according to enable; 
+ * Set the eCM's DOCSIS mode according to enable;
  * true - allows bidirectional DOCSIS operation
  * false - disables DOCSIS operation.
- *  
+ *
  * This function returns:
  * true == success; DOCSIS mode set
  * false == function failure
- *  
+ *
  */
 bool DsgEnableDOCSIS (bool enable)
 {
@@ -600,7 +583,7 @@ bool DsgEnableDOCSIS (bool enable)
     DsgConfig[0] = ++TransId;
 #endif
     DsgConfig[1] = kDsgEnableDocsis;
-    DsgConfig[2] = enable;   
+    DsgConfig[2] = enable;
 
     ret_val = EstbToEcmSocketSendRx( 64, DsgConfig, true, false);
 
@@ -617,9 +600,9 @@ bool DsgEnableDOCSIS (bool enable)
     }
 #endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return ret_val;
-    
+
 }
 
 
@@ -629,11 +612,11 @@ bool DsgEnableDOCSIS (bool enable)
  * This function returns:
  * true == success; Advanced tunnel set
  * false == function failure
- *  
+ *
  */
 int  DsgOpenTunnel( DsgTunnelSettings *pTunnelSettings )
 {
-	unsigned char *DsgConfig; 
+	unsigned char *DsgConfig;
 	unsigned int bufferLen;
 	int ret_val;
 	uint32 tempVal;
@@ -645,7 +628,7 @@ int  DsgOpenTunnel( DsgTunnelSettings *pTunnelSettings )
 #endif
 
     pthread_mutex_lock(&LnxDsgApiMutex);
-   
+
 	bufferLen = 26 + (pTunnelSettings->numOfClassifiers * sizeof(t_dsg_classifier));
 
     // Pad out the buffer to minimum expected reply size.
@@ -675,19 +658,19 @@ int  DsgOpenTunnel( DsgTunnelSettings *pTunnelSettings )
 #endif
     DsgConfig[1] = kDsgOpenTunnel;
 
-	memcpy( &DsgConfig[2], pTunnelSettings->pTunnelAddress, sizeof(t_mac_adr) ); 
+	memcpy( &DsgConfig[2], pTunnelSettings->pTunnelAddress, sizeof(t_mac_adr) );
 
 	// Client ID Type
 	tempVal = HostToNetworkUint32(pTunnelSettings->clientIdType);
-	memcpy( &DsgConfig[8], &tempVal, sizeof(uint32) ); 
+	memcpy( &DsgConfig[8], &tempVal, sizeof(uint32) );
 
 	// Client ID Value
 	tempVal = HostToNetworkUint32(pTunnelSettings->clientIdValue);
-	memcpy( &DsgConfig[12], &tempVal, sizeof(uint32) ); 
+	memcpy( &DsgConfig[12], &tempVal, sizeof(uint32) );
 
 	// Number Of Classifiers
 	tempVal = HostToNetworkUint32(pTunnelSettings->numOfClassifiers);
-	memcpy( &DsgConfig[16], &tempVal, sizeof(uint32) ); 
+	memcpy( &DsgConfig[16], &tempVal, sizeof(uint32) );
 
 	// Classifier Settings
 	memcpy( &DsgConfig[20], pTunnelSettings->pClassifierList, pTunnelSettings->numOfClassifiers * sizeof(t_dsg_classifier) );
@@ -695,7 +678,7 @@ int  DsgOpenTunnel( DsgTunnelSettings *pTunnelSettings )
 	// Client ID Value for MAC_address type client
 	sizeOfClassifierSets = pTunnelSettings->numOfClassifiers * sizeof(t_dsg_classifier);
 	if(pTunnelSettings->pMacAddressClientIdVal)
-		memcpy( &DsgConfig[20+sizeOfClassifierSets], pTunnelSettings->pMacAddressClientIdVal, sizeof(t_mac_adr) ); 
+		memcpy( &DsgConfig[20+sizeOfClassifierSets], pTunnelSettings->pMacAddressClientIdVal, sizeof(t_mac_adr) );
 
     ret_val = EstbToEcmSocketSendRx( bufferLen, DsgConfig, true, false);
 
@@ -722,9 +705,9 @@ int  DsgOpenTunnel( DsgTunnelSettings *pTunnelSettings )
  *
  * This function tells the eCM to close any and all active Advanced Mode tunnels.
  * The eCM will stop forwarding any DSG traffic to the eSTB.
- * 
+ *
  * This function may be useful if the DCD changes to contain different tunnel identification parameters.
- * 
+ *
  * This function returns:
  * true == success; Advanced tunnels closed
  * false == function failure
@@ -754,7 +737,7 @@ bool DsgCloseTunnel( int tunnel_num )
     DsgConfig[0] = ++TransId;
 #endif
     DsgConfig[1] = kDsgCloseTunnel;
-	DsgConfig[2] = tunnel_num; 
+	DsgConfig[2] = tunnel_num;
 
     // Send the message
     ret_val = EstbToEcmSocketSendRx( 64, DsgConfig, true, false);
@@ -770,11 +753,11 @@ bool DsgCloseTunnel( int tunnel_num )
         iteration--;
     }
     }
-#endif    
+#endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
 
     return ret_val;
-    
+
 }
 ////////////////////////////////////////////////////////////////////////
 //
@@ -782,7 +765,7 @@ bool DsgCloseTunnel( int tunnel_num )
 //
 ////////////////////////////////////////////////////////////////////////
 /*
- *  Set Tdsg1 to Tdsg4 timeout other than the default. 
+ *  Set Tdsg1 to Tdsg4 timeout other than the default.
  *
  *  timer_id is a value from 1-4. timeout is in unit of seconds
  *
@@ -818,7 +801,7 @@ int DsgSetTimer( uint8 timer_id, uint16 timeout )
     DsgConfig[0] = ++TransId;
 #endif
     DsgConfig[1] = kDsgSetTimer;
-    DsgConfig[2] = timer_id;						 
+    DsgConfig[2] = timer_id;
     DsgConfig[3] = (unsigned char)(timeout >> 8);    //uint16 of timeout unit in 10ms
     DsgConfig[4] = (unsigned char)timeout;
 
@@ -836,11 +819,11 @@ int DsgSetTimer( uint8 timer_id, uint16 timeout )
         iteration--;
     }
     }
-#endif    
+#endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
 
     return ret_val;
-    
+
 }
 
 /*
@@ -890,7 +873,7 @@ int DsgGetTimer( uint8 timer_id, uint16 *timeout )
         // Retrieve timeout value from the message.
         timeoutValue = DsgConfig[3] << 8;
         timeoutValue |= DsgConfig[4];
-        memcpy(timeout, &timeoutValue, sizeof(timeout));
+        memcpy(timeout, &timeoutValue, sizeof(*timeout));
     }
 #if (DSG_RECOVER_SUPPORT)
     if (ret_val > 0)
@@ -912,14 +895,14 @@ int DsgGetTimer( uint8 timer_id, uint16 *timeout )
 
 /*
  *
- * This function directs the eCM to employ the indicated channel list when it scans for DSG 
- * channels. Note that this list is not used when DSG is disabled and the eCM scans for DOCSIS 
+ * This function directs the eCM to employ the indicated channel list when it scans for DSG
+ * channels. Note that this list is not used when DSG is disabled and the eCM scans for DOCSIS
  * channels.
- * 
- * The argument num_chans indicates the number of channels in the list. The argument channel_list 
+ *
+ * The argument num_chans indicates the number of channels in the list. The argument channel_list
  * is an array of channel frequencies. Each value is the center frequency of a channel, in units
  * of 62500 Hz.
- * 
+ *
  * This function returns:
  * true == success; channel list set
  * false == function failure
@@ -927,7 +910,7 @@ int DsgGetTimer( uint8 timer_id, uint16 *timeout )
 #if (DSGAPI_CHANNELLIST_HTON_SUPPORT)
 bool DsgSetChannelList (uint16 num_chans, uint32 * channel_list)
 {
-    unsigned char *DsgConfig; 
+    unsigned char *DsgConfig;
 	unsigned int bufferLen = num_chans * sizeof(uint32) + 4 ;    // can have up to 255 freq entry + plus 4 bytes for DSG command, transaction id etc.
     int ret_val;
 #if (DSG_RECOVER_SUPPORT)
@@ -944,7 +927,7 @@ bool DsgSetChannelList (uint16 num_chans, uint32 * channel_list)
     if (bufferLen < kEcmReplyPktSize)
         bufferLen = kEcmReplyPktSize;
 
-    // Allocate buffer to hold channel list 
+    // Allocate buffer to hold channel list
     if( (DsgConfig = (unsigned char *)malloc(bufferLen)) == NULL)
     {
         printf("Can not allocate buffer %d\n", bufferLen);
@@ -955,7 +938,7 @@ bool DsgSetChannelList (uint16 num_chans, uint32 * channel_list)
 #if (DSG_RECOVER_SUPPORT)
     xid = ++TransId;
 
-    while (iteration > 0) 
+    while (iteration > 0)
     {
 #endif
     //Reset memory.
@@ -986,10 +969,10 @@ bool DsgSetChannelList (uint16 num_chans, uint32 * channel_list)
         iteration--;
     }
     }
-#endif    
+#endif
     free(DsgConfig);
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return ret_val;
 }
 
@@ -1010,7 +993,7 @@ void HtonDsgSetChannelList (uint16 *pNum_chans, uint32 *pChannel_list)
 #else
 bool DsgSetChannelList (uint16 num_chans, uint32 * channel_list)
 {
-    unsigned char *DsgConfig; 
+    unsigned char *DsgConfig;
 	unsigned int bufferLen = num_chans * sizeof(uint32) + 4 ;    // can have up to 255 freq entry + plus 4 bytes for DSG command, transaction id etc.
     int ret_val;
 #if (DSG_RECOVER_SUPPORT)
@@ -1023,7 +1006,7 @@ bool DsgSetChannelList (uint16 num_chans, uint32 * channel_list)
     if (bufferLen < kEcmReplyPktSize)
         bufferLen = kEcmReplyPktSize;
 
-    // Allocate buffer to hold channel list 
+    // Allocate buffer to hold channel list
     if( (DsgConfig = (unsigned char *)malloc(bufferLen)) == NULL)
     {
         printf("Can not allocate buffer %d\n", bufferLen);
@@ -1048,7 +1031,7 @@ bool DsgSetChannelList (uint16 num_chans, uint32 * channel_list)
     DsgConfig[1] = kDsgSetChannelsList;
 
     // Number of channels to set.
-    DsgConfig[2] = (unsigned char)(num_chans >> 8);    
+    DsgConfig[2] = (unsigned char)(num_chans >> 8);
     DsgConfig[3] = (unsigned char)num_chans;
 
     memcpy( &DsgConfig[4], channel_list, num_chans * sizeof(uint32) );
@@ -1066,10 +1049,10 @@ bool DsgSetChannelList (uint16 num_chans, uint32 * channel_list)
         iteration--;
     }
     }
-#endif    
+#endif
     free(DsgConfig);
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return ret_val;
 }
 #endif
@@ -1077,15 +1060,15 @@ bool DsgSetChannelList (uint16 num_chans, uint32 * channel_list)
 
 /*
  *
- * This function directs the eCM to disregard any previous channel list and search all 
+ * This function directs the eCM to disregard any previous channel list and search all
  * frequencies when scanning for DSG tunnels.
- * 
+ *
  * This function returns:
  * true == success; channel list reset
  * false == function failure
  *
  */
-bool DsgResetChannelList ( void ) 
+bool DsgResetChannelList ( void )
 {
 	unsigned char DsgConfig[64];
     int ret_val;
@@ -1125,17 +1108,17 @@ bool DsgResetChannelList ( void )
         iteration--;
     }
     }
-#endif    
+#endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return ret_val;
-    
+
 }
 
 /*
  *
  * This function directs the eCM to continue scanning downstreams in search of DSG information.
- * 
+ *
  * This function returns:
  * true == success; scan started
  * false == function failure
@@ -1166,7 +1149,7 @@ bool DsgScan ( bool enable )
     DsgConfig[0] = ++TransId;
 #endif
     DsgConfig[1] = kDsgScan;
-	DsgConfig[2] = enable;  
+	DsgConfig[2] = enable;
 
 	// Send the message
     ret_val = EstbToEcmSocketSendRx( 64, DsgConfig, true, false);
@@ -1182,15 +1165,15 @@ bool DsgScan ( bool enable )
         iteration--;
     }
     }
-#endif    
+#endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
 
     return ret_val;
-    
+
 }
 
 /*
-	The eSTB calls this function to learn the eCM's status 
+	The eSTB calls this function to learn the eCM's status
 	// with regard to DSG operation. The possible return values are:
 
 	0 =  function failure
@@ -1223,7 +1206,7 @@ int DsgStatus( void )
 #else
     DsgConfig[0] = ++TransId;
 #endif
-    DsgConfig[1] = kDsgStatus;						
+    DsgConfig[1] = kDsgStatus;
 
 	// Send the message
     ret_val = EstbToEcmSocketSendRx( 64, DsgConfig, true, false);
@@ -1239,11 +1222,11 @@ int DsgStatus( void )
         iteration--;
     }
     }
-#endif      
+#endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return ret_val;
-    
+
 }
 
 /*
@@ -1253,7 +1236,7 @@ int DsgStatus( void )
  *      enum DsgDocsisStatus values per RFC2670
  *      kFuncFail = function failure
  *
-	// These are the "CM initialization state values" defined by the 
+	// These are the "CM initialization state values" defined by the
 	// CM status MIB.  They are based on the "CM Initialization Overview"
 	// flowchart in the DOCSIS RFI spec (see Figure 9-1 in RFIv1.1-I03-991105).
 	// KO: changed the state names to match docsIfCmStatusValue names in
@@ -1262,18 +1245,18 @@ int DsgStatus( void )
 	{
 		kOther = 1,
 		kNotReady = 2,
-		kNotSynchronized = 3, 
-		kPhySynchronized = 4, 
-		kUsParametersAcquired = 5, 
-		kRangingComplete = 6, 
-		kIpComplete = 7,		
-		kTodEstablished = 8, 
-		kSecurityEstablished = 9, 
-		kParamTransferComplete = 10, 
-		kRegistrationComplete = 11, 
+		kNotSynchronized = 3,
+		kPhySynchronized = 4,
+		kUsParametersAcquired = 5,
+		kRangingComplete = 6,
+		kIpComplete = 7,
+		kTodEstablished = 8,
+		kSecurityEstablished = 9,
+		kParamTransferComplete = 10,
+		kRegistrationComplete = 11,
 		kOperational = 12,
-		kAccessDenied = 13        
-	} CmStatusValue; 
+		kAccessDenied = 13
+	} CmStatusValue;
  */
 int DsgDocsisStatus( void )
 {
@@ -1299,7 +1282,7 @@ int DsgDocsisStatus( void )
 #else
     DsgConfig[0] = ++TransId;
 #endif
-    DsgConfig[1] = kDsgDocsisStatus;						
+    DsgConfig[1] = kDsgDocsisStatus;
 
 	// Send the message
     ret_val = EstbToEcmSocketSendRx( 64, DsgConfig, true, false);
@@ -1315,11 +1298,11 @@ int DsgDocsisStatus( void )
         iteration--;
     }
     }
-#endif      
+#endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
 
     return ret_val;
-    
+
 }
 
 /*
@@ -1336,7 +1319,7 @@ int DsgDocsisStatus( void )
  */
 int DsgFreeEthernetPkt( ETHERNET_PACKET* buffer )
 {
-    //DsgPrint("DsgFreeEthernetPkt: DSG Pkt ptr %08lx\n", (uint32)buffer ); 
+    //DsgPrint("DsgFreeEthernetPkt: DSG Pkt ptr %08lx\n", (uint32)buffer );
 
 	// In WrapEthernetPacket ethernet buffer that is received
 	// is wrapped in a newly allocated buffer pEthernetPacketBuffer->pDataBufferHead.
@@ -1389,7 +1372,7 @@ bool DsgSetRIAdr( void )
     DsgConfig[2] = (unsigned char)(ipaddress >> 24);
     DsgConfig[3] = (unsigned char)(ipaddress >> 16);
     DsgConfig[4] = (unsigned char)(ipaddress >> 8);
-    DsgConfig[5] = (unsigned char)(ipaddress);					
+    DsgConfig[5] = (unsigned char)(ipaddress);
 
 	// Send the message
     ret_val = EstbToEcmSocketSendRx( 64, DsgConfig, true, false);
@@ -1405,11 +1388,11 @@ bool DsgSetRIAdr( void )
         iteration--;
     }
     }
-#endif       
+#endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return ret_val;
-    
+
 #else
 
 	return true;
@@ -1417,9 +1400,9 @@ bool DsgSetRIAdr( void )
 }
 
 /*
- *  
  *
- *  
+ *
+ *
  *
  *  This function returns:
  *  kFuncSuccess = success
@@ -1450,7 +1433,7 @@ int DsgGetEcmHeartBeat( uint16 *pHbeatCount )
     else if( (DsgConfig[0] == TransId) )
     {
         // if Ecm running older SW, print warning but return success.
-        printf("\n!!!Warning:Ecm does not support kDsgGetEcmHeartBeat, cannot detect Ecm reset&recovery.\nPlease update Ecm image!!!\n\n"); 
+        printf("\n!!!Warning:Ecm does not support kDsgGetEcmHeartBeat, cannot detect Ecm reset&recovery.\nPlease update Ecm image!!!\n\n");
         ret_val = kFuncSuccess;
     }
 
@@ -1497,7 +1480,7 @@ int DsgReportDsgError( uint8 error_status )
     DsgConfig[0] = ++TransId;
 #endif
     DsgConfig[1] = kDsgReportDsgError;
-    DsgConfig[2] = error_status;   
+    DsgConfig[2] = error_status;
 
     ret_val = EstbToEcmSocketSendRx( 64, DsgConfig, true, false);
 
@@ -1512,7 +1495,7 @@ int DsgReportDsgError( uint8 error_status )
         iteration--;
     }
     }
-#endif  
+#endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
 
     return ret_val;
@@ -1550,7 +1533,7 @@ bool DsgSetEstbPrimaryIpV4Addr( uint32 ipAddr, uint8 *macAddr )
     DsgConfig[4] = (unsigned char)(ipAddr >> 24);
     DsgConfig[5] = (unsigned char)(ipAddr >> 16);
     DsgConfig[6] = (unsigned char)(ipAddr >> 8);
-    DsgConfig[7] = (unsigned char)(ipAddr);					
+    DsgConfig[7] = (unsigned char)(ipAddr);
 
     DsgConfig[8] = *macAddr++;
     DsgConfig[9] = *macAddr++;
@@ -1573,11 +1556,11 @@ bool DsgSetEstbPrimaryIpV4Addr( uint32 ipAddr, uint8 *macAddr )
         iteration--;
     }
     }
-#endif     
+#endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return ret_val;
-    
+
 #else
 
 	return true;
@@ -1635,11 +1618,11 @@ bool DsgSetEstbPrimaryIpV6Addr( uint8 *ipAddr, uint8 *macAddr )
         iteration--;
     }
     }
-#endif     
+#endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return ret_val;
-    
+
 #else
 
 	return true;
@@ -1659,18 +1642,18 @@ bool DsgSetDhcpOption43(void *data, int dataLen)
 		// We think 256 bytes will be enough for the DHCP option 43 suboption buffer
 		// dataLen should be less than 256 bytes.
 		if (dataLen > 256) return false;
-	
+
 		pthread_mutex_lock(&LnxDsgApiMutex);
-	
+
 #if (DSG_RECOVER_SUPPORT)
 		xid = ++TransId;
-	
+
 		while (iteration > 0)
 		{
 #endif
 		//Reset memory.
 		memset( DsgConfig, 0, 256);
-	
+
 #if (DSG_RECOVER_SUPPORT)
 		DsgConfig[0] = xid;
 #else
@@ -1679,13 +1662,13 @@ bool DsgSetDhcpOption43(void *data, int dataLen)
 		DsgConfig[1] = kDsgSetDhcpV4VendorSpecificOption;
 		DsgConfig[2] = (uint8) dataLen; //datalen should be less than 256 bytes
 		DsgConfig[3] = 0;
-	
+
 		// Copy DHCP option 43 suboption values to the TX buffer
 		memcpy(&DsgConfig[4], data, dataLen);
-	
+
 		// Send the message
 		ret_val = EstbToEcmSocketSendRx(dataLen + 4, DsgConfig, true, false);
-	
+
 #if (DSG_RECOVER_SUPPORT)
 		if (ret_val > 0)
 		{
@@ -1697,15 +1680,15 @@ bool DsgSetDhcpOption43(void *data, int dataLen)
 			iteration--;
 		}
 		}
-#endif     
+#endif
 		pthread_mutex_unlock(&LnxDsgApiMutex);
-		
+
 		return ret_val;
 #else
 	return true;
 #endif
 }
-		
+
 bool DsgSetDhcpV6Option17(void *data, int dataLen)
 {
 #if (BCM_DSG_DUAL_PROCESSOR_INTERFACE)
@@ -1718,18 +1701,18 @@ bool DsgSetDhcpV6Option17(void *data, int dataLen)
 	// We think 256 bytes will be enough for the DHCP option 17 suboption buffer
 	// dataLen should be less than 256 bytes.
 	if (dataLen > 256) return false;
-		
+
 	pthread_mutex_lock(&LnxDsgApiMutex);
-		
+
 #if (DSG_RECOVER_SUPPORT)
 	xid = ++TransId;
-		
+
 	while (iteration > 0)
 	{
 #endif
 		//Reset memory.
 		memset( DsgConfig, 0, 256);
-		
+
 #if (DSG_RECOVER_SUPPORT)
 		DsgConfig[0] = xid;
 #else
@@ -1738,13 +1721,13 @@ bool DsgSetDhcpV6Option17(void *data, int dataLen)
 		DsgConfig[1] = kDsgSetDhcpV6VendorSpecificOption;
 		DsgConfig[2] = (uint8) dataLen; //datalen should be less than 256 bytes
 		DsgConfig[3] = 0;
-	
+
 		// Copy DHCP option 17 suboption values to the TX buffer
 		memcpy(&DsgConfig[4], data, dataLen);
-		
+
 		// Send the message
 		ret_val = EstbToEcmSocketSendRx(dataLen + 4, DsgConfig, true, false);
-		
+
 #if (DSG_RECOVER_SUPPORT)
 		if (ret_val > 0)
 		{
@@ -1756,9 +1739,9 @@ bool DsgSetDhcpV6Option17(void *data, int dataLen)
 			iteration--;
 		}
 	}
-#endif     
+#endif
 	pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
 	return ret_val;
 #else
 		return true;
@@ -1813,11 +1796,11 @@ bool DsgSetCCMacAddr (uint8 * macAddr)
         iteration--;
     }
     }
-#endif     
+#endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return ret_val;
-    
+
 #else
 
 	return true;
@@ -1834,10 +1817,10 @@ bool SetEsafeDevStatus( uint8 intImpact, char * intImpactInfo )
 	uint32 iteration = 5;
 	unsigned char xid;
 #endif
-  
+
   infoLen = strlen(intImpactInfo);
   // the MIB object that this is destined for is max 255 bytes, so we will truncate it
-  infoLen &= 0x000000ff; 
+  infoLen &= 0x000000ff;
 
   pthread_mutex_lock(&LnxDsgApiMutex);
 
@@ -1874,11 +1857,11 @@ bool SetEsafeDevStatus( uint8 intImpact, char * intImpactInfo )
         iteration--;
     }
     }
-#endif        
+#endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return retVal;
-    
+
 #else
 
 	return true;
@@ -1969,12 +1952,12 @@ bool SetEsafeProvisioningStatusAndFailure( uint8 progress, uint8 failureFound, u
     *pDsgConfigPtr++ = ++TransId;
 #endif
     *pDsgConfigPtr++ = kEsafeProvisioningStatus;
-    *pDsgConfigPtr++ = progress; 
+    *pDsgConfigPtr++ = progress;
     *pDsgConfigPtr++ = failureFound;
     *pDsgConfigPtr++ = (unsigned char)(eventId >> 24);
     *pDsgConfigPtr++ = (unsigned char)(eventId >> 16);
     *pDsgConfigPtr++ = (unsigned char)(eventId >> 8);
-    *pDsgConfigPtr++ = (unsigned char)(eventId);					
+    *pDsgConfigPtr++ = (unsigned char)(eventId);
 
 	*pDsgConfigPtr++ = provFailureFlowLen;
 	if( provFailureFlowLen && provFailureFlow )
@@ -1998,13 +1981,13 @@ bool SetEsafeProvisioningStatusAndFailure( uint8 progress, uint8 failureFound, u
         iteration--;
     }
     }
-#endif        
+#endif
 
 	free( pDsgConfig );
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return ret_val;
-    
+
 #else
 
 	return true;
@@ -2060,16 +2043,16 @@ bool SetApiVersion(uint32 *pEcmVersion)
         iteration--;
     }
     }
-#endif     
+#endif
 
 	// Now read the return value:
 	memcpy( pEcmVersion, &DsgConfig[8], sizeof(uint32));
 	*pEcmVersion = ntohl(*pEcmVersion);
 
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return ret_val;
-    
+
 #else
 
 	return true;
@@ -2078,7 +2061,7 @@ bool SetApiVersion(uint32 *pEcmVersion)
 
 // Helper Function returns the IP address of the Primary eSTB IP stack
 // for this HalIf and the interface name passed in.
-// 
+//
 // Multiple IP addresses in Linux is not supported at this time.
 //
 // Added this method for PR2256.
@@ -2092,7 +2075,7 @@ bool SetApiVersion(uint32 *pEcmVersion)
 //
 bool GetEstbIpAddress(uint32* pEstbIpAddress)
 {
-	char *interfaceName = EstbPrimaryIpStackName; 
+	char *interfaceName = EstbPrimaryIpStackName;
 
 	if(GetIpStackAddress(pEstbIpAddress, interfaceName) == 0 )
 	{
@@ -2104,7 +2087,7 @@ bool GetEstbIpAddress(uint32* pEstbIpAddress)
 
 // Helper Function returns the MAC address of the Primary eSTB IP stack
 // for this HalIf and the interface name passed in.
-// 
+//
 // Parameters:
 //      pEstbMacAddress - address to copy the MAC address.
 //
@@ -2114,7 +2097,7 @@ bool GetEstbIpAddress(uint32* pEstbIpAddress)
 //
 bool GetEstbMacAddress(uint8* pEstbMacAddress)
 {
-	char *interfaceName = EstbPrimaryIpStackName; 
+	char *interfaceName = EstbPrimaryIpStackName;
 
 	if (GetInterfaceMacAddress(interfaceName, pEstbMacAddress))
 	  return true;
@@ -2127,45 +2110,45 @@ bool GetEstbMacAddress(uint8* pEstbMacAddress)
 /*
  * This Thread will listen on socket (0x4247) for UDP packets
  * to receive eCM status notifications and DCD-MGMT messages
- * and call the appropriate API 
+ * and call the appropriate API
  */
 void EstbDsgRemoteInterfaceHelperThread ( void )
 {
 	struct sockaddr_in sin_ctl;
 	struct sockaddr_in sin_dat;
-	
+
     register int cnt;
 	struct sockaddr_in frominet;
 	socklen_t      inetsize;
 	char              *buf;					/* ptr to dynamic buffer */
 	char              *dsgPacketBuffer;		/* ptr to dynamic buffer */
 	int		buflen  = 1518;					/* length of buffer */
-	
+
 	int sock_ctl, sock_dat, maxfdp1;
 	fd_set rfds;
 	int retcode;
 	int optVal;
 
 	ETHERNET_PACKET *pEthernetPacketBuffer = NULL;
-	
-	#if defined (USE_MULTICAST_SOCKET) 
+
+	#if defined (USE_MULTICAST_SOCKET)
 	// Wait to acquire an IP address to
 	// setup multicast sockets.
 	uint32 ipAddress = 0;
-	while( GetEstbIpAddress(&ipAddress) == 0 )		
-	{		
+	while( GetEstbIpAddress(&ipAddress) == 0 )
+	{
 		// Wait
 		osSleep( 5 );
 	}
 	#endif
-	
+
 	// Create NOTIFICATION Socket
     if ((sock_ctl = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
         printf("EstbDsgRemoteInterfaceHelperThread(): Error creating sock_ctl!\n");
 		goto err_create_sock_ctl;
     }
-	
+
     #if !defined(BCM_DSGCC_ECM_USE_SHARED_MEMORY_IPC)
 	// Create DATA Socket
     if ((sock_dat = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
@@ -2173,36 +2156,36 @@ void EstbDsgRemoteInterfaceHelperThread ( void )
         printf("EstbDsgRemoteInterfaceHelperThread(): Error creating sock_dat!\n");
 		goto err_create_sock_dat;
     }
-		
+
 	// Configure DATA address and port
 	bzero((char*)&sin_dat, sizeof(sin_dat));
-	
+
     sin_dat.sin_family = AF_INET;
 	sin_dat.sin_port = htons(ESTB_DSG_DATA_PORT);
 	sin_dat.sin_addr.s_addr = htonl(kLocalRxIpAddress);
 
     #endif
-    
+
 	// Configure NOTIFICATION address and port
 	bzero((char*)&sin_ctl, sizeof(sin_ctl));
     sin_ctl.sin_family = AF_INET;
 	sin_ctl.sin_port = htons(ESTB_DSG_REQUEST_PORT);
 	sin_ctl.sin_addr.s_addr = htonl(kLocalRxIpAddress);
-    
+
 	// REUSE ADDRESS
     optVal = 1;
 
     if (setsockopt(sock_ctl, SOL_SOCKET, SO_REUSEADDR, (char *) &optVal, sizeof(optVal)) != 0)
 	{
 		printf ("setsockopt SO_REUSEADDR error:  %s \n"
-						, strerror(errno));  
+						, strerror(errno));
 	}
 
     #if !defined(BCM_DSGCC_ECM_USE_SHARED_MEMORY_IPC)
     if (setsockopt(sock_dat, SOL_SOCKET, SO_REUSEADDR, (char *) &optVal, sizeof(optVal)) != 0)
 	{
 		printf ("setsockopt SO_REUSEADDR error:  %s \n"
-						, strerror(errno));  
+						, strerror(errno));
 	}
     #endif
 
@@ -2212,7 +2195,7 @@ void EstbDsgRemoteInterfaceHelperThread ( void )
         printf("EstbDsgRemoteInterfaceHelperThread(): Error binding sock_ctl_in!\n");
 		goto err_bind_sock_ctl;
     }
-	
+
     #if !defined(BCM_DSGCC_ECM_USE_SHARED_MEMORY_IPC)
 	// Bind to the DATA port
     if (bind(sock_dat, (struct sockaddr *)&sin_dat, sizeof(sin_dat)) < 0)
@@ -2221,7 +2204,7 @@ void EstbDsgRemoteInterfaceHelperThread ( void )
 		goto err_bind_sock_dat;
     }
     #endif
-	
+
 	#if (defined (USE_MULTICAST_SOCKET))
 		JoinMulticastSession( sock_ctl );
 	  #if !defined(BCM_DSGCC_ECM_USE_SHARED_MEMORY_IPC)
@@ -2235,7 +2218,7 @@ void EstbDsgRemoteInterfaceHelperThread ( void )
 		printf("Can not allocate buffer %d\n", buflen);
 		goto err_malloc;
 	}
-	
+
 	//Allocate buffer to receive DSG Packet.
     if( (dsgPacketBuffer = (char *)malloc(buflen)) == (char *)NULL)
 	{
@@ -2244,7 +2227,7 @@ void EstbDsgRemoteInterfaceHelperThread ( void )
 	}
 
     printf("Starting eSTB HelperThread. Opening sockets and listening on ports %04x & %04x...\n", ESTB_DSG_DATA_PORT, ESTB_DSG_REQUEST_PORT );
-	
+
 	#if !defined(BCM_DSGCC_ECM_USE_SHARED_MEMORY_IPC)
 	maxfdp1 = ((sock_ctl > sock_dat) ? sock_ctl : sock_dat) + 1;
 	#else
@@ -2257,35 +2240,35 @@ void EstbDsgRemoteInterfaceHelperThread ( void )
 		#if !defined(BCM_DSGCC_ECM_USE_SHARED_MEMORY_IPC)
 		FD_SET(sock_dat, &rfds);
 		#endif
-		
+
 		retcode = select(maxfdp1, &rfds, (fd_set *)0, (fd_set *)0, (struct timeval *)0);
-		
+
 		if (retcode == -1)
 		{
 			printf("select(): %s\n", strerror(errno));
 		}
-		else 
+		else
 		{
 			// Listen for NOTIFICATIONS
 			if(FD_ISSET(sock_ctl, &rfds))
 			{
 				// Configure NOTIFICATION and DATA sockets to receive packets with eCM address.
-				inetsize = sizeof(frominet); 
+				inetsize = sizeof(frominet);
 
 				// recvfrom should not block now
 				cnt = recvfrom(sock_ctl, buf, buflen, 0, (struct sockaddr*)&frominet, &inetsize);
 				if( (cnt > 0) )
 					//&& ( frominet.sin_addr.s_addr == htonl(kRemoteEcmSrcIpAddress)) )
 				{
-					// Pass the notification to DSG-CC. 
+					// Pass the notification to DSG-CC.
 					// printf("NOTIFICATION from [ %s ]: with len = %d on port = %02x \n", inet_ntoa(frominet.sin_addr), cnt, sin_ctl.sin_port);
 					if(displayMode & kLevel4)
 						LogRawBuffer ("Notification: RCVD: ", (uint8*)buf, cnt, 0);
-					
-					// Process the request. Contents of "buf" will be modified when ProcessDsgClientPacketFromHalif() 
-					// returns. ProcessDsgClientPacketFromHalif will read the request and place the response 
+
+					// Process the request. Contents of "buf" will be modified when ProcessDsgClientPacketFromHalif()
+					// returns. ProcessDsgClientPacketFromHalif will read the request and place the response
 					// in the same buffer
-					ProcessEcmNotifications( buf );										
+					ProcessEcmNotifications( buf );
 				}
 			}
 
@@ -2293,7 +2276,7 @@ void EstbDsgRemoteInterfaceHelperThread ( void )
 			// Listen for DATA
 			if(FD_ISSET(sock_dat, &rfds))
 			{
-				inetsize = sizeof(frominet); 
+				inetsize = sizeof(frominet);
 				// recvfrom shoud not block now
 				cnt = recvfrom(sock_dat, dsgPacketBuffer, buflen, 0, (struct sockaddr*)&frominet, &inetsize);
 				if( (cnt > 0) )
@@ -2310,16 +2293,16 @@ void EstbDsgRemoteInterfaceHelperThread ( void )
 							{
 								if(displayMode & kSebLevel2)
 									LogRawBuffer ("SEB TEST: DATA PKT:", pEthernetPacketBuffer->pDataBufferHead->pvStart, pEthernetPacketBuffer->pDataBufferHead->uiLen, 0);
-								// Pass the DATA to DSG-CC. 
+								// Pass the DATA to DSG-CC.
 								// DsgTunnelPkt is a VENDOR method.
-								// eSTB is RESPONSIBLE for releasing the buffers 
+								// eSTB is RESPONSIBLE for releasing the buffers
 								// by calling DsgFreeEthernetPkt()
 								if( DsgTunnelPkt( pEthernetPacketBuffer ) == false)
 								{
 									// eSTB did NOT consume the buffer.
 									// We have to release the buffers NOW.
-									DsgFreeEthernetPkt(pEthernetPacketBuffer);			
-								}							
+									DsgFreeEthernetPkt(pEthernetPacketBuffer);
+								}
 							}
 							#if (BFC_INCLUDE_DAVIC_API_SUPPORT)
 							else if(oobMode == kOobModeDavic )
@@ -2328,7 +2311,7 @@ void EstbDsgRemoteInterfaceHelperThread ( void )
 								{
 									// eSTB did NOT consume the buffer.
 									// We have to release the buffers NOW.
-									DsgFreeEthernetPkt(pEthernetPacketBuffer);			
+									DsgFreeEthernetPkt(pEthernetPacketBuffer);
 								}
 							}
 							#endif
@@ -2339,10 +2322,10 @@ void EstbDsgRemoteInterfaceHelperThread ( void )
 				//	printf("DATA PKT from [ %s ]:ERROR- Dropping packet. recvfrom returns %d %s\n", inet_ntoa(frominet.sin_addr), cnt, strerror(errno));
 			}
 			#endif
-		}	
+		}
 	}
-	printf("DsgRemoteInterfaceHelperThread fell through!\n");				
-	
+	printf("DsgRemoteInterfaceHelperThread fell through!\n");
+
     free(buf);
     free(dsgPacketBuffer);
 
@@ -2368,8 +2351,8 @@ err_create_sock_ctl:
 #endif
 
 /*******************************************************************************
-******************* DSG PACKET HELPERS ***************************************** 
-******************************************************************************** 
+******************* DSG PACKET HELPERS *****************************************
+********************************************************************************
 ********************************************************************************
 *    Ethernet packet structure.
 *
@@ -2389,7 +2372,7 @@ typedef struct _ETHERNET_PACKET_
 }    ETHERNET_PACKET
 *******************************************************************************/
 ETHERNET_PACKET* WrapEthernetPacket( char *buf, uint32 length )
-{          
+{
 	DATA_BUFFER		*pDataBuffer = NULL;
 	ETHERNET_PACKET *pEthernetPacketBuffer = NULL;
 
@@ -2416,8 +2399,8 @@ ETHERNET_PACKET* WrapEthernetPacket( char *buf, uint32 length )
 	}
 
 	// reset buffer
-	memset(pDataBuffer, 0, sizeof(pDataBuffer));
-	memset(pEthernetPacketBuffer, 0, sizeof(pEthernetPacketBuffer));
+	memset(pDataBuffer, 0, sizeof(*pDataBuffer));
+	memset(pEthernetPacketBuffer, 0, sizeof(*pEthernetPacketBuffer));
 
 	// Set DATA_BUFFER struct
 	pDataBuffer->pvStart = (PVOID)buf;
@@ -2444,14 +2427,14 @@ void ProcessEcmNotifications(char * buf)
 			DsgScanSuccess();
 		}
 		break;
-		
+
 	case kEventDsgFullScanFail:
 		{
 			// Notify eSTB.
 			DsgFullScanFail();
 		}
 		break;
-		
+
 	case kEventDsgRxDCD:
 		{
 			int dcd_len;
@@ -2460,23 +2443,23 @@ void ProcessEcmNotifications(char * buf)
 
 			//skip the 1st byte event id
 			pbuf++;
-			 
+
 			// get the packet length
 			dcd_len  = ((int)*pbuf++) << 24;
 			dcd_len |= ((int)*pbuf++) << 16;
 			dcd_len |= ((int)*pbuf++) << 8;
 			dcd_len |= ((int)*pbuf++) << 0;
-			
+
 			//get the DCD payload start ptr
 			pDcdStart = pbuf;
-			
+
 			// eSTB will copy the buffer and return
 			// in DsgRxDCD().
 			// Notify eSTB.
 			DsgRxDCD( dcd_len, pDcdStart );
 		}
 		break;
-		
+
 	case kEventDsgUpstreamChange:
 		{
 			DsgEcmUsSettings dsgEcmUsSettings;
@@ -2488,21 +2471,21 @@ void ProcessEcmNotifications(char * buf)
 			printf("kEventDsgUpstreamChange: us_state %d, ip_mode %d\n", dsgEcmUsSettings.upstreamState, dsgEcmUsSettings.ipMode);
 		}
 		break;
-		
+
 	case kEventDsgUcid:
 		{
 			// Notify eSTB.
 			DsgUcid( (uint8) buf[1]  );
 		}
 		break;
-		
+
 	case kEventDsgTimerEvent:
 		{
 			// Notify eSTB.
 			DsgTimerEvent( (uint8) buf[1]);
 		}
 		break;
-		
+
 	case kEventDsgDccInitType:
 		{
 			// Notify eSTB.
@@ -2520,14 +2503,14 @@ void ProcessEcmNotifications(char * buf)
 
 #if (BCM_DSG_DUAL_PROCESSOR_INTERFACE)
 	// We received notification that the Docsis app. is resetting.
-	// We'll bring down the DSG interface (USB, ETH or PCI) so that 
+	// We'll bring down the DSG interface (USB, ETH or PCI) so that
 	// there aren't any issues created by someone accessing the interface
 	// during a reset.
 	// The DSG-CC's keepalive functionality will bring up the interface
 	// once the docsis app. comes out of reset.
 	case kEventDocsisIsResetting:
 		{
-			DsgEcmResetIndication( (uint8) buf[1]);		
+			DsgEcmResetIndication( (uint8) buf[1]);
 		}
 		break;
 #endif
@@ -2539,16 +2522,16 @@ void ProcessEcmNotifications(char * buf)
 			char * pOptionStart;
 			char * pbuf = buf;
             unsigned char optionlen;
-			
+
 			//skip the 1st byte event id
 			pbuf++;
-			
+
 			// get the ipaddress in. The ipaddr will be in the host byte order
 			ipaddr  = ((unsigned char)*pbuf++) << 24;
 			ipaddr |= ((unsigned char)*pbuf++) << 16;
 			ipaddr |= ((unsigned char)*pbuf++) << 8;
 			ipaddr |= ((unsigned char)*pbuf++) << 0;
-			
+
             // get the dhcp repluy option length to follow
             optionlen = (unsigned char)*pbuf++;
 
@@ -2566,19 +2549,19 @@ void ProcessEcmNotifications(char * buf)
 			int data_len;
 			unsigned char *pDataStart;
 			unsigned char *pbuf = (unsigned char *)buf;
-			
+
 			//skip the 1st byte event id
 			pbuf++;
-			
+
 			// get the packet length
 			data_len  = ((int)*pbuf++) << 24;
 			data_len |= ((int)*pbuf++) << 16;
 			data_len |= ((int)*pbuf++) << 8;
 			data_len |= ((int)*pbuf++) << 0;
-			
+
 			//get the data payload start ptr
 			pDataStart = pbuf;
-			
+
 			// Notify CableCard Driver.
 			BcmSendDsDataToCableCard( data_len, pDataStart );
 		}
@@ -2592,7 +2575,7 @@ void ProcessEcmNotifications(char * buf)
 		}
 		break;
 #endif
-     
+
 #if (BFC_INCLUDE_DAVIC_API_SUPPORT)
 	case kEventDavicNotification:
 		{
@@ -2601,7 +2584,7 @@ void ProcessEcmNotifications(char * buf)
 		}
 		break;
 #endif
- 
+
 	case kEventEcmHeartBeat:
 		{
 			static uint16 lastHeartBeatCount = 0;
@@ -2627,7 +2610,7 @@ void ProcessEcmNotifications(char * buf)
 
 			// update Count and check for roll over. Reserved 0 for detecting roll over reset
 			lastHeartBeatCount = ecmHeartBeatCount;
-			if( lastHeartBeatCount == 0xffff )   
+			if( lastHeartBeatCount == 0xffff )
 				lastHeartBeatCount = 1;
 		}
 		break;
@@ -2638,7 +2621,7 @@ void ProcessEcmNotifications(char * buf)
 			char *pbuf = (char *)buf;
 
 			//skip the 1st~5th bytes, which are event id and packet length
-			pbuf+=5;			 
+			pbuf+=5;
 
 			memcpy((uint8*)&eventCode, pbuf, 4);
 			eventCode = ntohl(eventCode);
@@ -2649,9 +2632,9 @@ void ProcessEcmNotifications(char * buf)
 			DsgDocsisEvent (eventCode, pbuf);
 		}
 		break;
-  
+
 	case kEventDsgEcmMacReinit:
-		{			
+		{
 			DsgEcmMacReinitEvent();
 		}
 		break;
@@ -2675,7 +2658,7 @@ SetupRemoteInterfaceReturnCodes SetupRemoteInterface(char *pIpcInterfaceName)
 	{
 		sock_ctl_out = 0;
 		sock_ctl_in = 0;
-			
+
 		if( pIpcInterfaceName != NULL )
 		{
 			printf("SetupRemoteInterface() passed us eCM interface name %s\n", pIpcInterfaceName);
@@ -2684,7 +2667,7 @@ SetupRemoteInterfaceReturnCodes SetupRemoteInterface(char *pIpcInterfaceName)
 		}
 		else
 		{
-			printf("SetupRemoteInterface() did not specify the eCM interface name. Using self-detect... \n");			
+			printf("SetupRemoteInterface() did not specify the eCM interface name. Using self-detect... \n");
 
 			memset(ecmInterfaceName, 0, IPC_INTERFACE_NAME_MAX_LEN);
 			if( FindEcmInterface(ecmInterfaceName) )
@@ -2699,15 +2682,15 @@ SetupRemoteInterfaceReturnCodes SetupRemoteInterface(char *pIpcInterfaceName)
 
 		// Remove ":" from EstbPrimaryIpStackName.
 		pStr = strstr(EstbPrimaryIpStackName, ":");
-		if(pStr)		
+		if(pStr)
 			*pStr = 0;
-		
+
 		printf("EstbPrimaryIpStackName is set to %s \n", EstbPrimaryIpStackName);
 
 		// Create CONTROL TX Socket
 		if ((sock_ctl_out = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
 		{
-			printf("SetupRemoteInterface(): Error creating sock_ctl_out!\n");			
+			printf("SetupRemoteInterface(): Error creating sock_ctl_out!\n");
 			return kRIsetupTxSockFailed;
 		}
 
@@ -2718,7 +2701,7 @@ SetupRemoteInterfaceReturnCodes SetupRemoteInterface(char *pIpcInterfaceName)
 		sinme.sin_addr.s_addr = htonl(kLocalRxIpAddress);
 
 		// Bind
-		if (bind(sock_ctl_out, (struct sockaddr *)&sinme, sizeof(sinme)) < 0) 
+		if (bind(sock_ctl_out, (struct sockaddr *)&sinme, sizeof(sinme)) < 0)
 		{
 			printf("SetupRemoteInterface: bind failure! %s\n", strerror(errno));
 			close(sock_ctl_out);
@@ -2735,8 +2718,8 @@ SetupRemoteInterfaceReturnCodes SetupRemoteInterface(char *pIpcInterfaceName)
 		// Create socket
 		if ((sock_ctl_in = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
 		{
-			printf("SetupRemoteInterface: socket failure! %s\n", strerror(errno));			
-			close(sock_ctl_out);			
+			printf("SetupRemoteInterface: socket failure! %s\n", strerror(errno));
+			close(sock_ctl_out);
 			return kRIsetupRxSockFailed;
 		}
 
@@ -2744,21 +2727,21 @@ SetupRemoteInterfaceReturnCodes SetupRemoteInterface(char *pIpcInterfaceName)
 		optVal = 1;
 		if (setsockopt(sock_ctl_in, SOL_SOCKET, SO_REUSEADDR, (char *) &optVal, sizeof(optVal)) != 0)
 		{
-			printf ("setsockopt SO_REUSEADDR error:  %s \n", strerror(errno));  
+			printf ("setsockopt SO_REUSEADDR error:  %s \n", strerror(errno));
 		}
 
 		// Bind
-		if (bind(sock_ctl_in, (struct sockaddr *)&sinme, sizeof(sinme)) < 0) 
+		if (bind(sock_ctl_in, (struct sockaddr *)&sinme, sizeof(sinme)) < 0)
 		{
 			printf("SetupRemoteInterface: bind failure! %s\n", strerror(errno));
 			close(sock_ctl_in);
 			close(sock_ctl_out);
 			return kRIsetupRxSockBindFailed;
 		}
-  
+
 		socketInitComplete = true;
 	}
- 
+
 	ConfigureEcmInterface();
 
 	#if ( kDefaultValue_TaggingEnabled )
@@ -2767,11 +2750,11 @@ SetupRemoteInterfaceReturnCodes SetupRemoteInterface(char *pIpcInterfaceName)
 
 	unsigned int count = 0;
     // Probe interface
-    while( SetApiVersion(&ecmApiVersion) == kFuncFail )        
+    while( SetApiVersion(&ecmApiVersion) == kFuncFail )
 	{
 		// timeout is eCmResponseTimeout
 		printf("tagging[%s] SetupRemoteInterface: LINK IS NOT UP YET %s!\n", (taggingEnabled?"on":"off"), strerror(errno));
-  
+
 		#if ( kDefaultValue_TaggingEnabled )
 		// If supported toggle tagging.
 		taggingEnabled = !taggingEnabled;
@@ -2785,7 +2768,7 @@ SetupRemoteInterfaceReturnCodes SetupRemoteInterface(char *pIpcInterfaceName)
 			return kRIsetupEcmNotResponding;
 		}
 	}
-	
+
 	printf("SetupRemoteInterface: LINK IS UP !\n");
 
 	// Now send the API version
@@ -2814,29 +2797,29 @@ bool JoinMulticastSession( int socketDescriptor )
 #if defined (USE_MULTICAST_SOCKET)
 	uint32 ipAddress = htonl( INADDR_ANY );
 
-	/* fill in the argument structure to join the multicast group */ 
-	/* initialize the multicast address to join */ 
-	struct ip_mreq      ipMreq; 
-	ipMreq.imr_multiaddr.s_addr = htonl(kLocalRxIpAddress); 
+	/* fill in the argument structure to join the multicast group */
+	/* initialize the multicast address to join */
+	struct ip_mreq      ipMreq;
+	ipMreq.imr_multiaddr.s_addr = htonl(kLocalRxIpAddress);
 
-	// Set unicast interface addr from which to receive the multicast packets 
-	if( GetEstbIpAddress(&ipAddress) == 0 )		
-	{		
+	// Set unicast interface addr from which to receive the multicast packets
+	if( GetEstbIpAddress(&ipAddress) == 0 )
+	{
 		return false;
 	}
 
-	ipMreq.imr_interface.s_addr = ipAddress; 
+	ipMreq.imr_interface.s_addr = ipAddress;
 
-	/* set the socket option to join the MULTICAST group */ 
+	/* set the socket option to join the MULTICAST group */
 	printf(" Joining multicast session to listen to eCM responses !\n");
-	if (setsockopt (socketDescriptor, IPPROTO_IP, IP_ADD_MEMBERSHIP,  
-					(char *)&ipMreq,  
-					sizeof (ipMreq)) < 0) 
-	{  
+	if (setsockopt (socketDescriptor, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+					(char *)&ipMreq,
+					sizeof (ipMreq)) < 0)
+	{
 		printf ("setsockopt IP_ADD_MEMBERSHIP error:  %s %08lx %08lx\n"
-				, strerror(errno), (uint32)ipMreq.imr_multiaddr.s_addr, (uint32)ipMreq.imr_interface.s_addr);  
-		return false;     
-	}	
+				, strerror(errno), (uint32)ipMreq.imr_multiaddr.s_addr, (uint32)ipMreq.imr_interface.s_addr);
+		return false;
+	}
 
 	// Turn loopback OFF.
 	{
@@ -2844,7 +2827,7 @@ bool JoinMulticastSession( int socketDescriptor )
 		if( setsockopt(socketDescriptor, IPPROTO_IP, IP_MULTICAST_LOOP, &loop, sizeof(loop)) < 0 )
 		{
 			printf ("setsockopt IP_MULTICAST_LOOP error:  %s \n"
-					, strerror(errno));  
+					, strerror(errno));
 			return false;
 		}
 	}
@@ -2870,7 +2853,7 @@ void ConfigureEcmInterface(void)
 	CheckApiVersion();
 
     printf("\nConfig Comm: eSTB <-- PRIVATE_NETWORK --> eCM:  EstbPrimaryIpStackName: %s\n", EstbPrimaryIpStackName);
-    printf("-->|eSTB Interface Ip=%2d.%2d.%2d.%2d\n", 
+    printf("-->|eSTB Interface Ip=%2d.%2d.%2d.%2d\n",
             (unsigned char)(kLocalRxIpAddress>>24), (unsigned char)(kLocalRxIpAddress>>16), (unsigned char)(kLocalRxIpAddress>>8), (unsigned char)(kLocalRxIpAddress) );
     printf("-->|eCM Mac=%02x.%02x.%02x.%02x.%02x.%02x Ip=%2d.%2d.%2d.%2d\n\n", macAddr[0], macAddr[1], macAddr[2], macAddr[3], macAddr[4], macAddr[5],
             (unsigned char)(kRemoteEcmIpAddress>>24), (unsigned char)(kRemoteEcmIpAddress>>16), (unsigned char)(kRemoteEcmIpAddress>>8), (unsigned char)(kRemoteEcmIpAddress) );
@@ -2884,14 +2867,14 @@ void SetMulticastInterface(void)
 
 	// Get IP address of the interface used to
 	// communicate with eCM.
-	GetEstbIpAddress(&ipAddress);				
+	GetEstbIpAddress(&ipAddress);
 
 	// Set default interface for out-going multicast IP datagrams.
-	mcastOutIfAddress.s_addr = ipAddress; 
-	
+	mcastOutIfAddress.s_addr = ipAddress;
+
 	if( setsockopt(sock_ctl_out, IPPROTO_IP, IP_MULTICAST_IF, &mcastOutIfAddress, sizeof(mcastOutIfAddress)) < 0 )
-	{  
-		printf ("setsockopt IP_MULTICAST_IF error:  %s %08lx\n", strerror(errno), (uint32)mcastOutIfAddress.s_addr);    
+	{
+		printf ("setsockopt IP_MULTICAST_IF error:  %s %08lx\n", strerror(errno), (uint32)mcastOutIfAddress.s_addr);
 	}
 }
 
@@ -2948,8 +2931,8 @@ void PrintNewEstbPrimaryIpAddress( void )
 
 #if 0
         // SWCMSTB-1508
-        // The system calls below cause a crash with the latest toolchain, so 
-        // don't do this. Besides, it turns out that we don't need this if the 
+        // The system calls below cause a crash with the latest toolchain, so
+        // don't do this. Besides, it turns out that we don't need this if the
         // default route is set up properly.
 
             // Maintain 192.168.100.x comm for host SNMP use all the time.
@@ -3018,10 +3001,10 @@ int DsgStartProxyDhcpRequest( unsigned char opt_len, unsigned char *mac, unsigne
 
     *(pDsgConfig+12) = opt_len;
 	memcpy( (pDsgConfig+13), opt_data, opt_len );
-    
+
 	// Send the data
     ret_val = EstbToEcmSocketSendRx( total_len, pDsgConfig, true, false);
-	
+
     free(pDsgConfig);
     pthread_mutex_unlock(&LnxDsgApiMutex);
 
@@ -3051,9 +3034,9 @@ int DsgShutDownProxyIpuStack( void )
 
 	// Send the message
     ret_val = EstbToEcmSocketSendRx( 68, DsgConfig, true, false);
-    
+
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return ret_val;
 
 }
@@ -3089,13 +3072,13 @@ int DsgSendCableCardIpUsData( unsigned char *pData, unsigned short len )
 
 	// copy packet
 	memcpy( pDsgConfig+4, pData, len );
-    
+
 	// Send the data
     ret_val = EstbToEcmSocketSendRx( total_len, pDsgConfig, true, false);
-	
+
     free(pDsgConfig);
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return ret_val;
 
 }
@@ -3199,7 +3182,7 @@ STATUS swdl_tudp_tx( int tpkt_size, unsigned char *pBuf, unsigned short port)
 	bzero((char*)&sin_dst, sizeof(sin_dst));
     sin_dst.sin_family = AF_INET;
     sin_dst.sin_port = htons(port);
-	sin_dst.sin_addr.s_addr = htonl(kRemoteEcmIpAddress); 
+	sin_dst.sin_addr.s_addr = htonl(kRemoteEcmIpAddress);
 
 	// Use CONTROL TX Socket
     cnt=sendto(sock_ctl_out, pBuf, tpkt_size, 0, (struct sockaddr*)&sin_dst, sizeof(sin_dst));
@@ -3231,19 +3214,19 @@ void FlushRxSocketBuffer(void)
 #if defined (COMMON_DOWNLOAD_SUPPORT)
 /*
  * CommonDownloadProcessEstbRequest
- *  
+ *
  *	apiBuffer - pointer to the buffer
  *	apiLen	- length of the buffer
- *	apiType	- 
+ *	apiType	-
  *
- * This function returns 
+ * This function returns
  * true == success;
- * false == failed. 
- *  
+ * false == failed.
+ *
  */
 int CommonDownloadProcessEstbRequest(uint8 apiType, uint32 apiLen, uint8* apiBuffer, CommonDownloadResponseMsg* pCommonDownloadResponseMsg)
 {
-	unsigned char *DsgConfig; 
+	unsigned char *DsgConfig;
 	unsigned int bufferLen;
 	int ret_val;
 	unsigned char* pResponseBuf = NULL;
@@ -3279,9 +3262,9 @@ int CommonDownloadProcessEstbRequest(uint8 apiType, uint32 apiLen, uint8* apiBuf
     DsgConfig[1] = kCommonDloadProcessEstbReq;
     DsgConfig[2] = apiType;
 
-    DsgConfig[4] = (unsigned char)(apiLen >> 8);    
+    DsgConfig[4] = (unsigned char)(apiLen >> 8);
     DsgConfig[5] = (unsigned char)apiLen;
-    
+
 	// secure buffer
 	memcpy( &DsgConfig[8], apiBuffer, apiLen );
 
@@ -3296,17 +3279,17 @@ int CommonDownloadProcessEstbRequest(uint8 apiType, uint32 apiLen, uint8* apiBuf
 
 	return pCommonDownloadResponseMsg->returnCode;
 }
-   
+
 
 void CommonDownloadAuthenticateOrUpgradeFileX( uint8* filePathOrBuffer,  uint32 filePathOrBufferLen, uint32 tftpServerIpAddress, uint8 fileType, uint8 flags, CommonDownloadResponseMsg *responseMsg )
 {
-	unsigned char *DsgConfig; 
+	unsigned char *DsgConfig;
 	unsigned int bufferLen;
 	int ret_val;
 
     pthread_mutex_lock(&LnxDsgApiMutex);
 
-	// 2 bytes message header + 1 byte file type + 1 byte flags + 4 bytes file name length + 
+	// 2 bytes message header + 1 byte file type + 1 byte flags + 4 bytes file name length +
 	// 4 bytes tftp ip address = 12 bytes total
 	bufferLen = 12 + filePathOrBufferLen;
 
@@ -3314,7 +3297,7 @@ void CommonDownloadAuthenticateOrUpgradeFileX( uint8* filePathOrBuffer,  uint32 
     if (bufferLen < kEcmReplyPktSize)
         bufferLen = kEcmReplyPktSize;
 
-	//Allocate buffer 
+	//Allocate buffer
     if( (DsgConfig = (unsigned char *)malloc(bufferLen)) == NULL)
 	{
 		printf("Can not allocate buffer %d\n", bufferLen);
@@ -3324,7 +3307,7 @@ void CommonDownloadAuthenticateOrUpgradeFileX( uint8* filePathOrBuffer,  uint32 
 
     //Reset buffer.
     memset( DsgConfig, 0, bufferLen);
-     
+
     DsgConfig[0] = ++TransId;
     DsgConfig[1] = kCommonDloadAuthenticateOrUpgrade;
 	DsgConfig[2] = fileType;
@@ -3358,12 +3341,12 @@ void CommonDownloadAuthenticateOrUpgradeFileX( uint8* filePathOrBuffer,  uint32 
 		LogRawBuffer ("CommonDownloadAuthenticateOrUpgradeFileX:: ", DsgConfig, bufferLen, 0);
 
 	/*
-	+---------+---------+--------+---------+--------------+---------------+ 
-	| TransId | Command |    unused        |  ReturnCode  |  Return Value |       
+	+---------+---------+--------+---------+--------------+---------------+
+	| TransId | Command |    unused        |  ReturnCode  |  Return Value |
 	+---------+---------+--------+---------+--------------+---------------+
 	 1 byte   1 byte      1 byte    1byte    4 bytes              4 bytes
 	 */
-  	
+
 	//#warning "!!!!!! UNFINISHED  - retVal returns DsgConfig;2 may be set to 0 for success !!!!!!!"
 
 	if( ret_val == kFuncSuccess)
@@ -3376,7 +3359,7 @@ void CommonDownloadAuthenticateOrUpgradeFileX( uint8* filePathOrBuffer,  uint32 
 
 void CommonDownloadAuthenticateOrUpgradeFile( uint8* filePathOrBuffer,  uint32 filePathOrBufferLen, uint32 ipAddrType, uint8 *pServerIpAddress, uint8 fileType, uint8 flags, CommonDownloadResponseMsg *responseMsg )
 {
-	unsigned char *DsgConfig; 
+	unsigned char *DsgConfig;
 	unsigned int bufferLen;
 	int ret_val;
 
@@ -3396,17 +3379,17 @@ void CommonDownloadAuthenticateOrUpgradeFile( uint8* filePathOrBuffer,  uint32 f
 			uint32 ipAddress = 0;
 			memcpy(&ipAddress, pServerIpAddress, 4);
 
-			memset(responseMsg, 0, sizeof(responseMsg));
+			memset(responseMsg, 0, sizeof(*responseMsg));
 			CommonDownloadAuthenticateOrUpgradeFileX( filePathOrBuffer, filePathOrBufferLen, ipAddress, fileType, flags, responseMsg );
 			return;
 		}
 	}
 
-	memset(responseMsg, 0, sizeof(responseMsg));
+	memset(responseMsg, 0, sizeof(*responseMsg));
 
     pthread_mutex_lock(&LnxDsgApiMutex);
 
-	// 2 bytes message header + 1 byte file type + 1 byte flags + 4 bytes server address type + 
+	// 2 bytes message header + 1 byte file type + 1 byte flags + 4 bytes server address type +
 	// 16 bytes tftp ip address + 4 bytes file name length = 28 bytes total
 	bufferLen = 28 + filePathOrBufferLen;
 
@@ -3414,7 +3397,7 @@ void CommonDownloadAuthenticateOrUpgradeFile( uint8* filePathOrBuffer,  uint32 f
     if (bufferLen < kEcmReplyPktSize)
         bufferLen = kEcmReplyPktSize;
 
-	//Allocate buffer 
+	//Allocate buffer
     if( (DsgConfig = (unsigned char *)malloc(bufferLen)) == NULL)
 	{
 		printf("Can not allocate buffer %d\n", bufferLen);
@@ -3466,12 +3449,12 @@ void CommonDownloadAuthenticateOrUpgradeFile( uint8* filePathOrBuffer,  uint32 f
     ret_val = EstbToEcmSocketSendRx( bufferLen, DsgConfig, true, false);
 
 	/*
-	+---------+---------+--------+---------+--------------+---------------+ 
-	| TransId | Command |    unused        |  ReturnCode  |  Return Value |       
+	+---------+---------+--------+---------+--------------+---------------+
+	| TransId | Command |    unused        |  ReturnCode  |  Return Value |
 	+---------+---------+--------+---------+--------------+---------------+
 	 1 byte   1 byte      1 byte    1byte    4 bytes              4 bytes
 	 */
-  	
+
 	//#warning "!!!!!! UNFINISHED  - retVal returns DsgConfig;2 may be set to 0 for success !!!!!!!"
 
 	if(displayMode & kCdl)
@@ -3480,7 +3463,7 @@ void CommonDownloadAuthenticateOrUpgradeFile( uint8* filePathOrBuffer,  uint32 f
 	if( ret_val == kFuncSuccess)
 		// Now read the return code and the info and return to the caller.
 		CommonDownloadResponseMessage(&DsgConfig[4], responseMsg);
-  
+
 	free(DsgConfig);
     pthread_mutex_unlock(&LnxDsgApiMutex);
 }
@@ -3488,16 +3471,16 @@ void CommonDownloadAuthenticateOrUpgradeFile( uint8* filePathOrBuffer,  uint32 f
 /*
  * This function send the SHA-digest of the code image
  * to the eCM for authentication.
- *  
+ *
  *	codeImageShaDigest - pointer to the codeImageShaDigest buffer
- * This function returns 
+ * This function returns
  * true == success; codeImageShaDigest validated
  * false == failed. codeImageShaDigest is invalid.
- *  
+ *
  */
 int CommonDownloadVerifyCodeImageShaDigest( uint8* codeImageShaDigest, CommonDownloadResponseMsg* pCommonDownloadResponseMsg)
 {
-	unsigned char *DsgConfig; 
+	unsigned char *DsgConfig;
 	unsigned int bufferLen;
 	int ret_val;
 	unsigned char* pResponseBuf = NULL;
@@ -3507,10 +3490,10 @@ int CommonDownloadVerifyCodeImageShaDigest( uint8* codeImageShaDigest, CommonDow
 	/*
 	Diagram of the Header:
 														  20 bytes
-	+---------+----------------------+---------+ +-------------------+--------------+ 
-	| TransId | Command |            |         | |  SHA DIGEST 
-	+---------+----------------------+---------+ +-------------------+--------------+ 
-	 Byte 0		Byte 1    Byte 2       Byte 3      Byte 4   Byte 5 ...........Byte 23                    
+	+---------+----------------------+---------+ +-------------------+--------------+
+	| TransId | Command |            |         | |  SHA DIGEST
+	+---------+----------------------+---------+ +-------------------+--------------+
+	 Byte 0		Byte 1    Byte 2       Byte 3      Byte 4   Byte 5 ...........Byte 23
 	*/
 
 	bufferLen = 4 + 20; // SHA-digest is 20 bytes.
@@ -3540,7 +3523,7 @@ int CommonDownloadVerifyCodeImageShaDigest( uint8* codeImageShaDigest, CommonDow
 
     DsgConfig[0] = ++TransId;
     DsgConfig[1] = kCommonDloadVerifyImageShaDigest;
-    
+
 	// secure buffer
 	memcpy( &DsgConfig[4], codeImageShaDigest, 20 );
 
@@ -3558,36 +3541,36 @@ int CommonDownloadVerifyCodeImageShaDigest( uint8* codeImageShaDigest, CommonDow
 #endif
 
 #if (BFC_INCLUDE_DAVIC_API_SUPPORT)
-  
+
 /*
  * This Thread will listen on socket (0x8889) for UDP packets
  * to receive eCM status notifications and DCD-MGMT messages
- * and call the appropriate API 
+ * and call the appropriate API
  */
 void EstbDsgRemoteInterfaceDataHelperThread ( void )
 {
     #if !defined(BCM_DSGCC_ECM_USE_SHARED_MEMORY_IPC)
 	struct sockaddr_in sin_dat;
-	
+
     register int cnt;
 	struct sockaddr_in frominet;
 	socklen_t      inetsize;
 	char              *dsgPacketBuffer;		/* ptr to dynamic buffer */
 	int		buflen  = 1518;					/* length of buffer */
-	
+
 	int sock_dat, maxfdp1;
 	fd_set rfds;
 	int retcode;
 	int optVal;
 
 	ETHERNET_PACKET *pEthernetPacketBuffer = NULL;
-	
-	#if defined (USE_MULTICAST_SOCKET) 
+
+	#if defined (USE_MULTICAST_SOCKET)
 	// Wait to acquire an IP address to
 	// setup multicast sockets.
 	uint32 ipAddress = 0;
-	while( GetEstbIpAddress(&ipAddress) == 0 )		
-	{		
+	while( GetEstbIpAddress(&ipAddress) == 0 )
+	{
 		// Wait
 		osSleep( 5 );
 	}
@@ -3599,7 +3582,7 @@ void EstbDsgRemoteInterfaceDataHelperThread ( void )
         printf("EstbDsgRemoteInterfaceDataHelperThread(): Error creating sock_dat!\n");
 		goto err_create_sock_dat;
     }
-		
+
 	int rc, sizedattx, sizedatrx, szlen = sizeof(int);
     rc = getsockopt(sock_dat, SOL_SOCKET, SO_SNDBUF, (void *)&sizedattx, (socklen_t*)&szlen);
 	if (rc == 0) printf("%s(%d): sock_dat %d has SO_SNDBUF size=%d (0x%x)\n", __FUNCTION__, __LINE__, sock_dat, sizedattx, sizedattx);
@@ -3608,15 +3591,15 @@ void EstbDsgRemoteInterfaceDataHelperThread ( void )
 
 	// Configure DATA address and port
 	bzero((char*)&sin_dat, sizeof(sin_dat));
-	
+
     sin_dat.sin_family = AF_INET;
 	sin_dat.sin_port = htons(ESTB_DSG_DATA_PORT);
 	sin_dat.sin_addr.s_addr = htonl(kLocalRxIpAddress);
-    
+
     if (setsockopt(sock_dat, SOL_SOCKET, SO_REUSEADDR, (char *) &optVal, sizeof(optVal)) != 0)
 	{
 		printf ("setsockopt SO_REUSEADDR error:  %s \n"
-						, strerror(errno));  
+						, strerror(errno));
 	}
 
 	// Bind to the DATA port
@@ -3625,11 +3608,11 @@ void EstbDsgRemoteInterfaceDataHelperThread ( void )
         printf("EstbDsgRemoteInterfaceDataHelperThread(): Error binding sock_dat_in!\n");
 		goto err_bind_sock_dat;
     }
-	
+
 	#if (defined (USE_MULTICAST_SOCKET))
 		JoinMulticastSession( sock_dat );
 	#endif
-	
+
 	//Allocate buffer to receive DSG Packet.
     if( (dsgPacketBuffer = (char *)malloc(buflen)) == (char *)NULL)
 	{
@@ -3638,26 +3621,26 @@ void EstbDsgRemoteInterfaceDataHelperThread ( void )
 	}
 
     printf("Starting eSTB DataHelperThread. Opening sockets and listening on ports %04x..\n", ESTB_DSG_DATA_PORT );
-	
+
 	maxfdp1 = sock_dat + 1;
 
 	while(1)
 	{
 		FD_ZERO(&rfds);
 		FD_SET(sock_dat, &rfds);
-		
+
 		retcode = select(maxfdp1, &rfds, (fd_set *)0, (fd_set *)0, (struct timeval *)0);
-		
+
 		if (retcode == -1)
 		{
 			printf("select(): %s\n", strerror(errno));
 		}
-		else 
+		else
 		{
 			// Listen for DATA
 			if(FD_ISSET(sock_dat, &rfds))
 			{
-				inetsize = sizeof(frominet); 
+				inetsize = sizeof(frominet);
 				// recvfrom shoud not block now
 				cnt = recvfrom(sock_dat, dsgPacketBuffer, buflen, 0, (struct sockaddr*)&frominet, &inetsize);
 				if( (cnt > 0) )
@@ -3671,28 +3654,28 @@ void EstbDsgRemoteInterfaceDataHelperThread ( void )
 						if( pEthernetPacketBuffer != NULL )
 						{
 							if( oobMode == kOobModeDsg )
-							{   
+							{
 								if(displayMode & kSebLevel2)
 									LogRawBuffer ("SEB TEST: DATA PKT:", pEthernetPacketBuffer->pDataBufferHead->pvStart, pEthernetPacketBuffer->pDataBufferHead->uiLen, 0);
-								// Pass the DATA to DSG-CC. 
+								// Pass the DATA to DSG-CC.
 								// DsgTunnelPkt is a VENDOR method.
-								// eSTB is RESPONSIBLE for releasing the buffers 
+								// eSTB is RESPONSIBLE for releasing the buffers
 								// by calling DsgFreeEthernetPkt()
 								if( DsgTunnelPkt( pEthernetPacketBuffer ) == false)
-								{  
+								{
 									// eSTB did NOT consume the buffer.
 									// We have to release the buffers NOW.
-									DsgFreeEthernetPkt(pEthernetPacketBuffer);			
-								}							
+									DsgFreeEthernetPkt(pEthernetPacketBuffer);
+								}
 							}
 							#if (BFC_INCLUDE_DAVIC_API_SUPPORT)
 							else if(oobMode == kOobModeDavic )
-							{   
+							{
 								if( BcmDavicRxTunnelPkt( pEthernetPacketBuffer ) == false)
 								{
 									// eSTB did NOT consume the buffer.
 									// We have to release the buffers NOW.
-									DsgFreeEthernetPkt(pEthernetPacketBuffer);			
+									DsgFreeEthernetPkt(pEthernetPacketBuffer);
 								}
 							}
 							#endif
@@ -3702,14 +3685,14 @@ void EstbDsgRemoteInterfaceDataHelperThread ( void )
 				//else
 				//	printf("DATA PKT from [ %s ]:ERROR- Dropping packet. recvfrom returns %d %s\n", inet_ntoa(frominet.sin_addr), cnt, strerror(errno));
 			}
-		}	
+		}
 	}
-	printf("DsgRemoteInterfaceDataHelperThread fell through!\n");				
-	
+	printf("DsgRemoteInterfaceDataHelperThread fell through!\n");
+
     free(dsgPacketBuffer);
 
 err_malloc:
-err_bind_sock_dat:	
+err_bind_sock_dat:
     close(sock_dat);
 err_create_sock_dat:
 	return;
@@ -3720,60 +3703,60 @@ err_create_sock_dat:
 /*
  * This Thread will listen on socket (0x4247) for UDP packets
  * to receive eCM status notifications and DCD-MGMT messages
- * and call the appropriate API 
+ * and call the appropriate API
  */
 void EstbDsgRemoteInterfaceCtrlHelperThread ( void )
 {
 	struct sockaddr_in sin_ctl;
-	
+
     register int cnt;
 	struct sockaddr_in frominet;
 	socklen_t      inetsize;
 	char              *buf;					/* ptr to dynamic buffer */
 	int		buflen  = 1518;					/* length of buffer */
-	
+
 	int sock_ctl, maxfdp1;
 	fd_set rfds;
 	int retcode;
 	int optVal;
 
-	#if defined (USE_MULTICAST_SOCKET) 
+	#if defined (USE_MULTICAST_SOCKET)
 	// Wait to acquire an IP address to
 	// setup multicast sockets.
 	uint32 ipAddress = 0;
-	while( GetEstbIpAddress(&ipAddress) == 0 )		
-	{		
+	while( GetEstbIpAddress(&ipAddress) == 0 )
+	{
 		// Wait
 		osSleep( 5 );
 	}
 	#endif
-	
+
 	// Create NOTIFICATION Socket
     if ((sock_ctl = socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0)) < 0)
     {
         printf("EstbDsgRemoteInterfaceCtrlHelperThread(): Error creating sock_ctl!\n");
 		goto err_create_sock_ctl;
     }
-	
+
 	int rc, sizectltx,sizectlrx, szlen = sizeof(int);
     rc = getsockopt(sock_ctl, SOL_SOCKET, SO_SNDBUF, (void *)&sizectltx, (socklen_t*)&szlen);
 	if (rc == 0) printf("%s(%d): sock_ctl %d has SO_SNDBUF size=%d (0x%x)\n", __FUNCTION__, __LINE__, sock_ctl, sizectltx, sizectltx);
 	rc = getsockopt(sock_ctl, SOL_SOCKET, SO_RCVBUF, (void *)&sizectlrx, (socklen_t*)&szlen);
 	if (rc == 0) printf("%s(%d): sock_ctl %d has SO_RCVBUF size=%d (0x%x)\n", __FUNCTION__, __LINE__, sock_ctl, sizectlrx, sizectlrx);
-    
+
 	// Configure NOTIFICATION address and port
 	bzero((char*)&sin_ctl, sizeof(sin_ctl));
     sin_ctl.sin_family = AF_INET;
 	sin_ctl.sin_port = htons(ESTB_DSG_REQUEST_PORT);
 	sin_ctl.sin_addr.s_addr = htonl(kLocalRxIpAddress);
-    
+
 	// REUSE ADDRESS
     optVal = 1;
 
     if (setsockopt(sock_ctl, SOL_SOCKET, SO_REUSEADDR, (char *) &optVal, sizeof(optVal)) != 0)
 	{
 		printf ("setsockopt SO_REUSEADDR error:  %s \n"
-						, strerror(errno));  
+						, strerror(errno));
 	}
 
 	// Bind to the NOTIFICATION port
@@ -3782,8 +3765,8 @@ void EstbDsgRemoteInterfaceCtrlHelperThread ( void )
         printf("EstbDsgRemoteInterfaceCtrlHelperThread(): Error binding sock_ctl_in!\n");
 		goto err_bind_sock_ctl;
     }
-	
-	
+
+
 	#if (defined (USE_MULTICAST_SOCKET))
 		JoinMulticastSession( sock_ctl );
 	#endif
@@ -3796,48 +3779,48 @@ void EstbDsgRemoteInterfaceCtrlHelperThread ( void )
 	}
 
     printf("Starting eSTB CtrlHelperThread. Opening sockets and listening on ports %04x...\n", ESTB_DSG_REQUEST_PORT );
-	
+
 	maxfdp1 = sock_ctl + 1;
 
 	while(1)
 	{
 		FD_ZERO(&rfds);
 		FD_SET(sock_ctl, &rfds);
-		
+
 		retcode = select(maxfdp1, &rfds, (fd_set *)0, (fd_set *)0, (struct timeval *)0);
-		
+
 		if (retcode == -1)
 		{
 			printf("select(): %s\n", strerror(errno));
 		}
-		else 
+		else
 		{
 			// Listen for NOTIFICATIONS
 			if(FD_ISSET(sock_ctl, &rfds))
 			{
 				// Configure NOTIFICATION and DATA sockets to receive packets with eCM address.
-				inetsize = sizeof(frominet); 
+				inetsize = sizeof(frominet);
 
 				// recvfrom should not block now
 				cnt = recvfrom(sock_ctl, buf, buflen, 0, (struct sockaddr*)&frominet, &inetsize);
 				if( (cnt > 0) )
 					//&& ( frominet.sin_addr.s_addr == htonl(kRemoteEcmSrcIpAddress)) )
 				{
-					// Pass the notification to DSG-CC. 
+					// Pass the notification to DSG-CC.
 				    // printf("NOTIFICATION from [ %s ]: with len = %d on port = %02x \n", inet_ntoa(frominet.sin_addr), cnt, sin_ctl.sin_port);
 					if(displayMode & kLevel4)
 						LogRawBuffer ("Notification: RCVD: ", (uint8*)buf, cnt, 0);
-					
-					// Process the request. Contents of "buf" will be modified when ProcessDsgClientPacketFromHalif() 
-					// returns. ProcessDsgClientPacketFromHalif will read the request and place the response 
+
+					// Process the request. Contents of "buf" will be modified when ProcessDsgClientPacketFromHalif()
+					// returns. ProcessDsgClientPacketFromHalif will read the request and place the response
 					// in the same buffer
-					ProcessEcmNotifications( buf );										
+					ProcessEcmNotifications( buf );
 				}
 			}
-		}	
+		}
 	}
-	printf("DsgRemoteInterfaceCtrlHelperThread fell through!\n");				
-	
+	printf("DsgRemoteInterfaceCtrlHelperThread fell through!\n");
+
     free(buf);
 
 err_malloc:
@@ -3846,10 +3829,10 @@ err_bind_sock_ctl:
 err_create_sock_ctl:
 	return;
 }
-  
+
 int ProcessDavicApiSocketTx( uint8 apiType, unsigned int apiParam, uint32 apiLen, uint8* apiBuffer, bool readFromBuffer)
 {
-	unsigned char *DavicConfig; 
+	unsigned char *DavicConfig;
 	unsigned int bufferLen;
 	int ret_val = kFuncFail;
 	uint32 tempVal = 0;
@@ -3861,7 +3844,7 @@ int ProcessDavicApiSocketTx( uint8 apiType, unsigned int apiParam, uint32 apiLen
     pthread_mutex_lock(&LnxDsgApiMutex);
 
 	// TransId (1 byte) + kDavicApi (1 byte) + apiType (1 byte) + reserved (1 byte) = 4 bytes
-	// apiParam (4 bytes) 
+	// apiParam (4 bytes)
 	// apiLen (4 bytes)
 	bufferLen = 4 + 4 + 4 + apiLen;
 
@@ -3875,7 +3858,7 @@ int ProcessDavicApiSocketTx( uint8 apiType, unsigned int apiParam, uint32 apiLen
 		printf("Can not allocate buffer %d\n", bufferLen);
         pthread_mutex_unlock(&LnxDsgApiMutex);
 		return kFuncFail;
-	}	
+	}
 
     //Reset memory.
     memset( DavicConfig, 0, bufferLen);
@@ -3884,14 +3867,14 @@ int ProcessDavicApiSocketTx( uint8 apiType, unsigned int apiParam, uint32 apiLen
     DavicConfig[1] = kDavicApi;
     DavicConfig[2] = apiType;
 	//DavicConfig[3] = 0;
-    
+
 	if(displayMode & kDavicLevel1)
 		LogInfoMsg2Parm("ProcessDavicApiSocketTx", "Allocated buffer %d bytes for DAVIC API type: %d\n", bufferLen, DavicConfig[2] );
 
 	if(apiLen)
 	{
 		tempVal = HostToNetworkUint32(apiParam);
-		memcpy( &DavicConfig[4], &tempVal, sizeof(uint32) ); 
+		memcpy( &DavicConfig[4], &tempVal, sizeof(uint32) );
 
 		tempVal = HostToNetworkUint32(apiLen);
 		memcpy( &DavicConfig[8], &tempVal, sizeof(uint32) );
@@ -3905,12 +3888,12 @@ int ProcessDavicApiSocketTx( uint8 apiType, unsigned int apiParam, uint32 apiLen
 			DavicConfig[13] = apiBuffer[2];
 			DavicConfig[14] = apiBuffer[1];
 			DavicConfig[15] = apiBuffer[0];
-  
+
 		}
 		else
 			memcpy( &DavicConfig[12], apiBuffer, apiLen );
 	}
-	
+
 	// DEBUG
 	if(displayMode & kDavicLevel2)
 		LogRawBuffer ("ProcessDavicApiSocketTx:: Sending ", DavicConfig, bufferLen, 0);
@@ -3929,20 +3912,20 @@ int ProcessDavicApiSocketTx( uint8 apiType, unsigned int apiParam, uint32 apiLen
 		if( (ret_val == 0) )
 		{
 			// zero:success
-			if( DavicConfig[2] == 0 )  
+			if( DavicConfig[2] == 0 )
 				ret_val = kFuncSuccess;
 		}
 	}
-  
+
 	if( ret_val == kFuncSuccess )
 	{
 		// DEBUG
 		if(displayMode & kDavicLevel2)
 			LogInfoMsg2Parm("ProcessDavicApiSocketTx", "apiType %d successful TransId=%d\n", apiType, TransId );
-		
+
 		if( readFromBuffer )
 		{
-			memcpy(apiBuffer, &DavicConfig[12], apiLen); 
+			memcpy(apiBuffer, &DavicConfig[12], apiLen);
 
 			// DEBUG
 			if(displayMode & kDavicLevel2)
@@ -4014,7 +3997,7 @@ void CheckApiVersion(void)
 	else
 	{
 		if( ecmApiVersion < kDsgApiVersion )
-		{	
+		{
 			printf("CheckApiVersion: WARNING! ******** eCM API Version: %08x < eSTB API Version: 0x%08x! **********\n", (unsigned int)ecmApiVersion, (unsigned int)kDsgApiVersion);
 			ecmHasOlderApiVers = true;
 		}
@@ -4034,7 +4017,7 @@ bool ConfigureTaggingMode(bool onoff)
 	strcpy(ifr.ifr_name, EstbPrimaryIpStackName);
 	sin->sin_family = AF_INET;
 	sin->sin_port = 0;
- 
+
 	/* Create the socket. Bail if we're not able to create one */
 	socketDescriptor = socket(AF_INET, SOCK_DGRAM, 0);
 	if (!socketDescriptor)
@@ -4063,7 +4046,7 @@ bool ConfigureTaggingMode(bool onoff)
 		return false;
 	}
 	else
-	{		
+	{
 		return true;
 	}
 }
@@ -4080,7 +4063,7 @@ int ErouterEnable ( bool enable )
 	uint32 iteration = 5;
 	unsigned char xid;
 #endif
-	
+
     if (enable != 1 && enable != 0)
     {
         printf("+++ ErouterEnable(), Wrong argument!\n");
@@ -4126,11 +4109,11 @@ int ErouterEnable ( bool enable )
         iteration--;
     }
     }
-#endif     
+#endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return ret_val;
-    
+
 #else
 
 	return ret_val;
@@ -4193,12 +4176,12 @@ int ErouterWebIntfcEnable ( bool enable )
         iteration--;
     }
     }
-#endif     
+#endif
 
     pthread_mutex_unlock(&LnxDsgApiMutex);
-	
+
     return ret_val;
-    
+
 #else
 
 	return ret_val;
@@ -4216,7 +4199,7 @@ int ErouterIpv6AddressAssign ( int assign_method )
 	uint32 iteration = 5;
 	unsigned char xid;
 #endif
-		
+
     if (assign_method > 3 || assign_method < 1)
     {
         printf("+++ Wrong IP assign mode!\n");
@@ -4262,10 +4245,10 @@ int ErouterIpv6AddressAssign ( int assign_method )
         iteration--;
     }
     }
-#endif     
+#endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
     return ret_val;
-    
+
 #else
 
 	return ret_val;
@@ -4300,7 +4283,7 @@ int ErouterStatus (t_erouter_status *pStatus)
     DsgConfig[0] = ++TransId;
 #endif
     DsgConfig[1] = kErouterApi;
-    DsgConfig[2] = kGetErouterStatus;						
+    DsgConfig[2] = kGetErouterStatus;
 
 	// Send the message
     ret_val = EstbToEcmSocketSendRx( 64, DsgConfig, true, true);
@@ -4316,7 +4299,7 @@ int ErouterStatus (t_erouter_status *pStatus)
         iteration--;
     }
     }
-#endif      
+#endif
     pthread_mutex_unlock(&LnxDsgApiMutex);
 
     if (ret_val <= 0)
@@ -4342,17 +4325,17 @@ int ErouterStatus (t_erouter_status *pStatus)
         case 2:
         {
             strcpy(pStatus->txt, "Erouter is running in keRouterIpv6ModeOnly mode\n");
-            break;   
+            break;
 		}
         case 3:
         {
             strcpy(pStatus->txt, "Erouter is running in keRouterDualMode mode\n");
-            break;   
+            break;
 		}
         case 4:
         {
             strcpy(pStatus->txt, "Erouter is running in keRouterIpv4RGModeOnly mode\n");
-            break;   
+            break;
 		}
 
         default:
@@ -4376,12 +4359,12 @@ char* GetEnvVarEcmInterface(void)
     char *env_value;
 
     env_value = getenv(env_name);
-    if (env_value) 
+    if (env_value)
 	{
         printf("\neCM interface is read from env var  %s: <%s>\n", env_name, env_value);
 		return env_value;
     }
-    else 
+    else
 	{
         printf("There is no environment variable named <%s>\n", env_name);
     }
@@ -4436,10 +4419,10 @@ int FindEcmInterface(char *pIpcInterfaceName)
 		printf("%s: IP %s \n",
 			   item->ifr_name,
 			   inet_ntoa(sa->sin_addr));
-					
+
 		if( htonl(sa->sin_addr.s_addr) == kLocalRxIpAddress )
 		{
-			//printf("%s  %08x\n", iap->ifa_name, htonl(sa->sin_addr.s_addr)); 
+			//printf("%s  %08x\n", iap->ifa_name, htonl(sa->sin_addr.s_addr));
 			memcpy( pIpcInterfaceName, item->ifr_name, IPC_INTERFACE_NAME_MAX_LEN);
 			return 1;
 		}

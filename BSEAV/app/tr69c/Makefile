@@ -1,5 +1,5 @@
 ############################################################
-#     (c)2003-2013 Broadcom Corporation
+#     (c)2003-2016 Broadcom Corporation
 #
 #  This program is the proprietary software of Broadcom Corporation and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -92,7 +92,9 @@ ifeq ($(B_REFSW_ARCH),)
 B_REFSW_ARCH=mips-linux
 export B_REFSW_ARCH
 endif
-ifneq ($(B_REFSW_DEBUG),n)
+
+B_REFSW_DEBUG ?= y
+ifeq ($(B_REFSW_DEBUG),y)
 DEBUG_SUFFIX=debug
 else
 DEBUG_SUFFIX=release

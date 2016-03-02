@@ -35,16 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 #ifndef THUMBNAIL_H__
 #define THUMBNAIL_H__
@@ -52,46 +42,18 @@
 #include "bstd.h"
 #include "bkni.h"
 #include "bkni_multi.h"
-
-#include "nexus_still_decoder.h"
 #include "nexus_surface.h"
-#include "nexus_graphics2d.h"
 #include "nexus_playpump.h"
-#include "nexus_types.h"
-#include "nexus_video_types.h"
-#include "bthumbnail_extractor.h"
+#include "media_probe.h"
 #include <stdio.h>
 
-#define MAX_THUMBNAILS 200
 #define DISPLAYED_THUMBNAILS 5
-
-#if 0
-#define THUMB_WIDTH 240
-#define THUMB_HEIGHT 136
-#define THUMB_GAP 15
-#define THUMB_EDGE 50
-#else
-#define THUMB_WIDTH 220
-#define THUMB_HEIGHT 120
-#define THUMB_GAP 10
-#define THUMB_EDGE 50
-#endif
 
 /* global data structure which makes for a simple demo app */
 typedef struct thumbnail_data {
-    NEXUS_VideoFormat display_format;
     const char *datafilename;
     const char *indexfilename;
-    NEXUS_TransportType transportType;
-    NEXUS_TransportTimestampType timestampType;
-    NEXUS_VideoCodec videoCodec;
-    unsigned pid;
-
-    BKNI_EventHandle still_done;
-
-    FILE *stdio_indexfile, *stdio_datafile;
-    bfile_io_read_t indexfile, datafile;
-    bthumbnail_extractor_t thumbnail_extractor;
+    struct probe_results probe_results;
 
     struct {
         unsigned time;
@@ -102,10 +64,7 @@ typedef struct thumbnail_data {
     unsigned base_time; /* time of leftmost still */
     unsigned current_time;
 
-    NEXUS_Graphics2DHandle blitter;
-    BKNI_EventHandle blitterEvent;
     NEXUS_PlaypumpHandle playpump;
-    NEXUS_StillDecoderHandle stillDecoder;
 } thumbnail_data;
 
 extern thumbnail_data g_data;
@@ -114,11 +73,5 @@ extern thumbnail_data g_data;
 int  thumbnail_demo_init(void);
 int  thumbnail_demo_run(void);
 void thumbnail_demo_uninit(void);
-void checkpoint(void);
-
-/* thumbnail_stills code interacts with bthumbnail_extractor */
-int thumbnail_decode_stills_init(void);
-void thumbnail_decode_stills_uninit(void);
-NEXUS_SurfaceHandle thumbnail_decode_still(unsigned time);
 
 #endif

@@ -3712,14 +3712,22 @@ BHSM_P_DONE_LABEL:
 
 
 /* Returns true if current BFW is greater than or equal to specified value */
-bool isBfwVersion_GreaterOrEqual( BHSM_Handle hHsm, unsigned major, unsigned minor, unsigned subMinor )
+bool isBfwVersion_GreaterOrEqual ( BHSM_Handle hHsm, unsigned major, unsigned minor, unsigned subMinor )
 {
-
-    if( major    >= hHsm->firmwareVersion.bseck.major &&
-        minor    >= hHsm->firmwareVersion.bseck.minor &&
-        subMinor >= hHsm->firmwareVersion.bseck.subMinor )
+    if ( major < hHsm->firmwareVersion.bseck.major )
     {
         return true;
+    }
+    else if ( major == hHsm->firmwareVersion.bseck.major )
+    {
+        if ( minor < hHsm->firmwareVersion.bseck.minor )
+        {
+            return true;
+        }
+        else if ( minor == hHsm->firmwareVersion.bseck.minor )
+        {
+            return ( subMinor <= hHsm->firmwareVersion.bseck.subMinor );
+        }
     }
 
     return false;

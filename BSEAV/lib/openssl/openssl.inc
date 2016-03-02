@@ -1,5 +1,5 @@
 #############################################################################
-#    (c)2010-2014 Broadcom Corporation
+#    (c)2010-2016 Broadcom Corporation
 #
 # This program is the proprietary software of Broadcom Corporation and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -37,17 +37,18 @@
 #
 #############################################################################
 
-ifneq ($(filter $(B_REFSW_DEBUG),n no_error_messages),)
-    DEBUG_SUFFIX=release
+B_REFSW_DEBUG ?= y
+ifeq ($(B_REFSW_DEBUG),y)
+DEBUG_SUFFIX=debug
 else
-    DEBUG_SUFFIX=debug
+DEBUG_SUFFIX=release
 endif
 
 
 #  Define the OpenSSL's Makefile directory... probably the same dir that this file is in.
 B_OPENSSL_BUILD_DIR := $(abspath $(NEXUS_TOP)/../BSEAV/lib/openssl)
 
-B_OPENSSL_VER?=1.0.1q
+B_OPENSSL_VER?=1.0.1r
 B_OPENSSL_NAME?=openssl-${B_OPENSSL_VER}
 
 B_OPENSSL_SOURCE_DEST:=$(abspath $(B_REFSW_OBJ_ROOT)/BSEAV/lib/openssl/$(B_REFSW_ARCH).$(DEBUG_SUFFIX))

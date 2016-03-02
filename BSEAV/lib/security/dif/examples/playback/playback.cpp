@@ -819,6 +819,7 @@ void playback_mp4(NEXUS_SimpleVideoDecoderHandle videoDecoder,
     }
 
     return;
+    LOGE(("        -secure    Use secure video picture buffers (URR)"));
 }
 
 int main(int argc, char* argv[])

@@ -162,6 +162,10 @@ NEXUS_SurfaceClientHandle NEXUS_SurfaceCompositor_CreateClient( NEXUS_SurfaceCom
     if (!client->windowMovedCallback) {
         goto error;
     }
+    client->vsyncCallback = NEXUS_TaskCallback_Create(client, NULL);
+    if (!client->vsyncCallback) {
+        goto error;
+    }
 
     rc = nexus_surface_compositor_p_verify_tunnel(server);
     if (rc) {
@@ -202,6 +206,9 @@ static void NEXUS_SurfaceClient_P_ParentFinalizer( NEXUS_SurfaceClientHandle cli
     }
     if (client->windowMovedCallback) {
         NEXUS_TaskCallback_Destroy(client->windowMovedCallback);
+    }
+    if (client->vsyncCallback) {
+        NEXUS_TaskCallback_Destroy(client->vsyncCallback);
     }
 
     NEXUS_OBJECT_DESTROY(NEXUS_SurfaceClient, client);
@@ -277,6 +284,7 @@ void NEXUS_SurfaceClient_Release( NEXUS_SurfaceClientHandle client )
     NEXUS_TaskCallback_Set(client->recycledCallback, NULL);
     NEXUS_TaskCallback_Set(client->displayStatusChangedCallback, NULL);
     NEXUS_TaskCallback_Set(client->windowMovedCallback, NULL);
+    NEXUS_TaskCallback_Set(client->vsyncCallback, NULL);
     client->acquired = false;
     NEXUS_CLIENT_RESOURCES_RELEASE(surfaceClient,IdList,client->client_id);
     NEXUS_SurfaceClient_Clear(client);
@@ -750,6 +758,7 @@ NEXUS_Error NEXUS_SurfaceClient_SetSettings( NEXUS_SurfaceClientHandle client, c
         NEXUS_TaskCallback_Set(client->recycledCallback, &pSettings->recycled);
         NEXUS_TaskCallback_Set(client->displayStatusChangedCallback, &pSettings->displayStatusChanged);
         NEXUS_TaskCallback_Set(client->windowMovedCallback, &pSettings->windowMoved);
+        NEXUS_TaskCallback_Set(client->vsyncCallback, &pSettings->vsync);
     }
     else {
         changeChildZorder = client->settings.composition.zorder != pSettings->composition.zorder;

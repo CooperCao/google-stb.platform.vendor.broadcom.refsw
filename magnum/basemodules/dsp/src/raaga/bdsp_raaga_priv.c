@@ -8059,44 +8059,33 @@ Name        :   BDSP_Raaga_P_GetNumberOfDsp
 
 Type        :   BDSP Internal
 
-Input       :   chpHandle   -   Chip Handle provided by the PI.
+Input       :   boxHandle   -   Box Handle provided by the PI.
                 pNumDsp -   Pointer to return the number of DSP in the System.
 
 Return      :   Error Code to return SUCCESS or FAILURE
 
 Functionality   :   Following are the operations performed.
-        1)  Calculate the Number of DSP based on the CHIP ID.
+        1)  Calculate the Number of DSP based on the BOX MODE.
 ***********************************************************************/
 
-BERR_Code BDSP_Raaga_P_GetNumberOfDsp(
-    BCHP_Handle chpHandle,
-    unsigned    *pNumDsp /*[out]*/
-)
+static BERR_Code BDSP_Raaga_P_GetNumberOfDsp( BBOX_Handle boxHandle, unsigned *pNumDsp )
 {
-    BERR_Code ret= BERR_SUCCESS;
-    BCHP_FeatureData featureData;
-    *pNumDsp = BDSP_RAAGA_MAX_DSP;
-    ret = BCHP_GetFeature(chpHandle, BCHP_Feature_eProductId, &featureData);
-    if ( ret == BERR_SUCCESS )
-    {
-        /* Check for specific product IDs */
-        switch ( featureData.data.productId )
-        {
-        case 0x7251:
-        case 0x7252:
-        case 0x7448:
-        case 0x7449:
-        case 0x72520:
-        case 0x74480:
-        case 0x74490: /* 7252/7448/7449/72520/74480/74490 have only 1 DSP but registers for both */
-            *pNumDsp = 1;
-            break;
-        default:
-            break;
-        }
-        BDBG_ASSERT(*pNumDsp <= BDSP_RAAGA_MAX_DSP);
-        BDBG_MSG(("Product ID 0x%08x -> %u DSPs", featureData.data.productId, *pNumDsp));
-    }
+    BBOX_Config *pConfig;
+	BERR_Code ret = BERR_SUCCESS;
+
+	pConfig = BKNI_Malloc(sizeof(BBOX_Config));
+    BKNI_Memset(pConfig, 0 , sizeof(BBOX_Config));
+
+	ret = BBOX_GetConfig(boxHandle, pConfig);
+	if(BERR_SUCCESS != ret)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_GetNumberOfDsp: Error in retrieving the Num DSP from BOX MODE"));
+	}
+	else
+	{
+		*pNumDsp = pConfig->stAudio.numDsps;
+	}
+	BKNI_Free(pConfig);
     return ret;
 }
 
@@ -8107,7 +8096,7 @@ Type        :   PI Interface
 
 Input       :   pSettings       -   Handle of the Stage whose settings needs to be retrieved.
                 pUsage      -   Pointer to usage case scenario from which we determine the runtime memory.
-                chpHandle   -     Chip Handle for which the memory needs to be estimated.
+                boxHandle   -     BOX Mode Handle for which the memory needs to be estimated.
                 pEstimate   -   Pointer to the memory where the Stage Settings are filled.
 
 Return      :   Error Code to return SUCCESS or FAILURE
@@ -8122,7 +8111,7 @@ Functionality   :   Following are the operations performed.
 BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
     const BDSP_RaagaSettings     *pSettings,
     const BDSP_RaagaUsageOptions *pUsage,
-    BCHP_Handle                   chpHandle,
+	BBOX_Handle                   boxHandle,
     BDSP_RaagaMemoryEstimate     *pEstimate /*[out]*/
 )
 {
@@ -8151,9 +8140,9 @@ BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
     pEstimate->GeneralMemory  = 0;
 
     /* Get the Number of DSP's present in the system */
-    if(NULL != chpHandle)
+    if(NULL != boxHandle)
     {
-        ret = BDSP_Raaga_P_GetNumberOfDsp(chpHandle,&NumDsp);
+        ret = BDSP_Raaga_P_GetNumberOfDsp(boxHandle,&NumDsp);
     }
     else
     {
@@ -12650,7 +12639,11 @@ void BDSP_Raaga_P_InitDeviceSettings(void * pDeviceHandle)
         }
     }
 
-    BDSP_Raaga_P_GetNumberOfDsp( pRaaga->chpHandle, &pRaaga->numDsp );
+    err = BDSP_Raaga_P_GetNumberOfDsp( pRaaga->boxHandle, &pRaaga->numDsp );
+	if(err != BERR_SUCCESS)
+	{
+		BDBG_ERR(("INIT: Error in retreiving the Number of RAAGA DSP from BOX MODE, hence using the default value"));
+	}
 
     for (dspIndex=0 ; dspIndex < pRaaga->numDsp; dspIndex++)
     {

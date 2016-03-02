@@ -1,43 +1,43 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 /* Simple RF4CE app */
 
 #include <stdio.h>
@@ -347,6 +347,291 @@ static void rf4ce_Test_Set_Single_Channel(uint8_t channel)
     printf("Set Single Channel successfully\r\n");
 }
 
+static void phy_Test_Get_Caps()
+{
+    uint8_t statusPhy_Test_Get_Caps = 0;
+
+    Phy_Test_Get_Caps_ReqDescr_t req = {0};
+    void phy_Test_Get_Caps_Callback(Phy_Test_Get_Caps_ReqDescr_t *request, Phy_Test_Get_Caps_ConfParams_t *conf)
+    {
+        printf("%d\n",  conf->channelMin);
+        printf("%d\n",  conf->channelMax);
+        printf("%d\n",  conf->powerMin);
+        printf("%d\n",  conf->powerMax);
+
+        statusPhy_Test_Get_Caps = 1;
+    }
+    req.callback = phy_Test_Get_Caps_Callback;
+
+    Phy_Test_Get_Caps_Req(&req);
+    while(!statusPhy_Test_Get_Caps);
+
+    printf("phy_Test_Get_Caps successfully\r\n");
+
+}
+
+static void phy_Test_Set_Channel()
+{
+    uint8_t statusphy_Test_Set_Channel = 0;
+
+    Phy_Test_Set_Channel_ReqDescr_t req = {0};
+    void phy_Test_Set_Channel_Callback(Phy_Test_Set_Channel_ReqDescr_t *request, Phy_Test_Set_Channel_ConfParams_t *conf)
+    {
+        printf("status : %02x\n",  conf->status);
+        statusphy_Test_Set_Channel = 1;
+    }
+    req.callback = phy_Test_Set_Channel_Callback;
+
+    Phy_Test_Set_Channel_Req(&req);
+    while(!statusphy_Test_Set_Channel);
+
+    printf("phy_Test_Set_Channel successfully\r\n");
+
+}
+
+static void phy_Test_Continuous_Wave_Start()
+{
+    uint8_t statusphy_Test_Continuous_Wave_Start = 0;
+
+    Phy_Test_Continuous_Wave_Start_ReqDescr_t req = {0};
+    void phy_Test_Continuous_Wave_Start_Callback(Phy_Test_Continuous_Wave_Start_ReqDescr_t *request, Phy_Test_Continuous_Wave_StartStop_ConfParams_t *conf)
+    {
+        printf("status : %02x\n",  conf->status);
+        statusphy_Test_Continuous_Wave_Start = 1;
+    }
+    req.callback = phy_Test_Continuous_Wave_Start_Callback;
+
+    Phy_Test_Continuous_Wave_Start_Req(&req);
+    while(!statusphy_Test_Continuous_Wave_Start);
+
+    printf("phy_Test_Continuous_Wave_Start successfully\r\n");
+
+}
+
+static void phy_Test_Continuous_Wave_Stop()
+{
+    uint8_t statusphy_Test_Continuous_Wave_Stop = 0;
+
+    Phy_Test_Continuous_Wave_Stop_ReqDescr_t req = {0};
+    void phy_Test_Continuous_Wave_Stop_Callback(Phy_Test_Continuous_Wave_Stop_ReqDescr_t *request, Phy_Test_Continuous_Wave_StartStop_ConfParams_t *conf)
+    {
+        printf("status : %02x\n",  conf->status);
+        statusphy_Test_Continuous_Wave_Stop = 1;
+    }
+    req.callback = phy_Test_Continuous_Wave_Stop_Callback;
+
+    Phy_Test_Continuous_Wave_Stop_Req(&req);
+    while(!statusphy_Test_Continuous_Wave_Stop);
+
+    printf("phy_Test_Continuous_Wave_Stop successfully\r\n");
+
+}
+
+static void phy_Test_Transmit_Start()
+{
+    uint8_t statusphy_Test_Transmit_Start = 0;
+
+    Phy_Test_Transmit_Start_ReqDescr_t req = {0};
+    void phy_Test_Transmit_Start_Callback(Phy_Test_Transmit_Start_ReqDescr_t *request, Phy_Test_Transmit_StartStop_ConfParams_t *conf)
+    {
+        printf("status : %02x\n",  conf->status);
+        statusphy_Test_Transmit_Start = 1;
+    }
+    req.params.intervalMs = 0x1;
+    req.params.packetCount = 0x02;
+    req.params.payloadLength = 125;
+    for(int i = 0; i < sizeof(req.params.payload); i++)
+        req.params.payload[i] = i & 0xff;
+    req.callback = phy_Test_Transmit_Start_Callback;
+
+    Phy_Test_Transmit_Start_Req(&req);
+    while(!statusphy_Test_Transmit_Start);
+
+    printf("phy_Test_Transmit_Start successfully\r\n");
+
+}
+
+static void phy_Test_Transmit_Stop()
+{
+    uint8_t statusphy_Test_Transmit_Stop = 0;
+
+    Phy_Test_Transmit_Stop_ReqDescr_t req = {0};
+    void phy_Test_Transmit_Stop_Callback(Phy_Test_Transmit_Stop_ReqDescr_t *request, Phy_Test_Transmit_StartStop_ConfParams_t *conf)
+    {
+        printf("status : %02x\n",  conf->status);
+        statusphy_Test_Transmit_Stop = 1;
+    }
+    req.callback = phy_Test_Transmit_Stop_Callback;
+
+    Phy_Test_Transmit_Stop_Req(&req);
+    while(!statusphy_Test_Transmit_Stop);
+
+    printf("phy_Test_Transmit_Stop successfully\r\n");
+
+}
+
+static void phy_Test_Receive_Start()
+{
+    uint8_t statusphy_Test_Receive_Start = 0;
+
+    Phy_Test_Receive_Start_ReqDescr_t req = {0};
+    void phy_Test_Receive_Start_Callback(Phy_Test_Receive_Start_ReqDescr_t *request, Phy_Test_Receive_StartStop_ConfParams_t *conf)
+    {
+        printf("status : %02x\n",  conf->status);
+        statusphy_Test_Receive_Start = 1;
+    }
+    req.callback = phy_Test_Receive_Start_Callback;
+
+    Phy_Test_Receive_Start_Req(&req);
+    while(!statusphy_Test_Receive_Start);
+
+    printf("phy_Test_Receive_Start successfully\r\n");
+
+}
+
+static void phy_Test_Receive_Stop()
+{
+    uint8_t statusphy_Test_Receive_Stop = 0;
+
+    Phy_Test_Receive_Stop_ReqDescr_t req = {0};
+    void phy_Test_Receive_Stop_Callback(Phy_Test_Receive_Stop_ReqDescr_t *request, Phy_Test_Receive_StartStop_ConfParams_t *conf)
+    {
+        printf("status : %02x\n",  conf->status);
+        statusphy_Test_Receive_Stop = 1;
+    }
+    req.callback = phy_Test_Receive_Stop_Callback;
+
+    Phy_Test_Receive_Stop_Req(&req);
+    while(!statusphy_Test_Receive_Stop);
+
+    printf("phy_Test_Receive_Stop successfully\r\n");
+
+}
+
+static void phy_Test_Echo_Start()
+{
+    uint8_t statusphy_Test_Echo_Start = 0;
+
+    Phy_Test_Echo_Start_ReqDescr_t req = {0};
+    void phy_Test_Echo_Start_Callback(Phy_Test_Echo_Start_ReqDescr_t *request, Phy_Test_Echo_StartStop_ConfParams_t *conf)
+    {
+        printf("status : %02x\n",  conf->status);
+        statusphy_Test_Echo_Start = 1;
+    }
+    req.callback = phy_Test_Echo_Start_Callback;
+
+    Phy_Test_Echo_Start_Req(&req);
+    while(!statusphy_Test_Echo_Start);
+
+    printf("phy_Test_Echo_Start successfully\r\n");
+
+}
+
+static void phy_Test_Echo_Stop()
+{
+    uint8_t statusphy_Test_Echo_Stop = 0;
+
+    Phy_Test_Echo_Stop_ReqDescr_t req = {0};
+    void phy_Test_Echo_Stop_Callback(Phy_Test_Echo_Stop_ReqDescr_t *request, Phy_Test_Echo_StartStop_ConfParams_t *conf)
+    {
+        printf("status : %02x\n",  conf->status);
+        statusphy_Test_Echo_Stop = 1;
+    }
+    req.callback = phy_Test_Echo_Stop_Callback;
+
+    Phy_Test_Echo_Stop_Req(&req);
+    while(!statusphy_Test_Echo_Stop);
+
+    printf("phy_Test_Echo_Stop successfully\r\n");
+
+}
+
+
+static void phy_Test_Energy_Detect_Scan()
+{
+    uint8_t statusphy_Test_Energy_Detect_Scan = 0;
+
+    Phy_Test_Energy_Detect_Scan_ReqDescr_t req = {0};
+    void phy_Test_Energy_Detect_Scan_Callback(Phy_Test_Energy_Detect_Scan_ReqDescr_t *request, Phy_Test_Energy_Detect_Scan_ConfParams_t *conf)
+    {
+        Phy_Sap_RF4CE_EnergyDetectionScanResults *energies = ALLOCA(SYS_GetPayloadSize(&conf->payload));
+        SYS_CopyFromPayload(energies, &conf->payload, 0, SYS_GetPayloadSize(&conf->payload));
+        for(int i = 0; i < SYS_GetPayloadSize(&conf->payload) / sizeof(Phy_Sap_RF4CE_EnergyDetectionScanResults); i++){
+            printf("%02x\n", energies[i].energy);
+        }
+        statusphy_Test_Energy_Detect_Scan = 1;
+    }
+    req.params.numberOfScans = 10;
+    req.callback = phy_Test_Energy_Detect_Scan_Callback;
+
+    Phy_Test_Energy_Detect_Scan_Req(&req);
+    while(!statusphy_Test_Energy_Detect_Scan);
+
+    printf("phy_Test_Energy_Detect_Scan successfully\r\n");
+
+}
+
+static void phy_Test_Get_Stats()
+{
+    uint8_t statusPhy_Test_Get_Stats = 0;
+
+    Phy_Test_Get_Stats_ReqDescr_t req = {0};
+    void phy_Test_Get_Stats_Callback(Phy_Test_Get_Stats_ReqDescr_t *request, Phy_Test_Get_Stats_ConfParams_t *conf)
+    {
+        printf("%08x\n",  conf->packetsReceived);
+        printf("%08x\n",  conf->packetsOverflow);
+        printf("%08x\n",  conf->packetsSentOK);
+        printf("%08x\n",  conf->packetsSentError);
+
+        statusPhy_Test_Get_Stats = 1;
+    }
+    req.callback = phy_Test_Get_Stats_Callback;
+
+    Phy_Test_Get_Stats_Req(&req);
+    while(!statusPhy_Test_Get_Stats);
+
+    printf("phy_Test_Get_Stats successfully\r\n");
+}
+
+static void phy_Test_Reset_Stats()
+{
+    uint8_t statusphy_Test_Reset_Stats = 0;
+
+    Phy_Test_Reset_Stats_ReqDescr_t req = {0};
+    void phy_Test_Reset_Stats_Callback(Phy_Test_Reset_Stats_ReqDescr_t *request, Phy_Test_Reset_Stats_ConfParams_t *conf)
+    {
+        printf("status : %02x\n",  conf->status);
+        statusphy_Test_Reset_Stats = 1;
+    }
+    req.callback = phy_Test_Reset_Stats_Callback;
+
+    Phy_Test_Reset_Stats_Req(&req);
+    while(!statusphy_Test_Reset_Stats);
+
+    printf("phy_Test_Reset_Stats successfully\r\n");
+
+}
+
+static void phy_Test_Set_TX_Power()
+{
+    uint8_t statusphy_Test_Set_TX_Power = 0;
+
+    Phy_Test_Set_TX_Power_ReqDescr_t req = {0};
+    void phy_Test_Set_TX_Power_Callback(Phy_Test_Set_TX_Power_ReqDescr_t *request, Phy_Test_Set_TX_Power_ConfParams_t *conf)
+    {
+        printf("status : %02x\n",  conf->status);
+        statusphy_Test_Set_TX_Power = 1;
+    }
+    req.callback = phy_Test_Set_TX_Power_Callback;
+
+    Phy_Test_Set_TX_Power_Req(&req);
+    while(!statusphy_Test_Set_TX_Power);
+
+    printf("phy_Test_Set_TX_Power successfully\r\n");
+
+}
+
+
 static void rf4ce_Restore_Factory_Settings(uint8_t restore)
 {
     uint8_t statusRestoreFactorySettings = 0;
@@ -422,6 +707,22 @@ int main(int argc, char *argv[])
 
     printf("\nPress any key to exist\n");
     getchar();
+#if  1
+    phy_Test_Get_Caps();
+    phy_Test_Set_Channel();
+    phy_Test_Continuous_Wave_Start();
+    phy_Test_Continuous_Wave_Stop();
+    phy_Test_Transmit_Start();
+    phy_Test_Transmit_Stop();
+    phy_Test_Receive_Start();
+    phy_Test_Receive_Stop();
+    phy_Test_Echo_Start();
+    phy_Test_Echo_Stop();
+    phy_Test_Energy_Detect_Scan();
+    phy_Test_Get_Stats();
+    phy_Test_Reset_Stats();
+    phy_Test_Set_TX_Power();
+#endif
     printf("MY_RF4CE_APP:  closing...\n");
 
     Zigbee_Close();

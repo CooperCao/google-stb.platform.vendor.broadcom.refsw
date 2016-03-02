@@ -468,30 +468,10 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const struct NEXUS_C
             }
 #endif
             if( (memStatus.memoryType & NEXUS_MEMORY_TYPE_SECURE) == NEXUS_MEMORY_TYPE_SECURE) {
-                if(g_NexusCore.publicHandles.memc[memStatus.memcIndex].rmm) {
-                    BMRC_MonitorRegion_Settings regionSettings;
-                    BMRC_MonitorRegion_Handle monitorRegion;
-                    static const BMRC_Monitor_HwBlock secureClients[] = {
-                        BMRC_Monitor_HwBlock_eAUD,
-                        BMRC_Monitor_HwBlock_eAVD,
-                        BMRC_Monitor_HwBlock_eBSP,
-                        BMRC_Monitor_HwBlock_eBVN,
-                        BMRC_Monitor_HwBlock_eMEMC,
-                        BMRC_Monitor_HwBlock_ePREFETCH,
-                        BMRC_Monitor_HwBlock_eSCPU,
-                        BMRC_Monitor_HwBlock_eVICE,
-                        BMRC_Monitor_HwBlock_eXPT
-                    };
-                    BMRC_MonitorRegion_GetDefaultSettings(&regionSettings);
-                    regionSettings.blockWrite = false;
-                    regionSettings.blockRead = false;
-
-                    regionSettings.listType = BMRC_Monitor_ListType_eOtherClients;
-                    regionSettings.addr = memStatus.offset;
-                    regionSettings.length = memStatus.size;
-                    rc = BMRC_MonitorRegion_Add(g_NexusCore.publicHandles.memc[memStatus.memcIndex].rmm, &monitorRegion, &regionSettings, secureClients, sizeof(secureClients)/sizeof(secureClients[0]));
-                    if(rc!=BERR_SUCCESS) {(void)BERR_TRACE(rc);}
-                }
+                NEXUS_HeapRuntimeSettings settings;
+                NEXUS_Heap_GetRuntimeSettings_priv(g_NexusCore.publicHandles.heap[i].nexus, &settings);
+                settings.secure = true;
+                NEXUS_Heap_SetRuntimeSettings_priv(g_NexusCore.publicHandles.heap[i].nexus, &settings);
             }
         }
     }

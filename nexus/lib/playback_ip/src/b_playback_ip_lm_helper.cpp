@@ -676,7 +676,7 @@ static void B_PlaybackIp_doSessionSetup(void *context)
     B_PlaybackIpHandle playback_ip = session->playback_ip;
     char *tmpPtr;
 
-    BDBG_MSG(("%s: Entered B_PlaybackIp_doSessionSetup() @ 0x%x, session: 0x%x\n", __FUNCTION__, B_PlaybackIp_doSessionSetup, (unsigned)session ));
+    BDBG_MSG(("%s: Entered B_PlaybackIp_doSessionSetup() @ 0x%x, session: %p\n", __FUNCTION__, B_PlaybackIp_doSessionSetup, session ));
 
     if(session->openSettings.socketOpenSettings.protocol == B_PlaybackIpProtocol_eRtsp) {
         // do OPTIONS
@@ -976,8 +976,8 @@ static void B_PlaybackIp_doPeriodicTask(void *context)
 
     BDBG_ASSERT(session);
 
-    BDBG_MSG(("Entered B_PlaybackIp_doPeriodicTask() @ 0x%x, session: 0x%x, session->state: %d, sched_count: %d",
-              B_PlaybackIp_doPeriodicTask, (unsigned)session, session->state, session->periodicTaskSchedCount));
+    BDBG_MSG(("Entered B_PlaybackIp_doPeriodicTask() @ 0x%x, session: %p, session->state: %d, sched_count: %d",
+              B_PlaybackIp_doPeriodicTask, session, session->state, session->periodicTaskSchedCount));
 
     session->periodicTaskSchedCount++;
     if(session->periodicTaskPendingCount > 0) session->periodicTaskPendingCount--;

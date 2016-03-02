@@ -100,7 +100,7 @@ F_SRCS := $(foreach sraisrc, $(shell ls ${BSEAV_TOP}/lib/security/sage/srai/src/
 vpath %.c ${BSEAV_TOP}/lib/security/sage/srai/src
 vpath %.h ${BSEAV_TOP}/lib/security/sage/srai/src ${BSEAV_TOP}/lib/security/sage/srai/include
 
-ifeq ($(NEXUS_MODE),proxy)
+ifeq ($(findstring $(NEXUS_MODE),proxy client), $(NEXUS_MODE))
 vpath %.c $(foreach SDIR, $(BSAGELIB_TOOLS_SOURCES), $(dir $(SDIR)))
 vpath %.h $(foreach SDIR, $(BSAGELIB_TOOLS_SOURCES), $(dir $(SDIR)))
 F_SRCS += $(foreach depSRC, ${BSAGELIB_TOOLS_SOURCES}, $(notdir ${depSRC}))

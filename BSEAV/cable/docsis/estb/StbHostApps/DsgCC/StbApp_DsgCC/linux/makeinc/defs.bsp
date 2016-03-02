@@ -12,7 +12,7 @@
 # Software and all intellectual property rights therein.  IF YOU HAVE NO
 # AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
 # AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
-# SOFTWARE.  
+# SOFTWARE.
 #
 # Except as expressly set forth in the Authorized License,
 #
@@ -89,7 +89,7 @@ CFLAGS          = $(CC_ARCH_SPEC) \
                   $(CC_INCLUDE) \
                   $(CC_DEFINES) \
                   $(ADDED_CFLAGS)  \
-                  $(CC_SOFT_FLOAT) 
+                  $(CC_SOFT_FLOAT)
 
 C++FLAGS        = $(CC_ARCH_SPEC) \
                   $(C++_COMPILER) \
@@ -141,7 +141,7 @@ COMPILE_SYMTBL	= $(CC) $(OPTION_OBJECT_ONLY) -fdollars-in-identifiers $(CFLAGS)
 OPTION_OBJECT_ONLY = -c
 OPTION_INCLUDE_DIR = -I
 # this line has a space at the end ("-o ")
-OPTION_OBJECT_NAME = -o 
+OPTION_OBJECT_NAME = -o
 OPTION_DEFINE_MACRO = -D
 
 ## only customize things below this point
@@ -149,7 +149,7 @@ OPTION_DEFINE_MACRO = -D
 
 ## toolchain flags
 
-CC_WARNINGS_ALL	= -Wall
+CC_WARNINGS_ALL	= -Wall -Wno-implicit
 CC_WARNINGS_NONE=
 C++_WARNINGS    = $(CC_WARNINGS_NONE)
 
@@ -167,9 +167,9 @@ C++_COMPILER	= $(OPTION_DEFINE_MACRO)RW_MULTI_THREAD $(OPTION_DEFINE_MACRO)_REEN
 ## toolchain binaries
 AR              = $(CROSS_COMPILE)-ar
 ifeq ($(ARM_PLATFORM), yes)
-AS              = $(CROSS_COMPILE)-as -EL   -non_shared 
+AS              = $(CROSS_COMPILE)-as -EL   -non_shared
 else
-AS              = $(CROSS_COMPILE)-as -EL -mgp32 -mips2 -non_shared 
+AS              = $(CROSS_COMPILE)-as -EL -mgp32 -mips2 -non_shared
 endif
 CC              = $(CROSS_COMPILE)-gcc -B$(GCC_EXEC_PREFIX)
 CPP             = $(CC) -E -P -xc
@@ -190,7 +190,7 @@ else
 # but SIMHP doesn't use the GNU linker or nm
 GNU_BINUTILS=
 endif
-else 
+else
 # everything else uses non-GNU tools
 GNU_COMPILER=
 GNU_BINUTILS=
@@ -304,21 +304,21 @@ endif
 ifeq ($(STATIC_LINK), 0)
 LIBS = $(LIBS_DYNAMIC)
 endif
- 
+
 
 CC_OPTIM_DRIVER = -O2                                #-fno-builtin
-CC_OPTIM_NORMAL = -O2 -fno-for-scope # -fno-builtin  
-CC_OPTIM_TARGET = -O2 
+CC_OPTIM_NORMAL = -O2 -fno-for-scope # -fno-builtin
+CC_OPTIM_TARGET = -O2
 CC_SOFT_FLOAT   =
 ifeq ($(ARM_PLATFORM), yes)
-CC_ARCH_SPEC    =   
+CC_ARCH_SPEC    =
 else
 CC_ARCH_SPEC    = -mgp32 -mips2 -G 0
 endif
 
 AR              = $(CROSS_COMPILE)-ar
 ifeq ($(ARM_PLATFORM), yes)
-AS              = $(CROSS_COMPILE)-as -EL  -mcpu=r4000  -non_shared 
+AS              = $(CROSS_COMPILE)-as -EL  -mcpu=r4000  -non_shared
 else
 AS              = $(CROSS_COMPILE)-as -EL -mgp32 -mcpu=r4000 -mips2 -non_shared -G 0
 endif
@@ -329,7 +329,7 @@ LD              = $(CROSS_COMPILE)-ld
 
 # Linker options
 ifeq ($(STATIC_LINK), 1)
-LDFLAGS         = -static  
+LDFLAGS         = -static
 else
 LDFLAGS         =
 endif

@@ -1,5 +1,5 @@
 /***************************************************************************
-*     (c)2003-2015 Broadcom Corporation
+*     (c)2003-2016 Broadcom Corporation
 *
 *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -747,7 +747,7 @@ createInfoFile(
             "contentLength=%lld\n"
             ,
             fileName,
-            psi->contentLength
+            (long long)psi->contentLength
             );
     if (psi->psiValid) {
         fprintf(fp,

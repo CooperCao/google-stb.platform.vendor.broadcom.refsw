@@ -1,5 +1,5 @@
 /********************************************************************************************
-*     (c)2004-2015 Broadcom Corporation                                                     *
+*     (c)2004-2016 Broadcom Corporation                                                     *
 *                                                                                           *
 *  This program is the proprietary software of Broadcom Corporation and/or its licensors,   *
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and      *
@@ -343,7 +343,7 @@ BERR_Code B_SocketKeepAlive(int s)
  *  This function only set the vent when data is ready, to wake up other waiting thread.
  *  \param[in] sfd socket handle.
  *  \param[in] Terminate a flag to indicate the terminate the loop.
- *  \param[in,out] type of the occured event.
+ *  \param[in,out] type of the occurred event.
  *  \param[in] hEvent handle to a event to set when data is ready.
  *  \param[in] hMutex handle to a mutex to lock/unlock when modifing shared data, in this case the "size" parameter.
  *  \param[out] the size of the data that is ready to read.
@@ -563,7 +563,7 @@ int B_SocketRecvData( int sfd, unsigned char * buffer, int length)
  *  \param[in] sfd socket file desriptor.
  *  \param[in] buffer pointer to data buffer.
  *  \param[in] length length of the data buffer.
- *  \ret length of the data sent, or error code if error occured.
+ *  \ret length of the data sent, or error code if error occurred.
  */
 int B_SocketSendData(int sfd, unsigned char * buffer, int length)
 {

@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2016 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -140,6 +140,8 @@ public:
     virtual COutputHdmi *        outputHdmiCreate(void);
     virtual CVideoWindow *       videoWindowInitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, eWindowType windowType);
     virtual void                 videoWindowUninitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow * pVideoWindow);
+    virtual CSimpleVideoDecode * videoDecodeInitialize(CStc * pStc, eWindowType windowType);
+    virtual void                 videoDecodeUninitialize(CSimpleVideoDecode ** pVideoDecode);
     virtual CStillDecode *       videoDecodeStillInitialize(void);
     virtual void                 videoDecodeStillUninitialize(void);
     virtual COutputHdmi *        outputHdmiInitialize(CDisplay * pDisplay);
@@ -155,6 +157,7 @@ public:
     virtual void                 outputSpdifUninitialize(COutputSpdif ** pOutputSpdif);
     virtual COutputAudioDac *    outputDacInitialize(void);
     virtual void                 outputDacUninitialize(COutputAudioDac ** pOutputDac);
+    virtual CSimpleAudioDecode * audioDecodeInitializePip(COutputHdmi * pOutputHdmi, COutputSpdif * pOutputSpdif, COutputAudioDac * pOutputAudioDac, COutputRFM * pOutputRFM, CStc * pStc, eWindowType winType);
 #ifdef NETAPP_SUPPORT
     virtual CBluetooth *         bluetoothCreate(void);
     virtual CAudioCapture *      audioCaptureInitialize(CBluetooth * pBluetooth);
@@ -168,37 +171,35 @@ public:
     void            controlDestroy(CControl * pControl);
     void            displayDestroy(CDisplay * pDisplay);
     CDisplay *      displayInitialize(NEXUS_VideoFormat videoFormat, uint32_t framebufferWidth, uint32_t framebufferHeight);
-    void            displayUninitialize(CDisplay * pDisplay);
+    void            displayUninitialize(CDisplay ** pDisplay);
     void            graphicsDestroy(CGraphics * pGraphics);
     CGraphics *     graphicsInitialize(CDisplay * pDisplayHD, CDisplay * pDisplaySD);
     void            graphicsUninitialize(void);
     CIrRemote *     irRemoteCreate(void);
     void            irRemoteDestroy(CIrRemote * pIrRemote);
     CIrRemote *     irRemoteInitialize(void);
-    void            irRemoteUninitialize(CIrRemote * pRemote);
+    void            irRemoteUninitialize(void);
 #ifdef RF4CE_SUPPORT
     CRf4ceRemote *  rf4ceRemoteCreate(void);
     void            rf4ceRemoteDestroy(CRf4ceRemote * pRf4ceRemote);
     CRf4ceRemote *  rf4ceRemoteInitialize(void);
-    void            rf4ceRemoteUninitialize(CRf4ceRemote * pRemote);
+    void           rf4ceRemoteUninitialize(void);
 #endif
 #ifdef NEXUS_HAS_UHF_INPUT
     CUhfRemote *    uhfRemoteCreate(void);
     void            uhfRemoteDestroy(CUhfRemote * pUhfRemote);
     CUhfRemote *    uhfRemoteInitialize(void);
-    void            uhfRemoteUninitialize(CUhfRemote * pRemote);
+    void         uhfRemoteUninitialize(void);
 #endif
 #ifdef DCC_SUPPORT
     eRet digitalClosedCaptionsInitialize(CConfig * pConfig);
     void digitalClosedCaptionsUninitialize(void);
 #endif
     CStc *               stcInitialize(eWindowType windowType);
-    void                 stcUninitialize(CStc * pStc, eWindowType windowType);
+    void                 stcUninitialize(CStc ** pStc, eWindowType windowType);
     void                 videoDecodeDestroy(eWindowType windowType);
-    CSimpleVideoDecode * videoDecodeInitialize(CStc * pStc, eWindowType windowType);
-    void                 videoDecodeUninitialize(CSimpleVideoDecode ** pVideoDecode);
     void                 audioDecodeDestroy(eWindowType windowType);
-    CSimpleAudioDecode * audioDecodeInitialize(COutputHdmi * pOutputHdmi, COutputSpdif * pOutputSpdif, COutputAudioDac * pOutputAudioDac, COutputRFM * pOutputRFM, CStc * pStc);
+    CSimpleAudioDecode * audioDecodeInitialize(COutputHdmi * pOutputHdmi, COutputSpdif * pOutputSpdif, COutputAudioDac * pOutputAudioDac, COutputRFM * pOutputRFM, CStc * pStc, eWindowType winType);
     void                 audioDecodeUninitialize(CSimpleAudioDecode ** pAudioDecode, eWindowType winType);
     eRet                 guiInitialize(CConfig * pConfig, CGraphics * pGraphics);
     void                 guiUninitialize(void);

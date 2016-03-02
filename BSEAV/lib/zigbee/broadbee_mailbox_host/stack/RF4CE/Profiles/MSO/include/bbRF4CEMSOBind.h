@@ -150,6 +150,8 @@ struct _RF4CE_MSO_BindReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service; /*!< Service field. */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_MSO_BindCallback_t callback;  /*!< Callback on request completion. */
 };

@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -247,9 +247,16 @@ error:
     return(ret);
 } /* mapInputBand */
 
-void CChannel::dump()
+void CChannel::dump(bool bForce)
 {
     CPid * pPid = NULL;
+    BDBG_Level level;
+
+    if (true == bForce)
+    {
+        BDBG_GetModuleLevel("atlas_channel", &level);
+        BDBG_SetModuleLevel("atlas_channel", BDBG_eMsg);
+    }
 
     BDBG_MSG(("channel - type:%s, number:%d.%d, tuned:%d", boardResourceToString(_type).s(), _major, _minor, _tuned));
     for (int i = 0; NULL != (pPid = _pidMgr.getPid(i, ePidType_Video)); i++)
@@ -268,6 +275,11 @@ void CChannel::dump()
     if (NULL != pPid)
     {
         BDBG_MSG(("     pcr   pid:0x%2x", pPid->getPid()));
+    }
+
+    if (true == bForce)
+    {
+        BDBG_SetModuleLevel("atlas_channel", level);
     }
 } /* dump */
 
@@ -600,4 +612,11 @@ const char * CChannel::getMetadataValue(int index)
         return(pStr->s());
     }
     return(NULL);
+}
+eRet CChannel::start (CSimpleAudioDecode * pAudioDecode, CSimpleVideoDecode * pVideoDecode)
+{
+     BSTD_UNUSED(pAudioDecode);
+     BSTD_UNUSED(pVideoDecode);
+
+     return(eRet_Ok);
 }

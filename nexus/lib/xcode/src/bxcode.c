@@ -49,6 +49,7 @@
 #include "bxcode.h"
 #ifdef NEXUS_HAS_VIDEO_ENCODER
 #include "bxcode_priv.h"
+#include "nexus_audio.h"
 
 BDBG_MODULE(bxcode);
 BDBG_OBJECT_ID(bxcode);
@@ -286,6 +287,9 @@ NEXUS_Error BXCode_Start(
         NEXUS_StcChannel_GetDefaultSettings(NEXUS_ANY_ID, &stcSettings);
         stcSettings.timebase = hBxcode->openSettings.timebase;
         stcSettings.mode = NEXUS_StcChannelMode_eAuto;
+        if(pSettings->input.type == BXCode_InputType_eHdmi) {
+            stcSettings.autoConfigTimebase = false; /* hdmi input timebase will be configured by hdmi input module! */
+        }
         hBxcode->stcChannelDecoder = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &stcSettings);
         BDBG_MSG(("Transcoder%d opened decoder STC [%p].", hBxcode->id, hBxcode->stcChannelDecoder));
 
@@ -293,6 +297,7 @@ NEXUS_Error BXCode_Start(
         stcSettings.timebase = hBxcode->openSettings.timebase;/* should be the same timebase for end-to-end locking */
         stcSettings.mode = NEXUS_StcChannelMode_eAuto;/* for encoder&mux, only timebase matters */
         stcSettings.pcrBits = NEXUS_StcChannel_PcrBits_eFull42;/* ViCE2 requires 42-bit STC broadcast */
+        stcSettings.autoConfigTimebase = false;/* encoder STC does not auto config timebase */
         hBxcode->stcChannelEncoder = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &stcSettings);
         BDBG_MSG(("Transcoder%d opened encoder STC [%p].", hBxcode->id, hBxcode->stcChannelEncoder));
     }

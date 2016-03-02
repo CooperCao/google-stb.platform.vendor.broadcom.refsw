@@ -1,7 +1,7 @@
 #############################################################################
-# (c) 2003-2015 Broadcom Corporation
+# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its
+# This program is the proprietary software of Broadcom and/or its
 # licensors, and may only be used, duplicated, modified or distributed pursuant
 # to the terms and conditions of a separate, written license agreement executed
 # between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -106,12 +106,12 @@ ifeq ($(B_REFSW_ARCH),)
 B_REFSW_ARCH=mips-linux
 export B_REFSW_ARCH
 endif
-ifneq ($(filter $(B_REFSW_DEBUG),n no_error_messages),)
-    DEBUG_SUFFIX=release
-	B_REFSW_DEBUG=n
+
+B_REFSW_DEBUG ?= y
+ifeq ($(B_REFSW_DEBUG),y)
+DEBUG_SUFFIX=debug
 else
-    DEBUG_SUFFIX=debug
-	B_REFSW_DEBUG=y
+DEBUG_SUFFIX=release
 endif
 
 #########
@@ -268,8 +268,11 @@ $(ATLAS_ODIR):
 ##########
 #####always build main.o because it contains __DATE__
 ##########
+.PHONY: build_date
 build_date:
 	$(Q_)$(RM) -f $(ATLAS_ODIR)/main.o
+
+$(ATLAS_ODIR)/main.o: build_date
 
 clean-atlas:
 	-@$(RM) -rf $(ATLAS_ODIR)
@@ -952,7 +955,7 @@ endif
 ifeq ($(NETAPP_SUPPORT),y)
 NETAPP_DIR = $(BSEAV)/../trellis/connectivity/netapp/build
 NETAPP_OUTPUT_DIR = ${B_REFSW_OBJ_ROOT}/BSEAV/bin
-FETCH_NETAPP_CMD := repo init -u ssh://$$USER@git-irv-02.irv.broadcom.com:29418/AppLibs -b URSR-16.1 && repo sync
+FETCH_NETAPP_CMD := git clone ssh://$$USER@git-irv-02.irv.broadcom.com:29418/dev/trellis.git -b URSR-16.1
 
 ifneq ($(findstring clean,$(MAKECMDGOALS)), clean)
      include ${NETAPP_OUTPUT_DIR}/include/netapp.inc
@@ -1070,21 +1073,21 @@ endif
 ifeq ($(CABLECARD_SUPPORT),y)
 #this builds and cleans MPOD driver/lib
 podlibs:
-	$(MAKE) -C $(POD_DIR) DSG_SUPPORT=$(DSG_SUPPORT) ESTB_CFG_SUPPORT=$(ESTB_CFG_SUPPORT) TWOWAY_OOB_CABLECARD_SUPPORT=$(TWOWAY_OOB_CABLECARD_SUPPORT)
-	$(MAKE) -C $(BSEAV)/lib/openssl
-	$(MAKE) -C $(CP_DIR)/build -f makefile.cplib
+	${Q_}$(MAKE) -C $(POD_DIR) DSG_SUPPORT=$(DSG_SUPPORT) ESTB_CFG_SUPPORT=$(ESTB_CFG_SUPPORT) TWOWAY_OOB_CABLECARD_SUPPORT=$(TWOWAY_OOB_CABLECARD_SUPPORT)
+	${Q_}$(MAKE) -C $(BSEAV)/lib/openssl
+	${Q_}$(MAKE) -C $(CP_DIR)/build -f makefile.cplib
 
 clean-podlibs:
-	$(MAKE) -C $(POD_DIR) clean DSG_SUPPORT=$(DSG_SUPPORT) ESTB_CFG_SUPPORT=$(ESTB_CFG_SUPPORT)
-	$(MAKE) -C $(BSEAV)/lib/openssl clean
-	$(MAKE) -C $(CP_DIR)/build -f makefile.cplib clean
+	${Q_}$(MAKE) -C $(POD_DIR) clean DSG_SUPPORT=$(DSG_SUPPORT) ESTB_CFG_SUPPORT=$(ESTB_CFG_SUPPORT)
+	${Q_}$(MAKE) -C $(BSEAV)/lib/openssl clean
+	${Q_}$(MAKE) -C $(CP_DIR)/build -f makefile.cplib clean
 
 pod-driver:
-	$(MAKE) -C $(POD_DRIVERDIR)
+	${Q_}$(MAKE) -C $(POD_DRIVERDIR)
 
 #this builds and cleans pod driver
 clean-pod-driver:
-	$(MAKE) -C $(POD_DRIVERDIR) clean
+	${Q_}$(MAKE) -C $(POD_DRIVERDIR) clean
 
 install-pod-driver:
 ifeq ($(SYSTEM),linux)
@@ -1249,9 +1252,9 @@ endif
 ifeq ($(SI_SUPPORT),y)
 # This builds and cleans the si libs
 silib:
-	$(MAKE) -C $(SI_DIR)/build TOOLCHAIN_DIR=$(TOOLCHAIN_DIR)
+	${Q_}$(MAKE) -C $(SI_DIR)/build TOOLCHAIN_DIR=$(TOOLCHAIN_DIR)
 clean-silib:
-	$(MAKE) -C $(SI_DIR)/build TOOLCHAIN_DIR=$(TOOLCHAIN_DIR) clean
+	${Q_}$(MAKE) -C $(SI_DIR)/build TOOLCHAIN_DIR=$(TOOLCHAIN_DIR) clean
 
 else # SI_SUPPORT is not defined, so define empty targets
 silib:
@@ -1476,6 +1479,12 @@ endif
 else
 install-cable-files:
 #intentionally left empty
+endif
+
+ifeq ($(NEXUS_USE_3390_VMS),y)
+	@echo  [...... Installing cable files for 93390 ......]
+	$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml
+	@$(CP) -r $(BSEAV)/cable/bin/93390/* $(STAGING_DIR)
 endif
 
 ifeq ($(ESTB_SNMP_SUPPORT),y)

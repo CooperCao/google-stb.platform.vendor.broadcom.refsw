@@ -403,8 +403,7 @@ int main(int argc, const char **argv)  {
     NxClient_GetDefaultConnectSettings(&connectSettings);
     connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;
     connectSettings.simpleVideoDecoder[0].surfaceClientId = allocResults.surfaceClient[0].id;
-    connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxWidth = 0; /* no decoder needed, just a window */
-    connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxHeight = 0;
+    connectSettings.simpleVideoDecoder[0].decoderCapabilities.connectType = NxClient_VideoDecoderConnectType_eWindowOnly;
     connectSettings.simpleVideoDecoder[0].windowCapabilities.type = videoWindowType;
     connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
     rc = NxClient_Connect(&connectSettings, &connectId);

@@ -1,5 +1,5 @@
 /***************************************************************************
-*     (c)2003-2015 Broadcom Corporation
+*     (c)2003-2016 Broadcom Corporation
 *
 *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -875,8 +875,8 @@ liveStreamingThreadFromRaveBuffer(
                     else {
                         /* got atleast 1st 2 GOPs, so get the bytesRecordedTill last gop */
                         BDBG_ASSERT(indexBytesRead%BRCM_TPIT_ENTRY_SIZE==0);
-                        BDBG_MSG(("%s: received 1st GOP (indexBytesRead %d), last RAP entry %p", __FUNCTION__, indexBytesRead, (unsigned *)((unsigned)indexBuf + (indexBytesRead - BRCM_TPIT_ENTRY_SIZE))));
-                        indexBuf = (unsigned *)((unsigned)indexBuf + (indexBytesRead - BRCM_TPIT_ENTRY_SIZE));
+                        BDBG_MSG(("%s: received 1st GOP (indexBytesRead %d), last RAP entry %p", __FUNCTION__, indexBytesRead, indexBuf + (indexBytesRead - BRCM_TPIT_ENTRY_SIZE)));
+                        indexBuf = indexBuf + (indexBytesRead - BRCM_TPIT_ENTRY_SIZE);
                     }
                 }
                 /* accumulated upto 2nd Random Access Indicator, i.e. one full GOP */
@@ -1414,7 +1414,7 @@ hlsStreamingThreadFromRaveBuffer(
                 /* we will use the 2nd entry for calculating the size of the 1st GOP */
                 BDBG_MSG(("%s: GOT 1st full GOP", __FUNCTION__));
                 BDBG_ASSERT((indexBytesRead >= (2*BRCM_TPIT_ENTRY_SIZE)));
-                indexBuf = (unsigned *)((unsigned)indexBuf + BRCM_TPIT_ENTRY_SIZE); /* index needs to point to the 2nd RAI entry, then we can get the size of the very 1st GOP in belows logic */
+                indexBuf = indexBuf + BRCM_TPIT_ENTRY_SIZE; /* index needs to point to the 2nd RAI entry, then we can get the size of the very 1st GOP in belows logic */
 #ifdef DEBUG
                 BDBG_MSG(("%s: 2nd index bytesRead %d, tipt[0] 0x%x, tpit[2] 0x%x, tpit[3] 0x%x", __FUNCTION__, indexBytesRead, *indexBuf, *(indexBuf+2), *(indexBuf+3)));
 #endif

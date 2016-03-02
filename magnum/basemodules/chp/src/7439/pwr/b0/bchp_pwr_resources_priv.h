@@ -41,10 +41,10 @@
 #define BCHP_PWR_HW_HVD0_HVD0_GISB                       0xff000004
 #define BCHP_PWR_HW_HVD0_SRAM                            0xff000005
 #define BCHP_PWR_HW_HVD1                                 0xff000006
-#define BCHP_PWR_HW_HVD_SID1_HVD1_CORE                   0xff000007
-#define BCHP_PWR_HW_HVD_SID1_HVD1_CPU                    0xff000008
-#define BCHP_PWR_HW_HVD_SID1_HVD1_GISB                   0xff000009
-#define BCHP_PWR_HW_HVD1_SID                             0xff00000a
+#define BCHP_PWR_HW_HVD1_SID                             0xff000007
+#define BCHP_PWR_HW_HVD_SID1_HVD1_CORE                   0xff000008
+#define BCHP_PWR_HW_HVD_SID1_HVD1_CPU                    0xff000009
+#define BCHP_PWR_HW_HVD_SID1_HVD1_GISB                   0xff00000a
 #define BCHP_PWR_HW_HVD1_SRAM                            0xff00000b
 #define BCHP_PWR_HW_VICE0_CORE_CLK                       0xff00000c
 #define BCHP_PWR_HW_VICE0_GISB_CLK                       0xff00000d

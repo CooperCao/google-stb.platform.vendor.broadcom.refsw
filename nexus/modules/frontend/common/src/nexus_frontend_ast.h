@@ -60,6 +60,12 @@
 #include "bast_g3.h"
 #endif
 
+#if NEXUS_FRONTEND_AST_DISABLE_PM
+/* remove power management when 4056 external
+   is using internal LNA of 7346/73465/... */
+#undef NEXUS_POWER_MANAGEMENT
+#endif
+
 #ifdef NEXUS_FRONTEND_73XX
 #if BCHP_CHIP==7344 || BCHP_CHIP==7358
 #include "bast_g3.h"

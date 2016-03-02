@@ -139,6 +139,7 @@ typedef struct NEXUS_SurfaceClientSettings
         it will result in slower updates than just using the recycled callback. */
     NEXUS_CallbackDesc displayStatusChanged; /* NEXUS_SurfaceClientStatus.display has changed */
     NEXUS_CallbackDesc windowMoved; /* video window has been moved and another call can be accepted without blocking */
+    NEXUS_CallbackDesc vsync; /* display vsync callback tunneled to clients from surface compositor. */
 
     NEXUS_VideoOrientation orientation; /* orientation of the client's surface.
         if display is 3D:

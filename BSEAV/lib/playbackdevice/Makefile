@@ -47,7 +47,9 @@
 # 
 ############################################################
 
-BSEAV_TOP := $(shell cd ../../../BSEAV; pwd)
+NEXUS := $(URSR_TOP)/nexus
+BSEAV_TOP=$(URSR_TOP)/BSEAV
+PLAYBACKDEVICE_STAND_ALONE_APPLICATION := y
 
 # Directory Paths
 ifeq ($(PLAYBACKDEVICE_STAND_ALONE_APPLICATION),y)
@@ -65,27 +67,17 @@ clean: lib-clean
 export NEXUSMGR_SRC_PATH
 
 lib-environment:
-	@if [ -z "${PLATFORM}"  ] || \
+	@if [ -z "${NEXUS_PLATFORM}"  ] || \
 	   [ -z "${BCHP_VER}"  ] || \
-	   [ -z "${SC_PLATFORM}"  ] || \
 	   [ -z "${NEXUS}"  ]; then \
 		echo ; echo ;\
 		echo "I detected that one of the following environment variables is missing:"; \
-		echo "PLATFORM"=${PLATFORM}; \
+		echo "NEXUS_PLATFORM"=${NEXUS_PLATFORM}; \
 		echo "BCHP_VER"=${BCHP_VER}; \
 		echo "NEXUS"=${NEXUS}; \
-		echo "SC_PLATFORM(=nexus)"=${SC_PLATFORM}; \
 		echo "You should define ALL of these if you expect this build to work"; \
 		exit 1; \
-	fi
-	@if ! which mipsel-linux-gcc ; then \
-		echo "path ="${PATH};\
-		echo ; echo ;\
-		echo "I detected your path variable does not have a mipsel-linux-gcc available"; \
-		echo "You should add the toolchain bin path to your PATH variable"; \
-		echo "start compiling.........";\
-		exit 1; \
-	fi;
+        fi;
 
 .PHONY: nexusMgr playbackdevice
 
@@ -102,7 +94,7 @@ lib-clean: clean_playbackdevice clean_nexusmgr
 clean_playbackdevice:
 	@echo "clean_playbackdevice: in progress"
 
-	${MAKE} ${CFLAGS} -C $(BSEAV_TOP)/lib/playbackdevice/src clean
+	${MAKE} -C $(BSEAV_TOP)/lib/playbackdevice/src clean
 
 clean_nexusmgr:
 	@echo "clean_nexusmgr: in progress"

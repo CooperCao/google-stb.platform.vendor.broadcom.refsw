@@ -189,7 +189,7 @@ void *BMEM_Heap_AllocAligned(BMEM_Heap_Handle h, size_t ulSize, unsigned int  ui
 #endif
     if(block==NULL) {(void)BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);goto err_alloc;}
     offset = BMMA_LockOffset_tagged(block, pchFile, iLine);
-    if(offset < h->settings.base || offset + ulSize >= h->settings.base + h->settings.length) { (void)BERR_TRACE(BERR_NOT_SUPPORTED);goto err_offset_out_of_range;}
+    if(offset < h->settings.base || offset + ulSize > h->settings.base + h->settings.length) { (void)BERR_TRACE(BERR_NOT_SUPPORTED);goto err_offset_out_of_range;}
     if(Boundary) {
         if( (offset & 1<<Boundary) != ((offset + ulSize) & 1<<Boundary) ) {
             BDBG_ERR(("%p:Boundary request wasn't satisfied: %#x %#x (%#x)", (void *)h, (unsigned)offset, (unsigned)(offset+ulSize), (unsigned)1<<Boundary));

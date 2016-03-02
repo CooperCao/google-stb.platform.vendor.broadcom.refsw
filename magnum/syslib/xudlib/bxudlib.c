@@ -201,7 +201,7 @@ BXUDlib_Create(BXUDlib_Handle *phXud, const BXUDlib_CreateSettings *pstXudCreate
        BDBG_ERR(("Error opening output CC dump file"));
     }
 
-    fprintf(pContext->hOutputCCDump, "stg_pic_id,stg_decode_pic_id,queue_entry,descriptor_index,decode_pic_id,format,analog,polarity,valid,line_offset,type,data_0,data_1,notes,608_read,608_write,708_read,708_write\n");
+    fprintf(pContext->hOutputCCDump, "stg_pic_id,stg_decode_pic_id,stg_polarity,queue_entry,descriptor_index,decode_pic_id,format,analog,polarity,valid,line_offset,type,data_0,data_1,notes,608_read,608_write,708_read,708_write\n");
 #endif
 
     *phXud = (BXUDlib_Handle)pContext;
@@ -648,9 +648,10 @@ BXUDlib_P_OutputUserData_isr( BXUDlib_P_Context *pContext, uint32_t stgPictureId
 #if BXUDLIB_P_DUMP_OUTPUT_CC
              if ( NULL != pContext->hOutputCCDump )
              {
-                fprintf(pContext->hOutputCCDump, "%d,%d,-,-,-,-,-,-,-,-,-,-,-,OUTPUT QUEUE FULL\n",
+                fprintf(pContext->hOutputCCDump, "%d,%d,%d,-,-,-,-,-,-,-,-,-,-,-,OUTPUT QUEUE FULL\n",
                    stgPictureId,
-                   pContext->decodeId
+                   pContext->decodeId,
+                   pContext->currentPolarity
                    );
              }
 #endif
@@ -703,15 +704,21 @@ BXUDlib_P_DiscardOutOfSyncData_isr( BXUDlib_P_Context *pContext, BXUD_StdInfo *p
             bResult = true;
             break;
          }
-         if ( threshold > 1 )
+         if ( true == pstdInfo->synced )
          {
             BDBG_WRN(("Discarding out-of-sync CC Data (%d>%d)", uiDelta,threshold));
+            /* SW7445-3487: If we are already synced and there's out-of-sync CC data.
+             *              This indicates a discontinuity, so should re-sync
+             *              with the smallest threshold */
+            threshold = 1;
+            pstdInfo->synced = false;
          }
 #if BXUDLIB_P_DUMP_OUTPUT_CC
              if ( NULL != pContext->hOutputCCDump )
              {
-                fprintf(pContext->hOutputCCDump, "-,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,DISCARD(%d)\n",
+                fprintf(pContext->hOutputCCDump, "-,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,DISCARD(%d)\n",
                    decodePictureId,
+                   pContext->currentPolarity,
                    pContext->uiOutputQueueEntryCount,
                    pContext->numPacketDescriptors,
                    pstdInfo->type[uiType].astCCData[pstdInfo->type[uiType].uiReadOffset].uiDecodePictureId,
@@ -761,9 +768,10 @@ BXUDlib_P_Add_UserData_isr( BXUDlib_P_Context *pContext, BUDP_DCCparse_Format fo
 #if BXUDLIB_P_DUMP_OUTPUT_CC
              if ( NULL != pContext->hOutputCCDump )
              {
-                fprintf(pContext->hOutputCCDump, "%d,%d,%d,-,-,%d,-,-,-,-,-,-,-,SYNC,%d,%d,%d,%d\n",
+                fprintf(pContext->hOutputCCDump, "%d,%d,%d,%d,-,-,%d,-,-,-,-,-,-,-,SYNC,%d,%d,%d,%d\n",
                    pstDisplayCallbackData->ulStgPictureId,
                    pstDisplayCallbackData->ulDecodePictureId,
+                   pContext->currentPolarity,
                    pContext->uiOutputQueueEntryCount,
                    format,
                    pstdInfo->type[0].uiReadOffset,
@@ -878,9 +886,10 @@ BXUDlib_P_Add_UserData_isr( BXUDlib_P_Context *pContext, BUDP_DCCparse_Format fo
    #if BXUDLIB_P_DUMP_OUTPUT_CC
                 if ( NULL != pContext->hOutputCCDump )
                 {
-                   fprintf(pContext->hOutputCCDump, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,DATA,%d,%d,%d,%d\n",
+                   fprintf(pContext->hOutputCCDump, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,DATA,%d,%d,%d,%d\n",
                       pstDisplayCallbackData->ulStgPictureId,
                       pstDisplayCallbackData->ulDecodePictureId,
+                      pContext->currentPolarity,
                       pContext->uiOutputQueueEntryCount,
                       pContext->numPacketDescriptors,
                       pstdInfo->type[uiType].astCCData[pstdInfo->type[uiType].uiReadOffset].uiDecodePictureId,
@@ -921,9 +930,10 @@ BXUDlib_P_Add_UserData_isr( BXUDlib_P_Context *pContext, BUDP_DCCparse_Format fo
 #if BXUDLIB_P_DUMP_OUTPUT_CC
        if ( NULL != pContext->hOutputCCDump )
        {
-          fprintf(pContext->hOutputCCDump, "%d,%d,%d,-,-,%d,-,-,-,-,-,-,-,NO DATA,%d,%d,%d,%d\n",
+          fprintf(pContext->hOutputCCDump, "%d,%d,%d,%d,-,-,%d,-,-,-,-,-,-,-,NO DATA,%d,%d,%d,%d\n",
              pstDisplayCallbackData->ulStgPictureId,
              pstDisplayCallbackData->ulDecodePictureId,
+             pContext->currentPolarity,
              pContext->uiOutputQueueEntryCount,
              format,
              pstdInfo->type[0].uiReadOffset,

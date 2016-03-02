@@ -125,9 +125,17 @@ CFLAGS += -Wimplicit-function-declaration -Wall -lm
 ifeq ($(ANDROID_BUILD),y)
 CFLAGS += -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 endif
+CFLAGS += -DBMEMCONFIG_READ32_SUPPORTED
 
 # Always build with debug
 CFLAGS += -g
+
+ifeq ($(filter $(BCHP_CHIP),7445), $(BCHP_CHIP))
+ifeq ($(filter $(BCHP_VER),E0), $(BCHP_VER))
+BCHP_VER_LOWER=d0
+BCHP_VER=D0
+endif
+endif
 
 BOXMODE_FILES = $(shell ls -1v $(NEXUS_TOP)/../magnum/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/bbox_memc_box*_config.c )
 

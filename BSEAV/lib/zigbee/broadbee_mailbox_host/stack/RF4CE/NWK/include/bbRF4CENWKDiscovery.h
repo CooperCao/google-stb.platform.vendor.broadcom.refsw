@@ -169,6 +169,8 @@ typedef struct _RF4CE_NWK_DiscoveryReqDescr_t
 {
 #ifndef _HOST_
     SYS_QueueElement_t queueElement;            /*!< Service field. */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_NWK_DiscoveryReqParams_t params;   /*!< The filled request. */
     RF4CE_NWK_DiscoveryConfCallback_t callback; /*!< Callback to be called upon operation complete. */
@@ -281,6 +283,8 @@ typedef struct _RF4CE_NWK_AutoDiscoveryReqDescr_t
 {
 #ifndef _HOST_
     SYS_QueueElement_t queueElement;            /*!< Service field. */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_NWK_AutoDiscoveryReqParams_t params;   /*!< The filled request. */
     RF4CE_NWK_AutoDiscoveryConfCallback_t callback; /*!< Callback to be called upon operation complete. */

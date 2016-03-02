@@ -41,15 +41,17 @@
 #
 ############################################################
 
-NEXUS_TOP = $(NEXUS)
+NEXUS_TOP = $(URSR_TOP)/nexus
 
 # Include platform build objects
-include $(NEXUS_TOP)/platforms/$(PLATFORM)/build/platform_app.inc
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
+
+NEXUS_MGR_DIR := $(URSR_TOP)/BSEAV/lib/playbackdevice
 
 # Include build rules
 CFLAGS += $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
-CFLAGS += -I $(NEXUS)/lib/os/include
-CFLAGS += -I $(NEXUS)/lib/os/include/linuxuser
+CFLAGS += -I $(NEXUS_TOP)/lib/os/include
+CFLAGS += -I $(NEXUS_TOP)/lib/os/include/linuxuser
 CFLAGS += -I $(NEXUS_MGR_DIR)
 CFLAGS += -g
 CFLAGS += -fno-rtti
@@ -58,7 +60,7 @@ CFLAGS += -fno-rtti
     CFLAGS += -DBDBG_DEBUG_BUILD=1; \
 fi;
 
-ifeq ($(PLAYBACKDEVICE_STAND_ALONE_APPLICATION), y)
+ifneq ($(PLAYBACKDEVICE_STAND_ALONE_APPLICATION), n)
     CFLAGS += -DPLAYBACKDEVICE_STAND_ALONE_APP 
 endif
 
@@ -72,8 +74,8 @@ CFLAGS += -D_LARGEFILE64_SOURCE
 CFLAGS += -DBCHP_ENDIAN=le
 CFLAGS += -DLINUX
 
-ifeq ($(PLAYBACKDEVICE_STAND_ALONE_APPLICATION), y)
-B_LIB_TOP = $(addsuffix /lib,$(NEXUS))
+ifneq ($(PLAYBACKDEVICE_STAND_ALONE_APPLICATION), n)
+B_LIB_TOP = $(NEXUS_BIN_DIR)
 NEXMGR_INCLUDE_PATH = $(addsuffix /nexusMgr,$(NEXUS_MGR_DIR))
 CFLAGS += $(addprefix -I,$(B_LIB_TOP)/os/include) $(addprefix -I,$(B_LIB_TOP)/os/include/linuxuser)
 CFLAGS += $(addprefix -I,$(NEXMGR_INCLUDE_PATH))
@@ -82,19 +84,17 @@ endif
 all: PlaybackDevice
 
 lib-environment:
-	@if [ -z "${PLATFORM}"  ] || \
+	@if [ -z "${NEXUS_PLATFORM}"  ] || \
 	   [ -z "${NEXUS_MGR_DIR}"  ] || \
 	   [ -z "${BCHP_VER}"  ] || \
 	   [ -z "${MAGNUM}"  ] || \
-	   [ -z "${PLAYBACKDEVICE_STAND_ALONE_APPLICATION}"  ] || \
-	   [ -z "${NEXUS}"  ]; then \
+	   [ -z "${URSR_TOP}"  ]; then \
 		echo ; echo ;\
 		echo "I detected that one of the following environment variables is missing:"; \
-		echo "PLATFORM"=${PLATFORM}; \
+		echo "NEXUS_PLATFORM"=${NEXUS_PLATFORM}; \
 		echo "BCHP_VER"=${BCHP_VER}; \
-		echo "NEXUS"=${NEXUS}; \
+		echo "URSR_TOP"=${URSR_TOP}; \
 		echo "NEXUS_MGR_DIR"=${NEXUS_MGR_DIR}; \
-		echo "PLAYBACKDEVICE_STAND_ALONE_APPLICATION"=${PLAYBACKDEVICE_STAND_ALONE_APPLICATION}; \
 		echo "You should define ALL of these if you expect this build to work"; \
 		exit 1; \
 	fi
@@ -103,16 +103,12 @@ PlaybackDevice: lib-environment
 	@echo "==========>Building PlaybackDevice library"
 	@echo "CFLAGS = " $(CFLAGS)
 	@echo "B_LIB_TOP = " $(B_LIB_TOP)
-	@echo "EDK_LIBDIR = " $(EDK_LIBDIR)
 	@echo "NEXUS_MGR_DIR = " $(NEXUS_MGR_DIR)
 	@echo "NEXMGR_INCLUDE_PATH="$(NEXMGR_INCLUDE_PATH)
 
-	@if ! [ -e "${EDK_LIBDIR}" ]; then \
-		mkdir -p ${EDK_LIBDIR}; \
-	fi;
 
-	@${CC} ${CFLAGS} -shared -DPIC -fpic -L${SC_BCM_NEXUS_LIBDIR} -lnexus PlaybackDevice.cpp EventQueue.cpp -o ${EDK_LIBDIR}/libPlaybackDevice.so;
+	@${CC} ${CFLAGS} -shared -DPIC -fpic -L${SC_BCM_NEXUS_LIBDIR} -lnexus PlaybackDevice.cpp EventQueue.cpp -o ${NEXUS_BIN_DIR}/libPlaybackDevice.so;
 
 clean:
-	rm -rf ${EDK_LIBDIR}/libPlaybackDevice.so
+	rm -rf ${NEXUS_BIN_DIR}/libPlaybackDevice.so
 

@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -376,7 +376,9 @@ CSimpleAudioDecode::CSimpleAudioDecode(
     _audioProcessing(eAudioProcessing_None),
     _stereoInput(NULL),
     _bEncodeConnectedDts(false),
-    _bEncodeConnectedAc3(false)
+    _bEncodeConnectedAc3(false),
+    _windowType(eWindowType_Max),
+    _pModel(NULL)
 {
     eRet ret = eRet_Ok;
 
@@ -435,11 +437,10 @@ eRet CSimpleAudioDecode::open(
     for (i = 0; i < 2; i++)
     {
         _pDecoders[i] = (CAudioDecode *)_pBoardResources->checkoutResource(_resourceId, eBoardResource_decodeAudio);
-        if (NULL != _pDecoders[i])
-        {
-            ret = _pDecoders[i]->open(NULL, pStc);
-            CHECK_ERROR_GOTO("Audio decode failed to open", ret, error);
-        }
+        CHECK_PTR_WARN_GOTO("unable to checkout audio decoder", _pDecoders[i], ret, eRet_NotAvailable, error);
+
+        ret = _pDecoders[i]->open(NULL, pStc);
+        CHECK_ERROR_GOTO("Audio decode failed to open", ret, error);
     }
 
     NEXUS_SimpleAudioDecoder_GetDefaultServerSettings(&settings);
@@ -572,7 +573,10 @@ eRet CSimpleAudioDecode::open(
         nError = NEXUS_SimpleAudioDecoder_SetSettings(_simpleDecoder, &_simpleDecoderSettings);
         CHECK_NEXUS_ERROR_GOTO("Error applying simple audio decoder settings.", ret, nError, error);
     }
+    goto done;
 error:
+    close();
+done:
     return(ret);
 } /* open */
 
@@ -1230,8 +1234,15 @@ eRet CSimpleAudioDecode::start(
     NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&settings);
     settings.primary.codec      = pPid->getAudioCodec();
     settings.primary.pidChannel = pPid->getPidChannel();
-    /* nerror                      = NEXUS_SimpleAudioDecoder_SetStcChannel(_simpleDecoder, pStc->getSimpleStcChannel()); */
-    CHECK_NEXUS_ERROR_GOTO("starting simple audio decoder failed!", ret, nerror, error);
+
+    if (NULL != pStc)
+    {
+        settings.primer.pcm         = true;
+        settings.primer.compressed  = true;
+
+        nerror = NEXUS_SimpleAudioDecoder_SetStcChannel(_simpleDecoder, pStc->getSimpleStcChannel());
+        CHECK_NEXUS_ERROR_GOTO("starting simple audio decoder failed!", ret, nerror, error);
+    }
 
     /*
      * set downmix
@@ -1247,6 +1258,7 @@ eRet CSimpleAudioDecode::start(
     _started = true;
 
     notifyObservers(eNotify_AudioDecodeStarted, this);
+    notifyObservers(eNotify_DecodeStarted);
 error:
     return(ret);
 } /* start */
@@ -1272,6 +1284,7 @@ CPid * CSimpleAudioDecode::stop()
     _started = false;
 
     notifyObservers(eNotify_AudioDecodeStopped, this);
+    notifyObservers(eNotify_DecodeStopped);
 error:
     return(pPid);
 } /* stop */

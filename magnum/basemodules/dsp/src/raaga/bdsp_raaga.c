@@ -115,6 +115,7 @@ Input       :   pDsp        -   Device Handle which is returned to the PI.
                 memHandle   -   Memory Handle provided by the PI.
                 intHandle       -   Interrupt Handle provided by the PI.
                 tmrHandle   -   Timer Handle provided by the PI.
+                boxHandle   -  BOX Mode handle provided by the PI.
                 pSettings       -   Device Settings provided by the PI to open the Raaga Open.
 
 Return      :   Error Code to return SUCCESS or FAILURE
@@ -135,6 +136,7 @@ BERR_Code BDSP_Raaga_Open(
     BMEM_Handle memHandle,
     BINT_Handle intHandle,
     BTMR_Handle tmrHandle,
+    BBOX_Handle boxHandle,
     const BDSP_RaagaSettings *pSettings
     )
 {
@@ -146,6 +148,7 @@ BERR_Code BDSP_Raaga_Open(
     BDBG_ASSERT(NULL != regHandle);
     BDBG_ASSERT(NULL != memHandle);
     BDBG_ASSERT(NULL != intHandle);
+
     /* tmr is not required */
     BSTD_UNUSED(tmrHandle);
     BDBG_ASSERT(NULL != pSettings);
@@ -198,6 +201,7 @@ BERR_Code BDSP_Raaga_Open(
     pRaaga->regHandle = regHandle;
     pRaaga->memHandle = memHandle;
     pRaaga->intHandle = intHandle;
+	pRaaga->boxHandle = boxHandle;
 
 #ifdef BDSP_FW_RBUF_CAPTURE
     /* Specific to FW Ring Buffer capture required for their unit testing */
@@ -252,7 +256,7 @@ Type        :   PI Interface
 
 Input       :   pSettings       -   Device Settings provided by the PI to open the Raaga Open.
                 pUsage      -   Pointer to usage case scenario from which we determine the runtime memory.
-                chpHandle   -     Chip Handle for which the memory needs to be estimated.
+                boxHandle   -     BOX Mode Handle for which the memory needs to be estimated.
                 pEstimate   -   Pointer provided by the where the memory estimate from the BDSP is returned.
 
 Return      :   Error Code to return SUCCESS or FAILURE
@@ -263,7 +267,7 @@ Functionality   :
 BERR_Code BDSP_Raaga_GetMemoryEstimate(
     const BDSP_RaagaSettings     *pSettings,
     const BDSP_RaagaUsageOptions *pUsage,
-    BCHP_Handle                   chpHandle,
+    BBOX_Handle                   boxHandle,
     BDSP_RaagaMemoryEstimate     *pEstimate /*[out]*/
 )
 {
@@ -272,7 +276,7 @@ BERR_Code BDSP_Raaga_GetMemoryEstimate(
     BDBG_ASSERT(NULL != pEstimate);
     BDBG_ASSERT(NULL != pUsage);
 
-    ret = BDSP_Raaga_P_GetMemoryEstimate(pSettings,pUsage,chpHandle,pEstimate);
+    ret = BDSP_Raaga_P_GetMemoryEstimate(pSettings,pUsage,boxHandle, pEstimate);
 
     return ret;
 }
@@ -629,18 +633,21 @@ void BDSP_Raaga_GetCodecCapabilities(BDSP_CodecCapabilities *pSetting)
             pSetting->dolbyMs.pcm71 = false;
             break;
     }
+#else
+            pSetting->dolbyMs.dapv2 = false;
+#ifdef BDSP_AC3ENC_SUPPORT
+			pSetting->dolbyMs.ddEncode = true;
+#else
+            pSetting->dolbyMs.ddEncode = false;
+#endif
+            pSetting->dolbyMs.ddpEncode51 = false;
+            pSetting->dolbyMs.ddpEncode71 = false;
+            pSetting->dolbyMs.pcm71 = false;
+#endif
 
             BDBG_MSG(("pSetting->dolbyMs.dapv2 = %d", pSetting->dolbyMs.dapv2));
             BDBG_MSG(("pSetting->dolbyMs.ddEncode = %d", pSetting->dolbyMs.ddEncode));
             BDBG_MSG(("pSetting->dolbyMs.ddpEncode51 = %d", pSetting->dolbyMs.ddpEncode51));
             BDBG_MSG(("pSetting->dolbyMs.ddpEncode71 = %d", pSetting->dolbyMs.ddpEncode71));
             BDBG_MSG(("pSetting->dolbyMs.pcm71 = %d", pSetting->dolbyMs.pcm71));
-#else
-            pSetting->dolbyMs.dapv2 = false;
-            pSetting->dolbyMs.ddEncode = false;
-            pSetting->dolbyMs.ddpEncode51 = false;
-            pSetting->dolbyMs.ddpEncode71 = false;
-            pSetting->dolbyMs.pcm71 = false;
-#endif
-
 }

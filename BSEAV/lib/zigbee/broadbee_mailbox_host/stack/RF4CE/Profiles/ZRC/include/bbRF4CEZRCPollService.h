@@ -432,6 +432,8 @@ struct _RF4CE_GDP2_SetPollConstraintsReqDescr_t
 #ifndef _HOST_
     /* Structured data. */
     SYS_SchedulerTaskDescriptor_t                taskDescr;     /*!< Task descriptor service object. */
+#else
+	void *context;
 #endif
 
     /* Structured data. */
@@ -506,6 +508,8 @@ struct _RF4CE_GDP2_PollNegotiationReqDescr_t
 #ifndef _HOST_
     /* Structured data. */
     SYS_SchedulerTaskDescriptor_t             taskDescr;    /*!< Task descriptor service object. */
+#else
+	void *context;
 #endif
 
     /* Structured data. */
@@ -609,6 +613,8 @@ struct _RF4CE_GDP2_PollClientUserEventReqDescr_t
 #ifndef _HOST_
     /* Structured data. */
     SYS_SchedulerTaskDescriptor_t                 taskDescr;        /*!< Task descriptor service object. */
+#else
+	void *context;
 #endif
 
     /* Structured data. */

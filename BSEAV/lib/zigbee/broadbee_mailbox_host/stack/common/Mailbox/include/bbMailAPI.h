@@ -1,43 +1,43 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 /*****************************************************************************
 *
 * FILENAME: $Workfile: branches/ext_xhuajun/MailboxIntegration/stack/common/Mailbox/include/bbMailAPI.h $
@@ -131,7 +131,8 @@
 #endif
 
 #include "bbSysPrint.h"
-#include "bbMacSapDirectvTest.h"
+#include "bbPhySapTest.h"
+#include "bbRF4CEDiag.h"
 #include "bbHalUsartMailboxAdapter.h"
 /************************* TYPES ********************************************************/
 /**//**
@@ -268,6 +269,7 @@ typedef enum
     ZBPRO_ZDO_REQ_ACTIVE_EP_FID,
     ZBPRO_ZDO_REQ_MATCH_DESC_FID,
     ZBPRO_ZDO_REQ_DEVICE_ANNCE_FID,
+    ZBPRO_ZDO_REQ_SERVER_DISCOVERY_FID,
     ZBPRO_ZDO_REQ_ED_BIND_FID,
     ZBPRO_ZDO_REQ_BIND_FID,
     ZBPRO_ZDO_REQ_UNBIND_FID,
@@ -484,7 +486,7 @@ typedef enum
     /* Power key section end */
     TE_ECHO_DELAY_FID,
 
-    /* DirectTV test staff start */
+    /* Phy test stuff start */
     RF4CE_CTRL_TEST_GET_CAPS_FID,
     RF4CE_CTRL_TEST_SET_CHANNEL_FID,
     RF4CE_CTRL_TEST_CONTINUOUS_WAVE_START_FID,
@@ -499,7 +501,10 @@ typedef enum
     RF4CE_CTRL_TEST_GET_STATS_FID,
     RF4CE_CTRL_TEST_RESET_STATS_FID,
     RF4CE_CTRL_TEST_SET_TX_POWER_FID,
-    /* DirectTV test staff end */
+    RF4CE_CTRL_TEST_SELECT_ANTENNA_FID,
+    RF4CE_CTRL_GET_DIAGNOSTICS_CAPS_FID,
+    RF4CE_CTRL_GET_DIAGNOSTIC_FID,
+    /* Phy test stuff end */
     PUBLIC_FUNCTIONS_AMOUNT
 } MailFID_t;
 SYS_DbgAssertStatic(PUBLIC_FUNCTIONS_AMOUNT < FIRST_SERVICE_FID);
@@ -615,6 +620,7 @@ typedef union _MailReq_t
     ZBPRO_ZDO_ActiveEpReqDescr_t                zZdoActiveEpReq;
     ZBPRO_ZDO_MatchDescReqDescr_t               zZdoMatchDescReq;
     ZBPRO_ZDO_DeviceAnnceReqDescr_t             zZdoDeviceAnnceReq;
+    ZBPRO_ZDO_ServerDiscoveryReqDescr_t         zZdoServerDiscoveryReq;
     ZBPRO_ZDO_EndDeviceBindReqDescr_t           zZdoEndDeviceBindReq;
     ZBPRO_ZDO_BindUnbindReqDescr_t              zZdoBindUnbindReq;
     ZBPRO_ZDO_StartNetworkReqDescr_t            zZdoStartNetworkReq;
@@ -762,6 +768,26 @@ typedef union _MailReq_t
     NVM_OpenFileIndDescr_t       rNvmOpenFileReq;
     NVM_WriteFileIndDescr_t      rNvmWriteFileReq;
     NVM_CloseFileIndDescr_t      rNvmCloseFileReq;
+
+#if defined(_PHY_TEST_HOST_INTERFACE_)
+    Phy_Test_Get_Caps_ReqDescr_t   rPhyTestGetCapsReq;
+    Phy_Test_Set_Channel_ReqDescr_t    rPhyTestSetChannelReq;
+    Phy_Test_Continuous_Wave_Start_ReqDescr_t  rPhyTestContinuousWaveStartReq;
+    Phy_Test_Continuous_Wave_Stop_ReqDescr_t   rPhyTestContinuousWaveStopReq;
+    Phy_Test_Transmit_Start_ReqDescr_t rPhyTestTransmitStartReq;
+    Phy_Test_Transmit_Stop_ReqDescr_t  rPhyTestTransmitStopReq;
+    Phy_Test_Receive_Start_ReqDescr_t  rPhyTestReceiveStartReq;
+    Phy_Test_Receive_Stop_ReqDescr_t   rPhyTestReceiveStopReq;
+    Phy_Test_Echo_Start_ReqDescr_t     rPhyTestEchoStartReq;
+    Phy_Test_Echo_Stop_ReqDescr_t      rPhyTestEchoStopReq;
+    Phy_Test_Energy_Detect_Scan_ReqDescr_t rPhyTestEnergyDetectScanReq;
+    Phy_Test_Get_Stats_ReqDescr_t      rPhyTestGetStatsReq;
+    Phy_Test_Reset_Stats_ReqDescr_t    rPhyTestResetStatsReq;
+    Phy_Test_Set_TX_Power_ReqDescr_t   rPhyTestSetTXPowerReq;
+    Phy_Test_Select_Antenna_ReqDescr_t rPhyTestSelectAntennaReq;
+    RF4CE_Diag_Caps_ReqDescr_t         rRF4CEDiagCapsReq;
+    RF4CE_Diag_ReqDescr_t              rRF4CEDiagReq;
+#endif
 } MailReq_t;
 
 
@@ -872,6 +898,7 @@ typedef union _MailReqParams_t
     ZBPRO_ZDO_ActiveEpReqParams_t               zZdoActiveEp;
     ZBPRO_ZDO_MatchDescReqParams_t              zZdoMatchDesc;
     ZBPRO_ZDO_DeviceAnnceReqParams_t            zZdoDeviceAnnce;
+    ZBPRO_ZDO_ServerDiscoveryReqParams_t        zZdoServerDiscovery;
     ZBPRO_ZDO_EndDeviceBindReqParams_t          zZdoEndDeviceBind;
     ZBPRO_ZDO_BindUnbindReqParams_t             zZdoBindUnbind;
     ZBPRO_ZDO_MgmtLeaveReqParams_t              zZdoMgmtLeave;
@@ -1007,21 +1034,16 @@ typedef union _MailReqParams_t
     NVM_WriteFileIndParams_t    rNvmWriteFileReq;
     NVM_CloseFileIndParams_t    rNvmCloseFileReq;
 
-    DirectTV_Test_Get_Caps_ReqDescr_t   rDirectTV_Test_Get_Caps_Req;
-    DirectTV_Test_Set_Channel_ReqDescr_t    rDirectTV_Test_Set_Channel_Req;
-    DirectTV_Test_Continuous_Wave_Start_ReqDescr_t  rDirectTV_Test_Continuous_Wave_Start_Req;
-    DirectTV_Test_Continuous_Wave_Stop_ReqDescr_t   rDirectTV_Test_Continuous_Wave_Stop_Req;
-    DirectTV_Test_Transmit_Start_ReqDescr_t rDirectTV_Test_Transmit_Start_Req;
-    DirectTV_Test_Transmit_Stop_ReqDescr_t  rDirectTV_Test_Transmit_Stop_Req;
-    DirectTV_Test_Receive_Start_ReqDescr_t  rDirectTV_Test_Receive_Start_Req;
-    DirectTV_Test_Receive_Stop_ReqDescr_t   rDirectTV_Test_Receive_Stop_Req;
-    DirectTV_Test_Echo_Start_ReqDescr_t     rDirectTV_Test_Echo_Start_Req;
-    DirectTV_Test_Echo_Stop_ReqDescr_t      rDirectTV_Test_Echo_Stop_Req;
-    DirectTV_Test_Energy_Detect_Scan_ReqDescr_t rDirectTV_Test_Energy_Detect_Scan_Req;
-    DirectTV_Test_Get_Stats_ReqDescr_t      rDirectTV_Test_Get_Stats_Req;
-    DirectTV_Test_Reset_Stats_ReqDescr_t    rDirectTV_Test_Reset_Stats_Req;
-    DirectTV_Test_Set_TX_Power_ReqDescr_t   rDirectTV_Test_Set_TX_Power_Req;
-
+#if defined(_PHY_TEST_HOST_INTERFACE_)
+    Phy_Test_Set_Channel_ReqParams_t    rPhyTestSetChannelReqParams;
+    Phy_Test_Continuous_Wave_Start_ReqParams_t  rPhyTestContinuousWaveStartReqParams;
+    Phy_Test_Transmit_Start_ReqParams_t rPhyTestTransmitStartReqParams;
+    Phy_Test_Receive_Start_ReqParams_t  rPhyTestReceiveStart_ReqParams;
+    Phy_Test_Energy_Detect_Scan_ReqParams_t rPhyTestEnergyDetectScanReqParams;
+    Phy_Test_Set_TX_Power_ReqParams_t   rPhyTestSetTXPowerReqParams;
+    Phy_Test_Select_Antenna_ReqParams_t rPhyTestSelectAntennaReqParams;
+    RF4CE_Diag_ReqParams_t              rRF4CEDiagReqParams;
+#endif
 } MailReqParams_t;
 
 
@@ -1122,6 +1144,7 @@ typedef union _MailConfParams_t
     ZBPRO_ZDO_ActiveEpConfParams_t              zZdoActiveEp;
     ZBPRO_ZDO_MatchDescConfParams_t             zZdoMatchDesc;
     ZBPRO_ZDO_DeviceAnnceConfParams_t           zZdoDeviceAnnce;
+    ZBPRO_ZDO_ServerDiscoveryConfParams_t       zZdoServerDiscovery;
     ZBPRO_ZDO_BindConfParams_t                  zZdoBindUnbind;
     ZBPRO_ZDO_StartNetworkConfParams_t          zZdoStartNetwork;
     ZBPRO_ZDO_MgmtLeaveConfParams_t             zZdoMgmtLeave;
@@ -1241,6 +1264,25 @@ typedef union _MailConfParams_t
     NVM_OpenFileRespParams_t    rNvmOpenFileReq;
     NVM_WriteFileRespParams_t   rNvmWriteFileReq;
     NVM_CloseFileRespParams_t   rNvmCloseFileReq;
+
+#if defined(_PHY_TEST_HOST_INTERFACE_)
+    Phy_Test_Get_Caps_ConfParams_t rPhyTestGetCapsConfParams;
+    Phy_Test_Set_Channel_ConfParams_t rPhyTestSetChannelConfParams;
+    Phy_Test_Continuous_Wave_StartStop_ConfParams_t rPhyTestContinuousWaveStartConfParams;
+    Phy_Test_Continuous_Wave_StartStop_ConfParams_t rPhyTestContinuousWaveStopConfParams;
+    Phy_Test_Transmit_StartStop_ConfParams_t rPhyTestTransmitStartConfParams;
+    Phy_Test_Transmit_StartStop_ConfParams_t rPhyTestTransmitStopConfParams;
+    Phy_Test_Receive_StartStop_ConfParams_t rPhyTestReceiveStartConfParams;
+    Phy_Test_Receive_StartStop_ConfParams_t  rPhyTestReceiveStopConfParams;
+    Phy_Test_Echo_StartStop_ConfParams_t rPhyTestEchoStartConfParams;
+    Phy_Test_Echo_StartStop_ConfParams_t rPhyTestEchoStopConfParams;
+    Phy_Test_Energy_Detect_Scan_ConfParams_t rPhyTestEnergyDetectScanConfParams;
+    Phy_Test_Get_Stats_ConfParams_t rPhyTestGetStatsConfParams;
+    Phy_Test_Reset_Stats_ConfParams_t rPhyTestResetStatsConfParams;
+    Phy_Test_Set_TX_Power_ConfParams_t rPhyTestSetTXPowerConfParams;
+    RF4CE_Diag_Caps_ConfParams_t  rRF4CEDiagCapsConfParams;
+    RF4CE_Diag_ConfParams_t       rRF4CEDiagConfParams;
+#endif
 } MailConfParams_t;
 
 /**//**
@@ -1404,7 +1446,8 @@ extern void Mail_TestEnginePing_Call(TE_PingCommandReqDescr_t *req);
 extern void Mail_TestEngineEcho_Call(TE_EchoCommandReqDescr_t *req);
 extern void Mail_TestEngineReset_Call(TE_ResetCommandReqDescr_t *req);
 extern void Mail_SetEchoDelay_Call(TE_SetEchoDelayCommandReqDescr_t *req);
-
+extern void SYS_EventSubscribe_Call(SYS_EventHandlerParams_t*);
+extern void Mail_Host2Uart1_Call(TE_Host2Uart1ReqDescr_t *req);
 extern void RF4CE_ZRC_SetWakeUpActionCodeReq_Call(RF4CE_ZRC_SetWakeUpActionCodeReqDescr_t *req);
 extern void RF4CE_ZRC_GetWakeUpActionCodeReq_Call(RF4CE_ZRC_GetWakeUpActionCodeReqDescr_t *req);
 
@@ -1508,6 +1551,7 @@ extern void ZBPRO_ZDO_SimpleDescReq_Call(ZBPRO_ZDO_SimpleDescReqDescr_t *req);
 extern void ZBPRO_ZDO_ActiveEpReq_Call(ZBPRO_ZDO_ActiveEpReqDescr_t *req);
 extern void ZBPRO_ZDO_MatchDescReq_Call(ZBPRO_ZDO_MatchDescReqDescr_t *req);
 extern void ZBPRO_ZDO_DeviceAnnceReq_Call(ZBPRO_ZDO_DeviceAnnceReqDescr_t *req);
+extern void ZBPRO_ZDO_ServerDiscoveryReq_Call(ZBPRO_ZDO_ServerDiscoveryReqDescr_t *req);
 extern void ZBPRO_ZDO_EndDeviceBindReq_Call(ZBPRO_ZDO_EndDeviceBindReqDescr_t *req);
 extern void ZBPRO_ZDO_BindReq_Call(ZBPRO_ZDO_BindUnbindReqDescr_t *req);
 extern void ZBPRO_ZDO_UnbindReq_Call(ZBPRO_ZDO_BindUnbindReqDescr_t *req);
@@ -1695,21 +1739,25 @@ extern void NVM_OpenFileInd_Call(NVM_OpenFileIndDescr_t *indDescr);
 extern void NVM_WriteFileInd_Call(NVM_WriteFileIndDescr_t *indDescr);
 extern void NVM_CloseFileInd_Call(NVM_CloseFileIndDescr_t *indDescr);
 
-extern void Mail_Host2Uart1_Call(TE_Host2Uart1ReqDescr_t *request);
-extern void DirectTV_Test_Get_Caps_Req_Call(DirectTV_Test_Get_Caps_ReqDescr_t  *request);
-extern void DirectTV_Test_Set_Channel_Req_Call(DirectTV_Test_Set_Channel_ReqDescr_t *request);
-extern void DirectTV_Test_Continuous_Wave_Start_Req_Call(DirectTV_Test_Continuous_Wave_Start_ReqDescr_t *request);
-extern void DirectTV_Test_Continuous_Wave_Stop_Req_Call(DirectTV_Test_Continuous_Wave_Stop_ReqDescr_t *request);
-extern void DirectTV_Test_Transmit_Start_Req_Call(DirectTV_Test_Transmit_Start_ReqDescr_t *request);
-extern void DirectTV_Test_Transmit_Stop_Req_Call(DirectTV_Test_Transmit_Stop_ReqDescr_t *request);
-extern void DirectTV_Test_Receive_Start_Req_Call(DirectTV_Test_Receive_Start_ReqDescr_t *request);
-extern void DirectTV_Test_Receive_Stop_Req_Call(DirectTV_Test_Receive_Stop_ReqDescr_t *request);
-extern void DirectTV_Test_Echo_Start_Req_Call(DirectTV_Test_Echo_Start_ReqDescr_t *request);
-extern void DirectTV_Test_Echo_Stop_Req_Call(DirectTV_Test_Echo_Stop_ReqDescr_t *request);
-extern void DirectTV_Test_Energy_Detect_Scan_Req_Call(DirectTV_Test_Energy_Detect_Scan_ReqDescr_t *request);
-extern void DirectTV_Test_Get_Stats_Req_Call(DirectTV_Test_Get_Stats_ReqDescr_t *request);
-extern void DirectTV_Test_Reset_Stats_Req_Call(DirectTV_Test_Reset_Stats_ReqDescr_t *request);
-extern void DirectTV_Test_Set_TX_Power_Req_Call(DirectTV_Test_Set_TX_Power_ReqDescr_t *request);
+# if defined(_PHY_TEST_HOST_INTERFACE_)
+extern void Phy_Test_Get_Caps_Req_Call(Phy_Test_Get_Caps_ReqDescr_t  *request);
+extern void Phy_Test_Set_Channel_Req_Call(Phy_Test_Set_Channel_ReqDescr_t *request);
+extern void Phy_Test_Continuous_Wave_Start_Req_Call(Phy_Test_Continuous_Wave_Start_ReqDescr_t *request);
+extern void Phy_Test_Continuous_Wave_Stop_Req_Call(Phy_Test_Continuous_Wave_Stop_ReqDescr_t *request);
+extern void Phy_Test_Transmit_Start_Req_Call(Phy_Test_Transmit_Start_ReqDescr_t *request);
+extern void Phy_Test_Transmit_Stop_Req_Call(Phy_Test_Transmit_Stop_ReqDescr_t *request);
+extern void Phy_Test_Receive_Start_Req_Call(Phy_Test_Receive_Start_ReqDescr_t *request);
+extern void Phy_Test_Receive_Stop_Req_Call(Phy_Test_Receive_Stop_ReqDescr_t *request);
+extern void Phy_Test_Echo_Start_Req_Call(Phy_Test_Echo_Start_ReqDescr_t *request);
+extern void Phy_Test_Echo_Stop_Req_Call(Phy_Test_Echo_Stop_ReqDescr_t *request);
+extern void Phy_Test_Energy_Detect_Scan_Req_Call(Phy_Test_Energy_Detect_Scan_ReqDescr_t *request);
+extern void Phy_Test_Get_Stats_Req_Call(Phy_Test_Get_Stats_ReqDescr_t *request);
+extern void Phy_Test_Reset_Stats_Req_Call(Phy_Test_Reset_Stats_ReqDescr_t *request);
+extern void Phy_Test_Set_TX_Power_Req_Call(Phy_Test_Set_TX_Power_ReqDescr_t *request);
+extern void Phy_Test_SelectAntenna_Req_Call(Phy_Test_Select_Antenna_ReqDescr_t *request);
+extern void RF4CE_Get_Diag_Caps_Req_Call(RF4CE_Diag_Caps_ReqDescr_t *request);
+extern void RF4CE_Get_Diag_Req_Call(RF4CE_Diag_ReqDescr_t *request);
+# endif
 
 #endif /* MAILBOX_UNIT_TEST */
 #endif /* _MAIL_API_H */

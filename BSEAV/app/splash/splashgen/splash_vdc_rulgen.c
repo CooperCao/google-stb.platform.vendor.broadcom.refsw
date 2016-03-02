@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2005-2009 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,20 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description: Application to generate RULs for splash screen.
- *                     This is a slightly modified copy of vdc_dump.c
- *                     ported to Nucleus
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ ******************************************************************************/
 
 #include "splash_vdc_rulgen.h"
 #include "nexus_platform.h"
@@ -358,10 +345,10 @@ static void DumpLists(
 		totalListCount += g_aListOrderCount[iTrigger];
 		if(g_aListOrderCount[iTrigger] == 0)
 		{
-			BDBG_MSG(("Skipping empty trigger %d", iTrigger, g_aListOrderCount[iTrigger]));
+			BDBG_MSG(("Skipping empty trigger %d", iTrigger));
 			continue;
 		}
-		BDBG_MSG(("Writing trigger %d, cntr", iTrigger, g_aListOrderCount[iTrigger]));
+		BDBG_MSG(("Writing trigger %d, cntr %d", iTrigger, g_aListOrderCount[iTrigger]));
 
 		/* count header */
 		fprintf(fp, "\nstatic uint32_t s_aListCount%d[] =\n{\n",
@@ -486,7 +473,6 @@ static void DumpLists(
 		BDBG_ERR(("   please pickup the instrumented version from LATEST RDC commonutils"));
 		BDBG_ERR(("   or reuqest VDC team to enable splash on RDC for your chip"));
 		BDBG_ERR(("***************************************************************************"));
-		BDBG_ERR((""));
 		return;
 	}
 
@@ -829,7 +815,6 @@ static void DumpRegs(FILE* fp)
 		BDBG_ERR(("Looks like you have not chosen the instrumented version of breg_mem.c"));
 		BDBG_ERR(("Please pickup the instrumented version from the SPLASH_Devel branch"));
 		BDBG_ERR(("***************************************************************************"));
-		BDBG_ERR((""));
 		return;
 	}
 	BDBG_MSG(("Dumping register settings: %d entries", g_RegDataCount));
@@ -878,6 +863,47 @@ static void DumpFinal(FILE* fp)
 	fprintf (fp, "}\n");
 }
 
+static void DumpHeader(FILE* fp)
+{
+	fprintf(fp,"/******************************************************************************\n");
+	fprintf(fp," *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.\n");
+	fprintf(fp," *\n");
+	fprintf(fp," * This program is the proprietary software of Broadcom and/or its licensors,\n");
+	fprintf(fp," *  and may only be used, duplicated, modified or distributed pursuant to the terms and\n");
+	fprintf(fp," *  conditions of a separate, written license agreement executed between you and Broadcom\n");
+	fprintf(fp," *  (an \"Authorized License\").  Except as set forth in an Authorized License, Broadcom grants\n");
+	fprintf(fp," *  no license (express or implied), right to use, or waiver of any kind with respect to the\n");
+	fprintf(fp," *  Software, and Broadcom expressly reserves all rights in and to the Software and all\n");
+	fprintf(fp," *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU\n");
+	fprintf(fp," *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY\n");
+	fprintf(fp," *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.\n");
+	fprintf(fp," *\n");
+	fprintf(fp," *  Except as expressly set forth in the Authorized License,\n");
+	fprintf(fp," *\n");
+	fprintf(fp," *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade\n");
+	fprintf(fp," *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,\n");
+	fprintf(fp," *  and to use this information only in connection with your use of Broadcom integrated circuit products.\n");
+	fprintf(fp," *\n");
+	fprintf(fp," *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED \"AS IS\"\n");
+	fprintf(fp," *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR\n");
+	fprintf(fp," *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO\n");
+	fprintf(fp," *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES\n");
+	fprintf(fp," *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,\n");
+	fprintf(fp," *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION\n");
+	fprintf(fp," *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF\n");
+	fprintf(fp," *  USE OR PERFORMANCE OF THE SOFTWARE.\n");
+	fprintf(fp," *\n");
+	fprintf(fp," *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS\n");
+	fprintf(fp," *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR\n");
+	fprintf(fp," *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR\n");
+	fprintf(fp," *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF\n");
+	fprintf(fp," *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT\n");
+	fprintf(fp," *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE\n");
+	fprintf(fp," *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF\n");
+	fprintf(fp," *  ANY LIMITED REMEDY.\n");
+	fprintf(fp," ******************************************************************************/\n");
+	return;
+}
 
 static int GetArrayIndex(BRDC_Trigger eTrigger)
 {
@@ -1049,6 +1075,8 @@ int splash_generate_script
 		eErr = BERR_UNKNOWN;
 		goto done;
 	}
+
+	DumpHeader(fp);
 	fprintf(fp, "#ifndef SPLASH_VERSION_2\n");
 	fprintf(fp, "#define SPLASH_VERSION_2\n");
 	fprintf(fp, "#endif\n");
@@ -1068,46 +1096,7 @@ int splash_generate_script
 	BDBG_MSG(("Writing output to %s", filename));
 
 	/* file header */
-	fprintf(fp,"/******************************************************************************\n");
-	fprintf(fp,"* (c) 2015 Broadcom Corporation\n");
-	fprintf(fp,"*\n");
-	fprintf(fp,"* This program is the proprietary software of Broadcom Corporation and/or its\n");
-	fprintf(fp,"* licensors, and may only be used, duplicated, modified or distributed pursuant\n");
-	fprintf(fp,"* to the terms and conditions of a separate, written license agreement executed\n");
-	fprintf(fp,"* between you and Broadcom (an \"Authorized License\").  Except as set forth in\n");
-	fprintf(fp,"* an Authorized License, Broadcom grants no license (express or implied), right\n");
-	fprintf(fp,"* to use, or waiver of any kind with respect to the Software, and Broadcom\n");
-	fprintf(fp,"* expressly reserves all rights in and to the Software and all intellectual\n");
-	fprintf(fp,"* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU\n");
-	fprintf(fp,"* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY\n");
-	fprintf(fp,"* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.\n");
-	fprintf(fp,"*\n");
-	fprintf(fp,"* Except as expressly set forth in the Authorized License,\n");
-	fprintf(fp,"*\n");
-	fprintf(fp,"* 1. This program, including its structure, sequence and organization,\n");
-	fprintf(fp,"*    constitutes the valuable trade secrets of Broadcom, and you shall use all\n");
-	fprintf(fp,"*    reasonable efforts to protect the confidentiality thereof, and to use\n");
-	fprintf(fp,"*    this information only in connection with your use of Broadcom integrated\n");
-	fprintf(fp,"*    circuit products.\n");
-	fprintf(fp,"*\n");
-	fprintf(fp,"* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED \"AS IS\"\n");
-	fprintf(fp,"*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR\n");
-	fprintf(fp,"*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT\n");
-	fprintf(fp,"*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED\n");
-	fprintf(fp,"*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A\n");
-	fprintf(fp,"*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET\n");
-	fprintf(fp,"*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME\n");
-	fprintf(fp,"*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.\n");
-	fprintf(fp,"*\n");
-	fprintf(fp,"* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS\n");
-	fprintf(fp,"*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,\n");
-	fprintf(fp,"*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO\n");
-	fprintf(fp,"*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN\n");
-	fprintf(fp,"*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS\n");
-	fprintf(fp,"*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER\n");
-	fprintf(fp,"*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF\n");
-	fprintf(fp,"*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.\n");
-	fprintf(fp,"******************************************************************************/\n");
+	DumpHeader(fp);
 	fprintf(fp,"/***************************************************************************\n");
 	fprintf(fp," File : splash_vdc_rul%s.h\n", s_suffix_string);
 	fprintf(fp," Date  : %s\n", __DATE__ " " __TIME__);
@@ -1221,9 +1210,8 @@ static BERR_Code APP_BRDC_Slot_SetList_isr
 	{
 		BRDC_SlotId slotId;
 		BRDC_Slot_GetId(hSlot, &slotId);
-		BDBG_MSG(("Found slot %d for hList %d [0x%x] ; g_aRulList [0x%x]",
-			slotId, i, hList, g_aRulList[i]));
-
+		BDBG_MSG(("Found slot %d for hList %d [%p] ; g_aRulList [%p]", slotId, i,
+			(void*)hList, (void*)g_aRulList[i]));
 
 		/* get information on stored list */
 		BRDC_List_GetNumEntries_isr(g_aRulList[i], &ulNumEntriesStored);
@@ -1430,7 +1418,6 @@ static BERR_Code APP_BRDC_Slot_Execute_isr
 	BRDC_List_GetNumEntries_isr(hList, &ulNumEntries);
 	BDBG_MSG(("Execute_isr: t: hSlot[0x%x]; hList[0x%x] : (%d) : %d", (uint32_t)hSlot,  (uint32_t)hList, eTrigger, ulNumEntries));
 
-
 	/* which trigger fired? */
 	iTriggerIndex = GetArrayIndex(eTrigger);
 	if(-1 == iTriggerIndex) return BERR_SUCCESS;
@@ -1445,6 +1432,4 @@ static BERR_Code APP_BRDC_Slot_Execute_isr
 	return BERR_SUCCESS;
 }
 
-
 /* End of file */
-

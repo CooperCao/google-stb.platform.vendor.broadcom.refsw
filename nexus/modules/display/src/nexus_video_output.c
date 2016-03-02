@@ -750,7 +750,8 @@ NEXUS_VideoOutput_P_SetDac(NEXUS_VideoOutput_P_Link *link, NEXUS_DisplayHandle d
     BERR_Code rc;
     unsigned i, j;
 
-    if (connect == link->dacsConnected) return NEXUS_SUCCESS;
+    if ((connect == false) && (link->dacsConnected == false))
+		return NEXUS_SUCCESS;
 
     if (connect && !nexus_videooutput_p_allow_analog_display(link->output->type, display)) return NEXUS_SUCCESS;
 

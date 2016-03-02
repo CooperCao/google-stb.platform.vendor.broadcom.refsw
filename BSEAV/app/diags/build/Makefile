@@ -118,10 +118,11 @@ ifeq ($(B_REFSW_ARCH),)
 B_REFSW_ARCH=mips-linux
 export B_REFSW_ARCH
 endif
-ifneq ($(filter $(B_REFSW_DEBUG),n no_error_messages),)
-    DEBUG_SUFFIX=release
+B_REFSW_DEBUG ?= y
+ifeq ($(B_REFSW_DEBUG),y)
+DEBUG_SUFFIX=debug
 else
-    DEBUG_SUFFIX=debug
+DEBUG_SUFFIX=release
 endif
 
 #########

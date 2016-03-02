@@ -126,7 +126,7 @@ void stc_pool_uninit(nxserver_t server)
     {
         if (pStc->refcnt)
         {
-            BDBG_WRN(("STC pool uninitialized with referenced stcs outstanding: %p:%u", pStc, pStc->refcnt));
+            BDBG_WRN(("STC pool uninitialized with referenced stcs outstanding: %p:%u", (void*)pStc, pStc->refcnt));
             BERR_TRACE(NEXUS_LEAKED_RESOURCE);
         }
         BLST_D_REMOVE_HEAD(&server->transport.stcs, link);

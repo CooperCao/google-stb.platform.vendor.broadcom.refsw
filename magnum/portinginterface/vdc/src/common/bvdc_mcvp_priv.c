@@ -434,6 +434,8 @@ static void BVDC_P_Mcvp_FreeBuf_isr
 				*ppHeapNode = NULL;
 			}
 			hMcvp->hMcdi->ulPxlBufCnt[i] = 0;
+			hMcvp->hMcdi->astRect[i].ulWidth = 0 ;
+			hMcvp->hMcdi->astRect[i].ulHeight = 0 ;
 
 			ppQmHeapNode = &(hMcvp->hMcdi->apQmHeapNode[i][0]);
 			if(NULL != *ppQmHeapNode)
@@ -975,10 +977,12 @@ static void BVDC_P_MCVP_SetSingleInfo_isr
 			ulWidth, ulHeight));
 		hMcvp->hMcdi->astRect[ulChannelId].ulWidth  = ulWidth ;
 		hMcvp->hMcdi->astRect[ulChannelId].ulHeight = ulHeight;
+		hMcvp->hMcdi->ulPxlBufSize[ulChannelId] = pPicture->ulMadPxlBufSize;
 		pSwDirty->stBits.bSize   = BVDC_P_DIRTY;
 		if(bAnr && (hMcvp->bAnr))
 		{
 			pAnrSwDirty->stBits.bSize = BVDC_P_DIRTY;
+			hMcvp->hAnr->ulPxlBufSize[ulChannelId] = hMcvp->hMcdi->ulPxlBufSize[ulChannelId];
 		}
 	}
 
@@ -1007,12 +1011,8 @@ static void BVDC_P_MCVP_SetSingleInfo_isr
 			BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(pPicture->usMadPixelBufferCnt)));
 		}
 
-		/* 2.1 pixel buffer context init */
-		hMcvp->hMcdi->ulPxlBufSize[ulChannelId] = pPicture->ulMadPxlBufSize;
-
 		if((hMcvp->bAnr) && (bAnr))
 		{
-			hMcvp->hAnr->ulPxlBufSize[ulChannelId] = hMcvp->hMcdi->ulPxlBufSize[ulChannelId];
 			hMcvp->hAnr->ulPxlBufCnt[ulChannelId] = hMcvp->hMcdi->ulPxlBufCnt[ulChannelId];
 			pAnrSwDirty->stBits.bBuffer = BVDC_P_DIRTY;
 			for (ii=0; ii<BVDC_P_ANR_BUFFER_COUNT;ii++)

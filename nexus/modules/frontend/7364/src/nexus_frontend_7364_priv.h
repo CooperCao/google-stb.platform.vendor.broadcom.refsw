@@ -78,6 +78,9 @@
 #include "bhab_7364.h"
 #include "bhab_7364_fw.h"
 #include "btfe.h"
+#include "bhab_ctfe_img.h"
+#include "priv/nexus_core_img.h"
+#include "priv/nexus_core_img_id.h"
 /* End Cable and terrestrial includes */
 
 /* Satellite includes */
@@ -177,7 +180,6 @@ typedef struct NEXUS_7364Device
         NEXUS_FrontendHandle handles[NEXUS_SAT_MAX_CHANNELS];
         uint8_t A8299_control;
     } satellite;
-
 } NEXUS_7364Device;
 
 NEXUS_Error NEXUS_FrontendDevice_P_Get7364Settings(void *handle, NEXUS_FrontendDeviceSettings *pSettings);

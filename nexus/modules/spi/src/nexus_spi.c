@@ -129,7 +129,6 @@ void NEXUS_Spi_GetDefaultSettings(NEXUS_SpiSettings *pSettings)
     pSettings->txLeadingCapFalling = true;
     pSettings->clockActiveLow = true;
     pSettings->bitsPerTransfer = 8;
-    pSettings->interruptMode = true;
 }
 
 NEXUS_SpiHandle NEXUS_Spi_Open(unsigned index, const NEXUS_SpiSettings *pSettings)

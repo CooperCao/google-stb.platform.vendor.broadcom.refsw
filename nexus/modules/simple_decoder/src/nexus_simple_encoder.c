@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2010-2014 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ ******************************************************************************/
 #include "nexus_simple_decoder_module.h"
 #include "nexus_video_window.h"
 #include "nexus_video_decoder.h"
@@ -74,9 +63,12 @@ struct NEXUS_SimpleEncoder
     BLST_S_ENTRY(NEXUS_SimpleEncoder) link;
     unsigned index;
     bool acquired;
-    bool started; /* actually started */
-    bool clientStarted;
-    bool audioStarted, videoStarted, inputStarted;
+    bool clientStarted; /* user has called Start. if false, all other started variants must be false. */
+    bool started; /* stream mux started */
+    bool audioStarted, videoStarted;
+    bool inputStarted; /* if true and 'started' is false, then only audio mux and mixer are started.
+                          if true and 'started' is true, then audio, video and mux are started.
+                          if false, then 'started' must be false. */
     NEXUS_SimpleEncoderServerSettings serverSettings;
     NEXUS_SimpleEncoderStartSettings startSettings;
     NEXUS_SimpleEncoderSettings settings;
@@ -273,7 +265,7 @@ void NEXUS_SimpleEncoder_Release( NEXUS_SimpleEncoderHandle handle )
         BERR_TRACE(NEXUS_NOT_AVAILABLE);
         return;
     }
-    if (handle->clientStarted || handle->inputStarted) {
+    if (handle->clientStarted) {
         /* client settings are lost anyway, so force it */
         handle->settings.stopMode = NEXUS_SimpleEncoderStopMode_eAll;
         NEXUS_SimpleEncoder_Stop(handle);
@@ -311,6 +303,16 @@ NEXUS_Error NEXUS_SimpleEncoder_Start( NEXUS_SimpleEncoderHandle handle, const N
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
 
+#if NEXUS_HAS_STREAM_MUX
+    if (handle->inputStarted) {
+        /* NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly was called. NEXUS_SimpleEncoderStartSettings must be the same. */
+        if (BKNI_Memcmp(pSettings, &handle->startSettings, sizeof(*pSettings))) {
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+        goto encoder_start;
+    }
+#endif
+
     if (!pSettings->input.video && !pSettings->input.audio && !pSettings->input.display) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
@@ -341,20 +343,18 @@ NEXUS_Error NEXUS_SimpleEncoder_Start( NEXUS_SimpleEncoderHandle handle, const N
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
 
-    if(!handle->inputStarted) {
-        if (pSettings->input.video) {
-            NEXUS_OBJECT_ACQUIRE(handle, NEXUS_SimpleVideoDecoder, pSettings->input.video);
-        }
-        if (pSettings->input.audio) {
-            NEXUS_OBJECT_ACQUIRE(handle, NEXUS_SimpleAudioDecoder, pSettings->input.audio);
-        }
-        if ( pSettings->recpump ) {
-            NEXUS_OBJECT_ACQUIRE(handle, NEXUS_Recpump, pSettings->recpump);
-        }
-        for (i=0;i<NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS;i++) {
-            if (pSettings->passthrough[i]) {
-                NEXUS_OBJECT_ACQUIRE(handle, NEXUS_PidChannel, pSettings->passthrough[i]);
-            }
+    if (pSettings->input.video) {
+        NEXUS_OBJECT_ACQUIRE(handle, NEXUS_SimpleVideoDecoder, pSettings->input.video);
+    }
+    if (pSettings->input.audio) {
+        NEXUS_OBJECT_ACQUIRE(handle, NEXUS_SimpleAudioDecoder, pSettings->input.audio);
+    }
+    if ( pSettings->recpump ) {
+        NEXUS_OBJECT_ACQUIRE(handle, NEXUS_Recpump, pSettings->recpump);
+    }
+    for (i=0;i<NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS;i++) {
+        if (pSettings->passthrough[i]) {
+            NEXUS_OBJECT_ACQUIRE(handle, NEXUS_PidChannel, pSettings->passthrough[i]);
         }
     }
 
@@ -373,14 +373,14 @@ NEXUS_Error NEXUS_SimpleEncoder_Start( NEXUS_SimpleEncoderHandle handle, const N
         break;
     }
 
-    if(!handle->inputStarted) {
-        rc = nexus_simpleencoder_p_pre_start(handle);
-        if (rc) {
-            rc = BERR_TRACE(rc);
-            NEXUS_SimpleEncoder_Stop(handle);
-            return rc;
-        }
+    rc = nexus_simpleencoder_p_pre_start(handle);
+    if (rc) {
+        rc = BERR_TRACE(rc);
+        NEXUS_SimpleEncoder_Stop(handle);
+        return rc;
     }
+
+encoder_start:
     if (ready_to_start(handle)) {
         rc = nexus_simpleencoder_p_start(handle);
         if (rc) {
@@ -402,7 +402,7 @@ void NEXUS_SimpleEncoder_Stop( NEXUS_SimpleEncoderHandle handle )
     unsigned i;
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleEncoder);
 
-    if (!handle->clientStarted && !handle->inputStarted) return;
+    if (!handle->clientStarted) return;
 
     handle->clientStarted = false;
     nexus_simpleencoder_p_stop(handle);
@@ -439,7 +439,7 @@ NEXUS_Error NEXUS_SimpleEncoder_SetSettings( NEXUS_SimpleEncoderHandle handle, c
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleEncoder);
     NEXUS_TaskCallback_Set(handle->resourceChangedCallback, &pSettings->resourceChanged);
 
-    if (!handle->clientStarted && !handle->inputStarted) {
+    if (!handle->clientStarted) {
         /* if client not started, we don't know if this is background or display encode, so defer */
         goto done;
     }
@@ -982,9 +982,8 @@ err_startaudio:
 void nexus_simpleencoder_p_stop( NEXUS_SimpleEncoderHandle handle )
 {
     BDBG_MSG(("nexus_simpleencoder_p_stop %p: %d %d %p %p", (void *)handle, handle->started, handle->audioStarted, (void *)handle->startSettings.input.video, (void *)handle->transcodeWindow));
-    if (handle->started || handle->inputStarted) {
+    if (handle->started) {
         unsigned i;
-        handle->started = false;
         if ( handle->startSettings.output.transport.type == NEXUS_TransportType_eTs ) {
             NEXUS_RecpumpSettings recpumpSettings;
             NEXUS_Recpump_RemoveAllPidChannels(handle->startSettings.recpump); /* TODO: remove only the pid channels we've added */
@@ -1003,15 +1002,6 @@ void nexus_simpleencoder_p_stop( NEXUS_SimpleEncoderHandle handle )
                 handle->message[i] = NULL;
             }
         }
-        /* stop mode eVideoencoderOnly needs to keep audio mixer/mux output continuous in RT mode */
-        if(handle->settings.stopMode != NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly) {
-            if (handle->serverSettings.mixer) {
-                NEXUS_AudioMixer_Stop(handle->serverSettings.mixer);
-            }
-            if (handle->audioStarted) {
-                NEXUS_AudioMuxOutput_Stop(handle->serverSettings.audioMuxOutput);
-            }
-        }
         if (handle->videoStarted) {
             NEXUS_VideoEncoderStopSettings settings;
             NEXUS_VideoEncoder_GetDefaultStopSettings(&settings);
@@ -1019,8 +1009,15 @@ void nexus_simpleencoder_p_stop( NEXUS_SimpleEncoderHandle handle )
             NEXUS_VideoEncoder_Stop(handle->serverSettings.videoEncoder, &settings);
         }
     }
-    /* remove simple decoder from simple encoder when needed */
-    if(handle->settings.stopMode != NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly && handle->inputStarted) {
+
+    /* stop mode eVideoEncoderOnly needs to keep audio mixer/mux output continuous in RT mode */
+    if (handle->settings.stopMode != NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly && handle->inputStarted) {
+        if (handle->serverSettings.mixer) {
+            NEXUS_AudioMixer_Stop(handle->serverSettings.mixer);
+        }
+        if (handle->audioStarted) {
+            NEXUS_AudioMuxOutput_Stop(handle->serverSettings.audioMuxOutput);
+        }
         if (handle->audioStarted) {
             if (handle->startSettings.input.display) {
                 nexus_simpleaudiodecoder_p_remove_encoder(handle->serverSettings.displayEncode.masterAudio);
@@ -1029,6 +1026,10 @@ void nexus_simpleencoder_p_stop( NEXUS_SimpleEncoderHandle handle )
                 nexus_simpleaudiodecoder_p_remove_encoder(handle->startSettings.input.audio);
             }
         }
+        handle->inputStarted = false;
+    }
+
+    if (handle->started) {
         if (handle->startSettings.input.video) {
             nexus_simplevideodecoder_p_remove_encoder(handle->startSettings.input.video, handle->transcodeWindow, handle);
         }
@@ -1036,7 +1037,7 @@ void nexus_simpleencoder_p_stop( NEXUS_SimpleEncoderHandle handle )
             NEXUS_VideoWindow_Close(handle->transcodeWindow);
             handle->transcodeWindow = NULL;
         }
-        handle->inputStarted = false;
+        handle->started = false;
     }
     handle->wait.video = false;
     handle->wait.audio = false;

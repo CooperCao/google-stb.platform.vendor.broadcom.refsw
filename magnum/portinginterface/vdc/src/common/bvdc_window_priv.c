@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "bvdc.h"
@@ -1957,7 +1977,7 @@ static BERR_Code BVDC_P_Window_ValidateMosaicCoverage
 	( const BVDC_Window_Handle         hWindow )
 {
 	bool       bSpecialMode = false;
-	uint32_t i, ulMosaicCount = hWindow->stNewInfo.ulMosaicCount;
+	uint32_t i, ulMosaicCount = hWindow->stNewInfo.ulMaxMosaicCount;
 	uint32_t ulWidth, ulHeight, ulCoverage;
 	uint32_t ulCanvasArea, ulMaxRectArea;
 	BVDC_DisplayId  eDisplayId = hWindow->hCompositor->hDisplay->eId;
@@ -1994,8 +2014,19 @@ static BERR_Code BVDC_P_Window_ValidateMosaicCoverage
 
 	for(i = 0; i < ulMosaicCount; i++)
 	{
-		ulWidth = hWindow->stNewInfo.astMosaicRect[i].ulWidth;
-		ulHeight = hWindow->stNewInfo.astMosaicRect[i].ulHeight;
+		if(hWindow->stNewInfo.bMosaicMode)
+		{
+			ulWidth = (i < hWindow->stNewInfo.ulMosaicCount)?
+				hWindow->stNewInfo.astMosaicRect[i].ulWidth:0;
+			ulHeight = (i < hWindow->stNewInfo.ulMosaicCount)?
+				hWindow->stNewInfo.astMosaicRect[i].ulHeight:0;
+		}
+		else
+		{
+			ulWidth  = hWindow->stNewInfo.stDstRect.ulWidth;
+			ulHeight = hWindow->stNewInfo.stDstRect.ulHeight;
+		}
+		if((!ulWidth) ||(!ulHeight)) break;
 
 		/* Each Rect w/h must be > 0.95 */
 		if(BVDC_P_WIDTH_HEIGHT_RATIO_PERCENTAGE(ulWidth, ulHeight) <= BVDC_P_MIN_WH_RATIO_PERCENTAGE)
@@ -2276,12 +2307,12 @@ BERR_Code BVDC_P_Window_ValidateChanges
 		}
 
 		/* hd sd simul mosaic count validation */
-		hWindow->stNewInfo.ulMaxMosaicCount = hWindow->stNewInfo.ulMosaicCount;
-		if((hWindow->stNewInfo.hSource->stNewInfo.ulWindows>1) &&(hWindow->stNewInfo.bMosaicMode))
+		pNewInfo->ulMaxMosaicCount = pNewInfo->bMosaicMode?pNewInfo->ulMosaicCount:1;
+		if(pNewInfo->hSource->stNewInfo.ulWindows>1)
 		{
 			BVDC_Window_Handle         hNewWindow;
-			uint32_t ii, ulMosaicCount = hWindow->stNewInfo.ulMosaicCount;
 			uint32_t jj, ulMinMosiacCount;
+			uint32_t ii, ulMosaicCount = pNewInfo->bMosaicMode?pNewInfo->ulMosaicCount:1;
 			const BVDC_Source_Handle hSource = hWindow->stNewInfo.hSource;
 
 			/* for loop circling the source connected window */
@@ -2300,18 +2331,22 @@ BERR_Code BVDC_P_Window_ValidateChanges
 				if(hNewWindow->eId == hWindow->eId)
 					continue;
 
-				ulMinMosiacCount = BVDC_P_MIN(ulMosaicCount, hNewWindow->stNewInfo.ulMosaicCount);
-				for(jj = 0; jj < ulMinMosiacCount; jj++)
+				ulMinMosiacCount = BVDC_P_MIN(ulMosaicCount,
+					hNewWindow->stNewInfo.bMosaicMode?hNewWindow->stNewInfo.ulMosaicCount:1);
+				if(pNewInfo->bMosaicMode)
 				{
-					if(pNewInfo->abMosaicVisible[jj] && hNewWindow->stNewInfo.abMosaicVisible[jj] &&
-					  (pNewInfo->aucMosaicZOrder[jj] != hNewWindow->stNewInfo.aucMosaicZOrder[jj]))
+					for(jj = 0; jj < ulMinMosiacCount; jj++)
 					{
-						BDBG_ERR(("Mismatch zorder for HDSD"));
-						BDBG_ERR(("Win[%d] mosaic rect[%d] zorder: %d", hWindow->eId,
-							jj, pNewInfo->aucMosaicZOrder[jj]));
-						BDBG_ERR(("Win[%d] mosaic rect[%d] zorder: %d", hNewWindow->eId,
-							jj, hNewWindow->stNewInfo.aucMosaicZOrder[jj]));
-						return BERR_TRACE(BVDC_ERR_INVALID_MOSAIC_MODE);
+						if(pNewInfo->abMosaicVisible[jj] && hNewWindow->stNewInfo.abMosaicVisible[jj] &&
+						  (pNewInfo->aucMosaicZOrder[jj] != hNewWindow->stNewInfo.aucMosaicZOrder[jj]))
+						{
+							BDBG_ERR(("Mismatch zorder for HDSD"));
+							BDBG_ERR(("Win[%d] mosaic rect[%d] zorder: %d", hWindow->eId,
+								jj, pNewInfo->aucMosaicZOrder[jj]));
+							BDBG_ERR(("Win[%d] mosaic rect[%d] zorder: %d", hNewWindow->eId,
+								jj, hNewWindow->stNewInfo.aucMosaicZOrder[jj]));
+							return BERR_TRACE(BVDC_ERR_INVALID_MOSAIC_MODE);
+						}
 					}
 				}
 				if(ulMosaicCount != hNewWindow->stNewInfo.ulMosaicCount)
@@ -2324,12 +2359,12 @@ BERR_Code BVDC_P_Window_ValidateChanges
 		}
 
 		/* (6) Mosaic window size checking; */
-		if(pNewInfo->bClearRect)
+		if((pNewInfo->ulMaxMosaicCount>1)||(pNewInfo->bClearRect))
 		{
 			uint32_t i;
 			bool     bSortZorder = false;
 
-			if(pNewInfo->ulMosaicCount == 0)
+			if((pNewInfo->ulMosaicCount == 0)&&(pNewInfo->bMosaicMode))
 			{
 				return BERR_TRACE(BVDC_ERR_INVALID_MOSAIC_MODE);
 			}
@@ -2350,74 +2385,77 @@ BERR_Code BVDC_P_Window_ValidateChanges
 				return BERR_TRACE(BVDC_ERR_INVALID_MOSAIC_MODE);
 			}
 
-			for(i = 0; i < pNewInfo->ulMosaicCount; i++)
+			if(pNewInfo->bMosaicMode)
 			{
+				for(i = 0; i < pNewInfo->ulMosaicCount; i++)
+				{
 #if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM)
 #if (BVDC_P_DCXM_RECT_WORKAROUND)
-				/* CRBVN-282: Both offset and width need to be multiple of 4 */
-				if((hWindow->bSupportDcxm) &&
-				   ((pNewInfo->astMosaicRect[i].ulWidth % 4) ||
-				   (pNewInfo->astMosaicRect[i].lLeft % 4)  ||
-				   (pNewInfo->astMosaicRect[i].lLeft_R % 4)))
-				{
-					/* Round down to make sure both offset and widht are multiple
-					 * of 4. Trade off is will result in a slightly different
-					 * window location in the future chips */
-					pNewInfo->astMosaicRect[i].lLeft =
-						BVDC_P_ALIGN_DN(pNewInfo->astMosaicRect[i].lLeft, 4);
-					pNewInfo->astMosaicRect[i].lLeft_R =
-						BVDC_P_ALIGN_DN(pNewInfo->astMosaicRect[i].lLeft_R, 4);
-					pNewInfo->astMosaicRect[i].ulWidth =
-						BVDC_P_ALIGN_DN(pNewInfo->astMosaicRect[i].ulWidth, 4);
-				}
+					/* CRBVN-282: Both offset and width need to be multiple of 4 */
+					if((hWindow->bSupportDcxm) &&
+					   ((pNewInfo->astMosaicRect[i].ulWidth % 4) ||
+					   (pNewInfo->astMosaicRect[i].lLeft % 4)  ||
+					   (pNewInfo->astMosaicRect[i].lLeft_R % 4)))
+					{
+						/* Round down to make sure both offset and widht are multiple
+						 * of 4. Trade off is will result in a slightly different
+						 * window location in the future chips */
+						pNewInfo->astMosaicRect[i].lLeft =
+							BVDC_P_ALIGN_DN(pNewInfo->astMosaicRect[i].lLeft, 4);
+						pNewInfo->astMosaicRect[i].lLeft_R =
+							BVDC_P_ALIGN_DN(pNewInfo->astMosaicRect[i].lLeft_R, 4);
+						pNewInfo->astMosaicRect[i].ulWidth =
+							BVDC_P_ALIGN_DN(pNewInfo->astMosaicRect[i].ulWidth, 4);
+					}
 #endif
-				if((hWindow->bSupportDcxm) &&
-				   ((pNewInfo->astMosaicRect[i].ulWidth < BVDC_P_WIN_CAP_MOSAIC_INPUT_H_MIN)||
-				   (pNewInfo->astMosaicRect[i].ulHeight <
-				   (BVDC_P_WIN_CAP_MOSAIC_INPUT_V_MIN * (hWindow->hCompositor->stNewInfo.pFmtInfo->bInterlaced?2:1)))))
-				{
-					pNewInfo->astMosaicRect[i].ulWidth =
-						BVDC_P_MAX(pNewInfo->astMosaicRect[i].ulWidth, BVDC_P_WIN_CAP_MOSAIC_INPUT_H_MIN);
-					pNewInfo->astMosaicRect[i].ulHeight=
-						BVDC_P_MAX(pNewInfo->astMosaicRect[i].ulHeight,
-						BVDC_P_WIN_CAP_MOSAIC_INPUT_V_MIN *
-						(hWindow->hCompositor->stNewInfo.pFmtInfo->bInterlaced?2:1));
-				}
+					if((hWindow->bSupportDcxm) &&
+					   ((pNewInfo->astMosaicRect[i].ulWidth < BVDC_P_WIN_CAP_MOSAIC_INPUT_H_MIN)||
+					   (pNewInfo->astMosaicRect[i].ulHeight <
+					   (BVDC_P_WIN_CAP_MOSAIC_INPUT_V_MIN * (hWindow->hCompositor->stNewInfo.pFmtInfo->bInterlaced?2:1)))))
+					{
+						pNewInfo->astMosaicRect[i].ulWidth =
+							BVDC_P_MAX(pNewInfo->astMosaicRect[i].ulWidth, BVDC_P_WIN_CAP_MOSAIC_INPUT_H_MIN);
+						pNewInfo->astMosaicRect[i].ulHeight=
+							BVDC_P_MAX(pNewInfo->astMosaicRect[i].ulHeight,
+							BVDC_P_WIN_CAP_MOSAIC_INPUT_V_MIN *
+							(hWindow->hCompositor->stNewInfo.pFmtInfo->bInterlaced?2:1));
+					}
 #endif
-				pNewInfo->astMosaicRect[i].ulWidth =
-					BVDC_P_ALIGN_UP(pNewInfo->astMosaicRect[i].ulWidth, 2);
+					pNewInfo->astMosaicRect[i].ulWidth =
+						BVDC_P_ALIGN_UP(pNewInfo->astMosaicRect[i].ulWidth, 2);
 
-				/* the mosaics are bounded within ScalerOutput rect */
-				if((0 == pNewInfo->astMosaicRect[i].ulWidth)  ||
-				   (0 == pNewInfo->astMosaicRect[i].ulHeight) ||
-				   (0 > pNewInfo->astMosaicRect[i].lLeft) ||
-				   (0 > pNewInfo->astMosaicRect[i].lLeft_R) ||
-				   (0 > pNewInfo->astMosaicRect[i].lTop) ||
-				   (pNewInfo->astMosaicRect[i].lLeft + pNewInfo->astMosaicRect[i].ulWidth
-					> pNewInfo->stScalerOutput.ulWidth)       ||
-				   (pNewInfo->astMosaicRect[i].lTop + pNewInfo->astMosaicRect[i].ulHeight
-					> pNewInfo->stScalerOutput.ulHeight))
-				{
-					BDBG_ERR(("Mosaic[%d]: %dx%dx%dx%d - %d", i,
-						pNewInfo->astMosaicRect[i].lLeft, pNewInfo->astMosaicRect[i].lTop,
-						pNewInfo->astMosaicRect[i].ulWidth, pNewInfo->astMosaicRect[i].ulHeight,
-						pNewInfo->astMosaicRect[i].lLeft_R));
-					BDBG_ERR(("stScalerOutput: %d %d", pNewInfo->stScalerOutput.ulWidth,
-						pNewInfo->stScalerOutput.ulHeight));
-					return BERR_TRACE(BVDC_ERR_INVALID_MOSAIC_MODE);
-				}
+					/* the mosaics are bounded within ScalerOutput rect */
+					if((0 == pNewInfo->astMosaicRect[i].ulWidth)  ||
+					   (0 == pNewInfo->astMosaicRect[i].ulHeight) ||
+					   (0 > pNewInfo->astMosaicRect[i].lLeft) ||
+					   (0 > pNewInfo->astMosaicRect[i].lLeft_R) ||
+					   (0 > pNewInfo->astMosaicRect[i].lTop) ||
+					   (pNewInfo->astMosaicRect[i].lLeft + pNewInfo->astMosaicRect[i].ulWidth
+						> pNewInfo->stScalerOutput.ulWidth)       ||
+					   (pNewInfo->astMosaicRect[i].lTop + pNewInfo->astMosaicRect[i].ulHeight
+						> pNewInfo->stScalerOutput.ulHeight))
+					{
+						BDBG_ERR(("Mosaic[%d]: %dx%dx%dx%d - %d", i,
+							pNewInfo->astMosaicRect[i].lLeft, pNewInfo->astMosaicRect[i].lTop,
+							pNewInfo->astMosaicRect[i].ulWidth, pNewInfo->astMosaicRect[i].ulHeight,
+							pNewInfo->astMosaicRect[i].lLeft_R));
+						BDBG_ERR(("stScalerOutput: %d %d", pNewInfo->stScalerOutput.ulWidth,
+							pNewInfo->stScalerOutput.ulHeight));
+						return BERR_TRACE(BVDC_ERR_INVALID_MOSAIC_MODE);
+					}
 
-				if((pNewInfo->aucMosaicZOrder[i] != pCurInfo->aucMosaicZOrder[i]) ||
-				   (pNewInfo->abMosaicVisible[i] != pCurInfo->abMosaicVisible[i]))
-				{
-					bSortZorder = true;
-				}
+					if((pNewInfo->aucMosaicZOrder[i] != pCurInfo->aucMosaicZOrder[i]) ||
+					   (pNewInfo->abMosaicVisible[i] != pCurInfo->abMosaicVisible[i]))
+					{
+						bSortZorder = true;
+					}
 
-				if(!BVDC_P_RECT_CMP_EQ(&pNewInfo->astMosaicRect[i], &pCurInfo->astMosaicRect[i]) ||
-				   (pNewInfo->aucMosaicZOrder[i] != pCurInfo->aucMosaicZOrder[i]) ||
-				   (pNewInfo->abMosaicVisible[i] != pCurInfo->abMosaicVisible[i]))
-				{
-					pNewDirty->stBits.bMosaicMode = BVDC_P_DIRTY;
+					if(!BVDC_P_RECT_CMP_EQ(&pNewInfo->astMosaicRect[i], &pCurInfo->astMosaicRect[i]) ||
+					   (pNewInfo->aucMosaicZOrder[i] != pCurInfo->aucMosaicZOrder[i]) ||
+					   (pNewInfo->abMosaicVisible[i] != pCurInfo->abMosaicVisible[i]))
+					{
+						pNewDirty->stBits.bMosaicMode = BVDC_P_DIRTY;
+					}
 				}
 			}
 			if((pNewInfo->bClearRectByMaskColor != pCurInfo->bClearRectByMaskColor) ||
@@ -6228,7 +6266,7 @@ void BVDC_P_Window_GetBufSize_isr
 					ulBitsPerGroup = BVDC_40BITS_PER_GROUP;
 
 				/* SW7445-2936: additional line in the capture buffer size calculation*/
-				stSrcRect.ulHeight +=1<<bInterlaced;
+				stSrcRect.ulHeight += BVDC_P_DCXM_CAP_PADDING_WORKAROUND<<bInterlaced;
 			}
 #endif
 
@@ -10345,6 +10383,9 @@ static bool BVDC_P_Window_DecideVnetMode_isr
 		bool bMadSrcSizeOk;
 		BVDC_P_WrRateCode eWriterVsReaderRateCode;
 		BVDC_P_WrRateCode eReaderVsWriterRateCode;
+#if BVDC_P_SUPPORT_3D_VIDEO
+		BFMT_Orientation eOrientation;
+#endif
 
 		BVDC_P_Window_GetDeinterlacerMaxResolution_isr(hWindow, pMvdFieldData,
 			&ulMaxMadWidth, &ulMaxMadHeight, &ulHsclSrcHrzSclThr, true);
@@ -10357,6 +10398,13 @@ static bool BVDC_P_Window_DecideVnetMode_isr
 		}
 		else
 			ulWidth = hWindow->stCurInfo.hSource->stScanOut.ulWidth;
+#if BVDC_P_SUPPORT_3D_VIDEO
+		eOrientation = BVDC_P_VNET_USED_MCVP_AT_WRITER(hWindow->stVnetMode)?
+			hWindow->eSrcOrientation:hWindow->eDispOrientation;
+
+		ulMaxMadWidth >>=(eOrientation == BFMT_Orientation_e3D_LeftRight);
+		ulMaxMadHeight>>=(eOrientation == BFMT_Orientation_e3D_OverUnder);
+#endif
 
 		bMadSrcSizeOk =
 			 (hWindow->stCurInfo.hSource->stScanOut.ulHeight <= ulMaxMadHeight) &&
@@ -11094,7 +11142,7 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
 	BVDC_P_Rect  stMadBufRect = *pMadBufRect;
 	bool bInterlaced = false;
 	uint16_t usMcvpPixBufCnt=0, usMcvpQmBufCnt=0, usCurPixBufCnt=0, usCurQmBufCnt=0, usPixBufCnt=0, usStdPixBufCnt, usStdQmBufCnt;
-	uint32_t ulBufHeapSize = 0, ulPxlBufSize =0;
+	uint32_t ulBufHeapSize = 0, ulPxlBufSize =0, ulCurPxlBufSize =0 ;
 	BVDC_P_Compression_Settings *pWinCompression = NULL;
 
 	bDeinterlace = BVDC_P_VNET_USED_MAD(hWindow->stVnetMode);
@@ -11238,12 +11286,14 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
 	usCurPixBufCnt   = hWindow->usMadPixelBufferCnt[ulChannelId];
 	usCurQmBufCnt    = hWindow->usMadQmBufCnt[ulChannelId];
 	bCurContinuous   = hWindow->bContinuous[ulChannelId];
+	ulCurPxlBufSize  = hWindow->ulMadPxlBufSize[ulChannelId];
 	/* Changing MCVP buffer heapId causes VNET reconfiguration */
 	if((bCurContinuous       != bBufIsContinuous) ||
 	   (eCurMcvpHeapId       != eNewMcvpHeapId  ) ||
 	   (eCurMcvpQmHeapId     != eNewMcvpQmHeapId) ||
 	   (usCurPixBufCnt       != usPixBufCnt)||
-	   (usCurQmBufCnt        != usMcvpQmBufCnt))
+	   (usCurQmBufCnt        != usMcvpQmBufCnt)||
+	   (ulCurPxlBufSize      != ulPxlBufSize))
 	{
 		BDBG_MODULE_MSG(BVDC_WIN_VNET,("Win[%d] applychange %s changes mcvp buf MStartHpId[%s->%s] cnt [%d->%d], QmHpId[%s->%s] cnt [%d->%d] continuous %d ->%d",
 			hWindow->eId, bApplyNewCfg?"true":"false",
@@ -11388,7 +11438,7 @@ static bool BVDC_P_Window_DecideBufsCfgs_isr
 	bIsMpegSrc = BVDC_P_SRC_IS_MPEG(hWindow->stCurInfo.hSource->eId) && (NULL != pMvdFieldData);
 	bIsHddviSrc = BVDC_P_SRC_IS_HDDVI(hWindow->stCurInfo.hSource->eId);
 
-	bInterlace = bInterlace4Pulldown = (bIsMpegSrc)?
+	bMinSrcNoOptimize = bInterlace = bInterlace4Pulldown = (bIsMpegSrc)?
 					 (BAVC_Polarity_eFrame != pMvdFieldData->eSourcePolarity) :
 					 (hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->bInterlaced);
 	stCapBufRect = hWindow->stCurInfo.hSource->stScanOut;

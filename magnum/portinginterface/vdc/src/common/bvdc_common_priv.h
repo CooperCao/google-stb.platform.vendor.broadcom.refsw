@@ -5393,6 +5393,11 @@ DCX macro
 #define BVDC_P_SUPPORT_CLOCK_GATING               (0)
 #endif
 
+/* See SW7445-2936 */
+#if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM)
+#define BVDC_P_DCXM_CAP_PADDING_WORKAROUND           (1) /* 1 line padding */
+#define BVDC_P_DCXM_BUFFERHEAP_INCREASE_WORKAROUND   (BVDC_P_DCXM_CAP_PADDING_WORKAROUND*2) /* for top and bottom fields */
+#endif
 
 /* This needs to match SIOB_0_DCXS_CFG.FIXED_RATE for MADR */
 #define BVDC_P_MADR_VARIABLE_RATE              (0)

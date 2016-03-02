@@ -109,7 +109,10 @@ override LIBS += ./rf4ce_registration/libsqlite3.a -lpthread -ldl
 
 # Exclude Security component and all ZigBee PRO and RF4CE components.
 COMPEXCL += %
-COMPINCL += sys hal mbx rpc rrn prj
+COMPINCL += sys hal mbx rrn prj common
+ifneq ($(BYPASS_RPC),y)
+COMPINCL += rpc
+endif
 
 
 ### Set up the full set of source files.
@@ -135,6 +138,11 @@ SRCINCL += bbSysEvent bbSysDbg bbSysFsm bbSysMemMan bbSysPayload bbSysStackData 
 ifeq ($(RF4CE_TEST), y)
 override CDEFS = \
     RF4CE_TEST
+endif
+
+ifeq ($(BYPASS_RPC),y)
+override CDEFS += \
+    BYPASS_RPC
 endif
 
 SRCEXCL += zigbee_file_server_cc
@@ -165,6 +173,7 @@ override CDEFS += \
     RF4CE_ZRC_WAKEUP_ACTION_CODE_SUPPORT \
     RF4CE_TARGET \
     USE_RF4CE_PROFILE_ZRC1 \
+    _PHY_TEST_HOST_INTERFACE_ \
     USE_RF4CE_PROFILE_GDP=1 \
     _ZBPRO_ \
     USE_ZBPRO_PROFILE_ZHA \

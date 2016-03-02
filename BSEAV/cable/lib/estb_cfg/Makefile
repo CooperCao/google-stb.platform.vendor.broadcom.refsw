@@ -75,3 +75,4 @@ B_LIB_OUTPUT_NAME := b_estb_cfg
 include $(B_LIB_TOP)/build/b_lib_rules.inc
 
 B_LIB_CFLAGS += -std=c99
+B_LIB_CFLAGS +=-Wextra -Wno-missing-field-initializers

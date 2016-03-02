@@ -73,11 +73,10 @@ endif
 B_LIB_CFLAGS := $(NEXUS_CFLAGS)
 
 # Handle DEBUG vs. RELEASE builds
-ifeq ($(B_REFSW_DEBUG),n)
-B_LIB_CFLAGS += -Os
-else
-B_LIB_CFLAGS += -g -Os
+ifeq ($(B_REFSW_DEBUG),y)
+B_LIB_CFLAGS += -g
 endif
+B_LIB_CFLAGS += -Os
 
 # Identify object directory
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}

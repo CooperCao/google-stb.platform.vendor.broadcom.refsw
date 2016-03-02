@@ -1160,6 +1160,7 @@ static void NEXUS_Frontend_3255DeviceRpcNotificationThread(void *arg)
             NEXUS_Frontend_P_Process3255DeviceRpcNotification(device_id, event, arg);
             NEXUS_UnlockModule();
         }
+		BKNI_Sleep(100);
     }
 }
 

@@ -35,16 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -186,6 +176,7 @@ error:
 
 void thumbdecoder_close(thumbdecoder_t handle)
 {
+    thumbdecoder_close_file(handle);
     if (handle->stillDecoder) {
         NEXUS_StillDecoder_Close(handle->stillDecoder);
     }

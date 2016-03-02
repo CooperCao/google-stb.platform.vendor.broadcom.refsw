@@ -47,8 +47,8 @@ CURL_VER?=curl-7.21.2
 export PATH := ${TOOLS_BIN}:${PATH}
 
 
-NEXUS_TOP = $(NEXUS)
-BSEAV_TOP = $(NEXUS)/../BSEAV
+NEXUS_TOP = $(URSR_TOP)/nexus
+BSEAV_TOP = $(URSR_TOP)/BSEAV
 PLAYBACKDEVICE_DIR = $(BSEAV_TOP)/lib/playbackdevice
 WIDEVINE_DIR = $(BSEAV_TOP)/lib/security/third_party/widevine
 EXAMPLE_DIR=$(WIDEVINE_DIR)/Legacy/example
@@ -57,7 +57,7 @@ B_LIB_TOP = $(addsuffix /lib,$(NEXUS))
 include $(BSEAV_TOP)/lib/security/bcrypt/bcrypt_libdir.inc
 include $(BSEAV_TOP)/lib/drmrootfs/drmrootfs_libdir.inc
 
-include $(NEXUS)/platforms/$(PLATFORM)/build/platform_app.inc
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 include $(BSEAV_TOP)/lib/security/common_drm/lib/cmndrm_dir.inc
 include $(BSEAV_TOP)/lib/openssl/openssl.inc
 
@@ -65,7 +65,7 @@ include $(BSEAV_TOP)/lib/openssl/openssl.inc
 
 
 CXXFLAG = -Wall -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT -fPIC -DPIC
-CXXFLAG += -mips32 -D_GNU_SOURCE=1
+CXXFLAG += -D_GNU_SOURCE=1
 
 
 # Include build rules
@@ -75,7 +75,13 @@ CXXFLAG += -I${BSEAV_TOP}/lib/security/common_drm/include
 
 
 PLAYBACKDEVICE_INCLUDE_PATH = $(BSEAV_TOP)/lib/playbackdevice/src
-WIDEVINE_LIB_PATH = $(WIDEVINE_DIR)/Legacy/lib
+
+ifeq ($(ARCH), mips-uclibc)
+WIDEVINE_LIB_PATH = $(WIDEVINE_DIR)/Legacy/lib/mips
+else
+WIDEVINE_LIB_PATH = $(WIDEVINE_DIR)/Legacy/lib/arm
+endif
+
 WIDEVINE_INCLUDE_PATH = $(WIDEVINE_DIR)/Legacy/include
 
 CXXFLAG += $(addprefix -I,$(WIDEVINE_INCLUDE_PATH)) $(addprefix -I,$(CURL_INCLUDE_PATH)) $(addprefix -I,$(LINUX)/include.mipsel-uclibc.97425)
@@ -85,9 +91,9 @@ CXXFLAG += -DPLAYBACKDEVICE -DBCMCARD_7425 -DBROADCOM_HARDWARE_CRYPTO
 
 
 LDFLAGS = -ldl -L $(PLAYBACKDEVICE_DIR)/bin -lPlaybackDevice -lnexusMgr -lpthread -lm -lpthread -L$(NEXUS_BIN_DIR)/ -lnexus -lcrypto -lssl -lxml2 -lb_os
-LDFLAGS += -L $(WIDEVINE_LIB_PATH) -lWVStreamControlAPI -lWVPlaybackAPI -lcurl
+LDFLAGS += -L $(WIDEVINE_LIB_PATH) -lWVStreamControlAPI -lWVPlaybackAPI -lcurl -lz
 LDFLAGS += -L$(BSEAV_TOP)/lib/security/common_drm/lib/${CMNDRM_DIR}/ -lcmndrm
-LDFLAGS += -L$(BSEAV_TOP)/lib/security/bcrypt/${BCRYPT_LIBDIR} -lbcrypt
+LDFLAGS += -L$(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/BSEAV/lib/security/bcrypt -lbcrypt
 LDFLAGS += -L$(BSEAV_TOP)/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
 LDFLAGS += $(B_OPENSSL_LDFLAGS)
 
@@ -119,15 +125,15 @@ prep_libb_os:
 clean: widevine_example-clean
 
 lib-environment:
-	@if [ -z "${PLATFORM}"  ] || \
+	@if [ -z "${NEXUS_PLATFORM}"  ] || \
 	   [ -z "${BCHP_VER}"  ] || \
 	   [ -z "${MAGNUM}"  ] || \
-	   [ -z "${NEXUS}"  ]; then \
+	   [ -z "${URSR_TOP}"  ]; then \
 		echo ; echo ;\
 		echo "I detected that one of the following environment variables is missing:"; \
-		echo "PLATFORM"=${PLATFORM}; \
+		echo "NEXUS_PLATFORM"=${NEXUS_PLATFORM}; \
 		echo "BCHP_VER"=${BCHP_VER}; \
-		echo "NEXUS"=${NEXUS}; \
+		echo "NEXUS"=${NEXUS_TOP}; \
 		echo "EXAMPLE_DIR"=${EXAMPLE_DIR}; \
 		echo "You should define ALL of these if you expect this build to work"; \
 		exit 1; \

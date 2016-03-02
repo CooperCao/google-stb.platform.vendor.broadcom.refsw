@@ -60,7 +60,6 @@
 #include "bmemperf_info.h"
 #include "memusage.h"
 #include "bboxreport_svgplot.h"
-#include "bchp_sun_top_ctrl.h"
 
 BDBG_MODULE( bboxreport );
 /**
@@ -288,90 +287,6 @@ static int scanForTag(
         /*printf("%s is %d\n", newstr, *returnValue );*/
     }
     return( 0 );
-}
-
-static uint32_t *memory_base = NULL; /* pointer to base of main memory */
-#define REG_SIZE 0x01f7fffc
-#define MEM_SIZE 0x10000000 /* 256 MB */
-
-/**
- *  Function: This function initializes the specified BREG_Handle so that we can perform BREG_Read32() API calls
- *  later on.
- **/
-static int openRegMem(BREG_Handle *reg, void **mem_ptr)
-{
-	void *addr;
-	int fd = open("/dev/mem", O_RDWR|O_SYNC);
-	if (fd < 0)
-	{
-		BDBG_ERR(("Unable to open /dev/mem: %d", errno));
-		return -1;
-	}
-
-	/* map register space */
-	addr = mmap64(0, REG_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, BCHP_PHYSICAL_OFFSET);
-	if (!addr)
-	{
-		BDBG_ERR(("Unable to mmap64 chip: %d", errno));
-		return -1;
-	}
-	BREG_Open(reg, addr, REG_SIZE, NULL);
-
-	/* map all of memory */
-	*mem_ptr = (void *)mmap64(0, MEM_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0/*all mem */);
-	if (!*mem_ptr)
-	{
-		BDBG_ERR(("Unable to mmap64 heap: %d", errno));
-		return -1;
-	}
-
-	return 0;
-}
-
-/*
-Product ID for this chip (7252 ... SUN_TOP_CTRL.html#SUN_TOP_CTRL_PRODUCT_ID)
-[31: 8] chip ID. May contain either a four digit ID or a five digit chip ID. If the bits found at 31:28 are zero,
-then the remaining bits from 27:8 represent a five digit chip IC. If any of the bits found at 31:28 are non-zero,
-then the bits from 31:16 represent a four digit chip IC. Each group of four bits may represent any value from 0-9.
-*/
-static char * getProductIdStr( void )
-{
-    uint32_t     productId = 0;
-    uint32_t     familyId = 0;
-    static char  lProductIdStr[8] = "";
-	BREG_Handle  reg;
-
-    /* if the product id string has not yet been initialized, do it now. */
-    if ( strlen(lProductIdStr) == 0 )
-    {
-        memset ( &lProductIdStr, 0, sizeof(lProductIdStr) );
-        memset ( &reg, 0, sizeof(reg) );
-        openRegMem(&reg, (void*) &memory_base);
-
-        familyId = BREG_Read32(reg, BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID );
-        productId = BREG_Read32(reg, BCHP_SUN_TOP_CTRL_PRODUCT_ID );
-        if (productId&0xF0000000) /* if upper nibble is non-zero, this value contains a 4-digit product id in bits 31:16 */
-        {
-            snprintf ( lProductIdStr, sizeof(lProductIdStr) - 1, "%x", productId>>16 );
-        }
-        else
-        {
-            snprintf ( lProductIdStr, sizeof(lProductIdStr) - 1, "%x", productId>>8 );
-            if ( strcmp ( lProductIdStr, "72521" ) == 0 )
-            {
-                strncpy ( lProductIdStr, "7252S", sizeof(lProductIdStr) - 1 );
-            }
-            else if ( strcmp ( lProductIdStr, "72525" ) == 0 )
-            {
-                strncpy ( lProductIdStr, "7252L", sizeof(lProductIdStr) - 1 );
-            }
-        }
-        printf("~DEBUG~productId %x (%s) ... familyId %x~", productId, lProductIdStr, familyId );
-
-        munmap ( memory_base, MEM_SIZE );
-    }
-
-    return ( lProductIdStr );
 }
 
 extern bmemconfig_box_info g_bmemconfig_box_info[BMEMCONFIG_MAX_BOXMODES];

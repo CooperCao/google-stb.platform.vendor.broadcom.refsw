@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -62,7 +62,8 @@ public:
     virtual CBoardResourcesNx * getBoardResources(void) { return(_pResources); }
 
 protected:
-    NxClient_AllocResults _allocResults;
+    NxClient_AllocResults _allocResultsMain;
+    NxClient_AllocResults _allocResultsPip;
     CBoardResourcesNx *   _pResources; /* resources supported by the board */
 };
 

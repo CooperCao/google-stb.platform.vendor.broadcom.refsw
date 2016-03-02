@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description: Audio DAC Interface
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *****************************************************************************/
 
 #include "bstd.h"
 #include "bkni.h"
@@ -114,6 +134,14 @@ typedef struct BAPE_Dac
 #define  BAPE_DAC_RF_HIFIDAC_CTRL0_SCALE_SCALE                0x1cb80
 #define  BAPE_DAC_RF_HIFIDAC_CTRL0_DAC_VOLUMECFG_STEPSIZE     0xfff
 
+/* adjustment to center voltage right at 2V for 0dB input tone */
+#ifdef BAPE_DAC_TYPE_28NM
+#define  BAPE_DAC_CTRL0_CIC_SCALE_MIN                           0x2ae
+#define  BAPE_DAC_CTRL0_CIC_SCALE_CENTER                        0x2cf
+#define  BAPE_DAC_CTRL0_CIC_SCALE_MAX                           0x2f0
+#endif
+
+
 /* Static function prototypes */
 static void         BAPE_Dac_P_SetRateManager_isr(BAPE_DacHandle handle, unsigned sampleRate);
 static void         BAPE_Dac_P_SyncVolume(BAPE_DacHandle handle);
@@ -192,8 +220,6 @@ void BAPE_Dac_GetDefaultSettings(
     pSettings->customRightValue = 0xcccc;
     pSettings->testTone.sharedSamples = true;
     pSettings->testTone.sampleRate = 48000;
-
-    pSettings->peakGain = BAPE_DAC_DEFAULT_HIFIDAC_CTRL0_PEAK_GAIN_PEAK_GAIN;
 }
 
 /**************************************************************************/
@@ -211,7 +237,7 @@ BERR_Code BAPE_Dac_Open(
 
     BDBG_OBJECT_ASSERT(deviceHandle, BAPE_Device);
     BDBG_ASSERT(NULL != pHandle);
-    
+
     BDBG_MSG(("%s: Opening DAC Output: %u", __FUNCTION__, index));
 
     *pHandle = NULL;    /* Set up to return null handle in case of error. */
@@ -325,7 +351,7 @@ void BAPE_Dac_Close(
 
     handle->deviceHandle->dacs[handle->index] = NULL;
     BDBG_OBJECT_DESTROY(handle, BAPE_Dac);
-    BKNI_Free(handle);    
+    BKNI_Free(handle);
 }
 
 /**************************************************************************/
@@ -416,7 +442,7 @@ BERR_Code BAPE_Dac_P_ResumeFromStandby(BAPE_Handle bapeHandle)
             /* Put the HW into the generic open state. */
             errCode = BAPE_Dac_P_OpenHw(hDac);
             if ( errCode ) return BERR_TRACE(errCode);
-            
+
             /* Now apply changes for the settings struct. */
             errCode = BAPE_Dac_P_ApplySettings(hDac, &hDac->settings, true);   /* true => force update of HW */
             if ( errCode ) return BERR_TRACE(errCode);
@@ -645,10 +671,10 @@ static BERR_Code BAPE_Dac_P_Enable(BAPE_OutputPort output)
     else
     {
         /* Setup peaking filter for PCM audio */
-        peakGain = handle->settings.peakGain;
+        peakGain = BAPE_DAC_DEFAULT_HIFIDAC_CTRL0_PEAK_GAIN_PEAK_GAIN;
         peakA1 = BAPE_DAC_DEFAULT_HIFIDAC_CTRL0_PEAK_A1_PEAK_A1;
         peakA2 = BAPE_DAC_DEFAULT_HIFIDAC_CTRL0_PEAK_A2_PEAK_A2;
-        asrcout = BAPE_DAC_DEFAULT_HIFIDAC_CTRL0_RANGE_ASRCOUT;        
+        asrcout = BAPE_DAC_DEFAULT_HIFIDAC_CTRL0_RANGE_ASRCOUT;
         stepSize = BAPE_DAC_DEFAULT_HIFIDAC_CTRL0_DAC_VOLUMECFG_STEPSIZE;
         scale = BAPE_DAC_DEFAULT_HIFIDAC_CTRL0_SCALE_SCALE;
         peakEnable = BAPE_DAC_DEFAULT_HIFIDAC_CTRL0_PEAK_CONFIG_PEAK_ENABLE;
@@ -693,7 +719,7 @@ static BERR_Code BAPE_Dac_P_Enable(BAPE_OutputPort output)
     regVal &= ~(DAC_MASK(HIFIDAC_CTRL,_PEAK_A2, PEAK_A2));
     regVal |= DAC_FIELD_DATA(HIFIDAC_CTRL,_PEAK_A2, PEAK_A2, peakA2);
     BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);
-                
+
     regAddr = GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _RANGE );
     regVal = BREG_Read32(handle->deviceHandle->regHandle, regAddr);
     regVal &= ~DAC_MASK(HIFIDAC_CTRL,_RANGE, ASRCOUT);
@@ -722,7 +748,7 @@ static BERR_Code BAPE_Dac_P_Enable(BAPE_OutputPort output)
 #ifdef BCHP_AUD_FMM_IOP_CTRL_REG_START
     streamId = GET_DAC_OP_STREAM_ID(handle->index);
     BDBG_MSG(("Writing %x to enable set", (BCHP_MASK(AUD_FMM_OP_CTRL_ENABLE_SET, STREAM0_ENA))<<(streamId)));
-    BREG_Write32(handle->deviceHandle->regHandle, 
+    BREG_Write32(handle->deviceHandle->regHandle,
                  BCHP_AUD_FMM_OP_CTRL_ENABLE_SET,
                  (BCHP_MASK(AUD_FMM_OP_CTRL_ENABLE_SET, STREAM0_ENA))<<(streamId));
 #else
@@ -734,7 +760,7 @@ static BERR_Code BAPE_Dac_P_Enable(BAPE_OutputPort output)
 #endif
 
     BAPE_Dac_P_SetMute(output, false, false);
-      
+
     handle->enabled = true;
 
     return BERR_SUCCESS;
@@ -766,7 +792,7 @@ static void BAPE_Dac_P_Disable(BAPE_OutputPort output)
         BERR_Code errCode;
         /* Clear the enable bit in the OP */
         BDBG_MSG(("Writing %x to enable clear", (BCHP_MASK(AUD_FMM_OP_CTRL_ENABLE_SET, STREAM0_ENA))<<(streamId)));
-        BREG_Write32(handle->deviceHandle->regHandle, 
+        BREG_Write32(handle->deviceHandle->regHandle,
                      BCHP_AUD_FMM_OP_CTRL_ENABLE_CLEAR,
                      BCHP_MASK(AUD_FMM_OP_CTRL_ENABLE_CLEAR, STREAM0_ENA)<<streamId);
 
@@ -958,25 +984,25 @@ static void BAPE_Dac_P_PowerDown(BAPE_Handle bapeHandle, unsigned dacIndex)
     {
     #if BAPE_CHIP_MAX_DACS > 0
        case 0:
-            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC0_POWERDN_REF) | 
+            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC0_POWERDN_REF) |
                       BCHP_MASK(AIO_MISC_PWRDOWN, DAC0_POWERDN_LR);
             break;
     #endif
     #if BAPE_CHIP_MAX_DACS > 1
         case 1:
-            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC1_POWERDN_REF) | 
+            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC1_POWERDN_REF) |
                       BCHP_MASK(AIO_MISC_PWRDOWN, DAC1_POWERDN_LR);
             break;
     #endif
     #if BAPE_CHIP_MAX_DACS > 2
         case 2:
-            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC2_POWERDN_REF) | 
+            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC2_POWERDN_REF) |
                       BCHP_MASK(AIO_MISC_PWRDOWN, DAC2_POWERDN_LR);
             break;
     #endif
     #if BAPE_CHIP_MAX_DACS > 3
         case 3:
-            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC3_POWERDN_REF) | 
+            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC3_POWERDN_REF) |
                       BCHP_MASK(AIO_MISC_PWRDOWN, DAC3_POWERDN_LR);
             break;
     #endif
@@ -1001,25 +1027,25 @@ static void BAPE_Dac_P_PowerDown(BAPE_Handle bapeHandle, unsigned dacIndex)
     {
     #if BAPE_CHIP_MAX_DACS > 0
        case 0:
-            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC0_POWERDN_REF) | 
+            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC0_POWERDN_REF) |
                       BCHP_MASK(AUD_MISC_PWRDOWN, DAC0_POWERDN_LR);
             break;
     #endif
     #if BAPE_CHIP_MAX_DACS > 1
         case 1:
-            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC1_POWERDN_REF) | 
+            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC1_POWERDN_REF) |
                       BCHP_MASK(AUD_MISC_PWRDOWN, DAC1_POWERDN_LR);
             break;
     #endif
     #if BAPE_CHIP_MAX_DACS > 2
         case 2:
-            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC2_POWERDN_REF) | 
+            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC2_POWERDN_REF) |
                       BCHP_MASK(AUD_MISC_PWRDOWN, DAC2_POWERDN_LR);
             break;
     #endif
     #if BAPE_CHIP_MAX_DACS > 3
         case 3:
-            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC3_POWERDN_REF) | 
+            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC3_POWERDN_REF) |
                       BCHP_MASK(AUD_MISC_PWRDOWN, DAC3_POWERDN_LR);
             break;
     #endif
@@ -1100,9 +1126,9 @@ static void BAPE_Dac_P_PowerUp(BAPE_Handle bapeHandle, unsigned dacIndex)
 
     /* Clear bit 9 from the CURRDAC_CTRL.CTRL field during DAC power up.
      * Otherwise, the DAC can take really long to power up... like up to
-     * 40 seconds or more.  But only clear this bit for a millisecond, 
-     * then set it again. 
-     */ 
+     * 40 seconds or more.  But only clear this bit for a millisecond,
+     * then set it again.
+     */
     regAddr = GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, dacIndex, _CURRDAC_CTRL );
     regVal = BREG_Read32(bapeHandle->regHandle, regAddr);
     regVal &= ~(DAC_FIELD_DATA(HIFIDAC_CTRL,_CURRDAC_CTRL, CTRL, 0x200));
@@ -1114,25 +1140,25 @@ static void BAPE_Dac_P_PowerUp(BAPE_Handle bapeHandle, unsigned dacIndex)
     {
     #if BAPE_CHIP_MAX_DACS > 0
        case 0:
-            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC0_POWERDN_REF) | 
+            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC0_POWERDN_REF) |
                       BCHP_MASK(AIO_MISC_PWRDOWN, DAC0_POWERDN_LR);
             break;
     #endif
     #if BAPE_CHIP_MAX_DACS > 1
         case 1:
-            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC1_POWERDN_REF) | 
+            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC1_POWERDN_REF) |
                       BCHP_MASK(AIO_MISC_PWRDOWN, DAC1_POWERDN_LR);
             break;
     #endif
     #if BAPE_CHIP_MAX_DACS > 2
         case 2:
-            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC2_POWERDN_REF) | 
+            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC2_POWERDN_REF) |
                       BCHP_MASK(AIO_MISC_PWRDOWN, DAC2_POWERDN_LR);
             break;
     #endif
     #if BAPE_CHIP_MAX_DACS > 3
         case 3:
-            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC3_POWERDN_REF) | 
+            regMask = BCHP_MASK(AIO_MISC_PWRDOWN, DAC3_POWERDN_REF) |
                       BCHP_MASK(AIO_MISC_PWRDOWN, DAC3_POWERDN_LR);
             break;
     #endif
@@ -1157,25 +1183,25 @@ static void BAPE_Dac_P_PowerUp(BAPE_Handle bapeHandle, unsigned dacIndex)
     {
     #if BAPE_CHIP_MAX_DACS > 0
        case 0:
-            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC0_POWERDN_REF) | 
+            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC0_POWERDN_REF) |
                       BCHP_MASK(AUD_MISC_PWRDOWN, DAC0_POWERDN_LR);
             break;
     #endif
     #if BAPE_CHIP_MAX_DACS > 1
         case 1:
-            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC1_POWERDN_REF) | 
+            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC1_POWERDN_REF) |
                       BCHP_MASK(AUD_MISC_PWRDOWN, DAC1_POWERDN_LR);
             break;
     #endif
     #if BAPE_CHIP_MAX_DACS > 2
         case 2:
-            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC2_POWERDN_REF) | 
+            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC2_POWERDN_REF) |
                       BCHP_MASK(AUD_MISC_PWRDOWN, DAC2_POWERDN_LR);
             break;
     #endif
     #if BAPE_CHIP_MAX_DACS > 3
         case 3:
-            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC3_POWERDN_REF) | 
+            regMask = BCHP_MASK(AUD_MISC_PWRDOWN, DAC3_POWERDN_REF) |
                       BCHP_MASK(AUD_MISC_PWRDOWN, DAC3_POWERDN_LR);
             break;
     #endif
@@ -1514,7 +1540,7 @@ static BERR_Code BAPE_Dac_P_OpenHw(BAPE_DacHandle handle)
 
     /* Set samples buffer to zero */
     regAddr = GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_BASE );
-    for (   i =  GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_START) ; 
+    for (   i =  GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_START) ;
             i <= GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_END)   ;
             i++ )
     {
@@ -1530,7 +1556,7 @@ static BERR_Code BAPE_Dac_P_OpenHw(BAPE_DacHandle handle)
 
     /* Set pingpong buffer to zero */
     regAddr = GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_BASE );
-    for (   i =  GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_START) ; 
+    for (   i =  GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_START) ;
             i <= GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_END)   ;
             i++ )
     {
@@ -1686,9 +1712,9 @@ static BERR_Code BAPE_Dac_P_ApplySettings(
     unsigned i;
     BDBG_OBJECT_ASSERT(handle, BAPE_Dac);
     BDBG_ASSERT(NULL != pSettings);
-    
+
     /* Sanity checks before changing any settings */
-    if ( pSettings->testTone.enabled && 
+    if ( pSettings->testTone.enabled &&
          (pSettings->testTone.numSamplesLeft < 1 || pSettings->testTone.numSamplesLeft > 64 ||
           pSettings->testTone.numSamplesRight < 1 || pSettings->testTone.numSamplesRight > 64) )
     {
@@ -1729,22 +1755,78 @@ static BERR_Code BAPE_Dac_P_ApplySettings(
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
+    /* fine adjustment for DAC level */
+    #if defined BAPE_DAC_CTRL0_CIC_SCALE_CENTER
+    {
+        unsigned cicScale = BAPE_DAC_CTRL0_CIC_SCALE_CENTER;
+        if ( pSettings->fineAdjustment >= 0 && pSettings->fineAdjustment <= 100 ) /* 0 to 100*/
+        {
+            cicScale += (BAPE_DAC_CTRL0_CIC_SCALE_MAX-BAPE_DAC_CTRL0_CIC_SCALE_CENTER) * pSettings->fineAdjustment / 100;
+        }
+        else if ( pSettings->fineAdjustment < 0 && pSettings->fineAdjustment >= -100 ) /* -100 to -1 */
+        {
+            cicScale -= ((BAPE_DAC_CTRL0_CIC_SCALE_CENTER-BAPE_DAC_CTRL0_CIC_SCALE_MIN) * (0-pSettings->fineAdjustment) / 100);
+        }
+        else
+        {
+            BDBG_ERR(("Invalid DAC fine adjustment value %ld. Valid values -100 to 100", (long)pSettings->fineAdjustment));
+            return BERR_TRACE(BERR_INVALID_PARAMETER);
+        }
+
+        #if defined BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ADAC_IF_REG_0_CIC_SCALE_MASK
+        switch ( handle->index )
+        {
+        #if BAPE_CHIP_MAX_DACS > 0
+        case 0:
+            BAPE_Reg_P_UpdateField(handle->deviceHandle, BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ADAC_IF_REG_0, AUD_FMM_IOP_OUT_DAC_CTRL_0_ADAC_IF_REG_0, CIC_SCALE, cicScale);
+            break;
+        #endif
+        #if BAPE_CHIP_MAX_DACS > 1
+        case 1:
+            BAPE_Reg_P_UpdateField(handle->deviceHandle, BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_1_ADAC_IF_REG_0, AUD_FMM_IOP_OUT_DAC_CTRL_0_ADAC_IF_REG_0, CIC_SCALE, cicScale);
+            break;
+        #endif
+        #if BAPE_CHIP_MAX_DACS > 2
+        case 2:
+            BAPE_Reg_P_UpdateField(handle->deviceHandle, BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_2_ADAC_IF_REG_0, AUD_FMM_IOP_OUT_DAC_CTRL_0_ADAC_IF_REG_0, CIC_SCALE, cicScale);
+            break;
+        #endif
+        #if BAPE_CHIP_MAX_DACS > 3
+        case 3:
+            BAPE_Reg_P_UpdateField(handle->deviceHandle, BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_3_ADAC_IF_REG_0, AUD_FMM_IOP_OUT_DAC_CTRL_0_ADAC_IF_REG_0, CIC_SCALE, cicScale);
+            break;
+        #endif
+        #if BAPE_CHIP_MAX_DACS > 4
+                #error "Need to add support for more DACS"
+        #endif
+        /* Should never get here */
+        default:
+            BDBG_ERR(("DAC index (%u) doesn't refer to a valid DAC", handle->index));
+            BDBG_ASSERT(false);     /* something went wrong somewhere! */
+            return BERR_INVALID_PARAMETER;
+        }
+        #else
+        #warning Fix CIC Scale define for this chip
+        #endif
+    }
+    #endif
+
     switch ( pSettings->stereoMode )
     {
     case BAPE_StereoMode_eLeftRight:
-        regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_CONFIG, I2S_SELECT_LEFT, Left) | 
+        regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_CONFIG, I2S_SELECT_LEFT, Left) |
                   DAC_FIELD_ENUM(HIFIDAC_CTRL,_CONFIG, I2S_SELECT_RIGHT, Right);
         break;
     case BAPE_StereoMode_eLeftLeft:
-        regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_CONFIG, I2S_SELECT_LEFT, Left) | 
+        regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_CONFIG, I2S_SELECT_LEFT, Left) |
                   DAC_FIELD_ENUM(HIFIDAC_CTRL,_CONFIG, I2S_SELECT_RIGHT, Left);
         break;
     case BAPE_StereoMode_eRightLeft:
-        regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_CONFIG, I2S_SELECT_LEFT, Right) | 
+        regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_CONFIG, I2S_SELECT_LEFT, Right) |
                   DAC_FIELD_ENUM(HIFIDAC_CTRL,_CONFIG, I2S_SELECT_RIGHT, Left);
         break;
     case BAPE_StereoMode_eRightRight:
-        regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_CONFIG, I2S_SELECT_LEFT, Right) | 
+        regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_CONFIG, I2S_SELECT_LEFT, Right) |
                   DAC_FIELD_ENUM(HIFIDAC_CTRL,_CONFIG, I2S_SELECT_RIGHT, Right);
         break;
     }
@@ -1764,16 +1846,6 @@ static BERR_Code BAPE_Dac_P_ApplySettings(
         BREG_Write32(handle->deviceHandle->regHandle, myRegAddr, myRegVal);
     }
 
-    /* Update PEAK_GAIN if it has changed */
-    if ( (handle->settings.peakGain != pSettings->peakGain && !handle->rfMode) || force )
-    {
-        regAddr = GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _PEAK_GAIN );
-        regVal = BREG_Read32(handle->deviceHandle->regHandle, regAddr );
-        regVal &= ~(DAC_MASK(HIFIDAC_CTRL,_PEAK_GAIN, PEAK_GAIN));
-        regVal |= DAC_FIELD_DATA(HIFIDAC_CTRL,_PEAK_GAIN, PEAK_GAIN, pSettings->peakGain);
-        BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);
-    }
-
     /* Only do this if test tone settings have changed */
     if ( BAPE_Dac_P_ToneSettingsChanged(&handle->settings, pSettings) || force )
     {
@@ -1789,37 +1861,37 @@ static BERR_Code BAPE_Dac_P_ApplySettings(
                         DAC_MASK(HIFIDAC_CTRL,_TEST, TESTTONE_REPEAT_LEFT)|
                         DAC_MASK(HIFIDAC_CTRL,_TEST, TESTTONE_REPEAT_RIGHT)|
                         DAC_MASK(HIFIDAC_CTRL,_TEST, TESTTONE_ENABLE));
-    
+
             /* Disable the test tone first if it's enabled */
             BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);
-    
+
             regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_TEST, RAM_BUF_SEL, Samples);
             regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_TEST, TESTTONE_ENABLE, Enable);
-    
+
             if ( pSettings->testTone.zeroOnLeft )
                 regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_TEST, TESTTONE_LEFT, Output_zero);
             else
                 regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_TEST, TESTTONE_LEFT, Output_testtone);
-    
+
             if ( pSettings->testTone.zeroOnRight )
                 regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_TEST, TESTTONE_RIGHT, Output_zero);
             else
                 regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_TEST, TESTTONE_RIGHT, Output_testtone);
-    
+
             if ( pSettings->testTone.sharedSamples )
                 regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_TEST, TESTTONE_SHARE, Share);
             else
                 regVal |= DAC_FIELD_ENUM(HIFIDAC_CTRL,_TEST, TESTTONE_SHARE, Dont_share);
-    
+
             regVal |= DAC_FIELD_DATA(HIFIDAC_CTRL,_TEST, TESTTONE_REPEAT_LEFT, pSettings->testTone.numSamplesLeft-1);
             regVal |= DAC_FIELD_DATA(HIFIDAC_CTRL,_TEST, TESTTONE_REPEAT_RIGHT, pSettings->testTone.numSamplesRight-1);
-    
+
             /* Enable the tone */
             BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);
-    
+
             /* Load samples afterward */
             regAddr = GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_BASE );
-            for (   i =  GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_START) ; 
+            for (   i =  GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_START) ;
                     i <= GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_END)   ;
                     i++ )
             {
@@ -1842,7 +1914,7 @@ static BERR_Code BAPE_Dac_P_ApplySettings(
 
                 /* Clear sample buffer */
                 regAddr = GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_BASE );
-                for (   i =  GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_START) ; 
+                for (   i =  GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_START) ;
                         i <= GET_DAC_REG_ADDR3(BCHP_HIFIDAC_CTRL, handle->index, _TESTTONE_SAMPLE_i_ARRAY_END)   ;
                         i++ )
                 {
@@ -1866,5 +1938,3 @@ static BERR_Code BAPE_Dac_P_ApplySettings(
 }
 
 /**************************************************************************/
-
-

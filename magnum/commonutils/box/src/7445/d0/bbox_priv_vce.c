@@ -123,7 +123,7 @@ const BBOX_Vce_Capabilities BBOX_P_Vce_CapabilitiesLUT[] =
    { 1000,
       { /* Instance Array */
          BBOX_VCE_CHANNEL_INFO_1080p30( 0, 0x3, 0 ),
-         BBOX_VCE_CHANNEL_INFO_1080p30( 1, 0x3, 0 ),
+         BBOX_VCE_CHANNEL_INFO_1080p30( 1, 0x3, 1 ),
       },
    },
    /* Box Mode: 1001 (No Transcode) */

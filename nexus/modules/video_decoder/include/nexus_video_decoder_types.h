@@ -319,6 +319,7 @@ typedef struct NEXUS_VideoDecoderSettings
     bool preferredUserDataFormat;        /* Whatever format is set by NEXUS_VideoDecoder_SetUserDataFormatFilter is treated as the preferred format, but
                                             until that format is detected, VideoDecoder will operate in NEXUS_UserDataFormat_eAny mode.
                                             When the preferred format is detected, VideoDecoder will switch to the preferred mode until decode is stopped. */
+    unsigned userDataFilterThreshold;    /* Threshold for NEXUS_UserDataFormat_eAny algorithm. */
     bool dropFieldMode;                  /* By default, if VideoDecoder needs to drop pictures because of TSM, it will drop field pairs. This prevents
                                             any jitter from the deinterlacer. However, for 60->50Hz conversion dropping field pairs may result in motion judder.
                                             By setting dropFieldMode to true, VideoDecoder will drop only single fields and 60->50Hz conversion will only have slight jitter instead. */
@@ -892,7 +893,7 @@ Some streams contain multiple formats of 608/708 data encoded into user data.
 NEXUS_VideoDecoder_GetUserDataBuffer will return all user data in a raw form.
 However, if NEXUS_VideoInputVbiSettings.closedCaptionEnabled is true, the EIA-608/708 parsed from the userdata must be filtered down to only one format.
 
-This enum currently only applies to MPEG userdata. Use NEXUS_UserDataFormat_eAny for AVC or VC1.
+MPEG userdata only parsers for eAtsc53, eScte20 and eScte21. H264/H265 parses for all formats.
 **/
 typedef enum NEXUS_UserDataFormat
 {
@@ -900,6 +901,7 @@ typedef enum NEXUS_UserDataFormat
     NEXUS_UserDataFormat_eAtsc53,
     NEXUS_UserDataFormat_eScte20,  /* formerly DVS 157 */
     NEXUS_UserDataFormat_eScte21,  /* formerly DVS 053 */
+    NEXUS_UserDataFormat_eAtsc72,  /* H264/H265 userdata in SEI */
     NEXUS_UserDataFormat_eMax
 } NEXUS_UserDataFormat;
 

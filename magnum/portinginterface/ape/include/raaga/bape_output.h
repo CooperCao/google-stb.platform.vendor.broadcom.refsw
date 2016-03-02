@@ -50,7 +50,9 @@ typedef struct BAPE_DacSettings
     BAPE_DacMuteType muteType;          /* Mute mode. */
     uint16_t customLeftValue;           /* 16-bit left sample, used only with custom mute type */
     uint16_t customRightValue;          /* 16-bit right sample, used only with custom mute type */
-    uint32_t peakGain;                  /* PEAK_GAIN - Peaking filter gain          */
+    int fineAdjustment;                 /* fine adjustment of DAC output level - 28nm and newer chips only.
+                                           valid values are -100 to 100. 0 means no adjustment, positive values boost the level,
+                                           negative values cut the level. Integer steps are 0.005dBV. Total range is +/-0.5dBV */
     struct
     {
         bool enabled;           /* If true, test tone output is enabled with the settings below.  If false, the tone output is disabled. */

@@ -204,8 +204,6 @@ static void BBOX_P_Vdc_SetSourceLimits
 {
 	uint32_t i;
 
-	BSTD_UNUSED(ulBoxId);
-
 	switch (ulBoxId)
 	{
 		case 1:

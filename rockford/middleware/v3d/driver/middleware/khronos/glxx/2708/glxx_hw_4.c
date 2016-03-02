@@ -2538,7 +2538,12 @@ static bool glxx_install_tex_param(GLXX_SERVER_STATE_T *state, uint32_t *locatio
       {
          uint32_t type;
          if (texture->external_image != MEM_INVALID_HANDLE)
-            type = tu_image_format_to_type(khrn_image_to_tf_format(texture->format));
+         {
+            if (texture->format == YV12_RSO)
+               type = tu_image_format_to_type(ABGR_8888_TF);
+            else
+               type = tu_image_format_to_type(khrn_image_to_tf_format(texture->format));
+         }
          else
             type = tu_image_format_to_type(glxx_texture_get_tformat(texture));
          *location =

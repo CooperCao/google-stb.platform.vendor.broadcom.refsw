@@ -21,10 +21,12 @@ Standalone GLSL compiler
 
 typedef enum yytokentype V3DTokenType;
 
-typedef union _TokenData {
+typedef struct _TokenData {
    const char *s;
-   const_int i;
-   const_float f;
+   union {
+      const_int i;
+      const_float f;
+   };
 } TokenData;
 
 typedef struct _Token {
@@ -36,7 +38,7 @@ extern Token *glsl_token_construct(V3DTokenType type, TokenData data);
 extern Token *glsl_token_construct_identifier(const char *s);
 extern Token *glsl_token_construct_ppnumberi(int i);
 
-extern bool glsl_token_equals(Token *t1, Token *t2);
+extern bool glsl_token_equals(Token *t1, Token *t2, bool subcmp);
 
 static INLINE bool is_pp_identifier(Token *t)
 {

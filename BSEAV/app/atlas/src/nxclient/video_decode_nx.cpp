@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -91,7 +91,6 @@ CSimpleVideoDecodeNx::CSimpleVideoDecodeNx(
         CConfiguration * pCfg
         ) :
     CSimpleVideoDecode(name, number, pCfg),
-    _connectId(0),
     _surfaceClientVideoWin(NULL),
     _videoWindowType(NxClient_VideoWindowType_eMain)
 {
@@ -149,7 +148,7 @@ eRet CSimpleVideoDecodeNx::open(
             pSurfaceClient = (CSurfaceClientNx *)pGraphics->getSurfaceClientDesktop();
         }
 
-        _surfaceClientVideoWin = NEXUS_SurfaceClient_AcquireVideoWindow(pSurfaceClient->getSurfaceClient(), getNumber());
+        _surfaceClientVideoWin = NEXUS_SurfaceClient_AcquireVideoWindow(pSurfaceClient->getSurfaceClient(), getWindowType());
         CHECK_PTR_ERROR_GOTO("unable to acquire video window", _surfaceClientVideoWin, ret, eRet_NotAvailable, error);
     }
 
@@ -294,59 +293,28 @@ eRet CSimpleVideoDecodeNx::start(
         CStc * pStc
         )
 {
-    CGraphicsNx *            pGraphics = (CGraphicsNx *)_pModel->getGraphics();
-    eRet                     ret       = eRet_Ok;
-    NEXUS_Error              nerror    = NEXUS_SUCCESS;
-    NxClient_ConnectSettings settings;
-
-    if (0 != _connectId)
-    {
-        BDBG_ERR(("video decoder connect id is invalid - possibly trying to connect more than once?!"));
-    }
-
-    NxClient_GetDefaultConnectSettings(&settings);
-    settings.simpleVideoDecoder[0].id                      = getNumber();
-    settings.simpleVideoDecoder[0].windowCapabilities.type = getVideoWindowType();
-
-    if ((videoFormatToHorizRes(NEXUS_VideoFormat_e1080p).toInt() < pPid->getWidth()) ||
-        (videoFormatToVertRes(NEXUS_VideoFormat_e1080p).toInt() < pPid->getHeight()))
-    {
-        /* set max width/height based on pPid width/height if bigger than 1080p */
-        _maxWidth  = pPid->getWidth();
-        _maxHeight = pPid->getHeight();
-    }
-    else
-    if (NEXUS_VideoCodec_eH265 == pPid->getVideoCodec())
-    {
-        /* default to 4k max size for HEVC video codec */
-        _maxWidth  = videoFormatToHorizRes(NEXUS_VideoFormat_e3840x2160p24hz).toInt();
-        _maxHeight = videoFormatToVertRes(NEXUS_VideoFormat_e3840x2160p24hz).toInt();
-    }
+    eRet  ret              = eRet_Ok;
+    CGraphicsNx * pGraphics = (CGraphicsNx *)_pModel->getGraphics();
+    MRect rectVideoFormat;
 
     if (NULL != pGraphics)
     {
-        settings.simpleVideoDecoder[0].surfaceClientId               = pGraphics->getSurfaceClientDesktop()->getNumber();
-        settings.simpleVideoDecoder[0].windowId                      = getNumber();
-        settings.simpleVideoDecoder[0].decoderCapabilities.maxWidth  = _maxWidth;
-        settings.simpleVideoDecoder[0].decoderCapabilities.maxHeight = _maxHeight;
-        /* TTTTTTTTTTTTTTTT TODO: support 10bit color depth
-         * settings.simpleVideoDecoder[0].decoderCapabilities.colorDepth =
-         */
-    }
-
-    nerror = NxClient_Connect(&settings, &_connectId);
-    CHECK_NEXUS_ERROR_GOTO("unable to connect to simple video decoder", nerror, ret, error);
-
-    if ((NxClient_VideoWindowType_ePip == getVideoWindowType()) && (NULL != _surfaceClientVideoWin))
-    {
-        MRect rectVideoFormat;
+        NEXUS_SurfaceComposition settingsSurfaceClient;
+        NxClient_GetSurfaceClientComposition(
+            pGraphics->getSurfaceClientDesktop()->getNumber(),
+            &settingsSurfaceClient);
 
         /* get size of required video window - we will base main/pip on this size */
-        rectVideoFormat.setX(0);
-        rectVideoFormat.setY(0);
-        rectVideoFormat.setWidth(videoFormatToHorizRes(getFormat()).toInt());
-        rectVideoFormat.setHeight(videoFormatToVertRes(getFormat()).toInt());
+        rectVideoFormat.setX(settingsSurfaceClient.position.x);
+        rectVideoFormat.setY(settingsSurfaceClient.position.y);
+        rectVideoFormat.setWidth(settingsSurfaceClient.position.width);
+        rectVideoFormat.setHeight(settingsSurfaceClient.position.height);
+    }
 
+    if ((getWindowType() != _pModel->getFullScreenWindowType()) &&
+        (NULL != _surfaceClientVideoWin))
+    {
+        BDBG_MSG(("---------------------------------- resizing decimate video window"));
         ret = setGeometryVideoWindow(
                 rectVideoFormat,
                 GET_INT(_pCfg, PIP_PERCENTAGE),
@@ -355,26 +323,52 @@ eRet CSimpleVideoDecodeNx::start(
                 1);
         CHECK_ERROR_GOTO("unable to set video window geometry", ret, error);
     }
+    else
+    {
+        BDBG_MSG(("---------------------------------- resizing full screen window x:%d y:%d w:%d h:%d",
+                  rectVideoFormat.x(), rectVideoFormat.y(), rectVideoFormat.width(), rectVideoFormat.height()));
+        setPosition(rectVideoFormat, 0);
+    }
 
     return(CSimpleVideoDecode::start(pPid, pStc));
-
 error:
     return(ret);
 } /* start */
 
-/* stop */
-
-CPid * CSimpleVideoDecodeNx::stop()
+eRet CSimpleVideoDecodeNx::updateConnectSettings(NxClient_ConnectSettings * pSettings)
 {
-    if (0 < _connectId)
+     eRet          ret       = eRet_Ok;
+     CGraphicsNx * pGraphics = (CGraphicsNx *)_pModel->getGraphics();
+
+     pSettings->simpleVideoDecoder[0].id = getNumber();
+
+     if (eWindowType_Pip == _pModel->getFullScreenWindowType())
+     {
+         /* pip is fullscreen (swap occurred) */
+         pSettings->simpleVideoDecoder[0].windowCapabilities.type = //NxClient_VideoWindowType_eMain;
+             (eWindowType_Main == getWindowType()) ? NxClient_VideoWindowType_ePip : NxClient_VideoWindowType_eMain;
+     }
+     else
+     {
+         /* main is fullscreen (no swap) */
+         pSettings->simpleVideoDecoder[0].windowCapabilities.type =
+             (eWindowType_Main == getWindowType()) ? NxClient_VideoWindowType_eMain : NxClient_VideoWindowType_ePip;
+     }
+
+     if (NULL != pGraphics)
+     {
+         pSettings->simpleVideoDecoder[0].surfaceClientId = pGraphics->getSurfaceClientDesktop()->getNumber();
+         pSettings->simpleVideoDecoder[0].windowId        = getWindowType(); //(eWindowType_Main == getVideoWindowType()) ? 0 : 1;
+     }
+
+    if ((0 < _maxWidth) && (0 < _maxHeight))
     {
-        NxClient_Disconnect(_connectId);
-        _connectId = 0;
-    }
-    else
-    {
-        BDBG_ERR(("unable to disconnect video decoder!"));
+        pSettings->simpleVideoDecoder[0].decoderCapabilities.maxWidth  = _maxWidth;
+        pSettings->simpleVideoDecoder[0].decoderCapabilities.maxHeight = _maxHeight;
+        /* TTTTTTTTTTTTTTTT TODO: support 10bit color depth
+         * pSettings->simpleVideoDecoder[0].decoderCapabilities.colorDepth =
+         */
     }
 
-    return(CSimpleVideoDecode::stop());
-} /* stop */
+     return(ret);
+} /* updateConnectSettings */

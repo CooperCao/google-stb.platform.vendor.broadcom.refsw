@@ -103,7 +103,9 @@ include $(FRAMEWORK_DIR)/build/magnum.inc
 # Specifies how magnum files and application files are built.
 include $(FRAMEWORK_DIR)/build/tools.inc
 
+ifneq (${BCHP_CHIP},74371)
 include $(MAGNUM_DIR)/portinginterface/vce/bvce_auth.inc
+endif
 include $(MAGNUM_DIR)/portinginterface/xvd/bxvd_auth.inc
 include $(MAGNUM_DIR)/portinginterface/sid/bsid_auth.inc
 include $(MAGNUM_DIR)/portinginterface/xpt/bxpt_auth.inc

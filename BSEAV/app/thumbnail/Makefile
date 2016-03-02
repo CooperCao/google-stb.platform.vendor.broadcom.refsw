@@ -35,27 +35,9 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# Created: 08/28/2007 by Jon Garrett
-#
-# $brcm_Log: $
-# 
 ############################################################
-# Nexus examples
 
-ifdef COMSPEC
-# Any DOS environment
-NEXUS_TOP := $(shell cd ../../../nexus && cd)
-else
 NEXUS_TOP := $(shell cd ../../../nexus; pwd)
-endif
 LIB=$(NEXUS_TOP)/../BSEAV/lib
 
 NEXUS_PLATFORM ?= $(PLATFORM)
@@ -69,25 +51,17 @@ include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 # single app Makefile
 APP = thumbnail
 
-ifeq ($(B_REFSW_OS),vxworks)
-# VxWorks needs a wrapper function to call main.
-OBJS += vxworks_cmd.o
-# We like to use .out for loadable objects.
-APP := $(APP).out
-endif
-
-.PHONY: api
+.PHONY: nexus
 
 all: $(APP)
-$(APP): api
+$(APP): nexus
 
 # For linux builds, link to the correct libraries
 ifneq ($(findstring linux,$(B_REFSW_OS)),)
 LDFLAGS := -lnexus -L${NEXUS_BIN_DIR} -lpthread
 endif
 
-# This builds the settop api
-api:
+nexus:
 	$(MAKE) -C $(NEXUS_TOP)/build
 
 # This cleans nexus and app
@@ -103,11 +77,12 @@ CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix
 # Always build with debug
 CFLAGS += -g
 
-# the thumbnail app only uses bthumbnail_extractor.c, not the whole bthumbnail lib.
+OBJS += main.o thumbnail_demo.o
 
-CFLAGS += -I$(LIB)/media -I$(LIB)/bfile -I$(LIB)/utils -I$(LIB)/thumbnail
-
-OBJS += main.o thumbnail_demo.o thumbnail_stills.o $(LIB)/bfile/bfile_stdio.o $(LIB)/thumbnail/bthumbnail_extractor.o
+include $(NEXUS_TOP)/nxclient/apps/utils/nxutils.inc
+OBJS += $(foreach src,$(NXUTILS_SINGLE_SOURCES), $(patsubst %.c,%.o,$(notdir $(src))))
+CFLAGS += $(addprefix -I,$(NXUTILS_INCLUDES))
+vpath %.c $(foreach src,$(NXUTILS_SINGLE_SOURCES), $(dir $(src)))
 
 # remove implicit rule
 %: %.c
@@ -121,12 +96,5 @@ $(APP): $(OBJS)
 	@echo [Link... $<]
 	$(Q_)$(CC) -o $@ $(OBJS) $(LDFLAGS)
 	$(CP) $@ ${NEXUS_BIN_DIR}
-
-ifeq ($(SYSTEM),vxworks)
-# Explicit rule for building vxworks wrapper app
-vxworks_cmd.o: vxworks_cmd.c
-	@echo [Compile... $<]
-	$(Q_)$(CC) -o $@ $< $(CFLAGS) $(LDFLAGS)
-endif
 
 install: all

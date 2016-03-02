@@ -111,7 +111,7 @@ const BXPT_P_RegisterRange XPT_REG_SAVE_LIST[] =
     { "XPT_XMEMIF_SCB_WR_ARB_SEL_RSBUFF",        BCHP_XPT_XMEMIF_SCB_WR_ARB_SEL_RSBUFF,             BCHP_XPT_XMEMIF_SCB_RD_ARB_SEL_RSBUFF_TSIO },
     { "XPT_XMEMIF_SCB_RD_ARB_SEL_PSUB",          BCHP_XPT_XMEMIF_SCB_RD_ARB_SEL_PSUB,               BCHP_XPT_XMEMIF_SCB_RD_ARB_MODE },
     { "XPT_XMEMIF_INTR_STATUS_REG_EN",           BCHP_XPT_XMEMIF_INTR_STATUS_REG_EN,                -1 },
-    { "XPT_PMU_CLK_CTRL",                        BCHP_XPT_PMU_CLK_CTRL,                             BCHP_XPT_PMU_MEMDMA_SW_INIT_CTRL },
+    { "XPT_PMU_RBUS_RSP_CTRL",                   BCHP_XPT_PMU_RBUS_RSP_CTRL,                        BCHP_XPT_PMU_MEMDMA_SW_INIT_CTRL },
     { "XPT_GR_CTRL",                             BCHP_XPT_GR_CTRL,                                  -1 },
     { "XPT_RMX0_IO_FORMAT",                      BCHP_XPT_RMX0_IO_FORMAT,                           BCHP_XPT_RMX0_IO_PKT_DLY_CNT },
     { "XPT_RMX1_IO_FORMAT",                      BCHP_XPT_RMX1_IO_FORMAT,                           BCHP_XPT_RMX1_IO_PKT_DLY_CNT },
@@ -384,9 +384,9 @@ const BXPT_P_RegisterRange XPT_REG_SAVE_LIST[] =
     { "XPT_XMEMIF_SCB_WR_ARB_SEL_CTRL",          BCHP_XPT_XMEMIF_SCB_WR_ARB_SEL_CTRL,               BCHP_XPT_XMEMIF_SCB_RD_ARB_MODE },
     { "XPT_XMEMIF_INTR_STATUS_REG_EN",           BCHP_XPT_XMEMIF_INTR_STATUS_REG_EN,                -1 },
 #if (BCHP_CHIP==7364 || BCHP_CHIP==7250)
-    { "XPT_PMU_CLK_CTRL",                        BCHP_XPT_PMU_CLK_CTRL,                             BCHP_XPT_PMU_MEMDMA_SW_INIT_CTRL },
+    { "XPT_PMU_RBUS_RSP_CTRL",                   BCHP_XPT_PMU_RBUS_RSP_CTRL,                        BCHP_XPT_PMU_MEMDMA_SW_INIT_CTRL },
 #else
-    { "XPT_PMU_CLK_CTRL",                        BCHP_XPT_PMU_CLK_CTRL,                             BCHP_XPT_PMU_WAKEUP_SP_PD_MEM_PWR_DN_CTRL },
+    { "XPT_PMU_RBUS_RSP_CTRL",                   BCHP_XPT_PMU_RBUS_RSP_CTRL,                        BCHP_XPT_PMU_WAKEUP_SP_PD_MEM_PWR_DN_CTRL },
 #endif
     { "XPT_GR_CTRL",                             BCHP_XPT_GR_CTRL,                                  -1 },
     { "XPT_RMX0_IO_FORMAT",                      BCHP_XPT_RMX0_IO_FORMAT,                           BCHP_XPT_RMX0_IO_PKT_DLY_CNT },
@@ -994,8 +994,6 @@ BERR_Code BXPT_P_Mcpb_Standby(BXPT_Handle hXpt)
     p += MCPB_TOP_REG_SAVELIST_COUNT;
 
     for (i=0; i<BXPT_NUM_PLAYBACKS; i++) {
-        if (!hXpt->PlaybackHandles[i].Opened) { continue; }
-
         for (j=0; j<MCPB_CH_REG_SAVELIST_COUNT; j++) {
             addr = BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL + i*MCPB_STEPSIZE + (MCPB_CH_REG_SAVELIST[j] - BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL);
             *(p + i*MCPB_CH_REG_SAVELIST_COUNT + j) = BREG_Read32(hXpt->hRegister, addr);
@@ -1011,8 +1009,6 @@ BERR_Code BXPT_P_Mcpb_Standby(BXPT_Handle hXpt)
     p += MCPB_TOP_REG_SAVELIST_COUNT;
 
     for (i=0; i<BXPT_NUM_PLAYBACKS; i++) {
-        if (hXpt->dmaChannels[i]==NULL) { continue; }
-
         for (j=0; j<MCPB_CH_REG_SAVELIST_COUNT; j++) {
             addr = BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DESC_CONTROL + i*MCPB_STEPSIZE + (MCPB_CH_REG_SAVELIST[j] - BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL);
             *(p + i*MCPB_CH_REG_SAVELIST_COUNT + j) = BREG_Read32(hXpt->hRegister, addr);
@@ -1082,8 +1078,6 @@ void BXPT_P_Mcpb_Resume(BXPT_Handle hXpt)
     p += MCPB_TOP_REG_SAVELIST_COUNT;
 
     for (i=0; i<BXPT_NUM_PLAYBACKS; i++) {
-        if (!hXpt->PlaybackHandles[i].Opened) { continue; }
-
         for (j=0; j<MCPB_CH_REG_SAVELIST_COUNT; j++) {
             addr = BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL + i*MCPB_STEPSIZE + (MCPB_CH_REG_SAVELIST[j] - BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL);
             BREG_Write32(hXpt->hRegister, addr, *(p + i*MCPB_CH_REG_SAVELIST_COUNT + j));
@@ -1099,8 +1093,6 @@ void BXPT_P_Mcpb_Resume(BXPT_Handle hXpt)
     p += MCPB_TOP_REG_SAVELIST_COUNT;
 
     for (i=0; i<BXPT_NUM_PLAYBACKS; i++) {
-        if (hXpt->dmaChannels[i]==NULL) { continue; }
-
         for (j=0; j<MCPB_CH_REG_SAVELIST_COUNT; j++) {
             addr = BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DESC_CONTROL + i*MCPB_STEPSIZE + (MCPB_CH_REG_SAVELIST[j] - BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL);
             BREG_Write32(hXpt->hRegister, addr, *(p + i*MCPB_CH_REG_SAVELIST_COUNT + j));

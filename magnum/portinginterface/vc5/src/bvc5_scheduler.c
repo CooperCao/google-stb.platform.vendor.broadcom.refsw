@@ -863,8 +863,15 @@ void BVC5_Scheduler(
 
       /* Are we terminating? */
       terminate = BKNI_WaitForEvent(hVC5->hSchedulerTerminateEvent, 0) == BERR_SUCCESS;
-      if (terminate)
+      if (terminate) {
+         /* This critical section works with another one in BVC5_Close()
+          * After breaking from this loop two events are destroyed
+          * so this critical sections make sure that both events are
+          * signaled before they are destroyed */
+         BKNI_EnterCriticalSection();
+         BKNI_LeaveCriticalSection();
          break;
+      }
 
       BKNI_AcquireMutex(hVC5->hModuleMutex);
 

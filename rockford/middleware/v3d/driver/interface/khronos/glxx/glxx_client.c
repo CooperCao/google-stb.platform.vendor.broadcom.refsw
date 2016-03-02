@@ -2670,11 +2670,15 @@ GL_API void GL_APIENTRY glPixelStorei (GLenum pname, GLint param)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_11_OR_20(thread)) {
-      if (is_alignment(param)) {
-         GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
 
-         vcos_assert(state != NULL);
+      GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
+      vcos_assert(state != NULL);
 
+      if ((pname == GL_PACK_ALIGNMENT || pname == GL_UNPACK_ALIGNMENT) && (!is_alignment(param)))
+         set_error(state, GL_INVALID_VALUE);
+      else if (param < 0)
+         set_error(state, GL_INVALID_VALUE);
+      else {
          switch (pname) {
          case GL_PACK_ALIGNMENT:
             state->alignment.pack = param;

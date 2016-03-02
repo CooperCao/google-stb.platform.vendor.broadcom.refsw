@@ -78,8 +78,8 @@ include ../../../../nexus/build/os/ucos/os_tools.inc
 # BOLT_DIR_NAME = ../../bolt
 
 # OFFICIAL RELEASE VERSION
-BOLT_DIR_NAME = bolt_v1.08
-CFE_DIR_NAME = CFE_15_4
+BOLT_DIR_NAME = bolt_v1.10
+CFE_DIR_NAME = CFE_16_1
 
 BSEAV = $(shell cd "../../.." && ${PWD})
 NEXUS_TOP = $(shell cd "../../../../nexus" && ${PWD})
@@ -169,7 +169,8 @@ ifeq ($(B_REFSW_ARCH),)
 B_REFSW_ARCH=mips-linux
 export B_REFSW_ARCH
 endif
-ifneq ($(B_REFSW_DEBUG),n)
+B_REFSW_DEBUG ?= y
+ifeq ($(B_REFSW_DEBUG),y)
 DEBUG_SUFFIX=debug
 else
 DEBUG_SUFFIX=release
@@ -298,7 +299,7 @@ else
         ifeq ($(filter $(NEXUS_PLATFORM),97019 97125 97205 97228 97230 97231 97335 97340 97342 97362 973625 97405 97408 97466 97563 975635 97584 975845), $(NEXUS_PLATFORM))
             CPU = bmips4380
         else
-            ifeq ($(filter $(NEXUS_PLATFORM),97241 93380vms 97344 97346 97410 97420 97422 97425 97428 97429 97435), $(NEXUS_PLATFORM))
+            ifeq ($(filter $(NEXUS_PLATFORM),97241 972415 93380vms 97344 97346 97410 97420 97422 97425 97428 97429 97435), $(NEXUS_PLATFORM))
                 CPU = bmips5000
             else
                 ifeq ($(NEXUS_PLATFORM),97325)

@@ -113,15 +113,17 @@ static void print_usage(void)
     );
 #endif
     printf(
-    "  -svp           \tconfigure Secure Video Path (defaults on with SAGE)\n"
+    "  -svp           \tUse NEXUS_VIDEO_SECURE_HEAP heap for video/audio CDB\n"
+    "  -svp_urr       \tsvp option + set all picture buffers to secure only\n");
 #if NEXUS_HAS_HDMI_OUTPUT
+    printf(
     "  -hdcp2x_keys BINFILE \tspecify location of Hdcp2.x bin file\n"
     "  -hdcp1x_keys BINFILE \tspecify location of Hdcp1.x bin file\n"
     "  -hdcp {m|o}    \talways run [m]andatory or [o]ptional HDCP for system test\n"
     "  -hdmi_drm      \tenable dynamic range and mastering info transmission from source to display\n"
     "  -spd VENDOR,DESCRIPTION \tSPD vendorName and description to transmit in HDMI SpdInfoFrame.\n"
-#endif
     );
+#endif
     printf(
     "  -maxDataRate X \tincrease RS/XC buffer rates, in Mbps. User assumes responsibility to not exceed bandwidth or starve other channels.\n"
     "  -remux         \tenable transport remux\n"
@@ -130,8 +132,8 @@ static void print_usage(void)
     "  -memconfig videoDecoder,INDEX,MAXWIDTH,MAXHEIGHT\n"
     "  -memconfig videoDecoder,INDEX,mosaic,NUMMOSAICS,MAXWIDTH,MAXHEIGHT\n"
     "  -memconfig display,INDEX,MAXWIDTH,MAXHEIGHT\n"
-    "  -memconfig videoDecoder,svp,{INDEX|all},{s|u|su}\n"
-    "  -memconfig display,svp,{INDEX|all},{s|u|su}\n"
+    "  -memconfig videoDecoder,svp,{INDEX|all},{s|u|su} (CANNOT be used w/ -svp or -svp_urr)\n"
+    "  -memconfig display,svp,{INDEX|all},{s|u|su} (CANNOT be used w/ -svp or -svp_urr)\n"
     "  -memconfig videoEncoder,INDEX,MAXWIDTH,MAXHEIGHT\n"
     );
     printf(
@@ -785,8 +787,13 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
         else if (!strcmp(argv[curarg], "-i2s_input")) {
             settings->audioInputs.i2sEnabled = true;
         }
+        else if (!strcmp(argv[curarg], "-svp_urr")) {
+            settings->svp = nxserverlib_svp_type_cdb_urr;
+        }
         else if (!strcmp(argv[curarg], "-svp")) {
-            settings->svp = true;
+            if(settings->svp == nxserverlib_svp_type_none) {
+                settings->svp = nxserverlib_svp_type_cdb;
+            }
         }
         else if (!strcmp(argv[curarg], "-remux")) {
             cmdline_settings->remux = true;
@@ -920,13 +927,30 @@ int nxserver_modify_platform_settings(const struct nxserver_settings *settings, 
 #if NEXUS_HAS_VIDEO_DECODER
     pMemConfigSettings->videoDecoder[0].avc51Supported = cmdline_settings->avc51;
 #endif
-    /* if no session is using SD, save memory */
-    for (i=0;i<NXCLIENT_MAX_SESSIONS;i++) {
-        if (settings->session[i].output.sd) break;
+
+    if(settings->svp != nxserverlib_svp_type_none) {
+        for(i=0;i<cmdline_settings->memconfig.total;i++) {
+            if(strstr(cmdline_settings->memconfig.str[i], "svp")) {
+                BDBG_ERR(("Cannot combine svp or svp_urr flag w/ svp memconfig settings!"));
+                print_usage();
+                return -1;
+            }
+        }
     }
-    if (i == NXCLIENT_MAX_SESSIONS) {
-        pMemConfigSettings->display[1].maxFormat = NEXUS_VideoFormat_eUnknown;
+
+    if(settings->svp == nxserverlib_svp_type_cdb_urr) {
+        const char *svp_str[] = {
+            "videoDecoder,svp,all,s",
+             "display,svp,all,s"
+        };
+
+        rc = nxserverlib_apply_memconfig_str(pPlatformSettings, pMemConfigSettings, svp_str, 2);
+        if (rc) {
+            print_usage();
+            return -1;
+        }
     }
+
     rc = nxserverlib_apply_memconfig_str(pPlatformSettings, pMemConfigSettings, cmdline_settings->memconfig.str, cmdline_settings->memconfig.total);
     if (rc) {
         print_usage();

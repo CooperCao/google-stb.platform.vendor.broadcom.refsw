@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -82,6 +82,14 @@ extern "C" {
 
 #define CALLBACK_LUA  "CallbackLua"
 
+/* push return parameter to lua stack and return number of return parameters */
+#define LUA_RETURN(ret)                                         \
+    do {                                                        \
+        lua_pushnumber(pLua, (eRet_Ok == ret) ? 0 : -1);        \
+        return(pThis->getBusyLuaEvent()->getNumReturnVals());   \
+    } while (0)
+
+
 BDBG_MODULE(atlas_lua);
 
 /* if lua error, print lua error and trigger jump (note that calling luaL_error() will jump. err parameter is just to satisfy coverity */
@@ -122,19 +130,19 @@ static int atlasLua_ChannelUp(lua_State * pLua)
 
     BDBG_ASSERT(pThis);
 
-    pLuaEvent = new CLuaEvent(eNotify_ChUp, eNotify_CurrentChannel, DEFAULT_LUA_EVENT_TIMEOUT);
+    pLuaEvent = new CLuaEvent(eNotify_ChUp, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
-    luaL_error(pLua, "Atlas Lua Error");
+    luaL_error(pLua, "Atlas Lua Error - atlasLua_ChannelUp()");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ChannelUp */
 
 static int atlasLua_ChannelDown(lua_State * pLua)
@@ -145,19 +153,19 @@ static int atlasLua_ChannelDown(lua_State * pLua)
 
     BDBG_ASSERT(pThis);
 
-    pLuaEvent = new CLuaEvent(eNotify_ChDown, eNotify_CurrentChannel, DEFAULT_LUA_EVENT_TIMEOUT);
+    pLuaEvent = new CLuaEvent(eNotify_ChDown, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ChannelDown */
 
 /* atlas.channelTune(
@@ -201,7 +209,7 @@ static int atlasLua_ChannelTune(lua_State * pLua)
     }
 
     /* create lua event and give it tune data */
-    pLuaEvent = new CLuaDataEvent <CChannelData>(eNotify_Tune, pChannelData, eNotify_CurrentChannel, DEFAULT_LUA_EVENT_TIMEOUT);
+    pLuaEvent = new CLuaDataEvent <CChannelData>(eNotify_Tune, pChannelData, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
 
     /* save lua event to queue - this event will be serviced when we get the bwin io callback:
@@ -209,7 +217,7 @@ static int atlasLua_ChannelTune(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -217,7 +225,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ChannelTune */
 
 /* atlas.channelUnTune(
@@ -250,7 +258,7 @@ static int atlasLua_ChannelUnTune(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -258,7 +266,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ChannelUnTune */
 
 #if NEXUS_HAS_FRONTEND
@@ -375,7 +383,7 @@ static int atlasLua_ScanQam(lua_State * pLua)
     pQamScanData->dump();
 
     /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <CTunerQamScanData>(eNotify_ScanStart, pQamScanData, eNotify_ScanStopped, 5555 /*B_WAIT_FOREVER*/);
+    pLuaEvent = new CLuaDataEvent <CTunerQamScanData>(eNotify_ScanStart, pQamScanData, eNotify_ScanStopped, B_WAIT_FOREVER);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
 
     /* save lua event to queue - this event will be serviced when we get the bwin io callback:
@@ -383,7 +391,7 @@ static int atlasLua_ScanQam(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -391,7 +399,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ScanQam */
 
 /* atlas.scanVsb(
@@ -471,7 +479,7 @@ static int atlasLua_ScanVsb(lua_State * pLua)
     pVsbScanData->dump();
 
     /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <CTunerVsbScanData>(eNotify_ScanStart, pVsbScanData, eNotify_ScanStopped, 5555 /*B_WAIT_FOREVER*/);
+    pLuaEvent = new CLuaDataEvent <CTunerVsbScanData>(eNotify_ScanStart, pVsbScanData, eNotify_ScanStopped, B_WAIT_FOREVER);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
 
     /* save lua event to queue - this event will be serviced when we get the bwin io callback:
@@ -479,7 +487,7 @@ static int atlasLua_ScanVsb(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -487,7 +495,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ScanVsb */
 
 /* atlas.scanSat(
@@ -569,7 +577,7 @@ static int atlasLua_ScanSat(lua_State * pLua)
     pSatScanData->dump();
 
     /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <CTunerSatScanData>(eNotify_ScanStart, pSatScanData, eNotify_ScanStopped, 5555 /*B_WAIT_FOREVER*/);
+    pLuaEvent = new CLuaDataEvent <CTunerSatScanData>(eNotify_ScanStart, pSatScanData, eNotify_ScanStopped, B_WAIT_FOREVER);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
 
     /* save lua event to queue - this event will be serviced when we get the bwin io callback:
@@ -577,7 +585,7 @@ static int atlasLua_ScanSat(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -585,7 +593,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ScanSat */
 
 /* atlas.scanOfdm(
@@ -665,7 +673,7 @@ static int atlasLua_ScanOfdm(lua_State * pLua)
     pOfdmScanData->dump();
 
     /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <CTunerOfdmScanData>(eNotify_ScanStart, pOfdmScanData, eNotify_ScanStopped, 5555 /*B_WAIT_FOREVER*/);
+    pLuaEvent = new CLuaDataEvent <CTunerOfdmScanData>(eNotify_ScanStart, pOfdmScanData, eNotify_ScanStopped, B_WAIT_FOREVER);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
 
     /* save lua event to queue - this event will be serviced when we get the bwin io callback:
@@ -673,7 +681,7 @@ static int atlasLua_ScanOfdm(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -681,7 +689,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ScanOfdm */
 
 #endif /* NEXUS_HAS_FRONTEND */
@@ -736,7 +744,7 @@ static int atlasLua_SetContentMode(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -744,7 +752,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetContentMode */
 
 /* atlas.setColorSpace(
@@ -797,7 +805,7 @@ static int atlasLua_SetColorSpace(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -805,7 +813,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetColorSpace */
 
 /* atlas.setMpaaDecimation(
@@ -850,7 +858,7 @@ static int atlasLua_SetMpaaDecimation(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -858,7 +866,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetMpaaDecimation */
 
 /* atlas.setDeinterlacer(
@@ -903,7 +911,7 @@ static int atlasLua_SetDeinterlacer(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -911,7 +919,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetDeinterlacer */
 
 /* atlas.setBoxDetect(
@@ -966,7 +974,7 @@ static int atlasLua_SetBoxDetect(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -974,7 +982,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetBoxDetect */
 
 /* atlas.setAspectRatio(
@@ -1027,7 +1035,7 @@ static int atlasLua_SetAspectRatio(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -1035,7 +1043,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetAspectRatio */
 
 /* atlas.setVideoFormat(
@@ -1109,7 +1117,7 @@ static int atlasLua_SetVideoFormat(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -1117,7 +1125,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetVideoFormat */
 
 /* atlas.setAutoVideoFormat(
@@ -1162,7 +1170,7 @@ static int atlasLua_SetAutoVideoFormat(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -1170,7 +1178,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetAutoVideoFormat */
 
 /* atlas.channelListLoad(
@@ -1224,7 +1232,7 @@ static int atlasLua_ChannelListLoad(lua_State * pLua)
     }
 
     /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <CChannelMgrLoadSaveData>(eNotify_ChannelListLoad, pLoadSaveData, eNotify_ChannelListChanged);
+    pLuaEvent = new CLuaDataEvent <CChannelMgrLoadSaveData>(eNotify_ChannelListLoad, pLoadSaveData, eNotify_ChannelListChanged, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
 
     /* save lua event to queue - this event will be serviced when we get the bwin io callback:
@@ -1232,7 +1240,7 @@ static int atlasLua_ChannelListLoad(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -1240,7 +1248,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ChannelListLoad */
 
 /* atlas.channelListSave(
@@ -1305,7 +1313,7 @@ static int atlasLua_ChannelListSave(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -1313,7 +1321,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ChannelListSave */
 
 /* atlas.channelListDump()
@@ -1331,22 +1339,22 @@ static int atlasLua_ChannelListDump(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ChannelListDump */
 
 /* atlas.playbackListDump()
  */
 static int atlasLua_PlaybackListDump(lua_State * pLua)
 {
-    CLua * pThis = getCLua(pLua);
     eRet   err   = eRet_Ok;
+    CLua * pThis = getCLua(pLua);
 
     BDBG_ASSERT(pThis);
 
@@ -1356,14 +1364,14 @@ static int atlasLua_PlaybackListDump(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_PlaybackListDump */
 
 /* atlas.playbackTrickMode(
@@ -1595,7 +1603,7 @@ static int atlasLua_PlaybackTrickMode(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -1603,7 +1611,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_PlaybackTrickMode */
 
 /* atlas.playbackStart(
@@ -1678,7 +1686,7 @@ static int atlasLua_PlaybackStart(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -1686,7 +1694,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_PlaybackStart */
 
 /* atlas.playbackStop(
@@ -1731,7 +1739,7 @@ static int atlasLua_PlaybackStop(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -1739,7 +1747,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_PlaybackStop */
 
 /* atlas.recordStart(
@@ -1812,7 +1820,7 @@ static int atlasLua_RecordStart(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -1820,7 +1828,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_RecordStart */
 
 /* atlas.recordStop(
@@ -1871,7 +1879,7 @@ static int atlasLua_RecordStop(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -1879,7 +1887,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_RecordStop */
 
 /* atlas.encodeStart(
@@ -1900,14 +1908,14 @@ static int atlasLua_EncodeStart(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_EncodeStart */
 
 /* atlas.encodeStop
@@ -1925,14 +1933,14 @@ static int atlasLua_EncodeStop(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_EncodeStop */
 
 static int atlasLua_RefreshPlaybackList(lua_State * pLua)
@@ -1948,14 +1956,14 @@ static int atlasLua_RefreshPlaybackList(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_RefreshPlaybackList */
 
 /* atlas.setAudioProgram(
@@ -2008,7 +2016,7 @@ static int atlasLua_SetAudioProgram(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2016,7 +2024,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetAudioProgram */
 
 /* atlas.remoteKeypress(
@@ -2067,7 +2075,7 @@ static int atlasLua_RemoteKeypress(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2075,7 +2083,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_RemoteKeypress */
 
 /* atlas.setSpdifType(
@@ -2128,7 +2136,7 @@ static int atlasLua_SetSpdifType(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2136,7 +2144,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetSpdifType */
 
 /* atlas.setHdmiAudioType(
@@ -2189,7 +2197,7 @@ static int atlasLua_SetHdmiAudioType(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2197,7 +2205,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetHdmiAudioType */
 
 /* atlas.setDownmix(
@@ -2250,7 +2258,7 @@ static int atlasLua_SetDownmix(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2258,7 +2266,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetDownmix */
 
 /* atlas.setDualMono(
@@ -2311,7 +2319,7 @@ static int atlasLua_SetDualMono(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2319,7 +2327,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetDualMono */
 
 /* atlas.setDolbyDRC(
@@ -2372,7 +2380,7 @@ static int atlasLua_SetDolbyDRC(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2380,7 +2388,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetDolbyDRC */
 
 /* atlas.setDolbyDialogNorm(
@@ -2425,7 +2433,7 @@ static int atlasLua_SetDolbyDialogNorm(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2433,7 +2441,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetDolbyDialogNorm */
 
 /* atlas.setVolume(
@@ -2483,7 +2491,7 @@ static int atlasLua_SetVolume(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2491,7 +2499,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetVolume */
 
 /* atlas.setMute(
@@ -2536,7 +2544,7 @@ static int atlasLua_SetMute(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2544,7 +2552,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetMute */
 
 /* atlas.setSpdifInput(
@@ -2594,7 +2602,7 @@ static int atlasLua_SetSpdifInput(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2602,7 +2610,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetSpdifInput */
 
 /* atlas.setHdmiInput(
@@ -2652,7 +2660,7 @@ static int atlasLua_SetHdmiInput(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2660,7 +2668,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetHdmiInput */
 
 /* atlas.setAudioProcessing(
@@ -2737,7 +2745,7 @@ static int atlasLua_SetAudioProcessing(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2745,7 +2753,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetAudioProcessing */
 
 /* atlas.showPip(
@@ -2794,7 +2802,7 @@ static int atlasLua_ShowPip(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2802,7 +2810,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ShowPip */
 
 /* atlas.swapPip(
@@ -2837,14 +2845,14 @@ static int atlasLua_SwapPip(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SwapPip */
 
 #ifdef DCC_SUPPORT
@@ -2878,7 +2886,7 @@ static int atlasLua_ClosedCaptionEnable(lua_State * pLua)
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
     pThis->addEvent(pLuaEvent);
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2886,7 +2894,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ClosedCaptionEnable */
 
 /* atlas.ClosedCaptionMode()
@@ -2926,7 +2934,7 @@ static int atlasLua_ClosedCaptionMode(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2934,7 +2942,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ClosedCaptionMode */
 
 #endif /* ifdef DCC_SUPPORT */
@@ -2991,7 +2999,7 @@ static int atlasLua_SetVbiClosedCaptions(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -2999,7 +3007,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetVbiClosedCaptions  */
 
 /* atlas.setVbiTeletext(
@@ -3053,7 +3061,7 @@ static int atlasLua_SetVbiTeletext(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -3061,7 +3069,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetVbiTeletext  */
 
 /* atlas.setVbiVps(
@@ -3115,7 +3123,7 @@ static int atlasLua_SetVbiVps(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -3123,7 +3131,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetVbiVps  */
 
 /* atlas.setVbiWss(
@@ -3177,7 +3185,7 @@ static int atlasLua_SetVbiWss(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -3185,7 +3193,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetVbiWss  */
 
 /* atlas.setVbiCgms(
@@ -3240,7 +3248,7 @@ static int atlasLua_SetVbiCgms(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -3248,7 +3256,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetVbiCgms  */
 
 /* atlas.setVbiGemstar(
@@ -3302,7 +3310,7 @@ static int atlasLua_SetVbiGemstar(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -3310,7 +3318,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetVbiGemstar  */
 
 /* atlas.setVbiAmol(
@@ -3367,7 +3375,7 @@ static int atlasLua_SetVbiAmol(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -3375,7 +3383,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetVbiAmol  */
 
 /* atlas.setVbiMacrovision(
@@ -3433,7 +3441,7 @@ static int atlasLua_SetVbiMacrovision(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -3441,7 +3449,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetVbiMacrovision  */
 
 /* atlas.setVbiDcs(
@@ -3498,7 +3506,7 @@ static int atlasLua_SetVbiDcs(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -3506,7 +3514,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetVbiDcs  */
 
 /* atlas.setPowerMode(
@@ -3548,7 +3556,7 @@ static int atlasLua_SetPowerMode(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -3556,7 +3564,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_SetPowerMode  */
 
 #ifdef  NETAPP_SUPPORT
@@ -3586,14 +3594,14 @@ static int atlasLua_WifiScanStart(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_WifiScanStart */
 
 static int atlasLua_WifiConnect(lua_State * pLua)
@@ -3629,7 +3637,7 @@ static int atlasLua_WifiConnect(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -3637,7 +3645,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_WifiConnect */
 
 static int atlasLua_WifiDisconnect(lua_State * pLua)
@@ -3666,14 +3674,14 @@ static int atlasLua_WifiDisconnect(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_WifiDisconnect */
 
 static int atlasLua_BluetoothDiscoveryStart(lua_State * pLua)
@@ -3702,14 +3710,14 @@ static int atlasLua_BluetoothDiscoveryStart(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_BluetoothDiscoveryStart */
 
 #if 0 /* Can't pass in bt list pointer  from a lua command. Need index and list pointer */
@@ -3747,7 +3755,7 @@ static int atlasLua_BluetoothConnect(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -3755,7 +3763,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_BluetoothConnect */
 
 #endif /* if 0 */
@@ -3791,7 +3799,7 @@ static int atlasLua_BluetoothDisconnect(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -3799,7 +3807,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_BluetoothDisconnect */
 
 static int atlasLua_BluetoothGetSavedBtListInfo(lua_State * pLua)
@@ -3828,14 +3836,14 @@ static int atlasLua_BluetoothGetSavedBtListInfo(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_BluetoothGetSavedBtListInfo */
 
 static int atlasLua_BluetoothGetConnectedBtListInfo(lua_State * pLua)
@@ -3864,14 +3872,14 @@ static int atlasLua_BluetoothGetConnectedBtListInfo(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_BluetoothGetConnectedBtListInfo */
 
 static int atlasLua_BluetoothGetDiscoveryBtListInfo(lua_State * pLua)
@@ -3900,14 +3908,14 @@ static int atlasLua_BluetoothGetDiscoveryBtListInfo(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_BluetoothGetDiscoveryBtListInfo */
 
 static int atlasLua_BluetoothConnectBluetoothFromDiscList(lua_State * pLua)
@@ -3942,7 +3950,7 @@ static int atlasLua_BluetoothConnectBluetoothFromDiscList(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
@@ -3950,7 +3958,7 @@ error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_BluetoothConnectBluetoothFromDiscList */
 
 static int atlasLua_BluetoothA2DPStart(lua_State * pLua)
@@ -3979,14 +3987,14 @@ static int atlasLua_BluetoothA2DPStart(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_BluetoothA2DPStart */
 
 static int atlasLua_BluetoothA2DPStop(lua_State * pLua)
@@ -4015,14 +4023,14 @@ static int atlasLua_BluetoothA2DPStop(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_BluetoothA2DPStart */
 
 #endif /* ifdef  NETAPP_SUPPORT */
@@ -4045,12 +4053,15 @@ static int atlasLua_AddRf4ceRemote(lua_State * pLua)
         LUA_ERROR(pLua, "wrong number of arguments: [remoteName]", error);
     }
     remoteName = luaL_checkstring(pLua, argNum++);
+
+	/* DISABLED: this call is not thread-safe!  must call trigger() to sync with main loop */
+    goto error;
     AddRf4ceRemote(remoteName);
     goto done;
 error:
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_AddRf4ceRemote */
 
 static int atlasLua_RemoveRf4ceRemote(lua_State * pLua)
@@ -4066,12 +4077,15 @@ static int atlasLua_RemoveRf4ceRemote(lua_State * pLua)
     }
 
     remote_num = lua_tointeger(pLua, 1);
+
+	/* DISABLED: this call is not thread-safe!  must call trigger() to sync with main loop */
+    goto error;
     RemoveRf4ceRemote(remote_num);
     goto done;
 error:
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_RemoveRf4ceRemote */
 
 static int atlasLua_DisplayRf4ceRemotes(lua_State * pLua)
@@ -4085,27 +4099,50 @@ static int atlasLua_DisplayRf4ceRemotes(lua_State * pLua)
         LUA_ERROR(pLua, "no arguments required", error);
     }
 
+	/* DISABLED: this call is not thread-safe!  must call trigger() to sync with main loop */
+    goto error;
     DisplayRf4ceRemotes();
     goto done;
 error:
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_DisplayRf4ceRemotes */
 
 #endif /* if RF4CE_SUPPORT */
 
 static int atlasLua_PlaylistDiscovery(lua_State * pLua)
 {
-    CLua * pThis = getCLua(pLua);
-    eRet   err   = eRet_Ok;
+    CLua *        pThis       = getCLua(pLua);
+    eRet          err         = eRet_Ok;
+    int  *        pIndex      = 0;
+    CModel *      pModel      = NULL;
+    uint8_t       numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaEvent * pLuaEvent = NULL;
+    CLuaDataEvent <int> * pLuaEvent = NULL;
 
     BDBG_ASSERT(pThis);
 
+    pModel = pThis->getModel();
+    BDBG_ASSERT(NULL != pModel);
+
+
+    pIndex = new int;
+
+    /* check number of lua arguments on stack */
+    if (1 == numArgTotal)
+    {
+        *pIndex = lua_tointeger(pLua, 1);
+    }
+    else
+    if (1 < numArgTotal)
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "wrong number of arguments: <index> of playlist to retrieve. use 0 to print all", error);
+    }
+
     /* create lua event and give it data */
-    pLuaEvent = new CLuaEvent(eNotify_ShowDiscoveredPlaylists);
+    pLuaEvent = new CLuaDataEvent<int>(eNotify_ShowDiscoveredPlaylists, pIndex, eNotify_DiscoveredPlaylistsShown, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
 
     /* save lua event to queue - this event will be serviced when we get the bwin io callback:
@@ -4113,14 +4150,15 @@ static int atlasLua_PlaylistDiscovery(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
+    DEL(pIndex);
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_PlaylistDiscovery */
 
 static int atlasLua_PlaylistShow(lua_State * pLua)
@@ -4130,25 +4168,34 @@ static int atlasLua_PlaylistShow(lua_State * pLua)
     uint8_t         numArgTotal   = lua_gettop(pLua) - 1;
     CPlaylistData * pPlaylistData = NULL;
     uint8_t         argNum        = 1;
+    int             nIndex        = 0;
+    MString         strIp;
 
     CLuaDataEvent <CPlaylistData> * pLuaEvent = NULL;
 
     BDBG_ASSERT(pThis);
 
     /* check number of lua arguments on stack */
-    if (1 != numArgTotal)
+    if (2 < numArgTotal)
     {
         /* wrong number of arguments */
-        LUA_ERROR(pLua, "wrong number of arguments: [IP Address]", error);
+        LUA_ERROR(pLua, "wrong number of arguments: [IP Address]<index>", error);
+    }
+
+    strIp = luaL_checkstring(pLua, argNum++);
+
+    if (2 == numArgTotal)
+    {
+        nIndex = lua_tointeger(pLua, argNum++);
     }
 
     /* add required arguments to data */
-    pPlaylistData = new CPlaylistData(luaL_checkstring(pLua, argNum++));
+    pPlaylistData = new CPlaylistData(strIp.s(), nIndex);
 
     BDBG_ASSERT(pThis);
 
     /* create lua event and give it data */
-    pLuaEvent = new CLuaDataEvent <CPlaylistData>(eNotify_ShowPlaylist, pPlaylistData);
+    pLuaEvent = new CLuaDataEvent <CPlaylistData>(eNotify_ShowPlaylist, pPlaylistData, eNotify_PlaylistShown, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
 
     /* save lua event to queue - this event will be serviced when we get the bwin io callback:
@@ -4156,14 +4203,14 @@ static int atlasLua_PlaylistShow(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ShowDiscoveredPlaylists */
 
 #ifdef PLAYBACK_IP_SUPPORT
@@ -4201,13 +4248,13 @@ static int atlasLua_ChannelStream(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_ChannelStream */
 
 #endif /* ifdef PLAYBACK_IP_SUPPORT */
@@ -4300,6 +4347,36 @@ static int atlasLua_RunScript(lua_State * pLua)
     return(0);
 } /* atlasLua_RunScript */
 
+static int atlasLua_Debug(lua_State * pLua)
+{
+    CLua *       pThis     = getCLua(pLua);
+    eRet         err       = eRet_Ok;
+    int          argNum    = 1;
+    MString *    pStrDebug = NULL;
+
+    CLuaDataEvent <MString> * pLuaEvent = NULL;
+    BDBG_ASSERT(pThis);
+
+    pStrDebug = new MString(luaL_checkstring(pLua, argNum));
+
+    /* create lua event and give it data */
+    pLuaEvent = new CLuaDataEvent <MString>(eNotify_Debug, pStrDebug);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+
+    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addEvent(pLuaEvent);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pLuaEvent);
+    goto done;
+error:
+    DEL(pLuaEvent);
+    luaL_error(pLua, "Atlas Lua Error");
+done:
+    LUA_RETURN(err);
+} /* atlasLua_Debug */
+
 static int atlasLua_Sleep(lua_State * pLua)
 {
     int msecs = 0;
@@ -4326,14 +4403,14 @@ static int atlasLua_Exit(lua_State * pLua)
     pThis->addEvent(pLuaEvent);
 
     /* trigger bwin io event here */
-    pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pLuaEvent);
 
     goto done;
 error:
     DEL(pLuaEvent);
     luaL_error(pLua, "Atlas Lua Error");
 done:
-    return(0);
+    LUA_RETURN(err);
 } /* atlasLua_Exit */
 
 /* list of atlas lua extension APIs */
@@ -4422,6 +4499,7 @@ static const struct luaL_Reg atlasLua[] = {
 #endif /* ifdef PLAYBACK_IP_SUPPORT */
     { "setDebugLevel",                 atlasLua_SetDebugLevel                         }, /* set debug level for given module */
     { "runScript",                     atlasLua_RunScript                             }, /* Run given lua script */
+    { "debug",                         atlasLua_Debug                                 }, /* Display given debug string on screen and in output log */
     { "sleep",                         atlasLua_Sleep                                 }, /* sleep */
     { "exit",                          atlasLua_Exit                                  }, /* exit application */
     { "quit",                          atlasLua_Exit                                  }, /* exit application */
@@ -4546,10 +4624,10 @@ CLua::CLua() :
     _pLua(NULL),
     _threadShell(NULL),
     _shellStarted(false),
-    _busyLuaEvent(eNotify_Invalid),
     _eventMutex(NULL),
     _busyEvent(NULL),
     _pWidgetEngine(NULL),
+    _busyLuaEvent(eNotify_Invalid),
     _pConfig(NULL),
     _pCfg(NULL),
     _pModel(NULL)
@@ -4908,38 +4986,50 @@ error:
     return;
 } /* bwinLuaCallback */
 
-void CLua::trigger(CLuaEvent * pLuaEvent)
+eRet CLua::trigger(CLuaEvent * pLuaEvent)
 {
-    CWidgetEngine * pWidgetEngine = getWidgetEngine();
+    eRet            ret               = eRet_Ok;
+    CWidgetEngine * pWidgetEngine     = getWidgetEngine();
 
     BDBG_ASSERT(NULL != pLuaEvent);
 
     /* save copy of lua event in case we have to wait for a response notification */
     _busyLuaEvent = *pLuaEvent;
 
+    B_Event_Reset(_busyEvent);
+
     if (NULL != pWidgetEngine)
     {
-        BDBG_WRN(("Trigger Lua event: %s", notificationToString(pLuaEvent->getId()).s()));
+        BDBG_MSG(("Trigger Lua event: %s", notificationToString(pLuaEvent->getId()).s()));
         pWidgetEngine->syncCallback(this, CALLBACK_LUA);
     }
 
+    /*** do not access pLuaEvent after the syncCallback call.  since we are running
+         in the Lua thread context, the bwinLuaCallback can trigger at anytime
+         after syncCallback() which will delete the pLuaEvent! use _busyLuaEvent instead. ***/
+
     /* if command specified a valid wait notification, we will wait for it here */
-    if (eNotify_Invalid != pLuaEvent->getWaitNotification())
+    if (eNotify_Invalid != _busyLuaEvent.getWaitNotification())
     {
         B_Error berr = B_ERROR_SUCCESS;
 
-        BDBG_MSG(("Waiting for lua command (%s) to complete...", notificationToString(pLuaEvent->getWaitNotification()).s()));
-        B_Event_Reset(_busyEvent);
-        berr = B_Event_Wait(_busyEvent, pLuaEvent->getWaitTimeout());
+        BDBG_MSG(("Lua waiting for response (%s)...%d secs",
+                  notificationToString(_busyLuaEvent.getWaitNotification()).s(),
+                  _busyLuaEvent.getWaitTimeout()));
+
+        berr = B_Event_Wait(_busyEvent, _busyLuaEvent.getWaitTimeout());
         if (B_ERROR_SUCCESS != berr)
         {
             BDBG_ERR(("Lua wait timed out or returned error!"));
+            ret = eRet_Timeout;
         }
         else
         {
             BDBG_MSG(("Received Lua command (%s)", notificationToString(_busyLuaEvent.getWaitNotification()).s()));
         }
     }
+
+    return(ret);
 } /* trigger */
 
 bool CLua::handleInput(char * pLine)
@@ -5085,6 +5175,63 @@ void CLua::processNotification(CNotification & notification)
     }
     break;
 #endif /* NEXUS_HAS_FRONTEND */
+
+    case eNotify_DiscoveredPlaylistsShown:
+    {
+        CPlaylist   * pPlaylist = (CPlaylist *)notification.getData();
+        int           nRetVals  = 0;
+
+        /* this notification is a response from an Atlas model class - retrieve return
+           data and push to the Lua stack for return to the calling Lua function.  Also
+           update the number of return values. */
+        if (NULL != pPlaylist)
+        {
+            CChannel * pChannel = NULL;
+            if (NULL != (pChannel = pPlaylist->getChannel(0)))
+            {
+                lua_pushlstring(_pLua, pChannel->getHost().s(), pChannel->getHost().length());
+                nRetVals++;
+                lua_pushlstring(_pLua, pPlaylist->getName().s(), pPlaylist->getName().length());
+                nRetVals++;
+            }
+        }
+        else
+        {
+            lua_pushnil(_pLua);
+            nRetVals++;
+            lua_pushnil(_pLua);
+            nRetVals++;
+        }
+
+        /* add 2 to count of return values */
+        _busyLuaEvent.setNumReturnVals(_busyLuaEvent.getNumReturnVals() + nRetVals);
+    }
+    break;
+
+    case eNotify_PlaylistShown:
+    {
+        CChannelBip * pChannelBip = (CChannelBip *)notification.getData();
+        int        nRetVals = 0;
+
+        /* this notification is a response from an Atlas model class - retrieve return
+           data and push to the Lua stack for return to the calling Lua function.  Also
+           update the number of return values. */
+        if (NULL != pChannelBip)
+        {
+            lua_pushlstring(_pLua, pChannelBip->getUrl().s(), pChannelBip->getUrl().length());
+            nRetVals++;
+        }
+        else
+        {
+            lua_pushnil(_pLua);
+            nRetVals++;
+        }
+
+        /* add 2 to count of return values */
+        _busyLuaEvent.setNumReturnVals(_busyLuaEvent.getNumReturnVals() + nRetVals);
+    }
+    break;
+
     default:
         break;
     } /* switch */

@@ -370,7 +370,7 @@ struct NEXUS_SurfaceClient
     bool calcblit_required; /* set to true if calcblit should be called when composing */
     NEXUS_SurfaceClientSettings settings;
     NEXUS_SurfaceCompositorClientSettings serverSettings;
-    NEXUS_TaskCallbackHandle displayedCallback, recycledCallback, displayStatusChangedCallback, windowMovedCallback;
+    NEXUS_TaskCallbackHandle displayedCallback, recycledCallback, displayStatusChangedCallback, windowMovedCallback, vsyncCallback;
     bool pending_displayed_callback; /* set when client adds new source */
     bool process_pending_displayed_callback; /* set when new source used for compositing */
     NEXUS_SurfaceClientType type;

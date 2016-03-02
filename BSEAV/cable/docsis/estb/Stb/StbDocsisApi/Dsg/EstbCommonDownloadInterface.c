@@ -1,59 +1,46 @@
-//****************************************************************************
-//
-// Copyright (c) 2000-2012 Broadcom Corporation
-//
-// This program is the proprietary software of Broadcom Corporation and/or
-// its licensors, and may only be used, duplicated, modified or distributed
-// pursuant to the terms and conditions of a separate, written license
-// agreement executed between you and Broadcom (an "Authorized License").
-// Except as set forth in an Authorized License, Broadcom grants no license
-// (express or implied), right to use, or waiver of any kind with respect to
-// the Software, and Broadcom expressly reserves all rights in and to the
-// Software and all intellectual property rights therein.  IF YOU HAVE NO
-// AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
-// AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
-// SOFTWARE.  
-//
-// Except as expressly set forth in the Authorized License,
-//
-// 1.     This program, including its structure, sequence and organization,
-// constitutes the valuable trade secrets of Broadcom, and you shall use all
-// reasonable efforts to protect the confidentiality thereof, and to use this
-// information only in connection with your use of Broadcom integrated circuit
-// products.
-//
-// 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
-// "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
-// OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
-// RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
-// IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
-// A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-// ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-// THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-//
-// 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
-// OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
-// INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
-// RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
-// HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
-// EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
-// WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
-// FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-//
-//*****************************************************************************
-//    Filename:       EstbCommonDownloadInterface.c
-//    Author:         Pinar Taskiran
-//    Date:           12/17/2007
-//
-//*****************************************************************************
-//    Revision History:
-//                      0.1 Initial version.
-//*****************************************************************************
-//       
-//*****************************************************************************
-//
-//*****************************************************************************
-//********************** Include Files ***************************************
+/******************************************************************************
+ *    (c)2010-2014 Broadcom Corporation
+ *
+ * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
+ * $brcm_Workfile: $
+ * $brcm_Revision: $
+ * $brcm_Date: $
+ *
+ *****************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -72,22 +59,22 @@ extern uint16 HostToNetworkUint32(uint32 value);
 
 #if defined (COMMON_DOWNLOAD_SUPPORT)
 /*
- * This function sends the Secure Header (digital signature) 
+ * This function sends the Secure Header (digital signature)
  * to eCM for authentication.
- *  
- *	filePathOrBuffer - pointer to the Secure Header buffer.				   
-				   
+ *
+ *	filePathOrBuffer - pointer to the Secure Header buffer.
+
  *	filePathOrBufferLen	- length of buffer that contains the Secure Header.
 					  NOTE that this function will return the length
-					  of the secure header. The caller of this function 
+					  of the secure header. The caller of this function
 					  needs to point to the start of the Secure Header
-					  and send the length of the buffer that is holding 
+					  and send the length of the buffer that is holding
 					  the Secure Header.
- * 
+ *
  *
  *
  * This function returns the length of the Secure HEader (Digital Signature).
- *  
+ *
  */
 void AuthenticateMonolithicImageDigitalSignature( uint8* filePathOrBuffer,  uint32 filePathOrBufferLen, CommonDownloadResponseMsg* pCommonDownloadResponseMsg  )
 {
@@ -178,8 +165,8 @@ void UpgradeUnsignedEcmImage( uint8* filePathOrBuffer,  uint32 filePathOrBufferL
 	fileType = (kEcm << 4) | kContent;
 	flags = kUpgrade | kUseTftp;
 
-	memset(pCommonDownloadResponseMsg, 0, sizeof(pCommonDownloadResponseMsg));
- 
+	memset(pCommonDownloadResponseMsg, 0, sizeof(*pCommonDownloadResponseMsg));
+
 	if( checkVersion )
 	{
 		if( CheckForEcmUpgrade((const char*) filePathOrBuffer, &upgradeNeeded, imageIsSigned) == 0)
@@ -194,7 +181,7 @@ void UpgradeUnsignedEcmImage( uint8* filePathOrBuffer,  uint32 filePathOrBufferL
 			pCommonDownloadResponseMsg->returnCode = 1;
 			pCommonDownloadResponseMsg->returnValue = kEcmImageDownloadNotNeeded;
 			return;
-		}		
+		}
 	}
 
 	CommonDownloadAuthenticateOrUpgradeFile( filePathOrBuffer, filePathOrBufferLen, ipAddrType, pTftpServerIpAddress, fileType, flags, pCommonDownloadResponseMsg );
@@ -216,8 +203,8 @@ void UpgradeUnsignedEcmImageByCrc( uint8* filePathOrBuffer,  uint32 filePathOrBu
 	fileType = (kEcm << 4) | kContent;
 	flags = kUpgrade | kUseTftp;
 
-	memset(pCommonDownloadResponseMsg, 0, sizeof(pCommonDownloadResponseMsg));
- 
+	memset(pCommonDownloadResponseMsg, 0, sizeof(*pCommonDownloadResponseMsg));
+
 	if( checkVersion )
 	{
 		if( CheckForEcmUpgradeByCrc((const char*) filePathOrBuffer, &upgradeNeeded, imageIsSigned) == 0)
@@ -232,7 +219,7 @@ void UpgradeUnsignedEcmImageByCrc( uint8* filePathOrBuffer,  uint32 filePathOrBu
 			pCommonDownloadResponseMsg->returnCode = 1;
 			pCommonDownloadResponseMsg->returnValue = kEcmImageDownloadNotNeeded;
 			return;
-		}		
+		}
 	}
 
 	CommonDownloadAuthenticateOrUpgradeFile( filePathOrBuffer, filePathOrBufferLen, ipAddrType, pTftpServerIpAddress, fileType, flags, pCommonDownloadResponseMsg );
@@ -249,7 +236,7 @@ void AuthenticateAndUpgradeEcmImage( uint8* filePathOrBuffer,  uint32 filePathOr
 	fileType = (kEcm << 4) | kContent | kDigitalSignature;
 	flags = kAuthenticate | kUpgrade | kUseTftp;
 
-	memset(pCommonDownloadResponseMsg, 0, sizeof(pCommonDownloadResponseMsg));
+	memset(pCommonDownloadResponseMsg, 0, sizeof(*pCommonDownloadResponseMsg));
 
 	if( checkVersion )
 	{
@@ -265,7 +252,7 @@ void AuthenticateAndUpgradeEcmImage( uint8* filePathOrBuffer,  uint32 filePathOr
 			pCommonDownloadResponseMsg->returnCode = 1;
 			pCommonDownloadResponseMsg->returnValue = kEcmImageDownloadNotNeeded;
 			return;
-		}		
+		}
 	}
 
 	CommonDownloadAuthenticateOrUpgradeFile( filePathOrBuffer, filePathOrBufferLen, ipAddrType, pTftpServerIpAddress, fileType, flags, pCommonDownloadResponseMsg );
@@ -282,7 +269,7 @@ void AuthenticateAndUpgradeEcmImageByCrc( uint8* filePathOrBuffer,  uint32 fileP
 	fileType = (kEcm << 4) | kContent | kDigitalSignature;
 	flags = kAuthenticate | kUpgrade | kUseTftp;
 
-	memset(pCommonDownloadResponseMsg, 0, sizeof(pCommonDownloadResponseMsg));
+	memset(pCommonDownloadResponseMsg, 0, sizeof(*pCommonDownloadResponseMsg));
 
 	if( checkVersion )
 	{
@@ -298,7 +285,7 @@ void AuthenticateAndUpgradeEcmImageByCrc( uint8* filePathOrBuffer,  uint32 fileP
 			pCommonDownloadResponseMsg->returnCode = 1;
 			pCommonDownloadResponseMsg->returnValue = kEcmImageDownloadNotNeeded;
 			return;
-		}		
+		}
 	}
 
 	CommonDownloadAuthenticateOrUpgradeFile( filePathOrBuffer, filePathOrBufferLen, ipAddrType, pTftpServerIpAddress, fileType, flags, pCommonDownloadResponseMsg );
@@ -319,45 +306,45 @@ void AuthenticateCvtFile( uint8* filePathOrBuffer,  uint32 filePathOrBufferLen, 
 /*
       Diagram of the Header:
 
-	+---------+----------------------+-------+	+---------+----------------------+-------+ +---------+----------------------+-------+ 
-	| TransId | Command | File Type  | Flags |  |          IP address type               | |          Tftp Server IP Address        | 
-	+---------+----------------------+-------+	+---------+----------------------+-------+ +---------+----------------------+-------+ 
+	+---------+----------------------+-------+	+---------+----------------------+-------+ +---------+----------------------+-------+
+	| TransId | Command | File Type  | Flags |  |          IP address type               | |          Tftp Server IP Address        |
+	+---------+----------------------+-------+	+---------+----------------------+-------+ +---------+----------------------+-------+
 	 1 byte   1 byte     1 byte       1 Byte                     4 bytes                                16 bytes
 
 	+---------------+------------------------+	+---------------+------------------------+
-	|      FilePathOrBuffer Length           |  |          FilePathOrBuffer                             
+	|      FilePathOrBuffer Length           |  |          FilePathOrBuffer
 	+---------------+------------------------+	+---------------+------------------------+
-					4 Bytes								FilePathOrBuffer Length bytes 	
+					4 Bytes								FilePathOrBuffer Length bytes
 
-		
-	
-	uint8 fileType;					upper 4 bits: kCvt, kEcm, kMonolith, lower 4-bits is a bitmask: kDigitalSignature, kContent 
+
+
+	uint8 fileType;					upper 4 bits: kCvt, kEcm, kMonolith, lower 4-bits is a bitmask: kDigitalSignature, kContent
 	uint8 flags;					bitmask that indicates the request and how the file should be retrieved: kAuthenticate, kUpgrade and kUseTftp
-	
+
 
 	typedef struct CommonDownloadResponseMsg
 	{
-		uint32 returnCode;					
-		uint32 returnValue;;					
-	} CommonDownloadResponseMsg;  
+		uint32 returnCode;
+		uint32 returnValue;;
+	} CommonDownloadResponseMsg;
 
 */
 
 /*
  * This function reports the result of a sw download or authentication.
  * CUSTOMER MUST IMPLEMENT THIS FUNCTION TO GET NOTIFIED OF THE DOWNLOAD STATUS.
- *  
- *	downloadResult - result of the sw download or authentication.		   
- *				   
+ *
+ *	downloadResult - result of the sw download or authentication.
+ *
  *	enum
 	{
 		kMonolithicImageAuthenticationFailed		=0,
 		kMonolithicImageAuthenticationSuccessful	=1,
 		kMonolithicImageDownloadFailed				=2,
 		kMonolithicImageDownloadSuccessful			=3,
-		kEcmImageAuthenticationFailed				=4,			
-		kEcmImageAuthenticationSuccessful			=5,	
-		kEcmImageDownloadFailed						=6,			
+		kEcmImageAuthenticationFailed				=4,
+		kEcmImageAuthenticationSuccessful			=5,
+		kEcmImageDownloadFailed						=6,
 		kEcmImageDownloadSuccessful					=7,
 		kSnmpCvcUpdateFailed						=8
 	};
@@ -366,10 +353,10 @@ void CommonDownloadProcessEcmNotification( uint8* pBuf )
 {
 	char* names[] =
 	{
-		"Monolithic Image Authentication Failed", 			
-		"Monolithic Image Authentication Successful",		
-		"Monolithic Image Download Failed",				
-		"Monolithic Image Download Successful",			
+		"Monolithic Image Authentication Failed",
+		"Monolithic Image Authentication Successful",
+		"Monolithic Image Download Failed",
+		"Monolithic Image Download Successful",
 		"eCM Image Authentication Failed",
 		"eCM Image Authentication Successful",
 		"eCM Image Download Failed",
@@ -386,11 +373,11 @@ void CommonDownloadProcessEcmNotification( uint8* pBuf )
 	{
 		"",
 		"No Failure", // ??
-		"CDL-ERROR-2: Improper code file controls - CVC subject organizationName for manufacturer does not match the Host device manufacturer name", 	
+		"CDL-ERROR-2: Improper code file controls - CVC subject organizationName for manufacturer does not match the Host device manufacturer name",
 		"CDL-ERROR-3: Improper code file controls - CVC subject organizationName for code cosigning agent does not match the Host device current code cosigning agent.",
-		"CDL-ERROR-4: Improper code file controls - The manufacturer's PKCS #7 signingTime value is less-than the codeAccessStart value currently held in the Host device.",		
-		"CDL-ERROR-5: Improper code file controls - The manufacturer's PKCS #7 signingTime is greater than the CVC validity end time.",				
-		"CDL-ERROR-6: Improper code file controls - The manufacturer's CVC validity start time is less-than the cvcAccessStart value currently held in the Host device.",			
+		"CDL-ERROR-4: Improper code file controls - The manufacturer's PKCS #7 signingTime value is less-than the codeAccessStart value currently held in the Host device.",
+		"CDL-ERROR-5: Improper code file controls - The manufacturer's PKCS #7 signingTime is greater than the CVC validity end time.",
+		"CDL-ERROR-6: Improper code file controls - The manufacturer's CVC validity start time is less-than the cvcAccessStart value currently held in the Host device.",
 		"CDL-ERROR-7: Improper code file controls - The manufacturer's PKCS #7 signingTime value is less-than the CVC validity start time.",
 		"CDL-ERROR-8: Improper code file controls - Missing or improper extendedKeyUsage extension in the manufacturer CVC.",
 		"CDL-ERROR-9: Improper code file controls - The cosigner's PKCS #7 signingTime value is less-than the codeAccessStart value currently held in the Host device.",
@@ -409,12 +396,12 @@ void CommonDownloadProcessEcmNotification( uint8* pBuf )
 		"", // reserved
 		"CDL-ERROR-23: The CVC validity start time is less-than or equal-to the corresponding subject's cvcAccessStart value currently held in the Host device.",
 		"CDL-ERROR-24: Missing or improper key usage attribute for CVCs other than the eCM configuration file CVC.",
-		"CDL-ERROR-25: SNMP CVC validation failure.", 
-		
+		"CDL-ERROR-25: SNMP CVC validation failure.",
+
 		"ED26:File not found",
-		"ED27:Server not available",		
-		
-		"", "", "", "", "", "", "", "", "", "", "", "", 
+		"ED27:Server not available",
+
+		"", "", "", "", "", "", "", "", "", "", "", "",
 		"TFTP Read Failure",
 		"SHA-Digest Failure",
 		"Improper CodeFile Controls",
@@ -423,7 +410,7 @@ void CommonDownloadProcessEcmNotification( uint8* pBuf )
 		"ClabCVCCACert Validation Failure",
 		"Carousel Download Not Supported",
 		"Secure Download Not Supported"
-	};	
+	};
 
 	CommonDownloadNotificationMsg notification;
 
@@ -448,7 +435,7 @@ void CommonDownloadProcessEcmNotification( uint8* pBuf )
 			{
 				// Load extNotification data fields.
 				extNotification.eventCode = notification.eventCode;
-				extNotification.eventValueLen = notification.eventValue;				
+				extNotification.eventValueLen = notification.eventValue;
 
 				// Point to filename
 				extNotification.pEventValue = pBuf + 2 * sizeof(uint32);
@@ -471,14 +458,14 @@ void CommonDownloadProcessEcmNotification( uint8* pBuf )
 				extNotification.pEventValue = (uint8*)&notification.eventValue;
 
 				printf("CDL Notification code = %d  value = %d\n", (int)extNotification.eventCode, (int)(*extNotification.pEventValue));
-				if( (extNotification.eventCode < kMonolithicImageAuthenticationFailed) || 
+				if( (extNotification.eventCode < kMonolithicImageAuthenticationFailed) ||
 					(extNotification.eventCode >= kCdlReturnCodeEnd))
 				{
 					return;
 				}
 				printf(" %s ", names[extNotification.eventCode]);
 
-				if( (*extNotification.pEventValue < kNoError) || 
+				if( (*extNotification.pEventValue < kNoError) ||
 					(*extNotification.pEventValue >= kCdlReturnValueEnd))
 				{
 					printf(" CDL return value not recognized.\n");
@@ -494,7 +481,7 @@ void CommonDownloadProcessEcmNotification( uint8* pBuf )
 	if(commonDownloadNotificationCallback)
 		(commonDownloadNotificationCallback)(extNotification);
 }
-             
+
 void CommonDownloadResponseMessage(uint8 *pBuf, CommonDownloadResponseMsg *pResponseMsg)
 {
 	// Now read the return code and the info and return to the caller.
@@ -511,24 +498,24 @@ void CommonDownloadResponseMessage(uint8 *pBuf, CommonDownloadResponseMsg *pResp
 	printf("returnCode = %08x returnValue = %08x \n", (unsigned int)pResponseMsg->returnCode, (unsigned int)pResponseMsg->returnValue);
 }
 
-void CommonDownloadSetEcmNotificationCallback( void (*callback)(CommonDownloadExtNotificationMsg)) 
+void CommonDownloadSetEcmNotificationCallback( void (*callback)(CommonDownloadExtNotificationMsg))
 {
 	commonDownloadNotificationCallback = callback;
 }
 
 /*
  * This function sends the CVC to eCM for authentication.
- *  
+ *
  *	cvcBuffer - pointer to the CVC buffer
  *	cvcLen	- length of the CVC buffer
- *	cvcType	- type of the CVC: 
- * 
+ *	cvcType	- type of the CVC:
+ *
  *            kManufCvc or kCosignerCvc
  *
- * This function returns 
+ * This function returns
  * true == success; CVC validated
  * false == failed. CVC is invalid.
- *  
+ *
  */
 int CommonDownloadProcessCvc( uint8* cvcBuffer,  uint32 cvcLen, uint8 cvcType, CommonDownloadResponseMsg* pCommonDownloadResponseMsg)
 {
@@ -537,11 +524,11 @@ int CommonDownloadProcessCvc( uint8* cvcBuffer,  uint32 cvcLen, uint8 cvcType, C
 
 /*
  * This function sends the running monolithic image name to eCM.
- *  
- *	filePathOrBuffer - pointer to the image name.				   
-				   
+ *
+ *	filePathOrBuffer - pointer to the image name.
+
  *	filePathOrBufferLen	- length of the image name
- * 
+ *
  */
 int SetRunningMonolithicImageName( uint8* filePathOrBuffer,  uint32 filePathOrBufferLen, CommonDownloadResponseMsg* pCommonDownloadResponseMsg)
 {
@@ -550,11 +537,11 @@ int SetRunningMonolithicImageName( uint8* filePathOrBuffer,  uint32 filePathOrBu
 
 /*
  * This function sets docsDevSwFilename.
- *  
- *	filePathOrBuffer - pointer to the image name.				   
-				   
+ *
+ *	filePathOrBuffer - pointer to the image name.
+
  *	filePathOrBufferLen	- length of the image name
- * 
+ *
  */
 int SetDocsDevSwFilename( uint8* filePathOrBuffer,  uint32 filePathOrBufferLen, CommonDownloadResponseMsg* pCommonDownloadResponseMsg)
 {
@@ -563,9 +550,9 @@ int SetDocsDevSwFilename( uint8* filePathOrBuffer,  uint32 filePathOrBufferLen, 
 
 /*
  * This function gets the version of the running eCM image.
- *  
- 
- * 
+ *
+
+ *
  */
 int GetRunningEcmImageVersion( 	uint16 *pMajorVersion, uint16 *pMinorVersion, uint16 *pSubMinorVersion )
 {
@@ -586,9 +573,9 @@ int GetRunningEcmImageVersion( 	uint16 *pMajorVersion, uint16 *pMinorVersion, ui
 
 /*
  * This function gets the CRC value of the running eCM image.
- *  
- 
- * 
+ *
+
+ *
  */
 int GetRunningEcmImageCrc( uint32 *pCrc )
 {
@@ -618,8 +605,8 @@ unsigned int CheckForEcmUpgrade(const char *fnPtr, uint8 *pUpgradeNeeded, uint32
 		// Retrieve eCM image version from local filesystem
 		GetLocalEcmImageVersion(fnPtr, &majorVersion, &minorVersion, &subMinorVersion, imageIsSigned);
 
-		if ((majorVersion == 0) && (minorVersion == 0) && (subMinorVersion == 0)) 
-		{			
+		if ((majorVersion == 0) && (minorVersion == 0) && (subMinorVersion == 0))
+		{
 			printf("Could not determine version of image %s \n", fnPtr);
 			return 0;
 		}
@@ -627,7 +614,7 @@ unsigned int CheckForEcmUpgrade(const char *fnPtr, uint8 *pUpgradeNeeded, uint32
 		printf(" '%s' version = %d.%d.%d \n", fnPtr, majorVersion, minorVersion, subMinorVersion);
 
 		// Retrieve eCM image version from eCM
-		if (!GetRunningEcmImageVersion(&ecmMajorVersion, &ecmMinorVersion, &ecmSubMinorVersion)) 
+		if (!GetRunningEcmImageVersion(&ecmMajorVersion, &ecmMinorVersion, &ecmSubMinorVersion))
 		{
 			printf("Could not determine version of eCM image.  \n");
 
@@ -644,13 +631,13 @@ unsigned int CheckForEcmUpgrade(const char *fnPtr, uint8 *pUpgradeNeeded, uint32
 		{
 			upgrade = true;
 		}
-		else if (majorVersion == ecmMajorVersion) 
+		else if (majorVersion == ecmMajorVersion)
 		{
 			if (minorVersion > ecmMinorVersion)
 			{
 				upgrade = true;
 			}
-			else if (minorVersion == ecmMinorVersion) 
+			else if (minorVersion == ecmMinorVersion)
 			{
 				if (subMinorVersion > ecmSubMinorVersion)
 				{
@@ -683,7 +670,7 @@ unsigned int CheckForEcmUpgradeByCrc(const char *fnPtr, uint8 *pUpgradeNeeded, u
 		printf(" '%s' CRC = 0x%08X \n", fnPtr, (unsigned int)imageCrc);
 
 		// Retrieve eCM image version from eCM
-		if (!GetRunningEcmImageCrc(&ecmCrc)) 
+		if (!GetRunningEcmImageCrc(&ecmCrc))
 		{
 			printf("Could not determine CRC value of eCM image.  \n");
 			printf("eCM requires upgrade!\n");
@@ -1034,9 +1021,9 @@ void GetLocalEcmImageCrc(const char *fileName, uint32 *pCrc, uint32 imageIsSigne
 
 /*
  * This function updates SW download SNMP MIBs.
- *  
- *	estbDownloadStatus - 
- * 
+ *
+ *	estbDownloadStatus -
+ *
  */
 unsigned int BcmCdlUpdateSnmpMibs(uint32 estbDownloadStatus, CommonDownloadResponseMsg *pCommonDownloadResponseMsg )
 {
@@ -1059,15 +1046,15 @@ void PrintProgramStoreDriverProgramHeader( BcmProgramHeader * pProgramHeader )
 	printf("\n************************************\n"
             "ProgramHeader\n"
             "************************************\n"
-            "      Signature: %x"      
-            "\n      Control: %x"     
-            "\n    Major Rev: %x"    
-            "\n    Minor Rev: %x"    
+            "      Signature: %x"
+            "\n      Control: %x"
+            "\n    Major Rev: %x"
+            "\n    Minor Rev: %x"
 
-	        "\n  File Length: %d"     
-	        "\n Load Address: %08x"     
-	        "\n     Filename: %s"    
-	        "\n          HCS: %x"    
+	        "\n  File Length: %d"
+	        "\n Load Address: %08x"
+	        "\n     Filename: %s"
+	        "\n          HCS: %x"
 	        "\n          CRC: %x\n"
 	        "\n************************************\n"
 							, ntohl(pProgramHeader->usSignature)

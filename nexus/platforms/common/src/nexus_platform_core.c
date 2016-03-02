@@ -1,49 +1,43 @@
-/***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
- * $brcm_Log: $
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
-***************************************************************************/
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "nexus_types.h"
 #include "nexus_base.h"
 #include "priv/nexus_core.h"
@@ -60,6 +54,24 @@
 #include "nexus_map.h"
 #include "b_objdb.h"
 
+#if defined(BCHP_MEMC_L2_0_REG_START)
+#include "bchp_int_id_memc_l2_0.h"
+#else
+#if defined(BCHP_MEMC_L2_0_0_REG_START)
+#include "bchp_int_id_memc_l2_0_0.h"
+#endif
+#if defined(BCHP_MEMC_L2_1_0_REG_START)
+#include "bchp_int_id_memc_l2_1_0.h"
+#endif
+#if defined(BCHP_MEMC_L2_2_0_REG_START)
+#include "bchp_int_id_memc_l2_2_0.h"
+#endif
+#endif /* BCHP_MEMC_L2_0_REG_START */
+
+#if NEXUS_HAS_SECURITY
+#include "priv/nexus_security_priv.h"
+#endif
+
 #ifdef DIAGS_MEM_DMA_TEST
 extern int run_dma_memory_test;
 #endif
@@ -69,11 +81,155 @@ BDBG_MODULE(nexus_platform_core);
 NEXUS_PlatformMemory g_platformMemory;
 static NEXUS_Core_Settings g_coreSettings;
 static bool g_mipsKernelMode;
+struct NEXUS_Platform_P_MemcBspInterrupt {
+    BINT_CallbackHandle wrch;
+    BINT_CallbackHandle arch;
+};
+
+static struct NEXUS_Platform_P_MemcBspInterrupts {
+    BKNI_EventHandle memcEvent;
+    NEXUS_EventCallbackHandle memcEventHandler;
+    struct NEXUS_Platform_P_MemcBspInterrupt memc[NEXUS_NUM_MEMC];
+} g_NEXUS_Platform_P_MemcBspInterrupts;
 
 /* map all heaps */
 static NEXUS_Error NEXUS_Platform_P_MapRegion(unsigned index, NEXUS_Core_MemoryRegion *region);
 static void NEXUS_Platform_P_UnmapRegion(NEXUS_Core_MemoryRegion *region);
 static void nexus_platform_p_destroy_runtime_heaps(void);
+
+static void NEXUS_Platform_P_MemcBsp_isr(void *pParam, int iParam)
+{
+    struct NEXUS_Platform_P_MemcBspInterrupts *memcs = pParam;
+    BSTD_UNUSED(iParam);
+    BDBG_MSG(("MEMC BSP ISR [%d]", iParam));
+    BKNI_SetEvent(memcs->memcEvent);
+    return;
+}
+
+static void NEXUS_Platform_P_MemcEventHandler(void * context)
+{
+    BSTD_UNUSED(context);
+#if NEXUS_HAS_SECURITY
+    if(g_NEXUS_platformHandles.security) { /* if NEXUS_Platform_P_MemcEventHandler called when there is no secure module */
+        NEXUS_Module_Lock(g_NEXUS_platformHandles.security);
+        NEXUS_Security_PrintArchViolation_priv();
+        NEXUS_Module_Unlock(g_NEXUS_platformHandles.security);
+    }
+#endif
+    BDBG_LOG(("Detected SECURE MEMC ARCH violation. Terminating...."));
+    BKNI_Fail();
+    return;
+}
+
+static NEXUS_Error NEXUS_Platform_P_MemcBspInterrupt_InitOne(struct NEXUS_Platform_P_MemcBspInterrupts *memcs, struct NEXUS_Platform_P_MemcBspInterrupt *memc, BINT_Id wrchIrq, BINT_Id archIrq, unsigned memcNo)
+{
+    NEXUS_Error rc;
+
+    rc = BINT_CreateCallback(&memc->wrch, g_pCoreHandles->bint, wrchIrq, NEXUS_Platform_P_MemcBsp_isr, memcs, memcNo);
+    if(rc!=BERR_SUCCESS) {return BERR_TRACE(rc);}
+    rc = BINT_CreateCallback(&memc->arch, g_pCoreHandles->bint, archIrq, NEXUS_Platform_P_MemcBsp_isr, memcs, memcNo);
+    if(rc!=BERR_SUCCESS) {
+        BINT_DestroyCallback(memc->wrch);
+        memc->wrch=NULL;
+        return BERR_TRACE(rc);
+    }
+    BINT_EnableCallback(memc->wrch);
+    BINT_EnableCallback(memc->arch);
+    return NEXUS_SUCCESS;
+}
+
+static void NEXUS_Platform_P_MemcBspInterrupt_UninitOne(struct NEXUS_Platform_P_MemcBspInterrupt *memc)
+{
+    if(memc->wrch) {
+        BINT_DestroyCallback(memc->wrch);
+        memc->wrch=NULL;
+    }
+    if(memc->arch) {
+        BINT_DestroyCallback(memc->arch);
+        memc->arch=NULL;
+    }
+    return;
+}
+
+static NEXUS_Error NEXUS_Platform_P_MemcBspInterrupt_Init(struct NEXUS_Platform_P_MemcBspInterrupts *memc)
+{
+    NEXUS_Error rc;
+    unsigned i;
+    rc = BKNI_CreateEvent(&memc->memcEvent);
+    if(rc!=NEXUS_SUCCESS) { rc = BERR_TRACE(rc); goto err_event; }
+
+    memc->memcEventHandler =  NEXUS_RegisterEvent(memc->memcEvent, NEXUS_Platform_P_MemcEventHandler, memc);
+    if(memc->memcEventHandler==NULL) { rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_event_hander;}
+
+    for(i=0;i<NEXUS_NUM_MEMC;i++) {
+         unsigned j;
+         BINT_Id wrchIrq=0;
+         BINT_Id archIrq=0;
+         switch(i) {
+#if defined(BCHP_MEMC_L2_0_0_REG_START)
+         case 0:
+#if defined(BCHP_INT_ID_MEMC_L2_0_0_BSP_WRCH_INTR)
+            wrchIrq = BCHP_INT_ID_MEMC_L2_0_0_BSP_WRCH_INTR;
+            archIrq = BCHP_INT_ID_MEMC_L2_0_0_BSP_ARCH_INTR;
+#elif defined(BCHP_INT_ID_BSP_WRCH_INTR)
+            wrchIrq = BCHP_INT_ID_BSP_WRCH_INTR;
+            archIrq = BCHP_INT_ID_BSP_ARCH_INTR;
+#else
+#error "Not supported"
+#endif
+            break;
+#endif
+#if defined(BCHP_MEMC_L2_1_0_REG_START)
+         case 1:
+#if defined(BCHP_INT_ID_MEMC_L2_0_0_BSP_WRCH_INTR)
+            wrchIrq = BCHP_INT_ID_MEMC_L2_0_0_BSP_WRCH_INTR;
+            archIrq = BCHP_INT_ID_MEMC_L2_0_0_BSP_ARCH_INTR;
+#endif
+            break;
+#endif
+#if defined(BCHP_MEMC_L2_2_0_REG_START)
+         case 2:
+            wrchIrq = BCHP_INT_ID_MEMC_L2_2_0_BSP_WRCH_INTR;
+            archIrq = BCHP_INT_ID_MEMC_L2_2_0_BSP_ARCH_INTR;
+            break;
+#endif
+         default:
+            break;
+         }
+         if(wrchIrq==0 || archIrq==0) {
+             break;
+         }
+         rc = NEXUS_Platform_P_MemcBspInterrupt_InitOne(memc, &memc->memc[i], wrchIrq, archIrq, i);
+         if(rc!=BERR_SUCCESS) {
+             rc = BERR_TRACE(rc);
+             for(j=0;j<i;j++) {
+                NEXUS_Platform_P_MemcBspInterrupt_UninitOne(&memc->memc[j]);
+             }
+             goto err_interrupt;
+         }
+    }
+    return NEXUS_SUCCESS;
+
+err_interrupt:
+    NEXUS_UnregisterEvent(memc->memcEventHandler);
+err_event_hander:
+    BKNI_DestroyEvent(memc->memcEvent);
+err_event:
+    return BERR_TRACE(rc);
+}
+
+static void NEXUS_Platform_P_MemcBspInterrupt_Uninit(struct NEXUS_Platform_P_MemcBspInterrupts *memc)
+{
+    unsigned i;
+
+    for(i=0;i<NEXUS_NUM_MEMC;i++) {
+        NEXUS_Platform_P_MemcBspInterrupt_UninitOne(&memc->memc[i]);
+    }
+    NEXUS_UnregisterEvent(memc->memcEventHandler);
+    BKNI_DestroyEvent(memc->memcEvent);
+    return;
+}
+
 
 #define NEXUS_P_MATCH_REG(reg) case reg: return true
 #define NEXUS_P_MATCH_REG_GROUP(reg,block) do { if (reg>=block##_REG_START && reg<=block##_REG_END) {return true;} } while(0)
@@ -255,6 +411,8 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
     }
 
     NEXUS_Platform_P_ConfigureGisbTimeout();
+    errCode = NEXUS_Platform_P_MemcBspInterrupt_Init(&g_NEXUS_Platform_P_MemcBspInterrupts);
+    if(errCode!=NEXUS_SUCCESS) {errCode=BERR_TRACE(errCode);goto err_memc_intr;}
 
 #ifdef DIAGS_MEM_DMA_TEST
     if (run_dma_memory_test)
@@ -272,6 +430,7 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
     return BERR_SUCCESS;
 
 /* Error cases */
+err_memc_intr:
 err_core:
 err_map:
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
@@ -287,6 +446,8 @@ err_memc:
 void NEXUS_Platform_P_UninitCore(void)
 {
     unsigned i;
+    NEXUS_Platform_P_MemcBspInterrupt_Uninit(&g_NEXUS_Platform_P_MemcBspInterrupts);
+
     nexus_platform_p_destroy_runtime_heaps();
     NEXUS_CoreModule_Uninit();
 #if NEXUS_TEE_SUPPORT
@@ -847,7 +1008,7 @@ NEXUS_Error b_get_client_default_heaps(NEXUS_ClientConfiguration *config, struct
 
         if (!config->heap[i]) continue;
 
-        rc = NEXUS_Heap_GetStatus(config->heap[i], &status);
+        rc = NEXUS_Heap_GetStatus_priv(config->heap[i], &status);
         if (rc) continue;
 
         if (status.memoryType & NEXUS_MEMORY_TYPE_DYNAMIC) {

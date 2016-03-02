@@ -43,7 +43,7 @@
 #define __BCMNEXUS_MGR_H__
 
 #include <sys/time.h>
-#include "nexus_graphics2d.h"
+
 #include "nexus_audio_playback.h"
 #include "nexus_video_decoder.h"
 #include "nexus_video_window.h"
@@ -52,11 +52,8 @@
 #include "nexus_video_window.h"
 #include "nexus_playpump.h"
 #include "nexus_video_input.h"
-#include "nexus_ir_input.h"
-#include "TestHarness.h"
-#ifdef NEXUS_HAS_PICTURE_DECODER
-#include "nexus_picture_decoder.h"
-#endif
+
+
 
 #define BRCM_COPY_PROTECTION_ENABLED 1
 #if BRCM_COPY_PROTECTION_ENABLED
@@ -72,30 +69,7 @@ extern "C"
 bool BcmNexus_Platform_Init(void);
 void BcmNexus_Platform_Uninit(void);
 
-/*#define _DFB_TEST_HARNESS_*/
 
-/* Graphics 2D Resource */
-typedef struct BcmNexus_Graphics_Resources_Config {
-    unsigned unused;
-} BcmNexus_Graphics_Resources_Config;
-
-typedef struct BcmNexus_Graphics_Window {
-	NEXUS_SurfaceHandle surface;
-} BcmNexus_Graphics_Window;
-
-typedef struct BcmNexus_Graphics_Resources {
-    BcmNexus_Graphics_Resources_Config	config;
-    NEXUS_Graphics2DHandle				graphics2d;
-    void (*graphicsSync)(void);
-    const BcmNexus_Graphics_Window *(*createWindow)(const struct BcmNexus_Graphics_Resources *resources, NEXUS_Rect *rect, bool defaultPosition, NEXUS_PixelFormat format, const char *title);
-    void (*destroyWindow)(const BcmNexus_Graphics_Window *window);
-    void (*windowUpdated)(const BcmNexus_Graphics_Window *window, const NEXUS_Rect *rect);
-} BcmNexus_Graphics_Resources;
-
-const BcmNexus_Graphics_Resources *
-BcmNexus_Graphics_Resources_Acquire(BcmNexus_Graphics_Resources_Config *config);
-void 
-BcmNexus_Graphics_Resources_Release(const BcmNexus_Graphics_Resources *resources);
 
 
 /* Sound Resource */
@@ -173,57 +147,10 @@ BcmNexus_StreamPlayer_Resources_Release(const BcmNexus_StreamPlayer_Resources *r
 
 struct timeval BcmNexus_Key_Last_Key_Timestamp(void);
 
-/* IR Resource */
-typedef struct BcmNexus_Input_Resources_Config {
-	NEXUS_CallbackDesc	key_down_callback;
-	NEXUS_CallbackDesc	key_up_callback;
-    bool				enable_tty;
-} BcmNexus_Input_Resources_Config;
 
 
-typedef struct BcmNexus_Input_Resources {
-    BcmNexus_Input_Resources_Config	config;
-} BcmNexus_Input_Resources;
-
-const BcmNexus_Input_Resources *
-BcmNexus_Input_Resources_Acquire(const BcmNexus_Input_Resources_Config *config);
-
-void 
-BcmNexus_Input_Resources_Release(const BcmNexus_Input_Resources *resources);
 
 
-#ifdef NEXUS_HAS_PICTURE_DECODER
-/* Image Decoder Resource */
-typedef struct BcmNexus_ImageDecoder_Resources_Config {
-    size_t imageMaxSize;
-} BcmNexus_ImageDecoder_Resources_Config;
-
-typedef struct BcmNexus_ImageDecoder_Resources {
-    BcmNexus_ImageDecoder_Resources_Config config;
-    NEXUS_Graphics2DHandle graphics;
-    NEXUS_PictureDecoderHandle pictureDecoder;
-    void (*graphics_sync)(void);
-} BcmNexus_ImageDecoder_Resources;
-
-const BcmNexus_ImageDecoder_Resources *
-BcmNexus_ImageDecoder_Resources_Acquire( const BcmNexus_ImageDecoder_Resources_Config *config );
-
-extern void 
-BcmNexus_ImageDecoder_Resources_Release(const BcmNexus_ImageDecoder_Resources *resources);
-#endif
-
-#ifdef _DFB_TEST_HARNESS_
-void	
-BcmNexus_DFBWindowUpdate(void * pFrameBuffer, 
-                         int x,int y, 
-                         int h,int w,
-                         int pitch,
-                         STG_KEY_UPDATE pfnKeyUpdateFn,
-                         void * keyUpdateCnxt);
-void 
-BcmNexus_DFBKeyEvent(U32 keyCode, 
-					 U32 direction);
-#endif
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

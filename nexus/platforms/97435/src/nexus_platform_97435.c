@@ -71,28 +71,6 @@ static void nexus_p_modifyMemoryRtsSettings(NEXUS_MemoryRtsSettings *pRtsSetting
     pRtsSettings->avd[0].memcIndex = 1;
     pRtsSettings->avd[1].memcIndex = 0;
 #endif
-
-#if NEXUS_HAS_VIDEO_ENCODER
-    /* g_num_xcodes will already be set */
-    switch (g_num_xcodes) {
-    case 1:
-        /* default to 0 */
-        break;
-    case 2:
-        pRtsSettings->videoEncoder[0].device = 1;
-        pRtsSettings->videoEncoder[0].channel = 0;
-        pRtsSettings->videoEncoder[1].device = 1;
-        pRtsSettings->videoEncoder[1].channel = 1;
-        /* dual encodes RTS: device 1 is used */
-        pRtsSettings->vce[1].memcIndex = 1;
-        break;
-    default:
-    case 4:
-        pRtsSettings->vce[1].memcIndex = 1;
-        pRtsSettings->vce[0].memcIndex = 0;
-        break;
-    }
-#endif
 }
 
 static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfigurationSettings *pSettings )
@@ -105,34 +83,6 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
     /* This is the first function to be called, and it is always called. */
     /* Get the number of transcodes for which RTS is configured. */
     NEXUS_Platform_P_GetNumTranscodes(&g_num_xcodes);
-#if NEXUS_HAS_VIDEO_ENCODER
-    {
-        uint32_t regValue;
-        int i;
-        BREG_Handle hReg = g_pPreInitState->hReg;
-        /* Read RTS settings to find the number of hardware (ViCE) video encode channels */
-        regValue = BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_0);
-        if (0==BCHP_GET_FIELD_DATA(regValue, SUN_TOP_CTRL_OTP_OPTION_STATUS_0, otp_option_transcode_disable)) {
-            switch (g_num_xcodes) {
-            case 1:/* only device 1 channel 0 enabled */
-                pSettings->videoEncoder[1].used = false;
-                /* coverity[fallthrough] */
-            case 2: /* disable unused encoder channels on device 0 */
-                pSettings->videoEncoder[2].used = false;
-                pSettings->videoEncoder[3].used = false;
-                break;
-            case 4:
-            default:
-                break;
-            }
-        }
-        else {
-            for (i=0;i<4;i++) {
-                pSettings->videoEncoder[i].used = false;
-            }
-        }
-    }
-#endif
 }
 
 void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)

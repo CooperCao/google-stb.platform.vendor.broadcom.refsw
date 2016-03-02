@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * (c) 2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -261,7 +261,7 @@ static BIP_Status addHttpRsvdHeaders(
     {
         char tempString[22];/* (2^64 - 1) = 18446744073709551615 -> 20 digits, one for sign, one for '\0' */
 
-        snprintf(tempString, sizeof(tempString), "%lld", messageLength);/*TODO:Later this will be part of custom apis.*/
+        snprintf(tempString, sizeof(tempString), "%lld", (long long)messageLength);/*TODO:Later this will be part of custom apis.*/
 
         hHeader = BIP_HttpResponse_AddHeader(hHttpResponse , "Content-Length", tempString, NULL);
         BIP_CHECK_GOTO(( hHeader ), ( "BIP_HttpResponse_AddHeader Failed" ), error, BIP_ERR_INTERNAL, bipStatus );

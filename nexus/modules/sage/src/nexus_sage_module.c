@@ -240,7 +240,7 @@ end:
     return rc;
 }
 
-static void NEXUS_Sage_P_SAGELogUninit(void)
+void NEXUS_Sage_P_SAGELogUninit(void)
 {
     BSAGElib_SageLogBuffer *pSageLogBuffer = NULL;
     uint8_t *pCRRBuffer = NULL,*pEncAESKeyBuffer = NULL;
@@ -264,6 +264,7 @@ static void NEXUS_Sage_P_SAGELogUninit(void)
         {
             NEXUS_Memory_Free(pSageLogBuffer);
         }
+        g_sage_module.logBufferHeapOffset = 0;
     }
     return;
 }
@@ -696,8 +697,6 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
     rc = NEXUS_Sage_P_SAGElibInit();
     if (rc != NEXUS_SUCCESS) { goto err; }
 
-    rc = NEXUS_Sage_P_SAGELogInit();
-    if (rc != NEXUS_SUCCESS) { goto err; }
     /* To allow watchdog capability from the beginning */
     /* !! SAGElib has to be initialized first */
     rc = NEXUS_Sage_P_WatchdogInit();
@@ -792,6 +791,8 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     /* Get start timer */
     BTMR_ReadTimer(g_NEXUS_sageModule.hTimer, &g_NEXUS_sageModule.initTimeUs);
     BDBG_MSG(("%s - Initial timer value: %u", __FUNCTION__, g_NEXUS_sageModule.initTimeUs));
+    rc = NEXUS_Sage_P_SAGELogInit();
+    if (rc != NEXUS_SUCCESS) { goto err; }
 
     /* Put SAGE CPU out of reset */
     {

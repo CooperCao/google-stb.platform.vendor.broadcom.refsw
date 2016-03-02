@@ -659,6 +659,12 @@ void nexus_surface_compositor_p_vsync(void *context)
             nexus_surface_compositor_p_update_video(server);
         }
     }
+    {
+       NEXUS_SurfaceClientHandle client;
+       for (client = BLST_Q_FIRST(&server->clients); client; client = BLST_Q_NEXT(client, link)) {
+           NEXUS_TaskCallback_Fire(client->vsyncCallback);
+       }
+    }
 }
 
 /* return true if composition is opaque, e.g. it would override (not blend) anything that drawn behind it */

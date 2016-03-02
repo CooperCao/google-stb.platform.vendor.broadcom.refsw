@@ -909,6 +909,10 @@ BERR_Code BXPT_Standby(
     }
 #endif
 
+    /* XPT_PMU_CLK_CTRL needs special handling, as it gates all reg R/W */
+    hXpt->pmuClockCtrl = BREG_Read32(hXpt->hRegister, BCHP_XPT_PMU_CLK_CTRL);
+    BREG_Write32(hXpt->hRegister, BCHP_XPT_PMU_CLK_CTRL, 0);
+
     /* if we get to this point, then XPT is not in use */
     if( pSettings->S3Standby )
     {
@@ -953,7 +957,6 @@ BERR_Code BXPT_Standby(
     }
 #endif /* BCHP_PWR_RESOURCE_XPT_WAKEUP */
 
-    hXpt->pmuClockCtrl = BREG_Read32(hXpt->hRegister, BCHP_XPT_PMU_CLK_CTRL); /* BOLT clockgates everything except DMA */
     hXpt->bStandby = true;
 
 #else
@@ -980,7 +983,7 @@ BERR_Code BXPT_Resume(
 #endif
 
     /* required before any XPT register access */
-    BREG_Write32(hXpt->hRegister, BCHP_XPT_PMU_CLK_CTRL, hXpt->pmuClockCtrl);
+    BREG_Write32(hXpt->hRegister, BCHP_XPT_PMU_CLK_CTRL, 0);
     BXPT_P_PMUMemPwr_Control(hXpt->hRegister, true, NULL);
 
 #ifdef BCHP_PWR_RESOURCE_XPT_SRAM
@@ -1022,6 +1025,7 @@ BERR_Code BXPT_Resume(
     BXPT_Dma_P_EnableInterrupts( hXpt );
 #endif
 
+    BREG_Write32(hXpt->hRegister, BCHP_XPT_PMU_CLK_CTRL, hXpt->pmuClockCtrl);
     hXpt->bStandby = false;
 #else
     BSTD_UNUSED( hXpt );

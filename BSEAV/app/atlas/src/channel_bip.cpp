@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -1078,6 +1078,7 @@ eRet CChannelBip::start(
     setState(BMediaPlayerState_eStarted);
 
     BDBG_MSG(("Player Start API started..bipSTtatus %d", bipStatus));
+
     return(ret);
 
 error:

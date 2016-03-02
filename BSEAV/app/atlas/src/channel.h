@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -134,10 +134,8 @@ public:
     virtual CWidgetEngine * getWidgetEngine(void)                          { return(_pWidgetEngine); }
     virtual void            setDurationInMsecs(uint64_t durationInMsecs)   { _durationInMsecs = durationInMsecs; }
     virtual uint64_t        getDurationInMsecs(void)                       { return(_durationInMsecs); }
-    virtual eRet            start(
-            CSimpleAudioDecode * pAudioDecode = NULL,
-            CSimpleVideoDecode * pVideoDecode = NULL
-            ) { BSTD_UNUSED(pAudioDecode); BSTD_UNUSED(pVideoDecode); return(eRet_Ok); }
+    virtual eRet            start(CSimpleAudioDecode * pAudioDecode = NULL,
+                                  CSimpleVideoDecode * pVideoDecode = NULL);
     virtual CPid * getPid(
             uint16_t index,
             ePidType type
@@ -152,7 +150,7 @@ public:
     virtual uint16_t getHeight(void)            { return(_height); }
     virtual void     setHeight(uint16_t height) { _height = height; }
     virtual void     gotoBackGroundRecord(void) { return; }
-    virtual void     dump();
+    virtual void     dump(bool bForce = false);
 
     virtual bool operator ==(CChannel &other);
 
@@ -174,6 +172,8 @@ public:
     virtual int    getTrickModeRate(void)                         { return(_trickModeRate); }
     virtual eRet   setTrickModeRate(int trickModeRate)            { BSTD_UNUSED(trickModeRate); return(eRet_NotSupported); }
     virtual eRet   setTrickMode(bool fastFoward)                  { BSTD_UNUSED(fastFoward); return(eRet_NotSupported); }
+    virtual void   setHost(const char * pString)                  { BSTD_UNUSED(pString); }
+    virtual MString getHost(void)                                 { return(""); }
     eBoardResource getType(void)                                  { return(_type); }
     void           setType(eBoardResource resourceType)           { _type = resourceType; }
     void           setMajor(uint16_t major)                       { _major = major; }

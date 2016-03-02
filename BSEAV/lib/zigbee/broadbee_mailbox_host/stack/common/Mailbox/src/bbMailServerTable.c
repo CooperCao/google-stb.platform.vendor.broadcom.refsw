@@ -374,6 +374,7 @@ static const MailServerParametersTableEntry_t serverTable[] =
     SERVER_TABLE_ENTRY(REQ_CONF_WITH_NAMED_DATA,    ZBPRO_ZDO_REQ_ACTIVE_EP_FID,                ZBPRO_ZDO_ActiveEpReqDescr_t,               ZBPRO_ZDO_ActiveEpConfParams_t,             ZBPRO_ZDO_ActiveEpReq,   activeEpList),
     SERVER_TABLE_ENTRY(REQ_CONF_WITH_NAMED_DATA,    ZBPRO_ZDO_REQ_MATCH_DESC_FID,               ZBPRO_ZDO_MatchDescReqDescr_t,              ZBPRO_ZDO_MatchDescConfParams_t,            ZBPRO_ZDO_MatchDescReq,  responseList),
     SERVER_TABLE_ENTRY(REQ_CONF,                    ZBPRO_ZDO_REQ_DEVICE_ANNCE_FID,             ZBPRO_ZDO_DeviceAnnceReqDescr_t,            ZBPRO_ZDO_DeviceAnnceConfParams_t,          ZBPRO_ZDO_DeviceAnnceReq),
+    SERVER_TABLE_ENTRY(REQ_CONF_WITH_NAMED_DATA,    ZBPRO_ZDO_REQ_SERVER_DISCOVERY_FID,         ZBPRO_ZDO_ServerDiscoveryReqDescr_t,        ZBPRO_ZDO_ServerDiscoveryConfParams_t,      ZBPRO_ZDO_ServerDiscoveryReq, serverList),
     SERVER_TABLE_ENTRY(REQ_CONF,                    ZBPRO_ZDO_REQ_ED_BIND_FID,                  ZBPRO_ZDO_EndDeviceBindReqDescr_t,          ZBPRO_ZDO_BindConfParams_t,                 ZBPRO_ZDO_EndDeviceBindReq),
     SERVER_TABLE_ENTRY(REQ_CONF,                    ZBPRO_ZDO_REQ_BIND_FID,                     ZBPRO_ZDO_BindUnbindReqDescr_t,             ZBPRO_ZDO_BindConfParams_t,                 ZBPRO_ZDO_BindReq),
     SERVER_TABLE_ENTRY(REQ_CONF,                    ZBPRO_ZDO_REQ_UNBIND_FID,                   ZBPRO_ZDO_BindUnbindReqDescr_t,             ZBPRO_ZDO_BindConfParams_t,                 ZBPRO_ZDO_UnbindReq),
@@ -679,23 +680,28 @@ static const MailServerParametersTableEntry_t serverTable[] =
 #endif /* MAILBOX_HOST_SIDE */
 
 /**********************************************************************************************************************/
-/* DirectTV API                                                                                                       */
+/* Phy API                                                                                                       */
 /**********************************************************************************************************************/
 #ifdef MAILBOX_STACK_SIDE
-    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_GET_CAPS_FID,              DirectTV_Test_Get_Caps_ReqDescr_t,   DirectTV_Test_Get_Caps_ConfParams_t, DirectTV_Test_Get_Caps_Req),
-    SERVER_TABLE_ENTRY(REQ_CONF,          RF4CE_CTRL_TEST_SET_CHANNEL_FID,           DirectTV_Test_Set_Channel_ReqDescr_t,   DirectTV_Test_Set_Channel_ConfParams_t, DirectTV_Test_Set_Channel_Req),
-    SERVER_TABLE_ENTRY(REQ_CONF,          RF4CE_CTRL_TEST_CONTINUOUS_WAVE_START_FID, DirectTV_Test_Continuous_Wave_Start_ReqDescr_t,   DirectTV_Test_Continuous_Wave_StartStop_ConfParams_t, DirectTV_Test_Continuous_Wave_Start_Req),
-    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_CONTINUOUS_WAVE_STOP_FID,  DirectTV_Test_Continuous_Wave_Stop_ReqDescr_t,   DirectTV_Test_Continuous_Wave_StartStop_ConfParams_t, DirectTV_Test_Continuous_Wave_Stop_Req),
-    SERVER_TABLE_ENTRY(REQ_CONF,          RF4CE_CTRL_TEST_TRANSMIT_START_FID,        DirectTV_Test_Transmit_Start_ReqDescr_t,   DirectTV_Test_Transmit_StartStop_ConfParams_t, DirectTV_Test_Transmit_Start_Req),
-    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_TRANSMIT_STOP_FID,         DirectTV_Test_Transmit_Stop_ReqDescr_t,   DirectTV_Test_Transmit_StartStop_ConfParams_t, DirectTV_Test_Transmit_Stop_Req),
-    SERVER_TABLE_ENTRY(REQ_CONF,          RF4CE_CTRL_TEST_RECEIVE_START_FID,         DirectTV_Test_Receive_Start_ReqDescr_t,   DirectTV_Test_Receive_StartStop_ConfParams_t, DirectTV_Test_Receive_Start_Req),
-    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_RECEIVE_STOP_FID,          DirectTV_Test_Receive_Stop_ReqDescr_t,   DirectTV_Test_Receive_StartStop_ConfParams_t, DirectTV_Test_Receive_Stop_Req),
-    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_ECHO_START_FID,            DirectTV_Test_Echo_Start_ReqDescr_t,   DirectTV_Test_Echo_StartStop_ConfParams_t, DirectTV_Test_Echo_Start_Req),
-    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_ECHO_STOP_FID,             DirectTV_Test_Echo_Stop_ReqDescr_t,   DirectTV_Test_Echo_StartStop_ConfParams_t, DirectTV_Test_Echo_Stop_Req),
-    SERVER_TABLE_ENTRY(REQ_CONF_WITH_DATA,RF4CE_CTRL_TEST_ENERGY_DETECT_SCAN_FID,    DirectTV_Test_Energy_Detect_Scan_ReqDescr_t,   DirectTV_Test_Energy_Detect_Scan_ConfParams_t, DirectTV_Test_Energy_Detect_Scan_Req),
-    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_GET_STATS_FID,             DirectTV_Test_Get_Stats_ReqDescr_t,   DirectTV_Test_Get_Stats_ConfParams_t, DirectTV_Test_Get_Stats_Req),
-    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_RESET_STATS_FID,           DirectTV_Test_Reset_Stats_ReqDescr_t,   DirectTV_Test_Reset_Stats_ConfParams_t, DirectTV_Test_Reset_Stats_Req),
-    SERVER_TABLE_ENTRY(REQ_CONF,          RF4CE_CTRL_TEST_SET_TX_POWER_FID,          DirectTV_Test_Set_TX_Power_ReqDescr_t,   DirectTV_Test_Set_TX_Power_ConfParams_t, DirectTV_Test_Set_TX_Power_Req),
+#  if defined(_PHY_TEST_HOST_INTERFACE_)
+    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_GET_CAPS_FID,              Phy_Test_Get_Caps_ReqDescr_t,   Phy_Test_Get_Caps_ConfParams_t, Phy_Test_Get_Caps_Req),
+    SERVER_TABLE_ENTRY(REQ_CONF,          RF4CE_CTRL_TEST_SET_CHANNEL_FID,           Phy_Test_Set_Channel_ReqDescr_t,   Phy_Test_Set_Channel_ConfParams_t, Phy_Test_Set_Channel_Req),
+    SERVER_TABLE_ENTRY(REQ_CONF,          RF4CE_CTRL_TEST_CONTINUOUS_WAVE_START_FID, Phy_Test_Continuous_Wave_Start_ReqDescr_t,   Phy_Test_Continuous_Wave_StartStop_ConfParams_t, Phy_Test_Continuous_Wave_Start_Req),
+    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_CONTINUOUS_WAVE_STOP_FID,  Phy_Test_Continuous_Wave_Stop_ReqDescr_t,   Phy_Test_Continuous_Wave_StartStop_ConfParams_t, Phy_Test_Continuous_Wave_Stop_Req),
+    SERVER_TABLE_ENTRY(REQ_CONF,          RF4CE_CTRL_TEST_TRANSMIT_START_FID,        Phy_Test_Transmit_Start_ReqDescr_t,   Phy_Test_Transmit_StartStop_ConfParams_t, Phy_Test_Transmit_Start_Req),
+    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_TRANSMIT_STOP_FID,         Phy_Test_Transmit_Stop_ReqDescr_t,   Phy_Test_Transmit_StartStop_ConfParams_t, Phy_Test_Transmit_Stop_Req),
+    SERVER_TABLE_ENTRY(REQ_CONF,          RF4CE_CTRL_TEST_RECEIVE_START_FID,         Phy_Test_Receive_Start_ReqDescr_t,   Phy_Test_Receive_StartStop_ConfParams_t, Phy_Test_Receive_Start_Req),
+    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_RECEIVE_STOP_FID,          Phy_Test_Receive_Stop_ReqDescr_t,   Phy_Test_Receive_StartStop_ConfParams_t, Phy_Test_Receive_Stop_Req),
+    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_ECHO_START_FID,            Phy_Test_Echo_Start_ReqDescr_t,   Phy_Test_Echo_StartStop_ConfParams_t, Phy_Test_Echo_Start_Req),
+    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_ECHO_STOP_FID,             Phy_Test_Echo_Stop_ReqDescr_t,   Phy_Test_Echo_StartStop_ConfParams_t, Phy_Test_Echo_Stop_Req),
+    SERVER_TABLE_ENTRY(REQ_CONF_WITH_DATA,RF4CE_CTRL_TEST_ENERGY_DETECT_SCAN_FID,    Phy_Test_Energy_Detect_Scan_ReqDescr_t,   Phy_Test_Energy_Detect_Scan_ConfParams_t, Phy_Test_Energy_Detect_Scan_Req),
+    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_GET_STATS_FID,             Phy_Test_Get_Stats_ReqDescr_t,   Phy_Test_Get_Stats_ConfParams_t, Phy_Test_Get_Stats_Req),
+    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_TEST_RESET_STATS_FID,           Phy_Test_Reset_Stats_ReqDescr_t,   Phy_Test_Reset_Stats_ConfParams_t, Phy_Test_Reset_Stats_Req),
+    SERVER_TABLE_ENTRY(REQ_CONF,          RF4CE_CTRL_TEST_SET_TX_POWER_FID,          Phy_Test_Set_TX_Power_ReqDescr_t,   Phy_Test_Set_TX_Power_ConfParams_t, Phy_Test_Set_TX_Power_Req),
+    SERVER_TABLE_ENTRY(REQ_CONF,          RF4CE_CTRL_TEST_SELECT_ANTENNA_FID,        Phy_Test_Select_Antenna_ReqDescr_t,   Phy_Test_Select_Antenna_ConfParams_t, Phy_Test_SelectAntenna_Req),
+    SERVER_TABLE_ENTRY(REQ_NO_PARAM_CONF, RF4CE_CTRL_GET_DIAGNOSTICS_CAPS_FID,       RF4CE_Diag_Caps_ReqDescr_t,   RF4CE_Diag_Caps_ConfParams_t, RF4CE_Get_Diag_Caps_Req),
+    SERVER_TABLE_ENTRY(REQ_CONF,          RF4CE_CTRL_GET_DIAGNOSTIC_FID,             RF4CE_Diag_ReqDescr_t,   RF4CE_Diag_ConfParams_t, RF4CE_Get_Diag_Req),
+#  endif
 #endif
 };
 /************************* IMPLEMENTATION ***********************************************/

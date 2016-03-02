@@ -952,30 +952,28 @@ BERR_Code BMXT_TSMF_SetParserConfig(BMXT_Handle handle, unsigned parserNum, unsi
     RegAddr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1) + parserNum * STEP(BMXT_RESOURCE_MINI_PID_PARSER0_CTRL1);
     Reg = BMXT_RegRead32(handle, RegAddr);
 
-    /* if NUM_TSMF=2, TSMF_EN=25 and TSMF_SEL=26 */
-    /* if NUM_TSMF>2, TSMF_EN=23 and TSMF_SEL=24~26 */
-    if (handle->settings.chip!=BMXT_Chip_e3383) {
-        BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_TSMF_SEL, tsmfNum);
-        BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_TSMF_EN, enable);
-    }
-    else {
+    if (BMXT_IS_3128_FAMILY()) { /* 3128, 3383, 4528, 4517, 3472 */
         unsigned TSMF_SEL_MASK, TSMF_SEL_SHIFT, TSMF_EN_MASK, TSMF_EN_SHIFT;
-        if (handle->platform.num[BMXT_RESOURCE_TSMF0_CTRL]>2) {
+        if (handle->settings.chip==BMXT_Chip_e3128 || (handle->settings.chip==BMXT_Chip_e3383 && handle->platform.num[BMXT_RESOURCE_TSMF0_CTRL]<=2)) {
+            TSMF_SEL_MASK = 0x04000000;
+            TSMF_SEL_SHIFT = 26;
+            TSMF_EN_MASK = 0x02000000;
+            TSMF_EN_SHIFT = 25;
+        }
+        else {
             TSMF_SEL_MASK = 0x07000000;
             TSMF_SEL_SHIFT = 24;
             TSMF_EN_MASK = 0x00800000;
             TSMF_EN_SHIFT = 23;
         }
-        else {
-            TSMF_SEL_MASK = 0x04000000;
-            TSMF_SEL_SHIFT = 26;
-            TSMF_EN_MASK = 0x02000000;
-            TSMF_EN_SHIFT =  25;
-        }
         Reg &= ~( TSMF_SEL_MASK | TSMF_EN_MASK );
         Reg |=(
             ((tsmfNum << TSMF_SEL_SHIFT) & TSMF_SEL_MASK) |
             ((enable << TSMF_EN_SHIFT) & TSMF_EN_MASK));
+    }
+    else { /* all others */
+        BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_TSMF_SEL, tsmfNum);
+        BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_CTRL1, PARSER_TSMF_EN, enable);
     }
 
     BMXT_RegWrite32(handle, RegAddr, Reg);

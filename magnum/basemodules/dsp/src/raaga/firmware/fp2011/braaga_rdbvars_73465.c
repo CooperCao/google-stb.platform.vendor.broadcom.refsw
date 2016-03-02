@@ -91,8 +91,8 @@ const uint32_t BDSP_IMG_system_rdbvars_array1[] = {
         0x10900000, /* MEM_PROTECT_REGION1_START */
         0x10a0bfff, /* MEM_PROTECT_REGION1_END */
         0x10a0d900, /* MEM_PROTECT_REGION2_START */
-        0x10a17fff, /* MEM_PROTECT_REGION2_END */
-        0x10a1e018, /* MEM_PROTECT_REGION3_START */
+        0x10a1ffff, /* MEM_PROTECT_REGION2_END */
+        0x10a30000, /* MEM_PROTECT_REGION3_START */
         0x3fffffff, /* MEM_PROTECT_REGION3_END */
         0x40020000, /* MEM_PROTECT_REGION4_START */
         0x4fffffff, /* MEM_PROTECT_REGION4_END */

@@ -172,6 +172,12 @@ uint32_t BVDC_P_BufferHeap_GetHeapSize
 #if BVDC_P_PITCH_ALIGNMENT
 	uiPitch = BVDC_P_ALIGN_UP(uiPitch, BVDC_P_PITCH_ALIGN);
 #endif
+
+	/* See SW7445-2936 */
+#if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM)
+	ulHeight += BVDC_P_DCXM_BUFFERHEAP_INCREASE_WORKAROUND;
+#endif
+
 	ulBufSize = uiPitch * ulHeight;
 
 #if (BVDC_P_MVFD_ALIGNMENT_WORKAROUND)

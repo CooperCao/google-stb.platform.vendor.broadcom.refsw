@@ -203,6 +203,8 @@ struct _RF4CE_SetSupportedDevicesReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_SetSupportedDevicesReqParams_t params;
     RF4CE_GDP_SetSupportedDevicesCallback_t callback;

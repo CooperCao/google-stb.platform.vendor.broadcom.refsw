@@ -154,6 +154,8 @@ struct _RF4CE_NWK_DataReqDescr_t
 {
 #ifndef _HOST_
     SYS_QueueElement_t queueElement;        /*!< Service field */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_NWK_DataReqParams_t params;    /*!< Request data filled by the sender. */
     RF4CE_NWK_DataConfCallback_t callback;  /*!< Callback to inform sender on the result. */

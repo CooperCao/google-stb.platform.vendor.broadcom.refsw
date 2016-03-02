@@ -52,6 +52,7 @@
 
 BDBG_MODULE(atlas_tuner_upstream);
 
+#ifdef USED /* Commented out to fix warning, enable it again if needed in future. */
 static void tunerLockCallback(
         void * context,
         int    param
@@ -64,7 +65,7 @@ static void tunerLockCallback(
 
     B_Event_Set(pTuner->getLockEvent());
 }
-
+#endif
 void CTunerUpstreamScanData::dump()
 {
     MListItr <uint32_t> itr(&_freqList);

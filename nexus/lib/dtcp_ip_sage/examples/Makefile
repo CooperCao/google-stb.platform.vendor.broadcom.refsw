@@ -73,11 +73,7 @@ B_REFSW_ARCH=mipsel-linux
 export B_REFSW_ARCH
 endif
 
-ifneq ($(B_REFSW_DEBUG),n)
-B_REFSW_DEBUG=y
-export B_REFSW_DEBUG
-endif
-
+B_REFSW_DEBUG ?= y
 ifeq ($(B_REFSW_DEBUG),y)
 DEBUG_SUFFIX=debug
 else

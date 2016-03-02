@@ -123,6 +123,8 @@ struct _Rf4ceGdp2HeartbeatReqDescr_t
 #ifndef _HOST_
     /* Structured data. */
     RF4CE_NWK_RequestService_t        service;          /*!< Service field. */
+#else
+	void *context;
 #endif
 
     /* Structured data. */

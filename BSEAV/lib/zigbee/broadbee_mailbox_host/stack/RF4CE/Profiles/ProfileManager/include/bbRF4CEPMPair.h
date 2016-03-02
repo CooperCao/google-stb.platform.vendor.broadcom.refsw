@@ -93,6 +93,8 @@ struct _RF4CE_UnpairReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_UnpairReqParams_t params;  /*!< The request parameters */
     RF4CE_UnpairCallback_t callback; /*!< The request confirmation callback */

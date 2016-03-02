@@ -265,7 +265,6 @@ int main(void)
     strategy:
     for match, take source constant color (red).
     for non-match, take dest pixels.
-    TODO: not working
     */
     NEXUS_Graphics2D_GetDefaultBlitSettings(&blitSettings);
     blitSettings.source.surface = surface;
@@ -306,7 +305,6 @@ int main(void)
     strategy:
     for match, take source pixels.
     for non-match, take dest pixels.
-    TODO: not working
     */
     NEXUS_Graphics2D_GetDefaultBlitSettings(&blitSettings);
     blitSettings.source.surface = surface;
@@ -374,6 +372,13 @@ int main(void)
     
     printf("Press ENTER to exit\n");
     getchar();
+
+    NEXUS_Display_Close(display);
+    NEXUS_Graphics2D_Close(gfx);
+    NEXUS_Surface_Destroy(surface);
+    BKNI_DestroyEvent(checkpointEvent);
+    BKNI_DestroyEvent(spaceAvailableEvent);
+    NEXUS_Platform_Uninit();
 
     return 0;
 }

@@ -35,16 +35,6 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 #  ANY LIMITED REMEDY.
 # 
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
-# 
 ###########################################################################
 
 ifdef COMSPEC
@@ -60,11 +50,10 @@ include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
 include ${NEXUS_TOP}/build/os/${B_REFSW_OS}/os_flags.inc
 
-ifeq ($(B_REFSW_DEBUG),n)
-NEXUS_CFLAGS += -O${OPTIMIZER_LEVEL}
-else
-NEXUS_CFLAGS += -g -O${OPTIMIZER_LEVEL}
+ifeq ($(B_REFSW_DEBUG),y)
+NEXUS_CFLAGS += -g
 endif
+NEXUS_CFLAGS += -O${B_REFSW_OPTIMIZER_LEVEL}
 
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}

@@ -40,6 +40,7 @@ extern Macro *glsl_macro_construct_line(void);
 extern Macro *glsl_macro_construct_file(void);
 
 extern bool glsl_macro_equals(Macro *m1, Macro *m2);
+extern bool glsl_macro_is_builtin(Macro *macro);
 
 typedef struct _MacroList {
    Macro *macro;

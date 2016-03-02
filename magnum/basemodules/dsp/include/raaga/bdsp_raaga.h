@@ -49,6 +49,7 @@
 #include "bchp.h"
 #include "bint.h"
 #include "bmem.h"
+#include "bbox.h"
 #include "breg_mem.h"
 #include "bmma.h"
 #include "btmr.h"
@@ -119,7 +120,6 @@ typedef struct BDSP_RaagaSettings
     unsigned maxAlgorithms[BDSP_AlgorithmType_eMax] ;
 
     unsigned NumDsp;    /*Number of DSP supported in the System, currently used for estimation of Memory*/
-
 } BDSP_RaagaSettings;
 
 /*********************************************************************
@@ -241,6 +241,7 @@ BERR_Code BDSP_Raaga_Open(
     BMEM_Handle memHandle,
     BINT_Handle intHandle,
     BTMR_Handle tmrHandle,
+    BBOX_Handle boxHandle,
     const BDSP_RaagaSettings *pSettings
     );
 
@@ -257,8 +258,8 @@ None
 BERR_Code BDSP_Raaga_GetMemoryEstimate(
     const BDSP_RaagaSettings     *pSettings,
     const BDSP_RaagaUsageOptions *pUsage,
-    BCHP_Handle                   chpHandle,
-    BDSP_RaagaMemoryEstimate     *pEstimate /*[out]*/
+    BBOX_Handle                   boxHandle,
+    BDSP_RaagaMemoryEstimate	 *pEstimate /*[out]*/
 );
 
 /***************************************************************************

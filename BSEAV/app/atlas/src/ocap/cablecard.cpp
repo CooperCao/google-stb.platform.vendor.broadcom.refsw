@@ -16,7 +16,7 @@
  * Revision History:
  *
  * $brcm_Log: $
- * 
+ *
  ****************************************************************************/
 #ifdef MPOD_SUPPORT
 #include <stdio.h>
@@ -109,16 +109,17 @@ static bool MpegFlowReq = false;
 
 BDBG_MODULE(atlas_cablecard);
 #if !defined(DSG_SUPPORT) && defined(MPOD_SUPPORT)
- void CableCardCallbackSetDSGMode( unsigned char * data, unsigned short len ){}
- void CableCardCallbackDSG_Directory( unsigned char *data, unsigned short len ){}
- void CableCardCallbackDSGPacketError( unsigned char err_status ){}
- void CableCardCallbackConfig_Advanced_DSG( unsigned char *pkt_obj_ptr, unsigned short len ){}
- void CableCardCallbackDSGFlowID( unsigned long flow_id ){}
- unsigned long CableCardCallbackIPUDhcp( unsigned long flowid, unsigned char *mac, unsigned char opt_len, unsigned char *opt_data, unsigned char *ret_option, int *ropt_len ){}
- unsigned char CableCardCallbackSocketFlowConfig(unsigned long id, unsigned char *opt_data, unsigned long opt_len){}
- unsigned char CableCardCallbackDeleteFlowReq(unsigned long flowid){}
- void CableCardCallbackSendIPUData( unsigned char *pdata, unsigned long len ){}
- void CableCardCallbackSendSocketFlowUsData( unsigned long id, unsigned char *opt_data, unsigned long opt_len ){}
+ void CableCardCallbackSetDSGMode( unsigned char * data, unsigned short len ){BSTD_UNUSED(data);BSTD_UNUSED(len);}
+ void CableCardCallbackDSG_Directory( unsigned char *data, unsigned short len ){BSTD_UNUSED(data);BSTD_UNUSED(len);}
+ void CableCardCallbackDSGPacketError( unsigned char err_status ){BSTD_UNUSED(err_status);}
+ void CableCardCallbackConfig_Advanced_DSG( unsigned char *pkt_obj_ptr, unsigned short len ){BSTD_UNUSED(pkt_obj_ptr);BSTD_UNUSED(len);}
+ void CableCardCallbackDSGFlowID( unsigned long flow_id ){BSTD_UNUSED(flow_id);}
+ unsigned long CableCardCallbackIPUDhcp( unsigned long flowid, unsigned char *mac, unsigned char opt_len, unsigned char *opt_data, unsigned char *ret_option, int *ropt_len )
+			{BSTD_UNUSED(flowid);BSTD_UNUSED(mac);BSTD_UNUSED(opt_len);BSTD_UNUSED(opt_data);BSTD_UNUSED(ret_option);BSTD_UNUSED(ropt_len);return 0;}
+ unsigned char CableCardCallbackSocketFlowConfig(unsigned long id, unsigned char *opt_data, unsigned long opt_len){BSTD_UNUSED(id);BSTD_UNUSED(opt_data);BSTD_UNUSED(opt_len);return 0;}
+ unsigned char CableCardCallbackDeleteFlowReq(unsigned long flowid){BSTD_UNUSED(flowid);return 0;}
+ void CableCardCallbackSendIPUData( unsigned char *pdata, unsigned long len ){BSTD_UNUSED(pdata);BSTD_UNUSED(len);}
+ void CableCardCallbackSendSocketFlowUsData( unsigned long id, unsigned char *opt_data, unsigned long opt_len ){BSTD_UNUSED(id);BSTD_UNUSED(opt_data);BSTD_UNUSED(opt_len);}
  void CableCardRemovedCallbackCleanUp( void ){}
 
 #else
@@ -155,7 +156,7 @@ void removeKeyCb(
 CableCARDInfo * CCablecard::cablecard_get_info()
 {
 	return &info;
-}	
+}
 static void b_reset_mpod_route(NEXUS_MpodHandle mpod)
 {
 
@@ -193,7 +194,7 @@ static void MpegFlowReqThread(
 	while(true)
 	{
 		retval = B_Event_Wait(MpegFlowHandlerEvent, B_WAIT_NONE);
-		if (retval == B_ERROR_SUCCESS) 
+		if (retval == B_ERROR_SUCCESS)
 			break;
 
 		/* if there is no MPEG flow and no outstanding request */
@@ -213,7 +214,7 @@ static void MpegFlowReqThread(
 }
 
 CCablecard::CCablecard() :
-	CMvcModel("cableCard"), 
+	CMvcModel("cableCard"),
 	cableCardIn(false),
 	chMgrUninitialized(false)
 {
@@ -226,7 +227,7 @@ eRet CCablecard::initialize(CTunerOob * pTuner)
 {
      eRet ret = eRet_Ok;
     _pTunerOob = pTuner;
-#if NEXUS_FRONTEND_DOCSIS	
+#if NEXUS_FRONTEND_DOCSIS
     g_oobHFrontendDeviceHandle = NEXUS_Frontend_GetDevice(_pTunerOob->getFrontend());
 #endif
 
@@ -357,7 +358,9 @@ cablecard_t CCablecard::cablecard_open(cablecard_setting_t setting, CChannelMgr 
 	cablecard_t cablecard = &g_cablecard;
     B_MPOD_IF_SETTINGS IfSettings;
 	NEXUS_MpodOpenSettings Mpodsetting;
+	#ifdef DSG_SUPPORT
 	pthread_t dsgcc_thread;
+	#endif
 	g_pChannelMgr = pChannelMgr;
 	_pModel = pModel;
     CWidgetEngine * pWidgetEngine = pChannelMgr->getWidgetEngine();
@@ -404,22 +407,22 @@ cablecard_t CCablecard::cablecard_open(cablecard_setting_t setting, CChannelMgr 
 
 	b_reset_mpod_route(cablecard->mpod );
 
-    for(i=0;i<MAX_CABLECARD_ROUTE;i++) 
+    for(i=0;i<MAX_CABLECARD_ROUTE;i++)
     {
         pCableCardChannels[i] = NULL;
         keySlotRemoved[i] = NULL;
         keySlotRemoved[i] = B_Event_Create(NULL);
-        if(!keySlotRemoved[i]) 
-        {  
+        if(!keySlotRemoved[i])
+        {
             break;
         }
     }
-    if(i < MAX_CABLECARD_ROUTE) 
+    if(i < MAX_CABLECARD_ROUTE)
     {
          BDBG_ERR(("keySlot event creation failed"));
          return NULL;
     }
-    
+
 	IfSettings.cardInsertedCb = cablecard_in;
 	IfSettings.cardRemovedCb = cablecard_out;
 	IfSettings.cardErrorCb = cablecard_error;
@@ -505,7 +508,7 @@ void CCablecard::cablecard_close()
 
 	cablecard->mpeg_section = NULL;
 	cablecard->cablecard_in = false;
-    for(i=0;i<MAX_CABLECARD_ROUTE;i++) 
+    for(i=0;i<MAX_CABLECARD_ROUTE;i++)
     {
         B_Event_Destroy(keySlotRemoved[i]);
     }
@@ -535,13 +538,13 @@ int CCablecard::cablecard_route_add_tuner(cablecard_t cablecard, CChannel *pChan
     pBand = pChannel->getParserBand();
 
     if (cablecard == NULL) return -1;
-	
+
 	NEXUS_MpodInput_GetDefaultSettings(&settings);
 	settings.bandType = NEXUS_MpodBandType_eParserBand;
 	settings.allPass = false;
 	settings.band.parserBand = pBand->getBand();
 
-	/*find the first NULL spot*/	
+	/*find the first NULL spot*/
 	while(cablecard->mpod_input[input_index]){
 		input_index ++;
 		if(input_index >= MAX_CABLECARD_ROUTE) goto error_index;
@@ -665,12 +668,12 @@ int CCablecard::cablecard_enable_program(CChannel *pChannel)
         return -1;
     }
 	cablecard_route_add_tuner(cablecard, pChannel);
-    for(programIndex=0;programIndex<MAX_CABLECARD_ROUTE;programIndex++) 
+    for(programIndex=0;programIndex<MAX_CABLECARD_ROUTE;programIndex++)
     {
         if (!pCableCardChannels[programIndex])
             break;
     }
-    if(programIndex >= MAX_CABLECARD_ROUTE) 
+    if(programIndex >= MAX_CABLECARD_ROUTE)
     {
          BDBG_ERR(("channels added to cable card exceeded the max limit "));
          return -1;
@@ -683,10 +686,10 @@ int CCablecard::cablecard_enable_program(CChannel *pChannel)
     channelPmtInfo[programIndex].pmtSize = 0;
 	tsPsi_setTimeout(800,800);
 	memset(&programInfo, 0, sizeof(PROGRAM_INFO_T));
-    tsPsi_getProgramInfo(&programInfo,programNumber, pBand->getBand(), 
-                         channelPmtInfo[programIndex].pmt, 
+    tsPsi_getProgramInfo(&programInfo,programNumber, pBand->getBand(),
+                         channelPmtInfo[programIndex].pmt,
                          &channelPmtInfo[programIndex].pmtSize );
-    if(!channelPmtInfo[programIndex].pmtSize) 
+    if(!channelPmtInfo[programIndex].pmtSize)
     {
         BDBG_ERR(("%s: not PMT found",__FUNCTION__));
         goto error;
@@ -694,10 +697,10 @@ int CCablecard::cablecard_enable_program(CChannel *pChannel)
     ltsid = pBand->getBand();
     BDBG_WRN(("%s programIndex %u ltsid %u sourceId %u programNumber %u caPid %u pmtSize %u",
               __FUNCTION__,programIndex,ltsid, sourceId, programNumber, programInfo.ca_pid,
-              channelPmtInfo[programIndex].pmtSize)); 
-    ret = B_Mpod_CaSendPmt((unsigned char *)channelPmtInfo[programIndex].pmt, 
+              channelPmtInfo[programIndex].pmtSize));
+    ret = B_Mpod_CaSendPmt((unsigned char *)channelPmtInfo[programIndex].pmt,
                            B_MPOD_CA_OK_DESCRAMBLE, programIndex, ltsid, sourceId);
-	if (ret == MPOD_SUCCESS) 
+	if (ret == MPOD_SUCCESS)
     {
 		B_Mpod_CpAddProgram(programIndex,programNumber, programInfo.ca_pid,ltsid);
 	}
@@ -722,13 +725,13 @@ int CCablecard::cablecard_disable_program(class CChannel *pChannel)
 
 	cablecard_route_remove_tuner(cablecard, pChannel);
 
-    for(programIndex=0;programIndex<MAX_CABLECARD_ROUTE;programIndex++) 
+    for(programIndex=0;programIndex<MAX_CABLECARD_ROUTE;programIndex++)
     {
         if (pCableCardChannels[programIndex] == pChannel)
             break;
     }
 
-    if(programIndex >= MAX_CABLECARD_ROUTE) 
+    if(programIndex >= MAX_CABLECARD_ROUTE)
     {
          BDBG_ERR(("channel not available"));
          return -1;
@@ -748,7 +751,7 @@ int CCablecard::cablecard_disable_program(class CChannel *pChannel)
 	}
 
 #ifdef NEXUS_HAS_SECURITY
-    if(pChannel->getKeySlot()) 
+    if(pChannel->getKeySlot())
     {
         B_Event_Wait(keySlotRemoved[programIndex],1000);
     }
@@ -812,7 +815,7 @@ int CCablecard::bcm_3255_enable_oob_pins()
 int CCablecard::bcm_3255_tristate_oob_pins()
 {
 #if defined(NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT)
-#if (BCHP_CHIP == 7425 || BCHP_CHIP == 7429 || BCHP_CHIP == 7435 || BCHP_CHIP == 7445) 
+#if (BCHP_CHIP == 7425 || BCHP_CHIP == 7429 || BCHP_CHIP == 7435 || BCHP_CHIP == 7445)
 	NEXUS_3255DeviceGpioPinSettings settings;
 	settings.mode = NEXUS_GpioMode_eOutputOpenDrain;
 	return NEXUS_Frontend_Set3255DeviceGpioPinSettings(g_oobHFrontendHandle, NEXUS_3255DeviceGpioPin_eOob, &settings);
@@ -842,10 +845,12 @@ int CCablecard::bcm_3255_enable_oob_pins()
 #else
 int CCablecard::bcm_3255_tristate_oob_pins()
 {
+	return 0;
 }
 
 int CCablecard::bcm_3255_enable_oob_pins()
 {
+	return 0;
 }
 #endif
 
@@ -870,7 +875,7 @@ void cablecard_reset(void)
 #endif
 	page_cleanup();
 #ifdef ESTB_CFG_SUPPORT
-	B_Estb_cfg_Set_uint32("/dyn/estb/group_id", cdl_group_id);
+	B_Estb_cfg_Set_uint32((char*)"/dyn/estb/group_id", cdl_group_id);
 #endif
 }
 void CCablecard::getProperties(
@@ -884,10 +889,10 @@ void CCablecard::getProperties(
         pProperties->clear();
     }
 	char str[101];
-	if (page == 1) 
+	if (page == 1)
 	{
 		pProperties->clear();
-		if (info.card_mmi_message1 != NULL) 
+		if (info.card_mmi_message1 != NULL)
 			{
 			snprintf(str, 101, "%s", info.card_mmi_message1);
 			pProperties->add("1st line", str);
@@ -1301,7 +1306,7 @@ B_MPOD_EXT_NEW_FLOW_CNF_STAT CableCardCallback_DSG_Flow_Id(uint32_t flowId)
 }
 
 void CableCardCallback_Socket_Flow_Config(uint32_t flowId, uint8_t *opt_data, uint32_t opt_len)
-													   
+
 {
    	unsigned short max_pdu_size = 1500;
 	unsigned char status;
@@ -1541,7 +1546,7 @@ int cablecard_receive_MMI(char *mmi_message, int len)
   memset(tmp_str1, 0, 100);
   memset(tmp_str2, 0, 100);
   memset(tmp_str3, 0, 100);
-  memset(tmp_str4, 0, 100); 
+  memset(tmp_str4, 0, 100);
   length = len;
 
   for (cnt=0 ; cnt < (length) ; )
@@ -1649,7 +1654,7 @@ static void mmiHtmlRdyCb(
 	else {
 		cablecard_receive_MMI((char*)html, (int)len);
 		}
-/* TODO: Add MMI to atlas cfg later on */	 
+/* TODO: Add MMI to atlas cfg later on */
 
 }
 
@@ -1758,7 +1763,7 @@ static void dlHostInfoCb(
     B_MPOD_DL_HOST_INFO *hostInfo
     )
 {
-     
+
 	#ifdef CDL_SUPPORT
 		cdl_adpu_get_host_info((void*)supportedDlType, hostInfo);
 	#else
@@ -1831,8 +1836,8 @@ static void featureReqParamsCb(
 {
     uint32_t i;
     int len;
-    char parentalPin[256]; 
-    char purchasePin[256]; 
+    char parentalPin[256];
+    char purchasePin[256];
     char url0[256];
     char url1[256];
     char url2[256];
@@ -1873,7 +1878,7 @@ static void featureReqParamsCb(
     AcOutlet->param.acOutlet.ctrl = B_MPOD_FEATURE_AC_USER_SETTING;
 
 #ifdef ESTB_CFG_SUPPORT
-	B_Estb_cfg_Get_bin("/dyn/estb/lang_code", Language->param.language.ctrl, &len );
+	B_Estb_cfg_Get_bin((char*)"/dyn/estb/lang_code", Language->param.language.ctrl, &len );
 #else
     Language->param.language.ctrl[0] = 'e';
     Language->param.language.ctrl[1] = 'n';
@@ -1918,7 +1923,7 @@ static void featureReqParamsCb(
 #ifdef ESTB_CFG_SUPPORT
 	{
 		unsigned int group_id = 0;
-		B_Estb_cfg_Get_uint32("/dyn/estb/group_id", &group_id);
+		B_Estb_cfg_Get_uint32((char*)"/dyn/estb/group_id", &group_id);
 	    CommonDownload->param.commonDownload.groupId = group_id;
 	}
 #else
@@ -1962,7 +1967,7 @@ static void featureRcvCardListCb(
     uint32_t i;
 
     BDBG_MSG(("%s list of Card supported features", __FUNCTION__));
-    for(i = 0; i < cardNumFeatures; i++) 
+    for(i = 0; i < cardNumFeatures; i++)
     {
     	if (cardFeatures[i] < (sizeof(FeatureString)/sizeof(const char*)))
 			BDBG_MSG(("Feature %d = %s", i, FeatureString[cardFeatures[i]]));
@@ -2135,7 +2140,7 @@ static void featureRcvParamsCb(
                 BDBG_MSG(("Download Group ID is %d\n", featureParams[i].param.commonDownload.groupId));
 #ifdef ESTB_CFG_SUPPORT
 				group_id = featureParams[i].param.commonDownload.groupId;
-				B_Estb_cfg_Set_uint32("/dyn/estb/group_id", group_id);
+				B_Estb_cfg_Set_uint32((char*)"/dyn/estb/group_id", group_id);
 #endif
             break;
 
@@ -2245,6 +2250,10 @@ static B_MPOD_HC_OOB_TX_TUNE_STATUS oobTxTuneCb(
 	return (rc)?  B_MPOD_HC_OOB_TX_OTHER_ERROR : B_MPOD_HC_OOB_TX_TUNE_GRANTED ;
 #else
 	/* no OOB US support */
+	BSTD_UNUSED(freqHz);
+	BSTD_UNUSED(powerLevel);
+	BSTD_UNUSED(rate);
+
 	BKNI_Sleep(500);
 	return B_MPOD_HC_OOB_TX_XMIT_PHYSICAL_NA ;
 #endif
@@ -2683,7 +2692,7 @@ NEXUS_Error configureCAKeySlot(uint8_t *keyData, CChannel *pChannel)
     NEXUS_KeySlotHandle keySlot = NULL;
     CPid * pVideoPid = NULL;
     CPid * pAudioPid = NULL;
-    
+
     NEXUS_Security_GetDefaultAlgorithmSettings(&algorithmSettings);
 	algorithmSettings.terminationMode	= NEXUS_SecurityTerminationMode_eCipherStealing;
 	algorithmSettings.algorithm			= NEXUS_SecurityAlgorithm_e3DesAba;
@@ -2699,7 +2708,7 @@ NEXUS_Error configureCAKeySlot(uint8_t *keyData, CChannel *pChannel)
 	algorithmSettings.dest                = NEXUS_SecurityAlgorithmConfigDestination_eCa;
 	algorithmSettings.modifyScValue[NEXUS_SecurityPacketType_eRestricted] = false;
 	algorithmSettings.modifyScValue[NEXUS_SecurityPacketType_eGlobal]     = false;
-	algorithmSettings.operation           = NEXUS_SecurityOperation_eDecrypt;	
+	algorithmSettings.operation           = NEXUS_SecurityOperation_eDecrypt;
 #endif
 
 	/* Route a clear key */
@@ -2713,7 +2722,7 @@ NEXUS_Error configureCAKeySlot(uint8_t *keyData, CChannel *pChannel)
 	keySlotSettings.keySlotEngine = NEXUS_SecurityEngine_eCa;
 	BDBG_MSG(("Allocating new key slot"));
 	keySlot = NEXUS_Security_AllocateKeySlot(&keySlotSettings);
-	if(keySlot== NULL) 
+	if(keySlot== NULL)
     {
         BDBG_ERR(("%s key slot allocation failed",__FUNCTION__));
         goto error;
@@ -2734,24 +2743,24 @@ NEXUS_Error configureCAKeySlot(uint8_t *keyData, CChannel *pChannel)
     }
 	clearKey.keyEntryType = NEXUS_SecurityKeyType_eEven;
 	rc = NEXUS_Security_LoadClearKey(keySlot, &clearKey);
-	if (rc != 0) 
+	if (rc != 0)
     {
         BDBG_ERR(("%s load even clear key failed",__FUNCTION__));
         goto error;
     }
-	
+
     pVideoPid = pChannel->getPid(0, ePidType_Video);
     pAudioPid = pChannel->getPid(0, ePidType_Audio);
     rc = NEXUS_KeySlot_AddPidChannel(keySlot, pVideoPid->getPidChannel());
 	if (rc != 0)
-    {   
+    {
         BDBG_ERR(("%s add video pidChannel to keySlot failed ",__FUNCTION__));
         goto error;
     }
-	
+
     rc = NEXUS_KeySlot_AddPidChannel(keySlot, pAudioPid->getPidChannel());
 	if (rc != 0)
-    {   
+    {
         BDBG_ERR(("%s add video pidChannel to keySlot failed ",__FUNCTION__));
         goto error;
     }
@@ -2775,7 +2784,7 @@ void removeKeyCb(
 
     BDBG_MSG(("%s programNumber %u ltsid %u", __FUNCTION__, programNumber, ltsid));
 
-    for(programIndex=0;programIndex<MAX_CABLECARD_ROUTE;programIndex++) 
+    for(programIndex=0;programIndex<MAX_CABLECARD_ROUTE;programIndex++)
     {
 		if (pCableCardChannels[programIndex] == NULL)
 		{
@@ -2792,9 +2801,9 @@ void removeKeyCb(
               break;
           }
 		}
-    
+
     }
-    if(!pChannel || !pChannel->getKeySlot()) 
+    if(!pChannel || !pChannel->getKeySlot())
     {
        BDBG_ERR(("%s no channel found with programNumber %u ltsid %u", __FUNCTION__, programNumber, ltsid));
        return;
@@ -2824,17 +2833,17 @@ void progKeyCb(
     unsigned programIndex=0;
     CChannel *pChannel=NULL;
     BDBG_MSG(("%s programNumber %u ltsid %u", __FUNCTION__, programNumber, ltsid));
-    for(programIndex=0;programIndex<MAX_CABLECARD_ROUTE;programIndex++) 
+    for(programIndex=0;programIndex<MAX_CABLECARD_ROUTE;programIndex++)
     {
         CParserBand * pBand = pCableCardChannels[programIndex]->getParserBand();
-        if( (ltsid == pBand->getBand()) &&  
+        if( (ltsid == pBand->getBand()) &&
             (pCableCardChannels[programIndex]->getprogramNum() == programNumber))
         {
             BDBG_WRN(("%s found programNumber %u ltsid %u", __FUNCTION__, programNumber, ltsid));
             pChannel = pCableCardChannels[programIndex];
             break;
         }
-    
+
     }
     if(!pChannel)
 {

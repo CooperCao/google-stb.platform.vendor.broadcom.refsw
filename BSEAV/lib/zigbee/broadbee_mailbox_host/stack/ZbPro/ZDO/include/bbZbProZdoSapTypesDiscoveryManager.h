@@ -193,7 +193,47 @@ struct _ZBPRO_ZDO_AddrResolvingReqDescr_t
  * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
  */
 void ZBPRO_ZDO_AddrResolvingReq(
-                ZBPRO_ZDO_AddrResolvingReqDescr_t *const  reqDescr);
+    ZBPRO_ZDO_AddrResolvingReqDescr_t *const  reqDescr);
 
+/*
+ * \brief ZDO ZDP System_Server_Discovery request parameters
+ */
+typedef struct _ZBPRO_ZDO_ServerDiscoveryReqParams_t
+{
+    ZBPRO_ZDO_ServerMask_t  serverMask;
+    SYS_Time_t              respWaitTimeout;    /* Response waiting timeout, in milliseconds.
+                                                 * Zero means 'Use default ZDO timeout'. */
+} ZBPRO_ZDO_ServerDiscoveryReqParams_t;
+
+typedef struct PACKED _ZBPRO_ZDO_ServerDiscoveryRespListItem_t
+{
+    ZBPRO_ZDO_NwkAddr_t     nwkAddress;
+    ZBPRO_ZDO_ServerMask_t  serverMask;
+} ZBPRO_ZDO_ServerDiscoveryRespListItem_t;
+
+typedef struct _ZBPRO_ZDO_ServerDiscoveryConfParams_t
+{
+    ZBPRO_ZDO_Status_t      status;
+    SYS_DataPointer_t       serverList;         /* List of received responses as sequence of
+                                                 * ZBPRO_ZDO_ServerDiscoveryRespListItem_t elements. */
+} ZBPRO_ZDO_ServerDiscoveryConfParams_t;
+typedef struct _ZBPRO_ZDO_ServerDiscoveryReqDescr_t  ZBPRO_ZDO_ServerDiscoveryReqDescr_t;
+typedef void ZBPRO_ZDO_ServerDiscoveryConfCallback_t(
+    ZBPRO_ZDO_ServerDiscoveryReqDescr_t *const reqDescr,
+    ZBPRO_ZDO_ServerDiscoveryConfParams_t *const confParams);
+struct _ZBPRO_ZDO_ServerDiscoveryReqDescr_t
+{
+    ZbProZdoLocalRequest_t                      service;
+    SYS_DataPointer_t                           serviceData;
+    ZBPRO_ZDO_ServerDiscoveryConfCallback_t    *callback;
+    ZBPRO_ZDO_ServerDiscoveryReqParams_t        params;
+};
+
+/*************************************************************************************//**
+  \brief ZDO ZDP System_Server_Discovery request function.
+  \param[in] reqDescr - pointer to the request structure.
+*****************************************************************************************/
+void ZBPRO_ZDO_ServerDiscoveryReq(
+    ZBPRO_ZDO_ServerDiscoveryReqDescr_t *const reqDescr);
 
 #endif /* _BB_ZBPRO_ZDO_SAP_TYPES_DISCOVERY_MANAGER_H */

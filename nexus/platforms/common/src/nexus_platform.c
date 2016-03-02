@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+* Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -96,6 +96,7 @@
 #if NEXUS_HAS_SECURITY
 #include "nexus_security_init.h"
 #include "priv/nexus_security_standby_priv.h"
+#include "priv/nexus_security_priv.h"
 #endif
 #if NEXUS_HAS_AUDIO
 #include "nexus_audio_init.h"
@@ -230,15 +231,6 @@
 #if NEXUS_BASE_OS_linuxkernel
 #include "nexus_generic_driver_impl.h"
 #endif
-#if NEXUS_HAS_WMDRMPD
-#include "nexus_wmdrmpd_init.h"
-#endif
-#if NEXUS_HAS_WMDRMPD_CORE
-#include "nexus_wmdrmpd_core_init.h"
-#endif
-#if NEXUS_HAS_WMDRMPD_IO
-#include "nexus_wmdrmpd_io_init.h"
-#endif
 #if NEXUS_HAS_DIVXDRM
 #include "nexus_divxdrm_init.h"
 #endif
@@ -259,7 +251,6 @@ BDBG_MODULE(nexus_platform);
 NEXUS_PlatformHandles g_NEXUS_platformHandles;
 NEXUS_PlatformSettings g_NEXUS_platformSettings;   /* saved platform settings */
 NEXUS_ModuleHandle g_NEXUS_platformModule = NULL;
-static char g_platformSwVersion[100]; /* keep off the static to prevent blowout */
 
 #if defined(NEXUS_BASE_OS_linuxuser) && !B_HAS_BPROFILE
 /* We can speed up init slightly by loading FW from multiple threads. */
@@ -604,17 +595,6 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #if NEXUS_HAS_NSK2HDI
         NEXUS_Nsk2hdiModuleSettings nsk2hdiSettings;
 #endif
-#if NEXUS_HAS_WMDRMPD
-        NEXUS_ModuleHandle wmdrmpd;
-        NEXUS_WmDrmPdModuleSettings wmdrmpdSettings;
-#endif
-#if NEXUS_HAS_WMDRMPD_CORE
-        NEXUS_ModuleHandle wmdrmpdCore;
-        NEXUS_WmDrmPdCoreModuleSettings wmdrmpdcoreSettings;
-#endif
-#if NEXUS_HAS_WMDRMPD_IO
-        NEXUS_ModuleHandle wmdrmpdIo;
-#endif
 #if NEXUS_HAS_DIVXDRM
         NEXUS_ModuleHandle divxdrm;
 #endif
@@ -678,9 +658,6 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     preInitState = NEXUS_Platform_P_PreInit();
     if (!preInitState) {errCode = -1; goto err_preinit;} /* no BERR_TRACE possible */
 
-    NEXUS_Platform_GetReleaseVersion(g_platformSwVersion,100);
-    BDBG_WRN(("%s boxmode %d",g_platformSwVersion, preInitState->boxMode));
-
     state = BKNI_Malloc(sizeof(*state));
     if(state==NULL) { errCode = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_state_alloc;}
 
@@ -740,6 +717,20 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     if ( errCode!=BERR_SUCCESS ) { errCode=BERR_TRACE(errCode); goto err_core; }
 
     NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.core, NEXUS_PlatformStandbyLockMode_ePassiveOnly, NULL, NEXUS_CoreModule_Standby_priv);
+
+    {
+        struct status {
+            BCHP_Info info;
+            char platformSwVersion[100];
+        } *status;
+        status = BKNI_Malloc(sizeof(*status));
+        if (!status) { errCode=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_core; }
+        NEXUS_Platform_GetReleaseVersion(status->platformSwVersion, sizeof(status->platformSwVersion));
+        BCHP_GetInfo(g_pCoreHandles->chp, &status->info);
+        BDBG_WRN(("%s, boxmode %d, product %x %c%u", status->platformSwVersion, preInitState->boxMode,
+            status->info.productId, 'A' + (status->info.rev >> 4), (status->info.rev & 0xF)));
+        BKNI_Free(status);
+    }
 
     if(NEXUS_GetEnv("profile_init")) {
         NEXUS_Profile_Start();
@@ -843,6 +834,9 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
         goto err;
     }
+    NEXUS_Module_Lock(g_NEXUS_platformHandles.security);
+    NEXUS_Security_PrintArchViolation_priv(); /* print (and clear) any outstanding ARCH violations on boot */
+    NEXUS_Module_Unlock(g_NEXUS_platformHandles.security);
     NEXUS_Platform_P_AddModule(g_NEXUS_platformHandles.security, state->securitySettings.common.enabledDuringActiveStandby?NEXUS_PlatformStandbyLockMode_ePassiveOnly:NEXUS_PlatformStandbyLockMode_eAlways,
                    NEXUS_SecurityModule_Uninit, NEXUS_SecurityModule_Standby_priv);
 #endif
@@ -1538,44 +1532,6 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         goto err;
     }
     NEXUS_Platform_P_AddModule(handle, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_InputRouterModule_Uninit, NULL);
-#endif
-
-#if NEXUS_HAS_WMDRMPD_IO
-    BDBG_MSG((">WMDRMPD_IO"));
-    state->wmdrmpdIo = NEXUS_WmDrmPdIoModule_Init(NULL);
-    if (!state->wmdrmpdIo) {
-        BDBG_ERR(("Unable to init wmdrmpdIo"));
-        errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
-        goto err;
-    }
-    NEXUS_Platform_P_AddModule(state->wmdrmpdIo, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_WmDrmPdIoModule_Uninit, NULL);
-#endif
-
-#if NEXUS_HAS_WMDRMPD_CORE
-    BDBG_MSG((">WMDRMPD_CORE"));
-    NEXUS_WmDrmPdCoreModule_GetDefaultSettings(&state->wmdrmpdcoreSettings);
-    state->wmdrmpdcoreSettings.modules.wmdrmpdIo = state->wmdrmpdIo;
-    state->wmdrmpdCore = NEXUS_WmDrmPdCoreModule_Init(&state->wmdrmpdcoreSettings);
-    if (!state->wmdrmpdCore) {
-        BDBG_ERR(("Unable to init wmdrmpdCore"));
-        errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
-        goto err;
-    }
-    NEXUS_Platform_P_AddModule(state->wmdrmpdCore, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_WmDrmPdCoreModule_Uninit, NULL);
-#endif
-
-#if NEXUS_HAS_WMDRMPD
-    BDBG_MSG((">WMDRMPD"));
-    NEXUS_WmDrmPdModule_GetDefaultSettings(&state->wmdrmpdSettings);
-    state->wmdrmpdSettings.modules.wmdrmpdCore = state->wmdrmpdCore;
-    state->wmdrmpdSettings.modules.wmdrmpdIo = state->wmdrmpdIo;
-    state->wmdrmpd = NEXUS_WmDrmPdModule_Init(&state->wmdrmpdSettings);
-    if (!state->wmdrmpd) {
-        BDBG_ERR(("Unable to init wmdrmpd"));
-        errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
-        goto err;
-    }
-    NEXUS_Platform_P_AddModule(state->wmdrmpd, NEXUS_PlatformStandbyLockMode_eNone, NEXUS_WmDrmPdModule_Uninit, NULL);
 #endif
 
 #if NEXUS_HAS_DIVXDRM
@@ -2285,5 +2241,21 @@ NEXUS_Error NEXUS_Platform_SetThermalScaling_driver(unsigned thermalPoint, unsig
     BSTD_UNUSED(thermalPoint);
     BSTD_UNUSED(maxThermalPoints);
 #endif
+    return rc;
+}
+
+void NEXUS_Platform_GetHeapRuntimeSettings( NEXUS_HeapHandle heap, NEXUS_HeapRuntimeSettings *pSettings )
+{
+    NEXUS_Module_Lock(g_NEXUS_platformHandles.core);
+    NEXUS_Heap_GetRuntimeSettings_priv(heap, pSettings);
+    NEXUS_Module_Unlock(g_NEXUS_platformHandles.core);
+}
+
+NEXUS_Error NEXUS_Platform_SetHeapRuntimeSettings( NEXUS_HeapHandle heap, const NEXUS_HeapRuntimeSettings *pSettings )
+{
+    NEXUS_Error rc;
+    NEXUS_Module_Lock(g_NEXUS_platformHandles.core);
+    rc = NEXUS_Heap_SetRuntimeSettings_priv(heap, pSettings);
+    NEXUS_Module_Unlock(g_NEXUS_platformHandles.core);
     return rc;
 }

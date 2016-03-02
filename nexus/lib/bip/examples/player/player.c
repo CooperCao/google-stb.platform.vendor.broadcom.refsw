@@ -443,6 +443,7 @@ int main(int argc, char *argv[])
             {
                 playerSettings.playbackSettings.endOfStreamAction = NEXUS_PlaybackLoopMode_ePlay;
                 playerSettings.playbackSettings.beginningOfStreamAction = NEXUS_PlaybackLoopMode_ePlay;
+                playerSettings.playbackSettings.playErrorHandling = NEXUS_PlaybackErrorHandlingMode_eAbort;
                 prepareSettings.pauseTimeoutAction = NEXUS_PlaybackLoopMode_ePlay;
                 prepareSettings.timeshiftBufferMaxDurationInMs = pAppCtx->timeshiftBufferMaxDurationInMs;
             }
@@ -677,6 +678,7 @@ int main(int argc, char *argv[])
                 bipStatus = BIP_Player_GetStatusFromServer(hPlayer, &settings, &serverStatus);
                 BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS || bipStatus == BIP_INF_NOT_AVAILABLE), ( "BIP_Player_StatusFromServer Failed: URL=%s", BIP_String_GetString(pAppCtx->hUrl) ), error, bipStatus, bipStatus );
                 BDBG_WRN(("Player position cur/last: %0.3f/%0.3f sec ", serverStatus.currentPositionInMs/1000., serverStatus.availableSeekRange.lastPositionInMs/1000. ));
+                BIP_Player_PrintStatus(hPlayer);
             }
             else if(cmdOptions.cmd == PlayerCmd_ePlayLanguageSpecificTrack)
             {

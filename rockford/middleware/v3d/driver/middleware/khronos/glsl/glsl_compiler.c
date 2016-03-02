@@ -34,7 +34,7 @@ Standalone GLSL compiler
 int yyparse(void* top_level_statement);
 
 void glsl_init_preprocessor(void);
-void glsl_init_lexer(void);
+void glsl_init_lexer(int sourcec, const char * const *sourcev);
 void glsl_init_parser(void);
 
 void glsl_term_lexer(void);
@@ -45,10 +45,6 @@ static void compile(ShaderFlavour flavour, int sourcec, const char** sourcev)
 {
    Statement* ast;
 
-   // Save input strings.
-   g_ShaderSourceCount = sourcec;
-   g_ShaderSourceValues = sourcev;
-
    // Save compiler parameters.
    g_ShaderFlavour = flavour;
 
@@ -58,7 +54,7 @@ static void compile(ShaderFlavour flavour, int sourcec, const char** sourcev)
    // Parse input.
    TRACE(("Compiling as %s shader...\n", g_ShaderFlavour == SHADER_VERTEX ? "vertex" : "fragment"));
    glsl_init_preprocessor();
-   glsl_init_lexer();
+   glsl_init_lexer(sourcec, sourcev);
    glsl_init_parser();
    yyparse(&ast);
    glsl_term_lexer();

@@ -44,4 +44,9 @@
 VIDEO_ENCODER_SUPPORT := y
 BDSP_ENCODER_SUPPORT  := y
 
+ifeq ($(NEXUS_PLATFORM_VER),SV)
+NEXUS_PLATFORM_DEFINES += NEXUS_FRONTEND_AST_DISABLE_PM=1
+endif
+
+
 include $(NEXUS_TOP)/platforms/97344/build/platform_options.inc

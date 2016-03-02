@@ -159,18 +159,12 @@ upon the chip usage. See below */
 /* I2C Channels */
 #define NEXUS_NUM_I2C_CHANNELS  4
 
-#if (BCHP_CHIP==7344)
-#define NEXUS_MOCA_I2C_CHANNEL 2
+
+/* Define NEXUS_MOCA_I2C_CHANNEL if needed.
+   7346 its 2 and 7344 it is 1*/
 #if NEXUS_PLATFORM_7418SFF_H
 #define NEXUS_I2C_CHANNEL_EXT_RFM         1  /* External RFM */
 #endif
-#else
-#define NEXUS_MOCA_I2C_CHANNEL 1
-#endif
-
-
-
-
 
 /* SMARTCARD CHANNELS */
 #define NEXUS_NUM_SMARTCARD_CHANNELS 2

@@ -54,9 +54,10 @@ BDBG_MODULE( BAVC );
 	 (BFMT_VideoFmt_ePAL_60 == (fmt)))
 
 #define BAVC_P_DEFAULT_MATRIX_COEFF(fmt, xvycc) \
-	( (BAVC_P_VIDEO_FORMAT_IS_NTSC(fmt) || BAVC_P_VIDEO_FORMAT_IS_480P(fmt)) ? ((xvycc) ? BAVC_MatrixCoefficients_eXvYCC_601 : BAVC_MatrixCoefficients_eSmpte_170M) : \
-	  ((BAVC_P_VIDEO_FORMAT_IS_PAL(fmt) || (BFMT_VideoFmt_e576p_50Hz == fmt)) ? BAVC_MatrixCoefficients_eItu_R_BT_470_2_BG : \
-	  BAVC_MatrixCoefficients_eItu_R_BT_709) )
+	( (BAVC_P_VIDEO_FORMAT_IS_NTSC(fmt) || BAVC_P_VIDEO_FORMAT_IS_480P(fmt) || \
+	   BAVC_P_VIDEO_FORMAT_IS_PAL(fmt)  || (BFMT_VideoFmt_e576p_50Hz == fmt)) ? \
+		  ((xvycc) ? BAVC_MatrixCoefficients_eXvYCC_601 : BAVC_MatrixCoefficients_eSmpte_170M) : \
+		  ((xvycc) ? BAVC_MatrixCoefficients_eXvYCC_709 : BAVC_MatrixCoefficients_eItu_R_BT_709) )
 
 BAVC_MatrixCoefficients  BAVC_GetDefaultMatrixCoefficients_isrsafe(
 	BFMT_VideoFmt eDisplayFmt,

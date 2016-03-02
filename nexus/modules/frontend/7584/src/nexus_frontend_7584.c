@@ -64,6 +64,9 @@
 #include "bchp_sun_top_ctrl.h"
 #include "bhab_7584_priv.h"
 #include "nexus_avs.h"
+#include "bhab_ctfe_img.h"
+#include "priv/nexus_core_img.h"
+#include "priv/nexus_core_img_id.h"
 
 #if NEXUS_FRONTEND_7584_OOB
 #include "baob.h"
@@ -484,8 +487,52 @@ static NEXUS_Error NEXUS_Frontend_P_Init_7584_Hab(NEXUS_7584 *pDevice, const NEX
 
     if (pSettings->loadAP)
     {
-        BDBG_WRN(("BHAB_InitAp(7584 image)"));
-        rc = BHAB_InitAp(pDevice->hab, bcm7584_leap_image);
+        uint8_t *fw = NULL;
+        const uint8_t *fw_image = NULL;
+#if NEXUS_MODE_driver
+        {
+            unsigned fw_size = 0;
+            BIMG_Interface imgInterface;
+            void *pImgContext;
+            void *pImg;
+            uint8_t *pImage;
+            unsigned header_size = 313;
+            unsigned code_size = 0;
+            unsigned num_chunks, chunk_size = MAX_CTFE_IMG_CHUNK_SIZE;
+            unsigned chunk;
+
+            rc = Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_FRONTEND_7584, &pImgContext, &imgInterface);
+            if (rc) { BERR_TRACE(rc); goto done; }
+            rc = imgInterface.open((void*)pImgContext, &pImg, 0);
+            if (rc) { BERR_TRACE(rc); goto done; }
+            rc = imgInterface.next(pImg, 0, (const void **)&pImage, header_size);
+            if (rc) { BERR_TRACE(rc); goto done; }
+            code_size = (pImage[72] << 24) | (pImage[73] << 16) | (pImage[74] << 8) | pImage[75];
+            fw_size = code_size + header_size;
+            rc = NEXUS_Memory_Allocate(fw_size, NULL, (void **)&fw);
+            if (rc) { BERR_TRACE(rc); goto done; }
+
+            num_chunks = fw_size / chunk_size;
+            if (fw_size % chunk_size != 0) num_chunks++;
+
+            BKNI_Memset(fw, 0, fw_size);
+            for (chunk=0; chunk < num_chunks; chunk++) {
+                unsigned num_to_read = chunk_size;
+                if (chunk==num_chunks-1) num_to_read = fw_size % chunk_size;
+                rc = imgInterface.next(pImg, chunk, (const void **)&pImage, num_to_read);
+                if (rc) { BERR_TRACE(rc); goto done; }
+                BKNI_Memcpy(fw + (chunk*chunk_size), pImage, num_to_read);
+            }
+            imgInterface.close(pImg);
+        }
+#else
+        BSTD_UNUSED(fw);
+        fw_image = bcm7584_leap_image;
+#endif
+        rc = BHAB_InitAp(pDevice->hab, fw_image);
+#if NEXUS_MODE_driver
+        NEXUS_Memory_Free(fw);
+#endif
         if(rc){rc = BERR_TRACE(rc); goto done;}
     }
 
@@ -1666,7 +1713,53 @@ static NEXUS_Error NEXUS_FrontendDevice_P_7584_Standby(void *handle, const NEXUS
         if(rc){rc = BERR_TRACE(rc); goto done;}
     }
     else if((pDevice->previousStandbyMode == NEXUS_StandbyMode_eDeepSleep) && (pSettings->mode != NEXUS_StandbyMode_eDeepSleep)){
-        rc = BHAB_InitAp(pDevice->hab, bcm7584_leap_image);
+        uint8_t *fw = NULL;
+        const uint8_t *fw_image = NULL;
+#if NEXUS_MODE_driver
+        {
+            unsigned fw_size = 0;
+            BIMG_Interface imgInterface;
+            void *pImgContext;
+            void *pImg;
+            uint8_t *pImage;
+            unsigned header_size = 313;
+            unsigned code_size = 0;
+            unsigned num_chunks, chunk_size = MAX_CTFE_IMG_CHUNK_SIZE;
+            unsigned chunk;
+
+            rc = Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_FRONTEND_7584, &pImgContext, &imgInterface);
+            if (rc) { BERR_TRACE(rc); goto done; }
+            rc = imgInterface.open((void*)pImgContext, &pImg, 0);
+            if (rc) { BERR_TRACE(rc); goto done; }
+            rc = imgInterface.next(pImg, 0, (const void **)&pImage, header_size);
+            if (rc) { BERR_TRACE(rc); goto done; }
+            code_size = (pImage[72] << 24) | (pImage[73] << 16) | (pImage[74] << 8) | pImage[75];
+            fw_size = code_size + header_size;
+            rc = NEXUS_Memory_Allocate(fw_size, NULL, (void **)&fw);
+            if (rc) { BERR_TRACE(rc); goto done; }
+
+            num_chunks = fw_size / chunk_size;
+            if (fw_size % chunk_size != 0) num_chunks++;
+
+            BKNI_Memset(fw, 0, fw_size);
+            for (chunk=0; chunk < num_chunks; chunk++) {
+                unsigned num_to_read = chunk_size;
+                if (chunk==num_chunks-1) num_to_read = fw_size % chunk_size;
+                rc = imgInterface.next(pImg, chunk, (const void **)&pImage, num_to_read);
+                if (rc) { BERR_TRACE(rc); goto done; }
+                BKNI_Memcpy(fw + (chunk*chunk_size), pImage, num_to_read);
+            }
+            imgInterface.close(pImg);
+            fw_image = fw;
+        }
+#else
+        BSTD_UNUSED(fw);
+        fw_image = bcm7584_leap_image;
+#endif
+        rc = BHAB_InitAp(pDevice->hab, fw_image);
+#if NEXUS_MODE_driver
+        NEXUS_Memory_Free(fw);
+#endif
         if ( rc != BERR_SUCCESS ) goto done;
     }
     pDevice->previousStandbyMode = pSettings->mode;

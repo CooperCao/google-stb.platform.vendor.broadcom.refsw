@@ -1024,6 +1024,9 @@ static void prune_fake_writes(BasicBlockList *l) {
    }
 }
 
+#ifdef ANDROID
+__attribute__((optimize("-O0")))
+#endif
 CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOURCE_T *src)
 {
    CompiledShader *ret = NULL;
@@ -1088,13 +1091,16 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
 
    Map *offsets = glsl_map_new();
    BasicBlockList *l = glsl_basic_block_get_reverse_postorder_list(shader_start_block);
+   int c = glsl_basic_block_list_count(l);
    for ( ; l != NULL; l=l->next) {
       int *offset = malloc_fast(sizeof(int));
       *offset = 1000;
       glsl_map_put(offsets, l->v, offset);
    }
 
-   while (glsl_basic_block_flatten_a_bit(shader_start_block, offsets)) /* Do nothing */;
+   /* XXX We skip this code flattening for massive numbers of blocks because it is slow */
+   if (c < 1000)
+      while (glsl_basic_block_flatten_a_bit(shader_start_block, offsets)) /* Do nothing */;
 
    /* Add interface definitions to a basic block prior to the shader */
    BasicBlock *entry_block = glsl_basic_block_construct();

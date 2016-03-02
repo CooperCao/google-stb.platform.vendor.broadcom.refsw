@@ -1,45 +1,43 @@
 /******************************************************************************
- *    (c)2011-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- *****************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "nexus_types.h"
 #include "nexus_platform.h"
 #include "nxclient.h"
@@ -62,7 +60,7 @@
 #include <sys/socket.h>
 
 BDBG_MODULE(nxserverlib_ipc);
-#define BDBG_MSG_TRACE(X) /* BDBG_MSG(X) */
+#define BDBG_MSG_TRACE(X) /*BDBG_MSG(X)*/
 
 #include "ipc_stubs_server.h"
 
@@ -87,7 +85,8 @@ struct nxclient_ipc {
     bipc_server_client_t ipc;
     nxclient_t client;
     struct ipc_server *server;
-    bool standbyClient;
+    nxclient_ipc_thread id;
+    pid_t pid;
 };
 
 static struct ipc_server g_ipc;
@@ -103,7 +102,6 @@ static struct nxclient_ipc *nxserver_client_create(struct ipc_server *server)
     BDBG_OBJECT_SET(client, nxclient_ipc);
     BLST_D_INSERT_HEAD(&server->clients, client, link);
     client->server = server;
-    client->standbyClient = true; /* Initialize this to true, so that Join can completed. */
     return client;
 
 err_alloc:
@@ -128,41 +126,50 @@ static void nxserver_client_destroy(struct ipc_server *server, struct nxclient_i
     return;
 }
 
+static struct ipc_thread_context {
+    struct ipc_server *server;
+    nxclient_ipc_thread id;
+} g_context[nxclient_ipc_thread_max];
+
 static void ipc_thread(void *context)
 {
-    struct ipc_server *server = context;
+    struct ipc_thread_context *thread_context = context;
+    struct ipc_server *server = thread_context->server;
+    nxclient_ipc_thread id = thread_context->id;
     int listen_fd;
     int rc;
     struct nxclient_ipc *client;
+    char *dbg_str = id==nxclient_ipc_thread_regular?"regular":"restricted";
 
     BKNI_AcquireMutex(server->lock);
 
-    listen_fd = b_nxclient_socket_listen();
-    if (listen_fd < 0) {
-        BERR_TRACE(-1);
-        goto done;
+    if (id == nxclient_ipc_thread_regular) {
+        listen_fd = b_nxclient_socket_listen();
+        if (listen_fd < 0) {
+            BERR_TRACE(-1);
+            goto done;
+        }
+        rc = listen(listen_fd, 10);
+        if(rc!=0) { perror("");rc=BERR_TRACE(errno); goto done; }
     }
 
-    rc = listen(listen_fd, 10);
-    if(rc!=0) { perror("");rc=BERR_TRACE(errno); goto done; }
     while(!server->exit) {
         struct pollfd fds[B_MAX_CLIENTS];
         struct nxclient_ipc *clients[B_MAX_CLIENTS];
         unsigned i,nfds,events;
         const unsigned timeout = 1000;
-        bool standby = nxserver_is_standby(server->server);
 
         i=0;
         for(client=BLST_D_FIRST(&server->clients);client;) {
             struct nxclient_ipc *next = BLST_D_NEXT(client, link);
-            if (client->fd == -1) {
-                BDBG_MSG_TRACE(("destroy client %p", client));
-                nxserver_client_destroy(server, client);
-            }
-            else {
-                if (i==B_MAX_CLIENTS) break;
-                if (!standby || client->standbyClient) {
-                    BDBG_MSG_TRACE(("add client %p: %d %d", client, client->fd, client->standbyClient));
+            if(client->id == id) {
+                if (client->fd == -1) {
+                    BDBG_MSG(("destroy %s client %p", dbg_str, (void*)client));
+                    nxserver_client_destroy(server, client);
+                }
+                else {
+                    if (i==B_MAX_CLIENTS) break;
+                    BDBG_MSG_TRACE(("add %s client %p: %d", dbg_str, (void*)client, client->fd));
                     clients[i] = client;
                     fds[i].revents = 0;
                     fds[i].events = POLLIN;
@@ -172,39 +179,49 @@ static void ipc_thread(void *context)
             }
             client = next;
         }
-        if (i<B_MAX_CLIENTS) {
-            /* if reached B_MAX_CLIENTS, stop listening for new clients */
-            clients[i] = NULL;
-            fds[i].revents = 0;
-            fds[i].events = POLLIN;
-            fds[i].fd = listen_fd;
-            i++;
+
+        if (id == nxclient_ipc_thread_regular) {
+            if (i<B_MAX_CLIENTS) {
+                /* if reached B_MAX_CLIENTS, stop listening for new clients */
+                clients[i] = NULL;
+                fds[i].revents = 0;
+                fds[i].events = POLLIN;
+                fds[i].fd = listen_fd;
+                i++;
+            }
         }
+
         nfds = i;
         BKNI_ReleaseMutex(server->lock);
-        BDBG_MSG_TRACE(("poll %u", nfds));
+        BDBG_MSG_TRACE(("poll %s %u", dbg_str, nfds));
         do {
             rc = poll(fds, nfds, timeout);
         } while (rc < 0 && (errno == EAGAIN || errno == EINTR));
-        BDBG_MSG_TRACE(("poll %u->%d", nfds, rc));
+        BDBG_MSG_TRACE(("poll %s %u->%d", dbg_str, nfds, rc));
         BKNI_AcquireMutex(server->lock);
         if(rc<0) { perror("");rc=BERR_TRACE(errno); goto done; }
         events = (unsigned)rc;
+
+        if (id == nxclient_ipc_thread_restricted) {
+            if(nxserver_is_standby(server->server)) continue;
+        }
+
         for(i=0;i<nfds && events ;i++) {
             if(fds[i].revents & POLLIN) {
                 events --;
                 client = clients[i];
                 if(client) {
-                    if(nxserver_is_standby(server->server) && !client->standbyClient) continue;
+                    BDBG_ASSERT(client->id == id);
                     rc = bipc_server_client_process(server->ipc, client->ipc);
                     if(rc!=0) {
-                        BDBG_MSG(("closing client:%#lx(%#lx) with fd:%d ", (unsigned long)client, client->client, client->fd));
+                        BDBG_MSG(("closing %s client:%#lx(%#lx) with fd:%d ", dbg_str, (unsigned long)client, client->client, client->fd));
                         nxserver_client_destroy(server, client);
                     }
                 } else {
                     bipc_server_client_create_settings settings;
                     int fd;
 
+                    BDBG_ASSERT(id == nxclient_ipc_thread_regular);
                     BDBG_ASSERT(listen_fd==fds[i].fd);
                     fd = accept(listen_fd, NULL, NULL);
                     if(fd<0) {
@@ -232,27 +249,35 @@ static void ipc_thread(void *context)
         }
     }
 done:
-    while(NULL!=(client=BLST_D_FIRST(&server->clients))) {
-        nxserver_client_destroy(server, client);
+    for(client=BLST_D_FIRST(&server->clients);client;) {
+        struct nxclient_ipc *next = BLST_D_NEXT(client, link);
+        if(client->id == id) {
+            nxserver_client_destroy(server, client);
+        }
+        client = next;
     }
-    if (listen_fd >= 0) {
-        close(listen_fd);
+    if (id == nxclient_ipc_thread_regular) {
+        if (listen_fd >= 0) {
+            close(listen_fd);
+        }
     }
     BKNI_ReleaseMutex(server->lock);
     return;
+
 }
 
 static const bipc_server_descriptor * const ipc_interfaces [] = {
     &bipc_nxclient_p_server_descriptor
 };
 
-static NEXUS_ThreadHandle ipc_thread_id;
+static NEXUS_ThreadHandle ipc_thread_id[nxclient_ipc_thread_max];
 
 int nxserver_ipc_init(nxserver_t nxserver, BKNI_MutexHandle lock)
 {
     struct ipc_server *server = &g_ipc;
     bipc_server_create_settings ipc_settings;
-    
+    unsigned i;
+
     bipc_server_get_default_create_settings(&ipc_settings);
     ipc_settings.interfaces = ipc_interfaces;
     ipc_settings.interface_count = sizeof(ipc_interfaces)/sizeof(*ipc_interfaces);
@@ -266,17 +291,24 @@ int nxserver_ipc_init(nxserver_t nxserver, BKNI_MutexHandle lock)
     BDBG_ASSERT(server->ipc);
 
     signal(SIGPIPE, SIG_IGN);
-    ipc_thread_id = NEXUS_Thread_Create("bipc", ipc_thread, server, NULL);
-    BDBG_ASSERT(ipc_thread_id);
-    
+
+    for(i=0; i<sizeof(ipc_thread_id)/sizeof(ipc_thread_id[0]); i++) {
+        g_context[i].server = server;
+        g_context[i].id = i;
+        ipc_thread_id[i] = NEXUS_Thread_Create("bipc", ipc_thread, &g_context[i], NULL);
+        BDBG_ASSERT(ipc_thread_id[i]);
+    }
+
     return 0;
 }
 
 void nxserver_ipc_uninit(void)
 {
+    unsigned i;
     struct ipc_server *server = &g_ipc;
     server->exit = true;
-    NEXUS_Thread_Destroy(ipc_thread_id);
+    for(i=0; i<sizeof(ipc_thread_id)/sizeof(ipc_thread_id[0]); i++)
+        NEXUS_Thread_Destroy(ipc_thread_id[i]);
     bipc_server_destroy(server->ipc);
 }
 
@@ -296,10 +328,11 @@ void nxserver_ipc_close_client(nxclient_t nxclient)
 
 /* convert IPC to nxserverlib calls */
 
-nxclient_ipc_t nxclient_p_create(bipc_t ipc, const NxClient_JoinSettings *pJoinSettings, nxclient_p_client_info *info)
+nxclient_ipc_t nxclient_p_create(bipc_t ipc, const NxClient_JoinSettings *pJoinSettings, nxclient_p_client_info *info, nxclient_ipc_thread id)
 {
     /* ipc corresponds to settings.ipc_context */
-    struct nxclient_ipc *client = (struct nxclient_ipc *)ipc;
+    struct nxclient_ipc *pClient, *client = (struct nxclient_ipc *)ipc;
+    struct ipc_server *server = &g_ipc;
     bipc_server_client_create_settings create_settings;
     int rc;
     struct ucred credentials;
@@ -311,18 +344,34 @@ nxclient_ipc_t nxclient_p_create(bipc_t ipc, const NxClient_JoinSettings *pJoinS
     rc = getsockopt(create_settings.recv_fd, SOL_SOCKET, SO_PEERCRED, &credentials, &ucred_length);
     if (rc) {BERR_TRACE(rc); return NULL;}
 
-    client->client = NxClient_P_CreateClient(client->server->server, pJoinSettings, &info->certificate, credentials.pid);
+    for(pClient=BLST_D_FIRST(&server->clients);pClient;pClient=BLST_D_NEXT(pClient,link))  {
+        if(pClient->pid == credentials.pid)
+            break;
+    }
+
+    if(pClient && pClient->client) {
+        BDBG_ASSERT(id == nxclient_ipc_thread_restricted);
+        BDBG_ASSERT(pClient->id == nxclient_ipc_thread_regular);
+        client->client = pClient->client;
+    } else {
+        BDBG_ASSERT(id == nxclient_ipc_thread_regular);
+        client->client = NxClient_P_CreateClient(client->server->server, pJoinSettings, &info->certificate, credentials.pid);
+    }
     if (!client->client) {
         return NULL;
     }
-    client->standbyClient = pJoinSettings->standbyClient;
+    client->id = id;
+    client->pid = credentials.pid;
 
     return client;
 }
 
 void nxclient_p_destroy(nxclient_ipc_t _client)
 {
-    struct nxclient_ipc *client = _client;
+    struct nxclient_ipc *pClient, *client = _client;
+    struct ipc_server *server = &g_ipc;
+    bool standby = nxserver_is_standby(server->server);
+
     if (!client) {
         /* will be NULL if nxclient_p_create fails */
         return;
@@ -331,6 +380,16 @@ void nxclient_p_destroy(nxclient_ipc_t _client)
     if (client->client) {
         NxClient_P_DestroyClient(client->client);
         client->client = NULL;
+    }
+    for(pClient=BLST_D_FIRST(&server->clients);pClient;pClient=BLST_D_NEXT(pClient,link))  {
+        if(pClient->pid == client->pid && client != pClient) {
+            if(standby) {
+                int fd = pClient->fd;
+                pClient->fd = -1;
+                close(fd);
+            }
+            pClient->client = NULL;
+        }
     }
     return;
 }

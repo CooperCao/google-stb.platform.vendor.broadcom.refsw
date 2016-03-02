@@ -1157,9 +1157,9 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_FrontendDevice3461OpenSettings deviceOpenSettings;
     NEXUS_FrontendDevice3461Settings deviceSettings;
 #endif
-/*#if NEXUS_PLATFORM_97346_SV || NEXUS_PLATFORM_97346_HR44 || NEXUS_PLATFORM_7344SV*/
+#if NEXUS_PLATFORM_97346_SV || NEXUS_PLATFORM_97346_HR44 || NEXUS_PLATFORM_7344SV
 /* 97346 SV has a shared i2c channel between MOCA and 4506.  This channel cannot be shared, so we cannot initialize the frontend. */
-#if NEXUS_PLATFORM_97346_HR44 || NEXUS_PLATFORM_7344SV
+    /* disable NEXUS_MOCA_I2C_CHANNEL in nexus_platform_features.h for 7346 SV board to use external 4505*/
     unsigned j;
     NEXUS_4506Settings settings4506;
 #if NEXUS_PLATFORM_97346_HR44
@@ -1370,8 +1370,11 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     }
 #endif
 
-#if NEXUS_PLATFORM_97346_SV
+#ifdef NEXUS_MOCA_I2C_CHANNEL
     BDBG_WRN(("Unable to initialize 4505 due to i2c channel shared with MOCA"));
+    BDBG_WRN(("remove NEXUS_MOCA_I2C_CHANNEL define from your nexus_platform_features.h"));
+    BSTD_UNUSED(j);
+    BSTD_UNUSED(settings4506);
 #else
     /* Open 4505 has only one Demodulator Channel */
 #if NEXUS_PLATFORM_97346_HR44

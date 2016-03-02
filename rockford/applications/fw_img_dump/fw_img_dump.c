@@ -51,7 +51,9 @@
 #include "bkni.h"           /* kernel interface */
 
 /* porting interface */
+#if (BCHP_CHIP!=74371)
 #include "bvce_auth.h"
+#endif
 #include "bxvd_auth.h"
 #include "bsid_auth.h"
 #include "bxpt_auth.h"
@@ -79,7 +81,9 @@ typedef struct FirmwareDumpEntry
 
 struct FirmwareDumpEntry astFirmwareDumpList[] =
 {
+#if (BCHP_CHIP!=74371)
 #include "bvce_auth_fw.lst"
+#endif
 #include "bxvd_auth_fw.lst"
 #include "bsid_auth_fw.lst"
 #include "bxpt_auth_fw.lst"
@@ -178,5 +182,5 @@ int main( int argc, char **argv )
    BKNI_Uninit();
    BDBG_Uninit();
 
-   return -1;
+   return 0;
 }

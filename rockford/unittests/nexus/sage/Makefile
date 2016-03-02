@@ -38,6 +38,8 @@ endif
 
 APPS = \
       heap_check \
-      heap_create
+      heap_create \
+	crrurr_glrglr_decode \
+	cdb_maxres_test
 
 include ${NEXUS_TOP}/../rockford/unittests/nexus/common/Makefile.inc

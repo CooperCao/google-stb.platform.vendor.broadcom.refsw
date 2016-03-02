@@ -708,12 +708,12 @@ int http_build_get_req(char **write_buf_pptr, B_PlaybackIpHandle playback_ip, in
         else
             rangeString = "Range:";
         if (byteRangeEnd > byteRangeStart)
-            bytesWrote = snprintf(header, bytesLeft, "%s bytes=%lld-%lld\r\n", rangeString, byteRangeStart, byteRangeEnd);
+            bytesWrote = snprintf(header, bytesLeft, "%s bytes=%lld-%lld\r\n", rangeString, (long long)byteRangeStart, (long long)byteRangeEnd);
         else {
             if (playback_ip->contentLength != 0)
-                bytesWrote = snprintf(header, bytesLeft, "%s bytes=%lld-%lld\r\n", rangeString, byteRangeStart, playback_ip->contentLength-1);
+                bytesWrote = snprintf(header, bytesLeft, "%s bytes=%lld-%lld\r\n", rangeString, (long long)byteRangeStart, (long long)playback_ip->contentLength-1);
             else
-                bytesWrote = snprintf(header, bytesLeft, "%s bytes=%lld-\r\n", rangeString, byteRangeStart);
+                bytesWrote = snprintf(header, bytesLeft, "%s bytes=%lld-\r\n", rangeString, (long long)byteRangeStart);
         }
         bytesLeft -= bytesWrote;
         header += bytesWrote;
@@ -2926,7 +2926,7 @@ B_PlaybackIp_HttpNetDataRead(bfile_io_read_t self, void *buf, size_t length)
                         __FUNCTION__,
                         playback_ip->playback_state == B_PlaybackIpState_eBuffering ? "pre-charging is going on" : "transitioning to trick mode state",
                         playback_ip->playback_state));
-            playback_ip->printedOnce = false;
+            playback_ip->printedOnce = true;
         }
         BKNI_ReleaseMutex(playback_ip->lock);
         BKNI_Sleep(80);
@@ -3679,7 +3679,7 @@ B_PlaybackIp_HttpSessionClose(B_PlaybackIpHandle playback_ip)
         /* destroy thread that was created during 1st non-blocking trickmode call and re-used for all subsequent trickmode calls */
         B_Thread_Destroy(playback_ip->trickModeThread);
         playback_ip->trickModeThread = NULL;
-        BDBG_MSG(("%s: destroying temporary thread created during HTTP session setup", __FUNCTION__));
+        BDBG_MSG(("%s: destroying temporary thread created during HTTP trickmode setup", __FUNCTION__));
     }
     if (playback_ip->newTrickModeJobEvent) {
         BKNI_DestroyEvent(playback_ip->newTrickModeJobEvent);
@@ -5813,6 +5813,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
     }
     /* main loop */
     while (true) {
+        BDBG_MSG(("%s:%p: Before Acquiring Mutex! ", __FUNCTION__, playback_ip));
         BKNI_AcquireMutex(playback_ip->lock);
         if (playback_ip->playback_state == B_PlaybackIpState_eStopping || playback_ip->playback_state == B_PlaybackIpState_eStopped) {
             /* user changed the channel, so return */
@@ -5829,7 +5830,7 @@ void B_PlaybackIp_HttpPlaypumpThread(
         if (playback_ip->playback_state == B_PlaybackIpState_ePaused) {
             BKNI_ReleaseMutex(playback_ip->lock);
             BDBG_MSG(("%s: wait to come out of pause", __FUNCTION__));
-            BKNI_Sleep(100);
+            BKNI_Sleep(20);
             continue;
         }
 
@@ -6182,7 +6183,7 @@ B_PlaybackIp_HttpSessionStop(B_PlaybackIpHandle playback_ip)
         /* send event to trickModeThread to wake up, it will then check the state and break out from the loop */
         BKNI_SetEvent(playback_ip->newTrickModeJobEvent);
         /* wait for a finite time for either trickModeThread to finish from currently going seek operation or wakeup from waiting on this event */
-        BKNI_Sleep(200);
+        BKNI_Sleep(20);
         if (!playback_ip->trickModeThreadDone)
             BDBG_WRN(("%s: trickModeThread is still not stopped, continuing w/ session stop", __FUNCTION__));
     }

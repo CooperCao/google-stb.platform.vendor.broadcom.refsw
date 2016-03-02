@@ -1,6 +1,5 @@
-
 #############################################################################
-#    (c)2010-2011 Broadcom Corporation
+#    (c)2010-2016 Broadcom Corporation
 #
 # This program is the proprietary software of Broadcom Corporation and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,10 +54,11 @@ include ${NEXUS_TOP}/platforms/common/build/nexus_platforms.inc
 $(if $(NEXUS_PLATFORM),,  $(error ERROR: NEXUS_PLATFORM is not defined))
 $(if $(B_REFSW_ARCH),,    $(error ERROR: B_REFSW_ARCH is not defined))
 
-ifneq ($(filter $(B_REFSW_DEBUG),n no_error_messages),)
-    DEBUG_SUFFIX=release
-else
+B_REFSW_DEBUG ?= y
+ifeq ($(B_REFSW_DEBUG),y)
     DEBUG_SUFFIX=debug
+else
+    DEBUG_SUFFIX=release
 endif
 
 B_PROTOBUF_TOOLCHAIN_ARCH ?= $(B_REFSW_ARCH)

@@ -302,10 +302,5 @@ void brecord_gui_destroy(brecord_gui_t handle)
     BKNI_Free(handle);
 }
 #else
-#include <stdio.h>
-int main(void)
-{
-    printf("This application is not supported on this platform (needs transport)!\n");
-    return 0;
-}
+typedef unsigned unused;
 #endif

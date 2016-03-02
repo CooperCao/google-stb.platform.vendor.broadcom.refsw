@@ -3167,7 +3167,7 @@ BERR_Code BHDM_HDCP_EnableHdcp2xEncryption(const BHDM_Handle hHDMI, const bool e
 	Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
 	uiHdcp2Authenticated = (bool) BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_AUTH_CTL, HDCP2_AUTHENTICATED) ;
 
-	if (!uiAuthenticatedOk || !uiHdcp2Authenticated)
+	if  ((!uiAuthenticatedOk || !uiHdcp2Authenticated) && (enable))
 	{
 		BDBG_MSG(("HDCP2.x Authentication not yet completed. Cannot enable HDCP2.x encryption"));
 		goto done;
@@ -3224,7 +3224,6 @@ BERR_Code BHDM_HDCP_KickStartHdcp2xCipher(const BHDM_Handle hHDMI)
 		Register &= ~(BCHP_MASK(HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT));
 		Register |= BCHP_FIELD_DATA(HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT, 0x1);
 	BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_CFG0	+ ulOffset, Register) ;
-
 
 	Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
 		Register &= ~BCHP_MASK(HDMI_HDCP2TX_AUTH_CTL, AKE_INIT);

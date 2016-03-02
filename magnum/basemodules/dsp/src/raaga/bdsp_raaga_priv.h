@@ -226,6 +226,7 @@ typedef struct BDSP_Raaga
     BREG_Handle regHandle;
     BMEM_Handle memHandle;
     BINT_Handle intHandle;
+    BBOX_Handle boxHandle;
     uint32_t dspOffset[BDSP_RAAGA_MAX_DSP];
     BINT_CallbackHandle     ackCallbackHandle[BDSP_RAAGA_MAX_DSP];    /* This will install the Callback for Ping the DSp*/
     BDSP_Raaga_P_DPM dpmInfo;
@@ -533,15 +534,10 @@ BERR_Code BDSP_Raaga_P_CreateTask(
     const BDSP_TaskCreateSettings *pSettings,
     BDSP_TaskHandle *pTask);
 
-BERR_Code BDSP_Raaga_P_GetNumberOfDsp(
-    BCHP_Handle chpHandle,
-    unsigned    *pNumDsp /*[out]*/
-);
-
 BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
     const BDSP_RaagaSettings     *pSettings,
     const BDSP_RaagaUsageOptions *pUsage,
-    BCHP_Handle                   chpHandle,
+    BBOX_Handle                   boxHandle,
     BDSP_RaagaMemoryEstimate     *pEstimate /*[out]*/
 );
 

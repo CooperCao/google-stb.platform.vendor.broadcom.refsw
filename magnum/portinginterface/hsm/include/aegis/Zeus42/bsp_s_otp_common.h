@@ -91,12 +91,12 @@ typedef enum BCMD_Otp_CmdMsp_e
   BCMD_Otp_CmdMsp_eReserved70 = 70,
   BCMD_Otp_CmdMsp_eReserved71 = 71,
   BCMD_Otp_CmdMsp_eAskmCAVendorIdSelect = 72,
-  BCMD_Otp_CmdMsp_eReserved73 = 73,
+  BCMD_Otp_CmdMsp_ePublicKey0Index = 73,
   BCMD_Otp_CmdMsp_eSecureBootEnable = 74,
 #if (ZEUS_VERSION < ZEUS_4_2)
-  BCMD_Otp_CmdMsp_eReserved75 = 75,
-#else
   BCMD_Otp_CmdMsp_eReserved75_0 = 75,
+#else
+  BCMD_Otp_CmdMsp_eReserved75 = 75,
 #endif
   BCMD_Otp_CmdMsp_eReserved76 = 76,
   BCMD_Otp_CmdMsp_eReserved77 = 77,
@@ -140,8 +140,8 @@ typedef enum BCMD_Otp_CmdMsp_e
   BCMD_Otp_CmdMsp_eReserved109 = 109,
   BCMD_Otp_CmdMsp_eReserved110 = 110,
   BCMD_Otp_CmdMsp_eReserved111 = 111,
-  BCMD_Otp_CmdMsp_eReserved112 = 112,
   BCMD_Otp_CmdMsp_eReserved112_0 = 112,
+  BCMD_Otp_CmdMsp_eReserved112 = 112,
   BCMD_Otp_CmdMsp_eReserved113 = 113,
   BCMD_Otp_CmdMsp_eReserved114 = 114,
   BCMD_Otp_CmdMsp_eReserved115 = 115,
@@ -398,7 +398,7 @@ typedef enum BCMD_Otp_CmdMsp_e
   BCMD_Otp_CmdMsp_eReserved606 = 606,
   BCMD_Otp_CmdMsp_eReserved607 = 607,
   BCMD_Otp_CmdMsp_eReserved608 = 608,
-  BCMD_Otp_CmdMsp_eReserved609 = 609,
+  BCMD_Otp_CmdMsp_eArcPartition = 609,
   BCMD_Otp_CmdMsp_eReserved610 = 610,
 #if (ZEUS_VERSION >= ZEUS_4_2)
   BCMD_Otp_CmdMsp_eReserved611_0 = 611,
@@ -428,8 +428,8 @@ typedef enum BCMD_Otp_CmdMsp_e
   BCMD_Otp_CmdMsp_eRaveFwEpoch = 632,
   BCMD_Otp_CmdMsp_eAltMarketId = 633,
   BCMD_Otp_CmdMsp_eArcType = 634,
-  BCMD_Otp_CmdMsp_eKey0PrimeSigningRightsSDL = 635,
-  BCMD_Otp_CmdMsp_eReserved86_0SDL = 636,
+  BCMD_Otp_CmdMsp_eReserved635 = 635,
+  BCMD_Otp_CmdMsp_eReserved636 = 636,
   BCMD_Otp_CmdMsp_eSageGpBits_0 = 637,
   BCMD_Otp_CmdMsp_eSageGpBits_1 = 638,
 

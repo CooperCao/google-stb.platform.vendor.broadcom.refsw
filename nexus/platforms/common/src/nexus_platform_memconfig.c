@@ -35,14 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #include "nexus_platform_priv.h"
 
@@ -187,6 +179,25 @@ struct NEXUS_P_GetDefaultMemoryConfigurationSettings_structs
 #endif
 };
 
+#if NEXUS_HAS_VIDEO_ENCODER && !NEXUS_NUM_DSP_VIDEO_ENCODERS
+static int nexus_p_encoder_device_and_channel(const NEXUS_Core_PreInitState *preInitState, unsigned i, unsigned *pDevice, unsigned *pChannel)
+{
+    unsigned device, channel;
+    for (device=0;device<BBOX_VCE_MAX_INSTANCE_COUNT;device++) {
+        for (channel=0;channel<BBOX_VCE_MAX_CHANNEL_COUNT;channel++) {
+            if (!(preInitState->boxConfig.stVce.stInstance[device].uiChannels & (1<<channel))) break;
+            if (!i) {
+                *pDevice = device;
+                *pChannel = channel;
+                return 0;
+            }
+            i--;
+        }
+    }
+    return -1;
+}
+#endif
+
 void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState *preInitState, NEXUS_MemoryConfigurationSettings *pSettings)
 {
     unsigned i;
@@ -288,7 +299,7 @@ void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState
                 pSettings->display[i].window[j].support3d = i < 2; /* transcode displays have no 3D */
                 pSettings->display[i].window[j].convertAnyFrameRate = true;
                 pSettings->display[i].window[j].precisionLipSync = i < 2 && j == 0; /* only main window on HD/SD uses precision lipsync */
-                pSettings->display[i].window[j].mtg = mtg;
+                pSettings->display[i].window[j].mtg = mtg && !preInitState->boxConfig.stVdc.astDisplay[i].stStgEnc.bAvailable;
             }
         }
     }
@@ -302,15 +313,19 @@ void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState
         BSTD_UNUSED(preInitState);
         for (i=0;i<NEXUS_NUM_DSP_VIDEO_ENCODERS;i++) {
             pSettings->videoEncoder[i].used = true;
+            pSettings->videoEncoder[i].maxWidth = 416;
+            pSettings->videoEncoder[i].maxHeight = 224;
+            pSettings->videoEncoder[i].interlaced = false;
         }
 #else
         if (g_pPreInitState->boxMode) {
             unsigned encoderIdx = 0;
             for (i=0;i<NEXUS_NUM_VIDEO_ENCODERS;i++) {
-               /* read BBOX per channel. assume 2 channels per device. */
-               unsigned device = i / NEXUS_NUM_VCE_CHANNELS;
-               unsigned channel = i % NEXUS_NUM_VCE_CHANNELS;
+               unsigned device, channel;
+               int rc;
                pSettings->videoEncoder[i].used = false;
+               rc = nexus_p_encoder_device_and_channel(preInitState, i, &device, &channel);
+               if (rc) continue;
                /* collapse enabled encoder mapping table */
                if (preInitState->boxConfig.stVce.stInstance[device].uiChannels & (1<<channel)) {
                    pSettings->videoEncoder[encoderIdx].used = true;
@@ -365,25 +380,6 @@ void NEXUS_P_GetDefaultMemoryRtsSettings(NEXUS_MemoryRtsSettings *pRtsSettings)
         pRtsSettings->videoDecoder[i].mfdIndex = i;
         pRtsSettings->videoDecoder[i].avdIndex = i / 2;
     }
-#endif
-#if NEXUS_HAS_VIDEO_ENCODER && !NEXUS_NUM_DSP_VIDEO_ENCODERS
-{
-    unsigned encoderIdx = 0;
-    for (i=0;i<NEXUS_NUM_VIDEO_ENCODERS;i++) {
-        unsigned device = i / NEXUS_NUM_VCE_CHANNELS;
-        unsigned channel = i % NEXUS_NUM_VCE_CHANNELS;
-        if (pRtsSettings->boxMode) {/* collapse encoder mapping table by box mode enabled channels */
-           if (g_pPreInitState->boxConfig.stVce.stInstance[device].uiChannels & (1<<channel)) {
-               pRtsSettings->videoEncoder[encoderIdx].device  = device;
-               pRtsSettings->videoEncoder[encoderIdx].channel = channel;
-               encoderIdx++;
-           }
-        } else {
-           pRtsSettings->videoEncoder[i].device  = device;
-           pRtsSettings->videoEncoder[i].channel = channel;
-        }
-    }
-}
 #endif
     if (g_platformSpecificOps.modifyDefaultMemoryRtsSettings) {
         (g_platformSpecificOps.modifyDefaultMemoryRtsSettings)(pRtsSettings);
@@ -491,7 +487,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
 #if NEXUS_HAS_DISPLAY
     pConfig->display = pPlatformSettings->displayModuleSettings;
 #endif
-#if NEXUS_HAS_VIDEO_ENCODER && !NEXUS_NUM_DSP_VIDEO_ENCODERS
+#if NEXUS_HAS_VIDEO_ENCODER
     pConfig->videoEncoder = pPlatformSettings->videoEncoderSettings;
 #endif
 
@@ -645,6 +641,10 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
                 pConfig->videoDecoder.heapSize[avdIndex].picture += structs->xvd.memConfig.uiPictureHeapSize;
                 pConfig->videoDecoder.heapSize[avdIndex].secondaryPicture += structs->xvd.memConfig.uiPictureHeap1Size;
             }
+            else {
+                /* use special value of 1 to communicate if RTS requires split buffer for this HVD, even though to we runtime allocation */
+                pConfig->videoDecoder.heapSize[avdIndex].secondaryPicture = structs->xvd.memConfig.uiPictureHeap1Size ? 1 : 0;
+            }
         }
 #if NEXUS_NUM_STILL_DECODES
         if (still) {
@@ -765,7 +765,8 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
                 rc = BVDC_GetMemoryConfiguration(&structs->vdc.memConfigSettings, &structs->vdc.memConfig);
                 if (rc) {rc = BERR_TRACE(rc); goto err_getsettings;}
 
-                for (memcIndex=0;memcIndex<BVDC_MAX_MEMC && memcIndex<NEXUS_MAX_MEMC;memcIndex++) {
+                BDBG_CASSERT(NEXUS_MAX_MEMC <= BVDC_MAX_MEMC);
+                for (memcIndex=0;memcIndex<NEXUS_MAX_MEMC;memcIndex++) {
                     /* capture RDC heap use */
                     g_NEXUS_platformHandles.estimatedMemory.memc[memcIndex].display.general += structs->vdc.memConfig.stMemc[memcIndex].ulRulSize;
 
@@ -806,29 +807,36 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
     BSTD_UNUSED(i);
 #endif
 
-#if NEXUS_HAS_VIDEO_ENCODER && !NEXUS_NUM_DSP_VIDEO_ENCODERS
+#if NEXUS_HAS_VIDEO_ENCODER
+#if NEXUS_NUM_DSP_VIDEO_ENCODERS
     {
-       bool deviceMemory[NEXUS_MAX_VCE_DEVICES];
+       for (i=0;i<NEXUS_NUM_VIDEO_ENCODERS;i++) {
+           pConfig->videoEncoder.videoEncoder[i].memory = pSettings->videoEncoder[i];
+       }
+    }
+#else
+    {
+       bool deviceMemory[BBOX_VCE_MAX_INSTANCE_COUNT];
        BKNI_Memset(deviceMemory, 0, sizeof(deviceMemory));
        BKNI_Memset(pConfig->videoEncoder.heapSize, 0, sizeof(pConfig->videoEncoder.heapSize));
 
        for (i=0;i<NEXUS_NUM_VIDEO_ENCODERS;i++) {
-           unsigned vceIndex;
-           unsigned memcIndex;
+           unsigned vceIndex, channel;
+           unsigned memcIndex, mainMemcIndex;
            struct {
               unsigned firmware, output, secure, system;
-           } heap;
+           } heap = {0,0,0,0};
 
-           if (!pSettings->videoEncoder[i].used) {
-               pConfig->videoEncoder.vceMapping[i].device = -1;
-               pConfig->videoEncoder.vceMapping[i].channel = -1;
-               continue;
-           }
+            pConfig->videoEncoder.vceMapping[i].device = -1;
+            pConfig->videoEncoder.vceMapping[i].channel = -1;
 
-            vceIndex = pRtsSettings->videoEncoder[i].device;
-            if (vceIndex >= NEXUS_MAX_VCE_DEVICES) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-            memcIndex = pRtsSettings->vce[vceIndex].memcIndex;
-            if (memcIndex >= NEXUS_NUM_MEMC) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            if (!pSettings->videoEncoder[i].used) continue;
+            rc = nexus_p_encoder_device_and_channel(g_pPreInitState, i, &vceIndex, &channel);
+            if (rc) continue;
+
+            if (vceIndex >= BBOX_VCE_MAX_INSTANCE_COUNT) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            mainMemcIndex = g_pPreInitState->boxConfig.stVce.stInstance[vceIndex].uiMemcIndex;
+            if (mainMemcIndex >= NEXUS_NUM_MEMC) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
             nexus_p_get_driver_heap(0, true, &heap.output);
 #ifdef NEXUS_VIDEO_SECURE_HEAP
             /* must have compile time definition and run time use */
@@ -841,7 +849,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
                 nexus_p_get_driver_heap(0, true, &heap.secure);
             }
 
-            rc = nexus_p_get_driver_heap(memcIndex, false, &heap.firmware);
+            rc = nexus_p_get_driver_heap(mainMemcIndex, false, &heap.firmware);
             if (rc) return BERR_TRACE(rc);
             heap.system = heap.firmware;
 
@@ -855,8 +863,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
                 BVCE_GetDefaultMemoryBoundsSettings(&platformSettings, &memoryBoundsSettings);
                 BVCE_GetMemoryConfig(&platformSettings, &memoryBoundsSettings, &structs->vce.memConfig);
 
-                memcIndex = pRtsSettings->vce[vceIndex].memcIndex;
-                g_NEXUS_platformHandles.estimatedMemory.memc[memcIndex].videoEncoder.secure += structs->vce.memConfig.uiSecureMemSize;
+                g_NEXUS_platformHandles.estimatedMemory.memc[mainMemcIndex].videoEncoder.secure += structs->vce.memConfig.uiSecureMemSize;
                 memcIndex = pPlatformSettings->heap[heap.system].memcIndex;
                 g_NEXUS_platformHandles.estimatedMemory.memc[memcIndex].videoEncoder.general += structs->vce.memConfig.uiGeneralMemSize;
                 memcIndex = pPlatformSettings->heap[heap.firmware].memcIndex;
@@ -880,23 +887,21 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
            structs->vce.channelSettings.eInputType = (pSettings->videoEncoder[i].interlaced? BAVC_ScanType_eInterlaced : BAVC_ScanType_eProgressive);
 
            structs->vce.memSettings.uiInstance = vceIndex;
-           structs->vce.memSettings.memcIndex.uiPicture = pRtsSettings->vce[vceIndex].memcIndex;
-           structs->vce.memSettings.memcIndex.uiSecure = pRtsSettings->vce[vceIndex].memcIndex;
+           structs->vce.memSettings.memcIndex.uiPicture = mainMemcIndex;
+           structs->vce.memSettings.memcIndex.uiSecure = mainMemcIndex;
            structs->vce.memSettings.pstMemoryInfo = &memInfo;
            BVCE_Channel_GetMemoryConfig(preInitState->hBox, &structs->vce.memSettings, &structs->vce.channelSettings, &structs->vce.memConfig);
 
-           memcIndex = pRtsSettings->vce[vceIndex].memcIndex;
-
-           pConfig->pictureBuffer[memcIndex][nexus_memconfig_picbuftype_unsecure].size += structs->vce.memConfig.uiPictureMemSize;
+           pConfig->pictureBuffer[mainMemcIndex][nexus_memconfig_picbuftype_unsecure].size += structs->vce.memConfig.uiPictureMemSize;
            pConfig->videoEncoder.heapSize[vceIndex].general += structs->vce.memConfig.uiGeneralMemSize;
            pConfig->videoEncoder.heapSize[vceIndex].picture += structs->vce.memConfig.uiPictureMemSize;
            pConfig->videoEncoder.heapSize[vceIndex].secure += structs->vce.memConfig.uiSecureMemSize;
            pConfig->videoEncoder.heapSize[vceIndex].firmware += structs->vce.memConfig.uiFirmwareMemSize;
            pConfig->videoEncoder.heapSize[vceIndex].index += structs->vce.memConfig.uiIndexMemSize;
            pConfig->videoEncoder.heapSize[vceIndex].data += structs->vce.memConfig.uiDataMemSize;
-           g_NEXUS_platformHandles.estimatedMemory.memc[memcIndex].videoEncoder.secure += structs->vce.memConfig.uiSecureMemSize;
+           g_NEXUS_platformHandles.estimatedMemory.memc[mainMemcIndex].videoEncoder.secure += structs->vce.memConfig.uiSecureMemSize;
 
-           BDBG_MSG(("VCE MEMC%d ch%d: %ux%u%c, picture %d, secure %d", memcIndex, i,
+           BDBG_MSG(("VCE MEMC%d ch%d: %ux%u%c, picture %d, secure %d", mainMemcIndex, i,
             structs->vce.channelSettings.stDimensions.stMax.uiWidth, structs->vce.channelSettings.stDimensions.stMax.uiHeight, pSettings->videoEncoder[i].interlaced? 'i' : 'p',
             structs->vce.memConfig.uiPictureMemSize, structs->vce.memConfig.uiSecureMemSize));
 
@@ -909,16 +914,17 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
            g_NEXUS_platformHandles.estimatedMemory.memc[memcIndex].videoEncoder.data += structs->vce.memConfig.uiDataMemSize;
 
            pConfig->videoEncoder.vceMapping[i].device = vceIndex;
-           pConfig->videoEncoder.vceMapping[i].channel = pRtsSettings->videoEncoder[i].channel;
+           pConfig->videoEncoder.vceMapping[i].channel = channel;
            pConfig->videoEncoder.videoEncoder[i].memory = pSettings->videoEncoder[i];
            pConfig->videoEncoder.heapIndex[vceIndex].firmware[0] =
            pConfig->videoEncoder.heapIndex[vceIndex].firmware[1] = heap.firmware;
            pConfig->videoEncoder.heapIndex[vceIndex].output = heap.output;
            pConfig->videoEncoder.heapIndex[vceIndex].secure  = heap.secure;
            pConfig->videoEncoder.heapIndex[vceIndex].system  = heap.system;
-           pConfig->videoEncoder.heapIndex[vceIndex].picture = memoryLayout.heapIndex.pictureBuffer[pRtsSettings->vce[vceIndex].memcIndex][nexus_memconfig_picbuftype_unsecure];
+           pConfig->videoEncoder.heapIndex[vceIndex].picture = memoryLayout.heapIndex.pictureBuffer[mainMemcIndex][nexus_memconfig_picbuftype_unsecure];
        }
     }
+#endif
 #else
     BSTD_UNUSED(pPlatformSettings);
 #endif
@@ -1015,12 +1021,15 @@ NEXUS_Error NEXUS_P_ApplyMemoryConfiguration(const NEXUS_Core_PreInitState *preI
                 pSettings->heap[heapIndex].memcIndex = i;
                 pSettings->heap[heapIndex].size = pConfig->pictureBuffer[i][sec].size;
                 pSettings->heap[heapIndex].heapType |= NEXUS_HEAP_TYPE_PICTURE_BUFFERS;
+#if !BMMA_USE_STUB
                 pSettings->heap[heapIndex].memoryType = NEXUS_MEMORY_TYPE_MANAGED;
 #if NEXUS_NUM_SOFT_VIDEO_DECODERS
                 pSettings->heap[heapIndex].memoryType |= NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED;
 #else
                 pSettings->heap[heapIndex].memoryType |= NEXUS_MEMORY_TYPE_NOT_MAPPED;
 #endif
+#endif
+
 #if NEXUS_HAS_SAGE
                 if (sec == nexus_memconfig_picbuftype_secure) {
                     pSettings->heap[heapIndex].memoryType |= NEXUS_MEMORY_TYPE_SECURE;
@@ -1050,7 +1059,7 @@ NEXUS_Error NEXUS_P_ApplyMemoryConfiguration(const NEXUS_Core_PreInitState *preI
     pSettings->displayModuleSettings.memconfig.mosaic = pMemConfig->videoDecoder[0].mosaic.maxNumber > 0;
 #endif
 #endif
-#if NEXUS_HAS_VIDEO_ENCODER && !NEXUS_NUM_DSP_VIDEO_ENCODERS
+#if NEXUS_HAS_VIDEO_ENCODER
     pSettings->videoEncoderSettings = pConfig->videoEncoder;
 #endif
 

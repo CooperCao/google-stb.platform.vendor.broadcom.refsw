@@ -203,6 +203,7 @@ NEXUS_Error NEXUS_Sage_P_GetLogBuffer(uint8_t *pBuff,  uint32_t inputBufSize,
 /*pKeyBuff Size should be 256 bytes to hold RSA2048 encrypted key*/
 NEXUS_Error NEXUS_Sage_P_GetEncKey(uint8_t *pKeyBuff,uint32_t inputKeyBufSize, uint32_t *pOutKeySize);
 
+void NEXUS_Sage_P_SAGELogUninit(void);
 #ifdef __cplusplus
 }
 #endif

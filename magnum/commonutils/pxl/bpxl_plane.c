@@ -90,7 +90,7 @@ void BPXL_Plane_Init(BPXL_Plane *plane, size_t width, size_t height, BPXL_Format
                 width = (width + 1) & ~0x1;
                 ulHeight = (ulHeight + 1) & ~0x1;
             }
-            ulPitch = (width * uiBitsPerPixel) / 8;
+            ulPitch = (width * uiBitsPerPixel + 7) / 8;
         }
     }
 

@@ -1358,6 +1358,8 @@ static int Bmemperf_ReadRequest(
 
                 bmemperf_computeIrqData( pResponse->response.overallStats.cpuData.numActiveCpus, &pResponse->response.overallStats.irqData );
 
+                bmemperf_getCpuUtilization( &pResponse->response.overallStats.cpuData );
+
                 PRINTF( "%s: sending cmd (%u); %u bytes\n", __FUNCTION__, pResponse->cmd, sizeof( *pResponse ));
                 if (send( psd, pResponse, sizeof( *pResponse ), 0 ) < 0)
                 {

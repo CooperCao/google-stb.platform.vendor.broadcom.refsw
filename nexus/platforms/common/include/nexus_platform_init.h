@@ -172,6 +172,7 @@ typedef struct NEXUS_PlatformHeapSettings {
     int size;           /* If size is >0, a fixed sized heap is created.
                            If size is -1, all remaining device memory in a matching bmem/cma region is allocated to that heap.
                            If size is 0 (default), no heap is created. */
+    NEXUS_Addr offset;     /* If offset is 0 then heap would be allocated using internal algorithm, otherwise heap would be placed at the specified address */
     unsigned alignment; /* Minimum alignment of heap. In units of bytes. */
     bool guardBanding;  /* [deprecated] If true, add debug guard bands around each allocation.
                            Only applies to CPU-accessible heaps.

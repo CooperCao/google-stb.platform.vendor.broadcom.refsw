@@ -81,7 +81,8 @@ CModel::CModel(const char * strName) :
     _pServerMgr(NULL),
     _pAutoDiscoveryServer(NULL),
     _pAutoDiscoveryClient(NULL),
-    _pPlaylistDb(NULL)
+    _pPlaylistDb(NULL),
+    _pAudioCapture(NULL)
 {
     for (int i = 0; i < eWindowType_Max; i++)
     {
@@ -97,6 +98,7 @@ CModel::CModel(const char * strName) :
         _currentPlayback[i]       = NULL;
         _currentChannel[i]        = NULL;
         _lastChannel[i]           = NULL;
+        _connectId[i]             = 0;
     }
 
     _irRemoteList.clear();
@@ -295,6 +297,19 @@ void CModel::setMode(
     }
 
     _mode[windowType] = mode;
+}
+
+void CModel::setConnectId(
+        unsigned    connectId,
+        eWindowType windowType
+        )
+{
+    if (eWindowType_Max == windowType)
+    {
+        windowType = _fullScreenWindowType;
+    }
+
+    _connectId[windowType] = connectId;
 }
 
 void CModel::setCurrentChannel(

@@ -117,9 +117,12 @@ typedef struct NEXUS_AudioDacSettings
         unsigned sampleRate;        /* Sampling frequency of the samples */
     } testTone;
 
-	uint32_t peakGain;      	/* PEAK_GAIN - Peaking filter gain */
-    uint32_t scale;             /* Affects the setting of the HIFIDAC_CTRLn_SCALE register directly.  Applicable to DTV systems only. */
+    int fineAdjustment;         /* fine adjustment of DAC output level - 28nm and newer chips only.
+                                   valid values are -100 to 100. 0 means no adjustment, positive values boost the level,
+                                   negative values cut the level. Integer steps are 0.005dBV. Total range is +/-0.5dBV */
     int32_t volume;             /* Attenuation in 1/100 dB.  Ranges from NEXUS_AUDIO_VOLUME_DB_NORMAL to NEXUS_AUDIO_VOLUME_DB_MIN.  Default=0. */
+    uint32_t peakGain;      	/* deprecated */
+    uint32_t scale;             /* deprecated */
 } NEXUS_AudioDacSettings;
 
 /***************************************************************************

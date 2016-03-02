@@ -208,6 +208,7 @@ int main(int argc, const char **argv)
     bool audio_primers = false;
     NEXUS_SurfaceRegion virtualDisplay = {1920,1080};
     bool gui = true;
+    struct bgui_settings gui_settings;
     binput_t input;
     bool mosaic_pip = false;
     bool mosaic_move = false;
@@ -298,7 +299,10 @@ int main(int argc, const char **argv)
     if (rc) return -1;
 
     input = binput_open(NULL);
-    g_app.gui = bgui_create(virtualDisplay.width, virtualDisplay.height);
+    bgui_get_default_settings(&gui_settings);
+    gui_settings.width = virtualDisplay.width;
+    gui_settings.height = virtualDisplay.height;
+    g_app.gui = bgui_create(&gui_settings);
 
     if (nxapps_cmdline_is_set(&cmdline, nxapps_cmdline_type_SurfaceComposition)) {
         NEXUS_SurfaceComposition comp;

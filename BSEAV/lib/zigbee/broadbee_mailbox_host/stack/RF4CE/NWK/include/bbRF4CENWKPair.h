@@ -111,6 +111,8 @@ typedef struct _RF4CE_NWK_PairReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;     /*!< Service field. */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_NWK_PairReqParams_t params;    /*!< Request data filled by the sender. */
     RF4CE_NWK_PairConfCallback_t callback;  /*!< Callback to inform sender on the result. */
@@ -201,6 +203,8 @@ typedef struct _RF4CE_NWK_UnpairReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;       /*!< Service field. */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_NWK_UnpairReqParams_t params;    /*!< Request data filled by the sender. */
     RF4CE_NWK_UnpairConfCallback_t callback;  /*!< Callback to inform sender on the result. */

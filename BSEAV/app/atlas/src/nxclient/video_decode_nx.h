@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -64,18 +64,14 @@ public:
     virtual eRet              open(CWidgetEngine * pWidgetEngine, CStc * pStc);
     virtual CStc *            close(void);
     virtual eRet              start(CPid * pPid, CStc * pStc = NULL);
-    virtual CPid *            stop(void);
-    uint32_t                  getConnectId(void)                                           { return(_connectId); }
-    void                      setConnectId(uint32_t connectId)                             { _connectId = connectId; }
+    virtual eRet              updateConnectSettings(NxClient_ConnectSettings * pSettings);
+
     NEXUS_SurfaceClientHandle getDesktopClientVideoWin(void)                               { return(_surfaceClientVideoWin); }
-    void                      setVideoWindowType(NxClient_VideoWindowType videoWindowType) { _videoWindowType = videoWindowType;  }
-    NxClient_VideoWindowType  getVideoWindowType(void)                                     { return(_videoWindowType); }
     eRet                      setPosition(MRect rect, uint16_t zorder);
     eRet                      setGeometryVideoWindow(MRect rect, uint8_t percent, eWinArea area, uint8_t border, uint16_t zorder);
     NEXUS_VideoFormat         getFormat(void);
 
 protected:
-    unsigned                  _connectId;
     NEXUS_SurfaceClientHandle _surfaceClientVideoWin;
     NxClient_VideoWindowType  _videoWindowType;
 };

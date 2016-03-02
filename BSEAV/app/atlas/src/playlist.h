@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * (c) 2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -56,10 +56,12 @@ class CChannel;
 class CPlaylistData
 {
 public:
-    CPlaylistData(const char * strIp) :
-        _strIp(strIp) {}
+    CPlaylistData(const char * strIp, int nIndex = 0) :
+        _strIp(strIp),
+        _nIndex(nIndex) {}
 public:
     MString _strIp;
+    int     _nIndex;
 };
 
 class CPlaylist : public CMvcModel
@@ -100,7 +102,7 @@ public:
     int          totalMetadata(void) { return(_metadata.total()); }
     const char * getMetadataTag(int index);
     const char * getMetadataValue(int index);
-    void         dump(bool bForce = false);
+    void         dump(bool bForce = false, int index = 0);
 
 protected:
     void *              _pId;

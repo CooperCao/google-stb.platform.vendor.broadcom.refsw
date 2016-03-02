@@ -58,6 +58,7 @@
 BDBG_MODULE(nexus_platform_audio_log);
 
 #if NEXUS_HAS_AUDIO && NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA
+#include "nexus_audio.h"
 #define NEXUS_PLATFORM_AUDIO_LOG 1
 #endif
 
@@ -72,6 +73,8 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
     const void *pBuffer;
     size_t bufferSize;
     NEXUS_Error errCode;
+    NEXUS_AudioCapabilities audioCaps;
+    unsigned numDsps = 0;
 
     struct
     {
@@ -85,6 +88,12 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
 
     BKNI_Memset(&debugData, 0, sizeof(debugData));
     BSTD_UNUSED(pParam);
+
+    NEXUS_GetAudioCapabilities(&audioCaps);
+    if ( audioCaps.numDsps > 0 )
+    {
+        numDsps = audioCaps.numDsps;
+    }
 
     /* Initialize */
     for ( type = 0; type < NEXUS_AudioDspDebugType_eMax; type++ )
@@ -117,7 +126,7 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
         {
             debugData[type].enabled = true;
 
-            for ( dsp = 0; dsp < NEXUS_NUM_AUDIO_DSP; dsp++ )
+            for ( dsp = 0; dsp < numDsps; dsp++ )
             {        
 #define AUDIO_LOG_PATH_MAX 128
                 char pathname[AUDIO_LOG_PATH_MAX];
@@ -145,7 +154,7 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
         {
             if ( debugData[type].enabled )
             {
-                for ( dsp = 0; dsp < NEXUS_NUM_AUDIO_DSP; dsp++ )
+                for ( dsp = 0; dsp < numDsps; dsp++ )
                 {
                     bool logged=false;
                     do

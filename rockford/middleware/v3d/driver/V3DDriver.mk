@@ -305,6 +305,18 @@ else
 all: $(LIBDIR)/libv3ddriver.a
 endif
 
+middleware/khronos/glsl/y.tab.c \
+middleware/khronos/glsl/y.tab.h : \
+	middleware/khronos/glsl/glsl_shader.y
+		$(Q)bison -d -o middleware/khronos/glsl/y.tab.c middleware/khronos/glsl/glsl_shader.y
+
+middleware/khronos/glsl/lex.yy.c : middleware/khronos/glsl/glsl_shader.l
+	$(Q)flex -L -o middleware/khronos/glsl/lex.yy.c --never-interactive middleware/khronos/glsl/glsl_shader.l
+
+AUTO_FILES = \
+	middleware/khronos/glsl/lex.yy.c \
+	middleware/khronos/glsl/y.tab.c
+
 .phony: OUTDIR
 OUTDIR :
 	$(Q)mkdir -p $(OBJDIR)
@@ -325,7 +337,7 @@ $(foreach src,$(SOURCES),$(eval $(call CCompileRule,$(src),$(OBJDIR)/$(basename 
 # $(2) = d
 # $(3) = obj
 define DependRule_C
-$(2) : $(1) | OUTDIR
+$(2) : $(1) | OUTDIR $(AUTO_FILES)
 	$(Q)echo Making depends for $(1)
 	$(Q)touch $(2).tmp
 	$(Q)$(CC) -D__SSE__ -D__MMX__ -M -MQ $(3) -MF $(2).tmp -MM $(CFLAGS) $(1)
@@ -355,6 +367,7 @@ $(LIBDIR)/libv3ddriver.a: $(PRE_BUILD_RULES) $(OBJS)
 
 # clean out the dross
 clean:
+	$(Q)rm -f $(AUTO_FILES)
 	$(Q)rm -f $(LIBDIR)/libv3ddriver.so *~ $(OBJS)
 	$(Q)rm -f $(OBJDIR)/*.d
 	$(Q)rm -f $(LIBDIR)/libv3ddriver.a

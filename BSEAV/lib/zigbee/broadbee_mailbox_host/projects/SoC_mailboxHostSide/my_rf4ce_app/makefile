@@ -1,3 +1,7 @@
+ifeq ($(BYPASS_RPC),y)
+$(warning bypass RPC)
+endif
+
 # This needs to be adjusted to match the tool chain for the kernel being used.
 #CROSS_COMPILE =/opt/toolchains/crosstools_hf-linux-2.6.18.0_gcc-4.2-10ts_uclibc-nptl-0.9.29-20070423_20080721/bin/mipsel-uclibc-
 #CROSS_COMPILE =/opt/toolchains/stbgcc-4.4.5-2.0/bin/mips-linux-uclibc-
@@ -19,19 +23,29 @@ SILENT ?= @
 
 CFLAGS += -g -I.
 
+ifeq ($(BYPASS_RPC),y)
+EXES = rf4ce_reset_and_pair_app
+else
 EXES = my_rf4ce_app rf4ce_reset_app rf4ce_pair_app rf4ce_unpair_app zr2_pair_app rf4ce_set_fa_threshold_app rf4ce_get_fa_threshold_app rf4ce_set_discovery_lqi_threshold_app
+endif
 
 OBJDIR = obj.$(NEXUS_PLATFORM)
 
 #    $(OBJDIR)/$(EXES).o
+ifeq ($(BYPASS_RPC),y)
+COMMON_OBJS = \
+    $(OBJDIR)/bbMailClientTable.o \
+    $(OBJDIR)/bbSysPayload.o
+else
 COMMON_OBJS = \
     $(OBJDIR)/bbMailClientTable.o \
     $(OBJDIR)/bbMailServerTable.o \
+    $(OBJDIR)/zigbee_api.o \
     $(OBJDIR)/zigbee_rpc.o \
-    $(OBJDIR)/zigbee_rpc_api.o \
     $(OBJDIR)/zigbee_rpc_client.o \
     $(OBJDIR)/zigbee_socket_client.o \
     $(OBJDIR)/bbSysPayload.o
+endif
 
 RF4CE_APP_OBJS = \
     $(OBJDIR)/my_rf4ce_app.o \
@@ -39,6 +53,10 @@ RF4CE_APP_OBJS = \
 
 RF4CE_RESET_OBJS = \
     $(OBJDIR)/rf4ce_reset.o \
+    $(COMMON_OBJS)
+
+RF4CE_RESET_AND_PAIR_OBJS = \
+    $(OBJDIR)/rf4ce_reset_and_pair.o \
     $(COMMON_OBJS)
 
 RF4CE_PAIR_OBJS = \
@@ -69,6 +87,11 @@ RF4CE_SET_CHANNEL_OBJS = \
     $(OBJDIR)/rf4ce_set_single_channel.o \
     $(COMMON_OBJS)
 
+RF4CE_PHY_TEST_OBJS = \
+    $(OBJDIR)/rf4ce_phy_test.o \
+    $(OBJDIR)/bbRF4CEPMProfiles.o \
+    $(COMMON_OBJS)
+
 ##########################################################################################
 # Path to the Project root directory relative to the make active directory.
 PRJ_PATH = ../
@@ -80,7 +103,10 @@ PRJ_PATH = ../
 STACK_PATH = $(PRJ_PATH)../../stack
 
 INC_PATHS += $(STACK_PATH)
+INC_PATHS += $(PRJ_PATH)/common/include
+ifneq ($(BYPASS_RPC),y)
 INC_PATHS += $(PRJ_PATH)/rpc/include
+endif
 INC_PATHS += $(PRJ_PATH)/rf4ce_registration/include
 INC_PATHS += $(PRJ_PATH)/ha_registration/include
 INC_PATHS += $(STACK_PATH)/common/include
@@ -140,6 +166,7 @@ PRJ_FLAGS += _DEBUG_LOG_
 PRJ_FLAGS += _RF4CE_
 PRJ_FLAGS += RF4CE_TARGET
 PRJ_FLAGS += _ZBPRO_
+PRJ_FLAGS += USE_RF4CE_PROFILE_ZRC=1
 PRJ_FLAGS += USE_RF4CE_PROFILE_ZRC1
 PRJ_FLAGS += _DEBUG_CONSOLELOG_=2
 PRJ_FLAGS += _DEBUG_FILELINE_
@@ -152,6 +179,11 @@ PRJ_FLAGS += _MAC_BAN_TABLE_SIZE_=1
 PRJ_FLAGS += USE_RF4CE_PROFILE_ZRC1
 PRJ_FLAGS += USE_RF4CE_PROFILE_GDP=1
 PRJ_FLAGS += USE_RF4CE_PROFILE_ZRC2
+PRJ_FLAGS += _PHY_TEST_HOST_INTERFACE_
+
+ifeq ($(BYPASS_RPC),y)
+PRJ_FLAGS += BYPASS_RPC
+endif
 
 __PRJ_FLAGS = $(addprefix -D, $(PRJ_FLAGS))
 __PRJ_INCS  = $(addprefix -I, $(INC_PATHS))
@@ -162,7 +194,11 @@ CFLAGS += $(__PRJ_INCS) $(C99_FLAGS) $(__PRJ_FLAGS)
 LDFLAGS += -std=gnu99
 LDFLAGS += -g -Xlinker --no-enum-size-warning
 
-all:   prebuild $(OBJDIR) $(OBJDIR)/my_rf4ce_app $(OBJDIR)/rf4ce_reset_app $(OBJDIR)/rf4ce_pair_app $(OBJDIR)/rf4ce_unpair_app $(OBJDIR)/zrc2_pair_app $(OBJDIR)/rf4ce_set_discovery_lqi_threshold_app $(OBJDIR)/rf4ce_set_fa_threshold_app $(OBJDIR)/rf4ce_get_fa_threshold_app $(OBJDIR)/rf4ce_set_channel_app
+ifeq ($(BYPASS_RPC),y)
+all:   prebuild $(OBJDIR) $(OBJDIR)/rf4ce_reset_and_pair_app
+else
+all:   prebuild $(OBJDIR) $(OBJDIR)/my_rf4ce_app $(OBJDIR)/rf4ce_reset_app $(OBJDIR)/rf4ce_pair_app $(OBJDIR)/rf4ce_unpair_app $(OBJDIR)/zrc2_pair_app $(OBJDIR)/rf4ce_set_discovery_lqi_threshold_app $(OBJDIR)/rf4ce_set_fa_threshold_app $(OBJDIR)/rf4ce_get_fa_threshold_app $(OBJDIR)/rf4ce_set_channel_app $(OBJDIR)/rf4ce_phy_test_app
+endif
 
 #	$(LD) $(OBJS) -lpthread
 
@@ -171,6 +207,7 @@ clean:
 	rm -rf ./bbMailClientTable.c
 	rm -rf ./bbMailServerTable.c
 	rm -rf ./bbSysPayload.c
+	rm -rf ./bbRF4CEPMProfiles.c
 #	rm -f *.o *.so
 #	rm -f *.i *.s
 
@@ -179,6 +216,9 @@ $(OBJDIR)/my_rf4ce_app: $(RF4CE_APP_OBJS)
 
 $(OBJDIR)/rf4ce_reset_app: $(RF4CE_RESET_OBJS)
 	$(CC) $^ -lpthread -o $@ $(LDFLAGS)
+
+$(OBJDIR)/rf4ce_reset_and_pair_app: $(RF4CE_RESET_AND_PAIR_OBJS)
+	$(CC) $^ -lpthread -L../obj.$(NEXUS_PLATFORM) -L../rf4ce_registration -lzigbee -lsqlite3 -o $@ $(LDFLAGS)
 
 $(OBJDIR)/rf4ce_pair_app: $(RF4CE_PAIR_OBJS)
 	$(CC) $^ -lpthread -o $@ $(LDFLAGS)
@@ -201,11 +241,15 @@ $(OBJDIR)/rf4ce_set_discovery_lqi_threshold_app: $(RF4CE_SET_DISCOVERY_LQI_THRES
 $(OBJDIR)/rf4ce_set_channel_app: $(RF4CE_SET_CHANNEL_OBJS)
 	$(CC) $^ -lpthread -o $@ $(LDFLAGS)
 
+$(OBJDIR)/rf4ce_phy_test_app: $(RF4CE_PHY_TEST_OBJS)
+	$(CC) $^ -lpthread -o $@ $(LDFLAGS)
+
 prebuild:
 	@rm -rf ./bbMailClientTable.c
 	@sed  's/SERVER_TABLE_ENTRY(\(.*\), *\(.*\), *\(.*\), *\(.*\), *\(.*\), */SERVER_TABLE_ENTRY(\1, \2, \3, \4, 0),/' ../../../stack/common/Mailbox/src/bbMailServerTable.c > ./bbMailServerTable.c
 	@cp ../../../stack/common/Mailbox/src/bbMailClientTable.c ./bbMailClientTable.c
 	@cp ../../../stack/common/System/src/bbSysPayload.c ./bbSysPayload.c
+	@cp ../../../stack/RF4CE/Profiles/ProfileManager/src/bbRF4CEPMProfiles.c ./bbRF4CEPMProfiles.c
 	@echo "=== prebuild completed ==="
 
 $(OBJDIR):
@@ -227,9 +271,19 @@ $(OBJDIR)/bbSysPayload.o: bbSysPayload.c
 	@echo --- C99: $@
 	$(SILENT)$(CC) $(CFLAGS)  $^ -c -o $@
 
+$(OBJDIR)/bbRF4CEPMProfiles.o: bbRF4CEPMProfiles.c
+	@echo --- C99: $@
+	$(SILENT)$(CC) $(CFLAGS)  $^ -c -o $@
+
+$(OBJDIR)/%.o: ../common/src/%.c
+	@echo --- C99: $@
+	$(SILENT)$(CC) $(CFLAGS) $^ -c -o $@
+
+#ifneq ($(BYPASS_RPC),y)
 $(OBJDIR)/%.o: ../rpc/src/%.c
 	@echo --- C99: $@
 	$(SILENT)$(CC) $(CFLAGS) $^ -c -o $@
+#endif
 
 $(OBJDIR)/%.o: ../../../stack/common/System/src/%.c
 	@echo --- C99: $@

@@ -1,51 +1,44 @@
 /******************************************************************************
- *    (c)2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- *****************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
+#if NEXUS_POWER_MANAGEMENT
 #include "nexus_platform_client.h"
 #include "nexus_core_utils.h"
 #include "nxclient.h"
@@ -62,9 +55,7 @@
 #include <string.h>
 #include <pthread.h>
 
-#ifndef NXSERVER_PMLIB_SUPPORT
 #include "pmlib.h"
-#endif
 
 BDBG_MODULE(standby);
 
@@ -72,25 +63,26 @@ BDBG_MODULE(standby);
 struct appcontext {
     bgui_t gui;
     binput_t input;
-    unsigned total_buttons, focused_button;
-    pthread_t standby_thread_id, remote_thread_id, cmdline_thread_id;
+    pthread_t remote_thread_id, cmdline_thread_id;
     bfont_t font;
-    bool done;
-    bool timer;
-    unsigned timeout;
-    bool prompt;
     BKNI_EventHandle event, wakeupEvent;
-#ifndef NXSERVER_PMLIB_SUPPORT
     void *pm_ctx;
-#endif
-    bool standbyTransition;
     NEXUS_PlatformStandbyMode mode;
+    unsigned total_buttons, focused_button;
+    int timeout;
+    bool coldBoot;
+    bool done;
 } g_context;
 
-static const char *g_standby_state[3] = {
-    "ACTIVE STANDBY (S1)",
+static const char *g_standby_state[] = {
+    "ACTIVE STANDBY  (S1)",
     "PASSIVE STANDBY (S2)",
-    "DEEP SLEEP (S3)"};
+    "DEEP SLEEP WARM (S3)",
+    "DEEP SLEEP COLD (S5)"
+};
+
+#define GUI_WIDTH  250
+#define GUI_HEIGHT 50
 
 static void render_ui(struct appcontext *pContext)
 {
@@ -98,6 +90,8 @@ static void render_ui(struct appcontext *pContext)
     NEXUS_Graphics2DFillSettings fillSettings;
     int rc;
     unsigned i;
+
+    if(!pContext->gui) return;
 
     NxClient_GetStandbyStatus(&standbyStatus);
     if(standbyStatus.settings.mode != NEXUS_PlatformStandbyMode_eOn)
@@ -113,9 +107,9 @@ static void render_ui(struct appcontext *pContext)
         bool focused = i == pContext->focused_button;
 
         fillSettings.rect.x = 0;
-        fillSettings.rect.y = i*50;
-        fillSettings.rect.width = 250;
-        fillSettings.rect.height = 50;
+        fillSettings.rect.y = i*GUI_HEIGHT;
+        fillSettings.rect.width = GUI_WIDTH;
+        fillSettings.rect.height = GUI_HEIGHT;
         fillSettings.color = (i == pContext->focused_button) ? 0xFF00FF00 : 0xFF008888;
         rc = NEXUS_Graphics2D_Fill(bgui_blitter(pContext->gui), &fillSettings);
         BDBG_ASSERT(!rc);
@@ -133,111 +127,14 @@ static void render_ui(struct appcontext *pContext)
     bgui_submit(pContext->gui);
 }
 
-static void print_wakeup(struct appcontext *pContext)
+static void set_wake_event(struct appcontext *pContext)
 {
-    NxClient_StandbyStatus standbyStatus;
-    NEXUS_Error rc;
-
-    if(pContext->focused_button == 0)
-        return;
-
-    rc = NxClient_GetStandbyStatus(&standbyStatus);
-    if (rc) {BERR_TRACE(rc); return;}
-
-    BDBG_WRN(("Wake up Status:\n"
-           "IR      : %d\n"
-           "UHF     : %d\n"
-           "XPT     : %d\n"
-           "CEC     : %d\n"
-           "GPIO    : %d\n"
-           "Timeout : %d\n"
-           "\n",
-           standbyStatus.status.wakeupStatus.ir,
-           standbyStatus.status.wakeupStatus.uhf,
-           standbyStatus.status.wakeupStatus.transport,
-           standbyStatus.status.wakeupStatus.cec,
-           standbyStatus.status.wakeupStatus.gpio,
-           standbyStatus.status.wakeupStatus.timeout));
-}
-
-static void standby(struct appcontext *pContext)
-{
-    NxClient_StandbySettings standbySettings;
-    NEXUS_Error rc;
-
-    NxClient_GetDefaultStandbySettings(&standbySettings);
-    standbySettings.settings.mode = pContext->mode;
-    standbySettings.settings.wakeupSettings.ir = true;
-    standbySettings.settings.wakeupSettings.timeout = pContext->timer?pContext->timeout:0;
-    rc = NxClient_SetStandbySettings(&standbySettings);
-
-#ifndef NXSERVER_PMLIB_SUPPORT
-    while(!pContext->done) {
-        NxClient_StandbyStatus standbyStatus;
-        rc = NxClient_GetStandbyStatus(&standbyStatus);
-
-        if(standbyStatus.standbyTransition)
-            break;
-    }
-    if(standbySettings.settings.mode == NEXUS_PlatformStandbyMode_ePassive) {
-        brcm_pm_suspend(pContext->pm_ctx, BRCM_PM_STANDBY);
-    } else if(standbySettings.settings.mode == NEXUS_PlatformStandbyMode_eDeepSleep) {
-        brcm_pm_suspend(pContext->pm_ctx, BRCM_PM_SUSPEND);
-    } else
-#endif
-    if(standbySettings.settings.mode == NEXUS_PlatformStandbyMode_eActive) {
-        BKNI_WaitForEvent(pContext->wakeupEvent, pContext->timer?(int)pContext->timeout*1000:BKNI_INFINITE);
-    }
-
-    pContext->standbyTransition = true;
-}
-
-static void resume(struct appcontext *pContext)
-{
-    NxClient_StandbySettings standbySettings;
-    NEXUS_Error rc;
-
-    BDBG_ASSERT(pContext->mode == NEXUS_PlatformStandbyMode_eOn);
-
-    NxClient_GetDefaultStandbySettings(&standbySettings);
-    standbySettings.settings.mode = pContext->mode;
-    rc = NxClient_SetStandbySettings(&standbySettings);
-    if (rc) BERR_TRACE(rc);
-}
-
-static void *standby_monitor(void *context)
-{
-    struct appcontext *pContext = context;
-    NEXUS_Error rc;
-    NxClient_StandbyStatus standbyStatus, prevStatus;
-
-    BSTD_UNUSED(context);
-
-    NxClient_GetStandbyStatus(&standbyStatus);
-    prevStatus = standbyStatus;
-
-    while(!pContext->done) {
-        rc = NxClient_GetStandbyStatus(&standbyStatus);
-#ifdef NXSERVER_PMLIB_SUPPORT
-        if(standbyStatus.standbyTransition && pContext->standbyTransition) {
-#else
-        if(pContext->standbyTransition) {
-#endif
-            pContext->standbyTransition = false;
-            pContext->mode = NEXUS_PlatformStandbyMode_eOn;
-            BKNI_SetEvent(pContext->event);
+    if(pContext->mode != NEXUS_PlatformStandbyMode_eOn) {
+        /* Set event for S1 wakeup or S2/S3 when pmlib not used*/
+        if(pContext->mode == NEXUS_PlatformStandbyMode_eActive || !pContext->pm_ctx) {
+            BKNI_SetEvent(pContext->wakeupEvent);
         }
-
-        if(standbyStatus.settings.mode != prevStatus.settings.mode) {
-            printf("'standby' acknowledges standby state: %s\n", lookup_name(g_platformStandbyModeStrs, standbyStatus.settings.mode));
-            printf("NOTE: Not all clients may acknowledge standby. Server may need to timeout.\n");
-            NxClient_AcknowledgeStandby(true);
-        }
-        prevStatus = standbyStatus;
-        BKNI_Sleep(100);
     }
-
-    return NULL;
 }
 
 static void *remote_key_monitor(void *context)
@@ -267,19 +164,34 @@ static void *remote_key_monitor(void *context)
             render_ui(pContext);
             break;
         case b_remote_key_select:
-            pContext->timer = false;
-            pContext->mode = pContext->focused_button+1;
+            pContext->coldBoot = false;
+            switch (pContext->focused_button) {
+                case 3:
+                pContext->coldBoot = true;
+                case 2:
+                pContext->mode = NEXUS_PlatformStandbyMode_eDeepSleep;
+                break;
+                case 1:
+                pContext->mode = NEXUS_PlatformStandbyMode_ePassive;
+                break;
+                case 0:
+                pContext->mode = NEXUS_PlatformStandbyMode_eActive;
+                break;
+                default:
+                break;
+            }
             BKNI_SetEvent(pContext->event);
             break;
         case b_remote_key_stop:
         case b_remote_key_clear:
+            set_wake_event(pContext);
             pContext->done = true;
             BKNI_SetEvent(pContext->event);
             break;
         case b_remote_key_power:
+            set_wake_event(pContext);
             pContext->mode = NEXUS_PlatformStandbyMode_eOn;
-            /* Set event only for S1 wakeup */
-            if(!pContext->focused_button) BKNI_SetEvent(pContext->wakeupEvent);
+            BKNI_SetEvent(pContext->event);
             break;
         default:
             break;
@@ -327,31 +239,37 @@ static void *cmdline_monitor(void *context)
 
         do {
             if(!strncmp(buf, "s", 1)) {
+                NEXUS_PlatformStandbyMode mode;
                 buf++;
+                pContext->coldBoot = false;
                 if (!strncmp(buf, "0", 1)) {
-                    pContext->mode = NEXUS_PlatformStandbyMode_eOn;
+                    mode = NEXUS_PlatformStandbyMode_eOn;
                 } else if (!strncmp(buf, "1", 1)) {
-                    pContext->mode = NEXUS_PlatformStandbyMode_eActive;
+                    mode = NEXUS_PlatformStandbyMode_eActive;
                 } else if (!strncmp(buf, "2", 1)) {
-                    pContext->mode = NEXUS_PlatformStandbyMode_ePassive;
+                    mode = NEXUS_PlatformStandbyMode_ePassive;
                 } else if (!strncmp(buf, "3", 1)) {
-                    pContext->mode = NEXUS_PlatformStandbyMode_eDeepSleep;
+                   mode = NEXUS_PlatformStandbyMode_eDeepSleep;
+                } else if (!strncmp(buf, "5", 1)) {
+                    mode = NEXUS_PlatformStandbyMode_eDeepSleep;
+                    pContext->coldBoot = true;
                 } else {
                     printf("Unknown standby mode\n");
                     break;
                 }
 
-                if(pContext->mode == NEXUS_PlatformStandbyMode_eOn) {
-                    /* Set event only for S1 wakeup */
-                    if(!pContext->focused_button) BKNI_SetEvent(pContext->wakeupEvent);
-                } else {
-                    pContext->focused_button = pContext->mode-1;
+                if(mode != NEXUS_PlatformStandbyMode_eOn) {
+                    pContext->focused_button = mode-1;
+                    if( mode == NEXUS_PlatformStandbyMode_eDeepSleep && pContext->coldBoot == true)
+                        pContext->focused_button++;
                     BDBG_ASSERT(pContext->focused_button<pContext->total_buttons);
                     render_ui(pContext);
-                    pContext->timer = true;
-                    BKNI_SetEvent(pContext->event);
                 }
+                set_wake_event(pContext);
+                pContext->mode = mode;
+                BKNI_SetEvent(pContext->event);
             } else if (!strncmp(buf, "q", 1)) {
+                set_wake_event(pContext);
                 pContext->done = true;
                 BKNI_SetEvent(pContext->event);
             } else {
@@ -363,6 +281,96 @@ static void *cmdline_monitor(void *context)
     return NULL;
 }
 
+static void print_wakeup(struct appcontext *pContext)
+{
+    NxClient_StandbyStatus standbyStatus;
+    NEXUS_Error rc;
+
+    if(pContext->focused_button == 0 || !pContext->pm_ctx)
+        return;
+
+    rc = NxClient_GetStandbyStatus(&standbyStatus);
+    if (rc) {BERR_TRACE(rc); return;}
+
+    BDBG_WRN(("Wake up Status:\n"
+           "IR      : %d\n"
+           "UHF     : %d\n"
+           "XPT     : %d\n"
+           "CEC     : %d\n"
+           "GPIO    : %d\n"
+           "KPD     : %d\n"
+           "Timeout : %d\n"
+           "\n",
+           standbyStatus.status.wakeupStatus.ir,
+           standbyStatus.status.wakeupStatus.uhf,
+           standbyStatus.status.wakeupStatus.transport,
+           standbyStatus.status.wakeupStatus.cec,
+           standbyStatus.status.wakeupStatus.gpio,
+           standbyStatus.status.wakeupStatus.keypad,
+           standbyStatus.status.wakeupStatus.timeout));
+}
+
+#define DEFAULT_TIMEOUT 5
+
+static void set_power_state(struct appcontext *pContext)
+{
+    NxClient_StandbyStatus standbyStatus;
+    NxClient_StandbySettings standbySettings;
+    NEXUS_Error rc;
+    unsigned timeout = (pContext->timeout == -1) ? DEFAULT_TIMEOUT : pContext->timeout;
+
+    printf("Entering %s Mode\n", lookup_name(g_platformStandbyModeStrs, pContext->mode));
+    NxClient_GetDefaultStandbySettings(&standbySettings);
+    standbySettings.settings.mode = pContext->mode;
+    standbySettings.settings.wakeupSettings.ir = true;
+    standbySettings.settings.wakeupSettings.gpio = true;
+    standbySettings.settings.wakeupSettings.timeout = timeout;
+    rc = NxClient_SetStandbySettings(&standbySettings);
+    if (rc) {BERR_TRACE(rc); goto done;}
+
+    if(pContext->mode == NEXUS_PlatformStandbyMode_eOn) {
+        return;
+    }
+    if (timeout) printf("Timeout %u seconds\n", timeout);
+
+    /* Wait for nexus to enter standby */
+    while(!pContext->done) {
+        NxClient_GetStandbyStatus(&standbyStatus);
+        if(standbyStatus.standbyTransition)
+            break;
+    }
+    /* Return if standby fails */
+    if(standbyStatus.settings.mode == NEXUS_PlatformStandbyMode_eOn) {
+        BDBG_WRN(("Failed to enter Standby"));
+        goto done;
+    }
+
+    if(pContext->mode == NEXUS_PlatformStandbyMode_eActive || !pContext->pm_ctx) {
+        rc = BKNI_WaitForEvent(pContext->wakeupEvent, timeout*1000);
+    } else if(pContext->mode == NEXUS_PlatformStandbyMode_ePassive) {
+        brcm_pm_suspend(pContext->pm_ctx, BRCM_PM_STANDBY);
+    } else if(pContext->mode == NEXUS_PlatformStandbyMode_eDeepSleep) {
+        if(!pContext->coldBoot) {
+            brcm_pm_suspend(pContext->pm_ctx, BRCM_PM_SUSPEND);
+        } else {
+#if PMLIB_VER == 314
+            system("poweroff");
+#else
+            system("echo 1 > /sys/devices/platform/brcmstb/halt_mode");
+            system("halt");
+#endif
+        }
+    }
+
+    NxClient_GetStandbyStatus(&standbyStatus);
+    if(rc == NEXUS_TIMEOUT || standbyStatus.status.wakeupStatus.timeout) {
+        pContext->mode = NEXUS_PlatformStandbyMode_eOn;
+        BKNI_SetEvent(pContext->event);
+    }
+done:
+    return;
+}
+
 static void print_usage(void)
 {
     printf(
@@ -372,6 +380,12 @@ static void print_usage(void)
     "  --help or -h for help\n"
     "  -timeout X       timeout in seconds\n"
     "  -prompt  off     disable user prompt.\n"
+    "  -pmlib   off     disable pmlib support.\n"
+    "  -s0              wake up and exit\n"
+    "  -s1              put system into S1 and exit (unless timeout set)\n"
+    "  -s2              put system into S2 and suspend\n"
+    "  -s3              put system into S3 and suspend\n"
+    "  -s5              put system into S5 (cold boot) and suspend\n"
     );
 }
 
@@ -381,10 +395,14 @@ int main(int argc, const char **argv)
     struct appcontext *pContext = &g_context;
     NxClient_JoinSettings joinSettings;
     int curarg = 1;
+    struct bgui_settings gui_settings;
+    bool gui=true, prompt=true, pmlib=true, exit=false;
 
     BKNI_Memset(pContext, 0, sizeof(struct appcontext));
-    pContext->timeout = 5;
-    pContext->prompt = true;
+    pContext->timeout = -1;
+    pContext->mode = NEXUS_PlatformStandbyMode_eOn;
+    pContext->done = false;
+    pContext->total_buttons = sizeof(g_standby_state)/sizeof(g_standby_state[0]);
 
     while (argc > curarg) {
         if (!strcmp(argv[curarg], "-h") || !strcmp(argv[curarg], "--help")) {
@@ -392,61 +410,109 @@ int main(int argc, const char **argv)
             return 0;
         }
         else if (!strcmp(argv[curarg], "-timeout") && argc>curarg+1) {
-            pContext->timeout = strtoul(argv[++curarg], NULL, 0);
+            pContext->timeout = atoi(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-prompt") && argc>curarg+1) {
             if (!strcmp(argv[++curarg], "off")) {
-                pContext->prompt = false;
+                prompt = false;
             }
+            else {
+                print_usage();
+                return -1;
+            }
+        }
+        else if (!strcmp(argv[curarg], "-gui") && argc>curarg+1) {
+            if (!strcmp(argv[++curarg], "off")) {
+                gui = false;
+            }
+            else {
+                print_usage();
+                return -1;
+            }
+        }
+        else if (!strcmp(argv[curarg], "-pmlib") && argc>curarg+1) {
+            if (!strcmp(argv[++curarg], "off")) {
+                pmlib = false;
+            }
+            else {
+                print_usage();
+                return -1;
+            }
+        }
+        else if (!strcmp(argv[curarg], "-s0")) {
+            pContext->mode = NEXUS_PlatformStandbyMode_eOn;
+            exit = true;
+        }
+        else if (!strcmp(argv[curarg], "-s1")) {
+            pContext->mode = NEXUS_PlatformStandbyMode_eActive;
+            exit = true;
+        }
+        else if (!strcmp(argv[curarg], "-s2")) {
+            pContext->mode = NEXUS_PlatformStandbyMode_ePassive;
+            exit = true;
+        }
+        else if (!strcmp(argv[curarg], "-s3")) {
+            pContext->mode = NEXUS_PlatformStandbyMode_eDeepSleep;
+            exit = true;
+        }
+        else if (!strcmp(argv[curarg], "-s5")) {
+            pContext->mode = NEXUS_PlatformStandbyMode_eDeepSleep;
+            pContext->coldBoot = true;
         }
         curarg++;
     }
 
+    if(!gui && !prompt) {
+        printf("Both gui and prompt cannot be disabled\n");
+        print_usage();
+        return -1;
+    }
+
     NxClient_GetDefaultJoinSettings(&joinSettings);
     snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s", argv[0]);
-    joinSettings.standbyClient = true;
     rc = NxClient_Join(&joinSettings);
     if (rc) return -1;
-
-    /* Server maybe already be in standby. Wakeup first */
-    pContext->mode= NEXUS_PlatformStandbyMode_eOn;
-    resume(pContext);
-
-    pContext->total_buttons = NEXUS_PlatformStandbyMode_eMax-1;
-    pContext->done = false;
-
-    pContext->gui = bgui_create(250, 150);
-    pContext->input = binput_open(NULL);
-
-    {
-        NEXUS_SurfaceComposition comp;
-        NxClient_GetSurfaceClientComposition(bgui_surface_client_id(pContext->gui), &comp);
-        comp.position.x = 50;
-        comp.position.y = 50;
-        comp.position.width = 250;
-        comp.position.height = 150;
-        comp.zorder = 100; /* always on top */
-        NxClient_SetSurfaceClientComposition(bgui_surface_client_id(pContext->gui), &comp);
-    }
 
     BKNI_CreateEvent(&pContext->event);
     BKNI_CreateEvent(&pContext->wakeupEvent);
 
-    pContext->font = bfont_open("nxclient/arial_18_aa.bwin_font");
+    if(pmlib) {
+        pContext->pm_ctx = brcm_pm_init();
+    }
 
-#ifndef NXSERVER_PMLIB_SUPPORT
-    pContext->pm_ctx = brcm_pm_init();
-#endif
+    NxClient_UnregisterAcknowledgeStandby(NxClient_RegisterAcknowledgeStandby());
 
-    render_ui(pContext);
+    set_power_state(pContext);
 
-    rc = pthread_create(&pContext->standby_thread_id, NULL, standby_monitor, pContext);
-    if (rc) return -1;
+    if(exit) goto done;
 
-    rc = pthread_create(&pContext->remote_thread_id, NULL, remote_key_monitor, pContext);
-    if (rc) return -1;
+    if(gui) {
+        bgui_get_default_settings(&gui_settings);
+        gui_settings.width = GUI_WIDTH;
+        gui_settings.height = GUI_HEIGHT*pContext->total_buttons;
+        pContext->gui = bgui_create(&gui_settings);
+        pContext->input = binput_open(NULL);
 
-    if(pContext->prompt) {
+        {
+            NEXUS_SurfaceComposition comp;
+            NxClient_GetSurfaceClientComposition(bgui_surface_client_id(pContext->gui), &comp);
+            comp.position.x = GUI_HEIGHT;
+            comp.position.y = GUI_HEIGHT;
+            comp.position.width = GUI_WIDTH;
+            comp.position.height = GUI_HEIGHT*pContext->total_buttons;
+            comp.zorder = 100; /* always on top */
+            NxClient_SetSurfaceClientComposition(bgui_surface_client_id(pContext->gui), &comp);
+        }
+
+        pContext->font = bfont_open("nxclient/arial_18_aa.bwin_font");
+
+        render_ui(pContext);
+
+        rc = pthread_create(&pContext->remote_thread_id, NULL, remote_key_monitor, pContext);
+        if (rc) return -1;
+    }
+
+    if(prompt) {
         rc = pthread_create(&pContext->cmdline_thread_id, NULL, cmdline_monitor, pContext);
         if (rc) return -1;
     }
@@ -457,32 +523,46 @@ int main(int argc, const char **argv)
         if(pContext->done)
             break;
 
+        set_power_state(pContext);
         if(pContext->mode == NEXUS_PlatformStandbyMode_eOn) {
-            resume(pContext);
             print_wakeup(pContext);
-        } else {
-            standby(pContext);
         }
     }
 
-    if(pContext->prompt) {
+    if(pContext->cmdline_thread_id) {
         pthread_join(pContext->cmdline_thread_id, NULL);
     }
-    pthread_join(pContext->remote_thread_id, NULL);
-    pthread_join(pContext->standby_thread_id, NULL);
-
-#ifndef NXSERVER_PMLIB_SUPPORT
-    brcm_pm_close(pContext->pm_ctx);
-#endif
-
+    if(pContext->remote_thread_id) {
+        pthread_join(pContext->remote_thread_id, NULL);
+    }
     if (pContext->font) {
         bfont_close(pContext->font);
     }
-    BKNI_DestroyEvent(pContext->event);
-    BKNI_DestroyEvent(pContext->wakeupEvent);
-    bgui_destroy(pContext->gui);
-    binput_close(pContext->input);
+    if (pContext->input) {
+        binput_close(pContext->input);
+    }
+    if (pContext->gui) {
+        bgui_destroy(pContext->gui);
+    }
+done:
+    if(pContext->pm_ctx) {
+        brcm_pm_close(pContext->pm_ctx);
+    }
+    if (pContext->wakeupEvent) {
+        BKNI_DestroyEvent(pContext->wakeupEvent);
+    }
+    if (pContext->event) {
+        BKNI_DestroyEvent(pContext->event);
+    }
     NxClient_Uninit();
 
     return 0;
 }
+#else
+#include <stdio.h>
+int main(void)
+{
+    printf("This application is not supported on this platform.\n");
+    return 0;
+}
+#endif

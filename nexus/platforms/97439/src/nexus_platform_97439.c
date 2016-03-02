@@ -1,49 +1,43 @@
-/***************************************************************************
-*     (c)2010-2015 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bstd.h"
 #include "nexus_platform_priv.h"
 #include "nexus_platform_features.h"
@@ -55,10 +49,6 @@ BDBG_MODULE(nexus_platform_97439);
 */
 static void nexus_p_modifyMemoryRtsSettings(NEXUS_MemoryRtsSettings *pRtsSettings )
 {
-#if !NEXUS_HAS_VIDEO_DECODER && !NEXUS_HAS_VIDEO_ENCODER
-    BSTD_UNUSED(pRtsSettings);
-#endif
-
 #if NEXUS_HAS_VIDEO_DECODER
     switch (pRtsSettings->boxMode)
     {
@@ -206,10 +196,9 @@ static void nexus_p_modifyMemoryRtsSettings(NEXUS_MemoryRtsSettings *pRtsSetting
          pRtsSettings->videoDecoder[1].avdIndex = 1;   /* HVD 1 */
 
          /* No XCODE */
-
-         pRtsSettings->avd[0].memcIndex = 1;           /* main video, Luma  */
-         pRtsSettings->avd[0].secondaryMemcIndex = 0;  /* main video, Chroma */
-         pRtsSettings->avd[0].splitBufferHevc = true;
+         pRtsSettings->avd[0].memcIndex = 0;           /* main video, Luma  */
+         pRtsSettings->avd[0].secondaryMemcIndex = 0;
+         pRtsSettings->avd[0].splitBufferHevc = false;
          pRtsSettings->avd[1].memcIndex = 0;           /* main video, Luma  */
          pRtsSettings->avd[1].splitBufferHevc = false;
          break;
@@ -310,40 +299,10 @@ static void nexus_p_modifyMemoryRtsSettings(NEXUS_MemoryRtsSettings *pRtsSetting
     default:
        BDBG_ERR((" NEED TO SET CORRECT BOX MODE %d",pRtsSettings->boxMode ));
        break;
-
-
     }
+#else
+    BSTD_UNUSED(pRtsSettings);
 #endif /* NEXUS_HAS_VIDEO_DECODER */
-#if NEXUS_HAS_VIDEO_ENCODER /* to be completed later*/
-    switch (pRtsSettings->boxMode)
-    {
-        default:
-        case 1:
-        case 3:
-        case 6:
-        case 10:
-        case 12:
-        case 13:
-        case 14:
-        case 20:
-            /* NO ENCODER ALLOWED */
-            break;
-        case 2: /* 7439 box mode 2 & 4 */
-        case 4:
-        case 7:
-        case 9:
-        case 18:
-            pRtsSettings->vce[0].memcIndex     = 0;
-            pRtsSettings->vce[1].memcIndex     = 0;
-            break;
-        case 5:
-        case 16:
-        case 17:
-        case 19:
-            pRtsSettings->vce[0].memcIndex     = 0;
-            break;
-    }
-#endif /* NEXUS_HAS_VIDEO_ENCODER */
 }
 
 static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfigurationSettings *pSettings )
@@ -353,9 +312,7 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
     unsigned i;
     for (i=0;i<NEXUS_NUM_VIDEO_DECODERS;i++) {
         pSettings->videoDecoder[i].supportedCodecs[NEXUS_VideoCodec_eH265] = true;
-#if BCHP_VER >= BCHP_VER_B0
         pSettings->videoDecoder[i].supportedCodecs[NEXUS_VideoCodec_eVp9] = true;
-#endif
     }
     /* enable MVC 3D for decoder 0 */
     pSettings->videoDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH264_Mvc] = true;
@@ -425,6 +382,7 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
 
            /* for transcondig decode 1920x1080p30 10-bit HEVC / 8 bit VP9 */
            pSettings->videoDecoder[2].colorDepth = 10; /* 10 bit Only for HEVC */
+           pSettings->videoDecoder[2].maxFormat = NEXUS_VideoFormat_e1080p30hz;
            pSettings->videoDecoder[0].mosaic.maxNumber = 3;
            pSettings->videoDecoder[0].mosaic.maxHeight = 1088;
            pSettings->videoDecoder[0].mosaic.maxWidth = 1920;
@@ -621,14 +579,14 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
 
 NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 {
-   const char *board = NULL;
+   const char *board;
    /* TODO: some day this needs to become run-time vs. compile time. read product ID */
-    board = "7439 B0 Based ";
+    board = "7439 B0 Based";
 
 #if defined NEXUS_USE_7252S_VMS_SFF
     board = "7252S VMS SFF";
 #elif defined NEXUS_USE_3390_VMS
-	board = "93390 VMS";
+    board = "93390 VMS";
 #elif defined NEXUS_USE_7439_SFF
     board = "SFF board";
 #elif defined NEXUS_USE_7439_SV
@@ -636,16 +594,7 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 #elif defined NEXUS_USE_7252S_SAT
     board = "SAT board";
 #endif
-
-    if (board)
-    {
-       BDBG_WRN(("*** Initializing %s Board ...***", board));
-    }
-    else
-    {
-       BDBG_WRN(("*** Initializing a 7439 B0 Board, but not subtype detected ...***"));
-    }
-
+    BDBG_WRN(("*** Initializing %s Board ...***", board));
     return 0;
 }
 

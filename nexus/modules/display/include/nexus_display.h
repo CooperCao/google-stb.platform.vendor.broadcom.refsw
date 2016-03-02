@@ -154,7 +154,8 @@ typedef struct NEXUS_DisplaySettings
                                               eDisable means 60.00, 30.00, etc., regardless of autoMaster and source.
                                               eEnable means 59.94, 29.97, etc., regardless of autoMaster and source. */
     NEXUS_Pixel background;                /* Background color in NEXUS_PixelFormat_eA8_R8_G8_B8 colorspace */
-    bool xvYccEnabled;                     /* If true, Nexus will check the HdmiInput for xvYCC colorspace and, if detected, will output xvYcc to an HdmiOutput or PanelOutput. */
+    bool xvYccEnabled;                     /* Set true if stream content supports xvYCC,
+                                                         HdmiOutput will signal xvYCC enabled if the attached HDMI Rx supports xvYCC */
     NEXUS_DisplayHandle alignmentTarget;   /* If non-NULL, Nexus will ask VDC to align this display's timing to the display
                                               specified as the target.  This only works when both displays are the same frame
                                               rate and frameRateMaster is NULL and NEXUS_VideoWindowSettings.autoMaster is false.

@@ -114,6 +114,7 @@ static void print_usage(void)
         "  -sar X,Y                  Set sample aspect ratio with X:Y dimensions\n"
         "  -sd                       Apply following -format, -ar, -sar and -backgroundColor options to SD display\n"
         "  -wait                     Wait for status changes\n"
+        "  -status                   Print extended status\n"
         );
     print_list_option("colorSpace",g_colorSpaceStrs);
     printf(
@@ -135,6 +136,22 @@ static void print_usage(void)
         "  -mdcv.luma.max MAX   units 1 cd / m^2, -1 means from input\n"
         "  -mdcv.luma.min MIN   units 0.0001 cd / m^2, -1 means from input\n"
     );
+}
+
+static bool drm_configured(const NEXUS_HdmiDynamicRangeMasteringInfoFrame *pInfo)
+{
+    return (int)pInfo->metadata.typeSettings.type1.contentLightLevel.max != -1 ||
+        (int)pInfo->metadata.typeSettings.type1.contentLightLevel.maxFrameAverage != -1 ||
+        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.redPrimary.x != -1 ||
+        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.redPrimary.y != -1 ||
+        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.greenPrimary.x != -1 ||
+        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.greenPrimary.y != -1 ||
+        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.bluePrimary.x != -1 ||
+        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.bluePrimary.y != -1 ||
+        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.whitePoint.x != -1 ||
+        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.whitePoint.y != -1 ||
+        (int)pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.max != -1 ||
+        (int)pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.min != -1;
 }
 
 static void print_settings(const char *name, const NxClient_DisplaySettings *pSettings, const NxClient_PictureQualitySettings *pqSettings)
@@ -165,11 +182,11 @@ static void print_settings(const char *name, const NxClient_DisplaySettings *pSe
         n += snprintf(&buf[n], sizeof(buf)-n, " composite");
     }
     if (pSettings->hdmiPreferences.enabled) {
-        n += snprintf(&buf[n], sizeof(buf)-n, " hdmi(%d bit,%s,%shdcp,",
+        n += snprintf(&buf[n], sizeof(buf)-n, " hdmi(%d bit,%s",
             pSettings->hdmiPreferences.colorDepth,
-            lookup_name(g_colorSpaceStrs, pSettings->hdmiPreferences.colorSpace),
-            pSettings->hdmiPreferences.hdcp?"":"no ");
-        n += snprintf(&buf[n], sizeof(buf)-n, "DRM{%s,mdcv{rgbw=(%d,%d),(%d,%d),(%d,%d),(%d,%d),luma=(%d,%d)},cll={%d,%d}})",
+            lookup_name(g_colorSpaceStrs, pSettings->hdmiPreferences.colorSpace));
+        if (drm_configured(&pSettings->hdmiPreferences.drmInfoFrame)) {
+            n += snprintf(&buf[n], sizeof(buf)-n, ",DRM{%s,mdcv{rgbw=(%d,%d),(%d,%d),(%d,%d),(%d,%d),luma=(%d,%d)},cll={%d,%d}}",
             lookup_name(g_videoEotfStrs, pSettings->hdmiPreferences.drmInfoFrame.eotf),
             pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.contentLightLevel.max,
             pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.contentLightLevel.maxFrameAverage,
@@ -183,6 +200,8 @@ static void print_settings(const char *name, const NxClient_DisplaySettings *pSe
             pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.whitePoint.y,
             pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.max,
             pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.min);
+        }
+        n += snprintf(&buf[n], sizeof(buf)-n, ")");
     }
     printf("%s\n", buf);
 
@@ -197,6 +216,24 @@ static void print_settings(const char *name, const NxClient_DisplaySettings *pSe
             pSettings->backgroundColor);
     }
 }
+
+static const char *g_hdcpState[NEXUS_HdmiOutputHdcpState_eMax] = {
+    "Unpowered",
+    "Unauthenticated",
+    "WaitForValidVideo",
+    "InitializedAuthentication",
+    "WaitForReceiverAuthentication",
+    "ReceiverR0Ready",
+    "R0LinkFailure",
+    "ReceiverAuthenticated",
+    "WaitForRepeaterReady",
+    "CheckForRepeaterReady",
+    "RepeaterReady",
+    "LinkAuthenticated",
+    "EncryptionEnabled",
+    "RepeaterAuthenticationFailure",
+    "RiLinkIntegrityFailure",
+    "PjLinkIntegrityFailure"};
 
 static void print_status(void)
 {
@@ -213,9 +250,10 @@ static void print_status(void)
             status.transcodeDisplays.used,
             status.transcodeDisplays.total);
 #if NEXUS_HAS_HDMI_OUTPUT
-        printf("HdmiOutput: connected? %c; preferred format %s\n",
+        printf("HdmiOutput: connected? %c; preferred format %s, hdcp %s\n",
             status.hdmi.status.connected?'y':'n',
-            lookup_name(g_videoFormatStrs, status.hdmi.status.preferredVideoFormat));
+            lookup_name(g_videoFormatStrs, status.hdmi.status.preferredVideoFormat),
+            g_hdcpState[status.hdmi.hdcp.hdcpState]);
 #endif
     }
 #if NEXUS_HAS_HDMI_OUTPUT

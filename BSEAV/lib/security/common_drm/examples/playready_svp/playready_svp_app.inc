@@ -36,10 +36,6 @@
 # ANY LIMITED REMEDY.
 #
 ###############################################################################################
-
-
-PLAYREADY_TEST = y
-
 ifeq ($(NXCLIENT_SUPPORT),y)
 include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
 

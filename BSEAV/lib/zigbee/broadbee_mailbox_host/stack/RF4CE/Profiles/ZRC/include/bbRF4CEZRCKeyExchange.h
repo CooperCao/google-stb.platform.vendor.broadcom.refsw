@@ -105,6 +105,8 @@ struct _RF4CE_ZRC2_KeyExchangeReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;         /*!< Service field. */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC2_KeyExchangeReqParams_t params;   /*!< Filled by application request structure */
     RF4CE_ZRC2_KeyExchangeCallback_t callback;  /*!< The request confirmation callback */

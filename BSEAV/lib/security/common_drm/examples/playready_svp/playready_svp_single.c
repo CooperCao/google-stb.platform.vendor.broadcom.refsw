@@ -1,53 +1,41 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Example to playback Playready DRM encrypted content
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 /* Nexus example app: Play Ready decrypt, PIFF parser, and PES conversion decode */
 
 #define LOG_NDEBUG 0
@@ -144,6 +132,12 @@ static uint8_t  sSessionIdBuf[DRM_PRDY_SESSION_ID_LEN];
 
 /* stream type */
 int vc1_stream = 0;
+
+/* Use secure buffers for playback if true
+* Secure buffers only apply when SAGE enabled, always false otherwise.
+* Should be FALSE for SAGE_SECURE_MODE=1, and TRUE for SAGE_SECURE_MODE 5/6/9 */
+bool secure_pic_buffers = false;
+
 typedef app_ctx * app_ctx_t;
 static int video_decode_hdr;
 
@@ -1503,6 +1497,7 @@ int initSecureClock( DRM_Prdy_Handle_t drm)
                                                         1,
                                                         150,
                                                         (unsigned char**)&(timeChResp),
+							1024*5,
                                                         &startOffset,
                                                         &length);
     if( post_ret != 0)
@@ -1543,6 +1538,16 @@ clean_exit:
 }
 #endif
 
+void print_usage(char *program)
+{
+    BDBG_ERR(("%s usage:", program));
+    BDBG_ERR(("\t %s <input file> [option(s)]", program));
+    BDBG_ERR(("\t -vc1     stream is vc1"));
+#if USE_SVP
+    BDBG_ERR(("\t -secure  Use secure picture buffers (SAGE_SECURE_MODE != 1)"));
+#endif
+}
+
 int main(int argc, char* argv[])
 {
     NEXUS_Error rc;
@@ -1568,20 +1573,57 @@ int main(int argc, char* argv[])
     uint32_t            secClkStatus; /* secure clock status */
 
     if (argc < 2) {
-        BDBG_ERR(("Usage : %s <input_file> [-vc1]", argv[0]));
+        print_usage(argv[0]);
         return -1;
     }
 
-    if ((argc == 3) && (strcmp(argv[2], "-vc1") == 0))
-        vc1_stream = 1;
+    while(argc>2)
+    {
+        argc--;
+        if(strcmp(argv[argc], "-vc1") == 0)
+        {
+            vc1_stream = 1;
+        }
+#if USE_SVP
+        /* Secure picture buffers only apply w/ SAGE enabled... only allow
+        * setting this w/ SAGE */
+        else if(strcmp(argv[argc], "-secure") == 0)
+        {
+            secure_pic_buffers = true;
+        }
+#endif
+        else
+        {
+            BDBG_ERR(("Unrecognized option: %s", argv[argc]));
+        }
+    }
 
-    BDBG_MSG(("@@@ MSG Check Point Start vc1_stream %d--", vc1_stream));
+    BDBG_MSG(("@@@ MSG Check Point Start: vc1_stream=%d --  URR=%d",
+              vc1_stream, secure_pic_buffers));
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
 #if USE_SVP
-    memConfigSettings.videoDecoder[0].secure = NEXUS_SecureVideo_eSecure;
-    memConfigSettings.display[0].window[0].secure = NEXUS_SecureVideo_eSecure;
+    if (secure_pic_buffers)
+    {
+        int i,j;
+
+        /* Request secure picture buffers, i.e. URR
+        * Should only do this if SAGE is in use, and when SAGE_SECURE_MODE is NOT 1 */
+        /* For now default to SVP2.0 type configuration (i.e. ALL buffers are
+        * secure ONLY */
+        for (i=0;i<NEXUS_NUM_VIDEO_DECODERS;i++)
+        {
+            memConfigSettings.videoDecoder[i].secure = NEXUS_SecureVideo_eSecure;
+        }
+        for (i=0;i<NEXUS_NUM_DISPLAYS;i++)
+        {
+            for (j=0;j<NEXUS_NUM_VIDEO_WINDOWS;j++)
+            {
+                memConfigSettings.display[i].window[j].secure = NEXUS_SecureVideo_eSecure;
+            }
+        }
+    }
 #endif
     platformSettings.openFrontend = false;
     rc = NEXUS_Platform_MemConfigInit(&platformSettings, &memConfigSettings);
@@ -1660,7 +1702,12 @@ int main(int argc, char* argv[])
     NEXUS_VideoDecoder_GetDefaultOpenSettings(&videoDecoderOpenSettings);
 #if USE_SVP
     videoDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
-    videoDecoderOpenSettings.secureVideo = NEXUS_SecureVideo_eSecure;
+    if (secure_pic_buffers)
+    {
+        /* Request a secure decoder, i.e. secure picture buffers, i.e. URR
+        * Should only do this if SAGE is in use, and when SAGE_SECURE_MODE is NOT 1 */
+        videoDecoderOpenSettings.secureVideo = NEXUS_SecureVideo_eSecure;
+    }
 #endif
     videoDecoder = NEXUS_VideoDecoder_Open(0, &videoDecoderOpenSettings);
     NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));

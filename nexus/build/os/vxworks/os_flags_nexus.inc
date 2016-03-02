@@ -35,18 +35,14 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#   This file defines the nexus OS-specific flags for building in vxworks.
-#
-# Revision History:
-#
-# $brcm_Log: $
-# 
 ############################################################
+
+#
+# Default to -Os by default
+#
+ifndef B_REFSW_OPTIMIZER_LEVEL
+B_REFSW_OPTIMIZER_LEVEL := s
+endif
 
 #
 # Default to loadable module
@@ -55,11 +51,10 @@ ifndef B_REFSW_SHAREABLE
 B_REFSW_SHAREABLE := y
 endif
 
-ifeq ($(B_REFSW_DEBUG),n)
-NEXUS_CFLAGS += -Os
-else
-NEXUS_CFLAGS += -g -Os
+ifeq ($(B_REFSW_DEBUG),y)
+NEXUS_CFLAGS += -g
 endif
+NEXUS_CFLAGS += -O${B_REFSW_OPTIMIZER_LEVEL}
 
 #
 # Allow for shared and non-shared builds.  Shared will be relocatable, non-shared will not.

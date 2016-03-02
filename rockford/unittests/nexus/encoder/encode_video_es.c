@@ -38,13 +38,13 @@
 * $brcm_Workfile: $
 * $brcm_Revision: $
 * $brcm_Date: $
-* 
+*
 * Module Description:
-* 
+*
 * Revision History:
-* 
+*
 * $brcm_Log: $
-* 
+*
 *****************************************************************************/
 /* Nexus unittest app: encode video from file/qam/hdmi source */
 
@@ -119,23 +119,23 @@ static void lock_callback(void *context, int param)
 typedef struct EncodeSettings {
 	char                    fname[256];
 	char                    indexfname[256];
-	NEXUS_VideoFormat       displayFormat;       
-	NEXUS_VideoFrameRate    encoderFrameRate;    
-	int                     encoderBitrate;    
-	int                     encoderGopStructureFramesP;    
-	int                     encoderGopStructureFramesB;    
-	NEXUS_VideoCodec        encoderVideoCodec;    
-	NEXUS_VideoCodecProfile encoderProfile;       
+	NEXUS_VideoFormat       displayFormat;
+	NEXUS_VideoFrameRate    encoderFrameRate;
+	int                     encoderBitrate;
+	int                     encoderGopStructureFramesP;
+	int                     encoderGopStructureFramesB;
+	NEXUS_VideoCodec        encoderVideoCodec;
+	NEXUS_VideoCodecProfile encoderProfile;
 	NEXUS_VideoCodecLevel   encoderLevel;
 	NEXUS_DisplayCustomFormatSettings customFormatSettings;
 	bool                    bCustom;
-}  EncodeSettings;   
+}  EncodeSettings;
 
 typedef struct InputSettings{
 	int                   resource;
 	char                 fname[256];
-	NEXUS_TransportType  eStreamType;          
-	NEXUS_VideoCodec     encoderVideoCodec;    
+	NEXUS_TransportType  eStreamType;
+	NEXUS_VideoCodec     encoderVideoCodec;
 	int                  iVideoPid;
 	int                   iPcrPid;
 	int                   freq;
@@ -148,18 +148,18 @@ static int kbhit(void)
 {
 	struct timeval tv;
 	fd_set read_fd;
-	
+
 	tv.tv_sec=0;
 	tv.tv_usec=0;
 	FD_ZERO(&read_fd);
 	FD_SET(0,&read_fd);
-	
+
 	if(select(1, &read_fd, NULL, NULL, &tv) == -1)
 	return 0;
-	
+
 	if(FD_ISSET(0,&read_fd))
 	return 1;
-	
+
 	return 0;
 
 }
@@ -187,7 +187,7 @@ int transcode_qam(EncodeSettings  *pEncodeSettings,
 	NEXUS_VideoEncoderDelayRange videoDelay;
 	NEXUS_VideoEncoderStartSettings videoEncoderStartConfig;
 	NEXUS_VideoEncoderStatus videoEncoderStatus;
-	NEXUS_PidChannelHandle videoPidChannel;        
+	NEXUS_PidChannelHandle videoPidChannel;
 	NEXUS_VideoDecoderStartSettings videoProgram;
 	NEXUS_DisplayCustomFormatSettings customFormatSettings;
 	NEXUS_Error rc;
@@ -233,7 +233,7 @@ int transcode_qam(EncodeSettings  *pEncodeSettings,
 		default:
 		case NEXUS_FrontendQamMode_e64: qamSettings.symbolRate = 5056900; break;
 		case NEXUS_FrontendQamMode_e256: qamSettings.symbolRate = 5360537; break;
-		case NEXUS_FrontendQamMode_e1024: qamSettings.symbolRate = 0; /* TODO */ break; 
+		case NEXUS_FrontendQamMode_e1024: qamSettings.symbolRate = 0; /* TODO */ break;
 	}
 	qamSettings.annex = NEXUS_FrontendQamAnnex_eB;
 	qamSettings.bandwidth = NEXUS_FrontendQamBandwidth_e6Mhz;
@@ -249,20 +249,23 @@ int transcode_qam(EncodeSettings  *pEncodeSettings,
 	parserBandSettings.sourceTypeSettings.inputBand = userParams.param1;  /* Platform initializes this to input band */
 	parserBandSettings.transportType = pInputSettings->eStreamType;
 	NEXUS_ParserBand_SetSettings(parserBand, &parserBandSettings);
+	videoPidChannel = NEXUS_PidChannel_Open(parserBand, pInputSettings->iVideoPid, NULL);
 
-	NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings); 
-	stcSettings.timebase = NEXUS_Timebase_e0;    
+	NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
+	stcSettings.timebase = NEXUS_Timebase_e0;
+	stcSettings.mode = NEXUS_StcChannelMode_ePcr;
+	stcSettings.modeSettings.pcr.pidChannel = videoPidChannel; /* PCR happens to be on video pid */
 	stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
 
 
-	NEXUS_Display_GetDefaultSettings(&displaySettings);    
-	displaySettings.format = NEXUS_VideoFormat_eNtsc;    
-	display = NEXUS_Display_Open(0, &displaySettings);    
+	NEXUS_Display_GetDefaultSettings(&displaySettings);
+	displaySettings.format = NEXUS_VideoFormat_eNtsc;
+	display = NEXUS_Display_Open(0, &displaySettings);
 
 
 
 #if NEXUS_NUM_COMPONENT_OUTPUTS
-	if(platformConfig.outputs.component[0]){		
+	if(platformConfig.outputs.component[0]){
 		NEXUS_Display_AddOutput(display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
 	}
 #endif
@@ -280,7 +283,7 @@ int transcode_qam(EncodeSettings  *pEncodeSettings,
 	NEXUS_Display_GetDefaultSettings(&displaySettings);
 	displaySettings.displayType = NEXUS_DisplayType_eAuto;
 	displaySettings.timingGenerator = NEXUS_DisplayTimingGenerator_eEncoder;
-	
+
 	if(!pEncodeSettings->bCustom)
 	{
 		displaySettings.format = (NEXUS_VideoFormat)pEncodeSettings->displayFormat;
@@ -291,7 +294,7 @@ int transcode_qam(EncodeSettings  *pEncodeSettings,
 	{
 		displayTranscode = NEXUS_Display_Open(NEXUS_ENCODER_DISPLAY_IDX, &displaySettings);
 		assert(displayTranscode);
-		
+
 		NEXUS_Display_GetDefaultCustomFormatSettings(&customFormatSettings);
 		customFormatSettings.width = pEncodeSettings->customFormatSettings.width;
 		customFormatSettings.height = pEncodeSettings->customFormatSettings.height;
@@ -302,23 +305,16 @@ int transcode_qam(EncodeSettings  *pEncodeSettings,
 		rc = NEXUS_Display_SetCustomFormatSettings(displayTranscode, NEXUS_VideoFormat_eCustom2, &customFormatSettings);
 		assert(!rc);
 	}
-	
+
 	windowTranscode = NEXUS_VideoWindow_Open(displayTranscode, 0);
 
-
-	videoDecoder = NEXUS_VideoDecoder_Open(0, NULL);    
+	videoDecoder = NEXUS_VideoDecoder_Open(0, NULL);
 	NEXUS_VideoWindow_AddInput(window,          NEXUS_VideoDecoder_GetConnector(videoDecoder));
 	NEXUS_VideoWindow_AddInput(windowTranscode, NEXUS_VideoDecoder_GetConnector(videoDecoder));
 
-
-
-
-
-
-	videoPidChannel = NEXUS_PidChannel_Open(parserBand, pInputSettings->iVideoPid, NULL);
 	NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
-	videoProgram.codec = pInputSettings->encoderVideoCodec;        
-	videoProgram.pidChannel = videoPidChannel;        
+	videoProgram.codec = pInputSettings->encoderVideoCodec;
+	videoProgram.pidChannel = videoPidChannel;
 	videoProgram.stcChannel = stcChannel;
 
 	NEXUS_Frontend_TuneQam(frontend, &qamSettings);
@@ -330,6 +326,7 @@ int transcode_qam(EncodeSettings  *pEncodeSettings,
 	stcSettings.timebase = NEXUS_Timebase_e0;
 	stcSettings.mode = NEXUS_StcChannelMode_eAuto;
 	stcSettings.pcrBits = NEXUS_StcChannel_PcrBits_eFull42;/* ViCE2 requires 42-bit STC broadcast */
+	stcSettings.autoConfigTimebase = false; /* don't let encoder stc to auto config timebase */
 	stcChannelEncoder = NEXUS_StcChannel_Open(1, &stcSettings);
 
 	NEXUS_VideoEncoder_GetSettings(videoEncoder, &videoEncoderConfig);
@@ -387,8 +384,8 @@ int transcode_qam(EncodeSettings  *pEncodeSettings,
 					if((desc[j][i].flags & NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_METADATA) ==0) {/* ignore metadata descriptor in es capture */
 						fwrite((const uint8_t *)pDataBuffer + desc[j][i].offset, desc[j][i].length, 1, fout);
 					}
-					fprintf(fdesc, "%8x %8x   %x%08x %08x	  %5u	%5d   %8x %8x\n", desc[j][i].flags, desc[j][i].originalPts, 
-						(uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr, 
+					fprintf(fdesc, "%8x %8x   %x%08x %08x	  %5u	%5d   %8x %8x\n", desc[j][i].flags, desc[j][i].originalPts,
+						(uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr,
 						desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, desc[j][i].length);
 					bytes+= desc[j][i].length;
 					if(desc[j][i].length > 0x100000)
@@ -433,7 +430,7 @@ int transcode_qam(EncodeSettings  *pEncodeSettings,
 
 int transcode_hdmi(EncodeSettings* pEncodeSettings)
 {
-#if NEXUS_NUM_HDMI_INPUTS	
+#if NEXUS_NUM_HDMI_INPUTS
 	NEXUS_PlatformSettings platformSettings;
 	NEXUS_PlatformConfiguration platformConfig;
 	NEXUS_StcChannelHandle stcChannel,stcChannelEncoder;
@@ -492,7 +489,7 @@ int transcode_hdmi(EncodeSettings* pEncodeSettings)
 	if(platformConfig.outputs.component[0]){
 		NEXUS_Display_AddOutput(display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
 	}
-#endif 
+#endif
 
 	window = NEXUS_VideoWindow_Open(display, 0);
 
@@ -518,7 +515,7 @@ int transcode_hdmi(EncodeSettings* pEncodeSettings)
 	{
 		displayTranscode = NEXUS_Display_Open(NEXUS_ENCODER_DISPLAY_IDX, &displaySettings);
 		assert(displayTranscode);
-		
+
 		NEXUS_Display_GetDefaultCustomFormatSettings(&customFormatSettings);
 		customFormatSettings.width = pEncodeSettings->customFormatSettings.width;
 		customFormatSettings.height = pEncodeSettings->customFormatSettings.height;
@@ -529,7 +526,7 @@ int transcode_hdmi(EncodeSettings* pEncodeSettings)
 		rc = NEXUS_Display_SetCustomFormatSettings(displayTranscode, NEXUS_VideoFormat_eCustom2, &customFormatSettings);
 		assert(!rc);
 	}
-	
+
 	windowTranscode = NEXUS_VideoWindow_Open(displayTranscode, 0);
 	assert(windowTranscode);
 
@@ -540,11 +537,12 @@ int transcode_hdmi(EncodeSettings* pEncodeSettings)
 	NEXUS_VideoWindow_AddInput(windowTranscode, NEXUS_HdmiInput_GetVideoConnector(hdmiInput));
 	NEXUS_VideoWindow_AddInput(window, NEXUS_HdmiInput_GetVideoConnector(hdmiInput));
 
-	/* encoder requires different STC broadcast mode from decoder */    
-	NEXUS_StcChannel_GetDefaultSettings(1, &stcSettings);    
-	stcSettings.timebase = NEXUS_Timebase_e0;    
-	stcSettings.mode = NEXUS_StcChannelMode_eAuto;    
-	stcSettings.pcrBits = NEXUS_StcChannel_PcrBits_eFull42;/* ViCE2 requires 42-bit STC broadcast */    
+	/* encoder requires different STC broadcast mode from decoder */
+	NEXUS_StcChannel_GetDefaultSettings(1, &stcSettings);
+	stcSettings.timebase = NEXUS_Timebase_e0;
+	stcSettings.mode = NEXUS_StcChannelMode_eAuto;
+	stcSettings.pcrBits = NEXUS_StcChannel_PcrBits_eFull42;/* ViCE2 requires 42-bit STC broadcast */
+	stcSettings.autoConfigTimebase = false; /* don't let encoder stc to auto config timebase */
 	stcChannelEncoder = NEXUS_StcChannel_Open(1, &stcSettings);
 
 	NEXUS_VideoEncoder_GetSettings(videoEncoder, &videoEncoderConfig);
@@ -596,8 +594,8 @@ int transcode_hdmi(EncodeSettings* pEncodeSettings)
 					if((desc[j][i].flags & NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_METADATA) ==0) {/* ignore metadata descriptor in es capture */
 						fwrite((const uint8_t *)pDataBuffer + desc[j][i].offset, desc[j][i].length, 1, fout);
 					}
-					fprintf(fdesc, "%8x %8x   %x%08x %08x	  %5u	%5d   %8x %8x\n", desc[j][i].flags, desc[j][i].originalPts, 
-						(uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr, 
+					fprintf(fdesc, "%8x %8x   %x%08x %08x	  %5u	%5d   %8x %8x\n", desc[j][i].flags, desc[j][i].originalPts,
+						(uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr,
 						desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, desc[j][i].length);
 					bytes+= desc[j][i].length;
 					if(desc[j][i].length > 0x100000)
@@ -635,7 +633,7 @@ int transcode_hdmi(EncodeSettings* pEncodeSettings)
 	printf("\n No HDMI input supported\n\n");
 	BSTD_UNUSED(pEncodeSettings);
 	return (0);
-#endif		
+#endif
 }
 
 int transcode_file(EncodeSettings* pEncodeSettings,
@@ -730,12 +728,12 @@ int transcode_file(EncodeSettings* pEncodeSettings,
    if(platformConfig.outputs.component[0]){
     	NEXUS_Display_AddOutput(display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
    }
-#endif 
+#endif
 #if NEXUS_NUM_HDMI_OUTPUTS
    if(platformConfig.outputs.hdmi[0]){
     	NEXUS_Display_AddOutput(display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
    }
-#endif 
+#endif
 
     window = NEXUS_VideoWindow_Open(display, 0);
 
@@ -759,7 +757,7 @@ int transcode_file(EncodeSettings* pEncodeSettings,
 		windowTranscode = NEXUS_VideoWindow_Open(displayTranscode, 0);
 		assert(windowTranscode);
 
-		
+
 		NEXUS_Display_GetDefaultCustomFormatSettings(&customFormatSettings);
 		customFormatSettings.width = pEncodeSettings->customFormatSettings.width;
 		customFormatSettings.height = pEncodeSettings->customFormatSettings.height;
@@ -771,7 +769,7 @@ int transcode_file(EncodeSettings* pEncodeSettings,
 		assert(!rc);
 	}
 
-	/* connect same decoder to encoder display 
+	/* connect same decoder to encoder display
 	* This simul mode is for video encoder bringup only; audio path may have limitation
 	* for simul display+transcode mode;
 	*/
@@ -925,8 +923,8 @@ int transcode_file(EncodeSettings* pEncodeSettings,
 					if((desc[j][i].flags & NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_METADATA) ==0) {/* ignore metadata descriptor in es capture */
 						fwrite((const uint8_t *)pDataBuffer + desc[j][i].offset, desc[j][i].length, 1, fout);
 					}
-					fprintf(fdesc, "%8x %8x   %x%08x %08x	  %5u	%5d   %8x %8x\n", desc[j][i].flags, desc[j][i].originalPts, 
-						(uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr, 
+					fprintf(fdesc, "%8x %8x   %x%08x %08x	  %5u	%5d   %8x %8x\n", desc[j][i].flags, desc[j][i].originalPts,
+						(uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr,
 						desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, desc[j][i].length);
 					bytes+= desc[j][i].length;
 					if(desc[j][i].length > 0x100000)
@@ -946,7 +944,7 @@ int transcode_file(EncodeSettings* pEncodeSettings,
 	/**************************************************
 	* NOTE: stop sequence should be in front->back order
 	*/
-	
+
 	NEXUS_VideoEncoder_Stop(videoEncoder, NULL);
 	NEXUS_Playback_Stop(playback);
 	NEXUS_VideoDecoder_Stop(videoDecoder);
@@ -959,7 +957,7 @@ int transcode_file(EncodeSettings* pEncodeSettings,
 
 	NEXUS_Playback_ClosePidChannel(playback, videoPidChannel);
 	NEXUS_FilePlay_Close(file);
-	
+
 	NEXUS_VideoInput_Shutdown(NEXUS_VideoDecoder_GetConnector(videoDecoder));
 	NEXUS_VideoDecoder_Close(videoDecoder);
 
@@ -998,10 +996,10 @@ int main(void)  {
 		{
 #if  BTST_SUPPORT_FRONTEND
 			printf("\n Front End QAM freq (MHz) ");                          scanf("%d", (int32_t*)&stInput.freq);
-			printf("\n Front End QAM Mode (%d) 64 (%d) 256 (%d) 1024 ", NEXUS_FrontendQamMode_e64, NEXUS_FrontendQamMode_e256, NEXUS_FrontendQamMode_e1024); 
+			printf("\n Front End QAM Mode (%d) 64 (%d) 256 (%d) 1024 ", NEXUS_FrontendQamMode_e64, NEXUS_FrontendQamMode_e256, NEXUS_FrontendQamMode_e1024);
 			scanf("%d", (int32_t*)&stInput.qamMode);
 			printf("\n source stream type (%d) Ts           ", NEXUS_TransportType_eTs); stInput.eStreamType = NEXUS_TransportType_eTs;
-			printf("\n source stream codec (%d) Mpeg2 (%d) H264    ", NEXUS_VideoCodec_eMpeg2, NEXUS_VideoCodec_eH264); 
+			printf("\n source stream codec (%d) Mpeg2 (%d) H264    ", NEXUS_VideoCodec_eMpeg2, NEXUS_VideoCodec_eH264);
 			scanf("%d", (int32_t*)&stInput.encoderVideoCodec);
 			printf("\n Video pid										   ");	   scanf("%d", &stInput.iVideoPid);
 			printf("\n Pcr	 pid										   ");	   scanf("%d", &stInput.iPcrPid);
@@ -1014,11 +1012,11 @@ int main(void)  {
 	case (BTST_RESOURCE_FILE):
 	default:
 		{
-			printf("\n source stream file: ");                       
+			printf("\n source stream file: ");
 			scanf("%s", stInput.fname);
 			printf("\n source stream type (%d) Es (%d) Ts            ", NEXUS_TransportType_eEs, NEXUS_TransportType_eTs);
 			scanf("%d", (int32_t*)&stInput.eStreamType);
-			printf("\n source stream codec (%d) Mpeg2 (%d) H264    ", NEXUS_VideoCodec_eMpeg2, NEXUS_VideoCodec_eH264); 
+			printf("\n source stream codec (%d) Mpeg2 (%d) H264    ", NEXUS_VideoCodec_eMpeg2, NEXUS_VideoCodec_eH264);
 			scanf("%d", (int32_t*)&stInput.encoderVideoCodec);
 			printf("\n Video pid										   ");	   scanf("%d", &stInput.iVideoPid);
 			printf("\n Pcr	 pid										   ");	   scanf("%d", &stInput.iPcrPid);
@@ -1086,19 +1084,19 @@ int main(void)  {
 			(NEXUS_VideoFormat_e720p50hz),
 			(NEXUS_VideoFormat_e720p24hz),
 			(NEXUS_VideoFormat_e720p25hz),
-			(NEXUS_VideoFormat_e720p30hz)); 
+			(NEXUS_VideoFormat_e720p30hz));
 
 		scanf("%d", (int32_t*)&stEncode.displayFormat);
 	}
 	else
 	{
-		printf("\n Resolution width & height                                                        "); 
+		printf("\n Resolution width & height                                                        ");
 		scanf("%d %d", (int32_t*)&stEncode.customFormatSettings.width, (int32_t*)&stEncode.customFormatSettings.height);
 
 		printf("\n refresh rate                                                                     "); scanf("%d", (int32_t*)&stEncode.customFormatSettings.refreshRate);
 		printf("\n Aspect Ratio (0) Auto (1) 4x3 (2) 16x9                                           "); scanf("%d", (int32_t*)&stEncode.customFormatSettings.aspectRatio);
 	}
-	
+
 	printf("\n Frame rate:\n"
 			" (%d) 23.976\n"
 			" (%d) 24\n"
@@ -1117,13 +1115,13 @@ int main(void)  {
 			NEXUS_VideoFrameRate_e50,
 			NEXUS_VideoFrameRate_e59_94,
 			NEXUS_VideoFrameRate_e60,
-			NEXUS_VideoFrameRate_e14_985); 
+			NEXUS_VideoFrameRate_e14_985);
 	scanf("%d", (int32_t*)&stEncode.encoderFrameRate);
 
-	printf("\n Bitrate (bps)                                                                        "); scanf("%d", (int32_t*)&stEncode.encoderBitrate);     
+	printf("\n Bitrate (bps)                                                                        "); scanf("%d", (int32_t*)&stEncode.encoderBitrate);
 	printf("\n P frame                                                                              "); scanf("%d", (int32_t*)&stEncode.encoderGopStructureFramesP);
 	printf("\n B frame                                                                              "); scanf("%d", (int32_t*)&stEncode.encoderGopStructureFramesB);
-	printf("\n Encode Video Codec: (%d) MPEG2 (%d) MPEG4 Part2 (%d) H264 ", NEXUS_VideoCodec_eMpeg2, NEXUS_VideoCodec_eMpeg4Part2, NEXUS_VideoCodec_eH264); 
+	printf("\n Encode Video Codec: (%d) MPEG2 (%d) MPEG4 Part2 (%d) H264 ", NEXUS_VideoCodec_eMpeg2, NEXUS_VideoCodec_eMpeg4Part2, NEXUS_VideoCodec_eH264);
 	scanf("%d", (int32_t*)&stEncode.encoderVideoCodec);
 	printf("\n Profile: (%d) Simple (%d) Main (%d) High (%d) Baseline                               ",
 			NEXUS_VideoCodecProfile_eSimple, NEXUS_VideoCodecProfile_eMain, NEXUS_VideoCodecProfile_eHigh, NEXUS_VideoCodecProfile_eBaseline);
@@ -1146,8 +1144,8 @@ int main(void)  {
 		" (%2d) High\n",
 		NEXUS_VideoCodecLevel_e10, NEXUS_VideoCodecLevel_e20, NEXUS_VideoCodecLevel_e21, NEXUS_VideoCodecLevel_e22, NEXUS_VideoCodecLevel_e30,
 		NEXUS_VideoCodecLevel_e31, NEXUS_VideoCodecLevel_e32, NEXUS_VideoCodecLevel_e40, NEXUS_VideoCodecLevel_e41,
-		NEXUS_VideoCodecLevel_e42, NEXUS_VideoCodecLevel_e50, NEXUS_VideoCodecLevel_eLow, NEXUS_VideoCodecLevel_eMain, NEXUS_VideoCodecLevel_eHigh); 
-	
+		NEXUS_VideoCodecLevel_e42, NEXUS_VideoCodecLevel_e50, NEXUS_VideoCodecLevel_eLow, NEXUS_VideoCodecLevel_eMain, NEXUS_VideoCodecLevel_eHigh);
+
 	scanf("%d", (int32_t*)&stEncode.encoderLevel);
 
 

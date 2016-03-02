@@ -1,7 +1,7 @@
-##############################################################################
-# (c) 2014 Broadcom Corporation
+#############################################################################
+# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its
+# This program is the proprietary software of Broadcom and/or its
 # licensors, and may only be used, duplicated, modified or distributed pursuant
 # to the terms and conditions of a separate, written license agreement executed
 # between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,7 @@
 #    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
 #    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
 #    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-##############################################################################
+#############################################################################
 #
 # FILENAME: $Workfile: trunk/projects/ml507_zrc1SingleRF4CETarget/Makefile $
 #
@@ -88,19 +88,33 @@ BINTARGET_CLEAN := $(addsuffix _clean,$(BINTARGET))
 #$(BINTARGET_BUILD)
 INCDIRS := $(shell ls -d ./include $(STACKDIR)/*/include $(STACKDIR)/*/*/include $(STACKDIR)/*/*/*/include 2>/dev/null)
 # Prepend all directories with '-I' for the tools set.
-INCDIRS += ./rf4ce_registration/include ./ha_registration/include ./rpc/include ../../../../../linux/driver/zigbee/
+INCDIRS += ./rf4ce_registration/include ./ha_registration/include ./common/include ../../../../../linux/driver/zigbee/
+ifeq ($(BYPASS_RPC),y)
+INCDIRS += ./non_rpc/include
+else
+INCDIRS += ./rpc/include
+endif
 export INCFLAGS := $(addprefix -I,$(INCDIRS))
 
 sys : export COMPDIR := $(STACKDIR)/common/System
 hal : export COMPDIR := $(STACKDIR)/common/HAL
 mbx : export COMPDIR := $(STACKDIR)/common/Mailbox
 nvm : export COMPDIR := $(STACKDIR)/common/NVM
+common : export COMPDIR := ./common
+ifeq ($(BYPASS_RPC),y)
+non_rpc : export COMPDIR := ./non_rpc
+else
 rpc : export COMPDIR := ./rpc
+endif
 rrn : export COMPDIR := ./rf4ce_registration
 hrn : export COMPDIR := ./ha_registration
 prj : export COMPDIR := ./
 
-COMPONENTS := sys hal mbx rpc rrn hrn prj
+ifeq ($(BYPASS_RPC),y)
+COMPONENTS := sys hal mbx non_rpc rrn hrn prj common
+else
+COMPONENTS := sys hal mbx rpc rrn hrn prj common
+endif
 
 ### Include the Stack Makefile. The Stack target 'all' will become the default target.
 include $(STACKDIR)/Makefile
@@ -109,11 +123,22 @@ $(COMPONENTS): objdir
 	$(SILENT)$(MAKE) component
 
 ### Rule to build the application.
+ifeq ($(BYPASS_RPC),y)
+AR = arm-linux-ar
+RANLIB = arm-linux-ranlib
+
+$(BINTARGET_BUILD) : $(OBJDIR)/*.o
+	@echo "--- AR: libzigbee.a"
+	@touch $(BINTARGET_BUILD)
+	$(SILENT)$(AR) cr $(OBJDIR)/libzigbee.a $(OBJDIR)/*.o
+	$(SILENT)$(RANLIB) $(OBJDIR)/libzigbee.a
+else
 $(BINTARGET_BUILD) : $(OBJDIR)/*.o
 	@echo "--- LNK: $(BINTARGET)"
 	@touch $(BINTARGET_BUILD)
 	$(SILENT)$(LD) $(LDFLAGS) $(LDSCRIPTFILE) $(OBJDIR)/*.o $(LIBS) -o ./obj.$(NEXUS_PLATFORM)/$(BINFILE)
 	$(SILENT)-size -td ./obj.$(NEXUS_PLATFORM)/$(BINFILE) 2>/dev/null
+endif
 
 
 ### Rule to clean the application.

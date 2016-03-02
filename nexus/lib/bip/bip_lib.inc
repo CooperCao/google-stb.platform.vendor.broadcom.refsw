@@ -1,5 +1,5 @@
 #############################################################################
-# (c) 2015 Broadcom Corporation
+# (c) 2016 Broadcom Corporation
 #
 # This program is the proprietary software of Broadcom Corporation and/or its
 # licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -95,10 +95,11 @@ include $(BSEAV)/lib/utils/batom.inc
 include $(BSEAV)/lib/media/bmedia.inc
 include $(BSEAV)/lib/bfile/bfile.inc
 
-ifeq ($(B_REFSW_DEBUG),n)
-    DEBUG_SUFFIX=release
+B_REFSW_DEBUG ?= y
+ifeq ($(B_REFSW_DEBUG),y)
+DEBUG_SUFFIX=debug
 else
-    DEBUG_SUFFIX=debug
+DEBUG_SUFFIX=release
 endif
 
 #

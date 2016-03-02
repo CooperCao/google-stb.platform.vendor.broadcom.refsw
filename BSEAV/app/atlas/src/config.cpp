@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -158,12 +158,7 @@ eRet CConfig::initChipInfo()
 eRet CConfig::initFeatures()
 {
     eRet              ret         = eRet_Ok;
-    CPlatform *       pPlatform   = NULL;
-    NEXUS_VideoFormat maxHdFormat = NEXUS_VideoFormat_eUnknown;
     CBoardFeatures    features;
-
-    pPlatform   = _cfg.getPlatformConfig();
-    maxHdFormat = pPlatform->getDisplayMaxVideoFormat();
 
     /* set default features */
     _features._pvrEncryption = true;

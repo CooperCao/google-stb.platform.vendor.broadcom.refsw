@@ -1,5 +1,5 @@
 ############################################################
-#    (c)2012-2014 Broadcom Corporation
+#    (c)2012-2016 Broadcom Corporation
 #
 # This program is the proprietary software of Broadcom Corporation and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -16,7 +16,7 @@
 # 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 # secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 # and to use this information only in connection with your use of Broadcom integrated circuit products.
-#  
+#
 # 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
 # AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
 # WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
@@ -70,10 +70,11 @@ ifneq ($(findstring 2.5, ${MSDRM_PRDY_SDK_VERSION}), 2.5)
 $(error unsupported Playready VERSION = ${MSDRM_PRDY_SDK_VERSION})
 endif
 
-ifeq ($(B_REFSW_DEBUG),n)
-PIFF_INSTALL	:= lib/retail
-else
+B_REFSW_DEBUG ?= y
+ifeq ($(B_REFSW_DEBUG),y)
 PIFF_INSTALL	:= lib/debug
+else
+PIFF_INSTALL	:= lib/retail
 endif
 
 include $(BSEAV_TOP)/lib/security/common_drm/lib/prdy_libdir.inc
@@ -84,7 +85,7 @@ APP_BINS = $(APPS)
 
 all: $(APP_BINS) copy
 
-$(APP_BINS): 
+$(APP_BINS):
 
 LDFLAGS := ${COMMON_DRM_LDFLAGS}
 LDFLAGS += -L$(NEXUS_BIN_DIR)/ -lpthread -lm -lnexus

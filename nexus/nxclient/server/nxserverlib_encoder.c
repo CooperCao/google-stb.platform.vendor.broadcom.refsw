@@ -81,7 +81,6 @@ int get_transcode_encoder_index(nxserver_t server, unsigned display)
     for (i=0;i<NEXUS_NUM_VIDEO_ENCODERS;i++) {
         if (get_transcode_display_index(server, i) == (int)display) return i;
     }
-    BDBG_MSG(("invalid encoder display %d", display));
     return -1;
 }
 

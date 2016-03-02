@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -99,7 +99,6 @@ typedef enum BMediaPlayerAction
 class CChannelBip : public CChannel
 {
 public:
-
     CChannelBip(
             const char *     strName,
             eBoardResource   type,

@@ -59,9 +59,6 @@
 #if NEXUS_HAS_FILE_MUX
 #include "nexus_file_mux_init.h"
 #endif
-#if NEXUS_HAS_WMDRMPD
-#include "nexus_wmdrmpd_init.h"
-#endif
 
 extern NEXUS_HeapHandle NEXUS_Platform_CreateHeap_proxy( const NEXUS_PlatformCreateHeapSettings *pSettings );
 extern void NEXUS_Platform_DestroyHeap_proxy( NEXUS_HeapHandle heap );
@@ -126,10 +123,6 @@ NEXUS_Platform_P_ModulesInit(const NEXUS_PlatformSettings *pSettings)
     NEXUS_ModuleHandle record;
     NEXUS_FileModuleSettings  fileModuleSettings;
 #endif
-#if NEXUS_HAS_WMDRMPD
-    NEXUS_ModuleHandle wmdrmpd;
-    NEXUS_WmDrmPdModuleSettings wmdrmpdSettings;
-#endif
 
     BSTD_UNUSED(pSettings);
     if (0) goto err; /* avoid warning */
@@ -185,17 +178,6 @@ NEXUS_Platform_P_ModulesInit(const NEXUS_PlatformSettings *pSettings)
     NEXUS_FileMuxModule_Init(NULL);
 #endif
 
-#if NEXUS_HAS_WMDRMPD
-    NEXUS_WmDrmPdModule_GetDefaultSettings(&wmdrmpdSettings);
-    wmdrmpdSettings.modules.wmdrmpdCore = NEXUS_Platform_P_State.module;
-    wmdrmpdSettings.modules.wmdrmpdIo = NEXUS_Platform_P_State.module;
-    wmdrmpd = NEXUS_WmDrmPdModule_Init(&wmdrmpdSettings);
-    if (!wmdrmpd) {
-        BDBG_ERR(("Unable to init wmdrmpd"));
-        errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);
-        goto err;
-    }
-#endif
     return NEXUS_SUCCESS;
 
 err:
@@ -207,9 +189,6 @@ NEXUS_Platform_P_ModulesUninit(void)
 {
     NEXUS_Base_Stop();
 
-#if NEXUS_HAS_WMDRMPD
-    NEXUS_WmDrmPdModule_Uninit();
-#endif
 #if NEXUS_HAS_FILE_MUX
     NEXUS_FileMuxModule_Uninit();
 #endif

@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2015 Broadcom Corporation
+ * (c) 2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -54,7 +54,8 @@ in hard disk or from a live source like qam tuner, bfile etc.
 typedef struct BIP_MediaInfo
 {
     BDBG_OBJECT(BIP_MediaInfo)
-    bool streamValid;                              /*!< if true, only then remaining fields contain valid information */
+    BIP_MediaInfoType     mediaInfoType;
+    int64_t               sizeInBytes;             /*!< File size in bytes, 0 if not known or for Live Channel */
     BIP_StringHandle      hAbsoluteMediaPath;      /*!< complete path to media file, only for File Src */
     NEXUS_ParserBand      parserBand;              /*!< parserBand being used for the live channel */
 

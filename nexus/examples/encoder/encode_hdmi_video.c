@@ -59,13 +59,14 @@
 #include "nexus_file.h"
 #include "nexus_video_encoder.h"
 #include "nexus_hdmi_input.h"
+#include "nexus_timebase.h"
 
 #include <stdio.h>
 #include <assert.h>
 #include "bstd.h"
 #include "bkni.h"
 
-static uint8_t SampleEDID[] = 
+static uint8_t SampleEDID[] =
 {
 	0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x08, 0x6D, 0x74, 0x22, 0x05, 0x01, 0x11, 0x20,
 	0x00, 0x14, 0x01, 0x03, 0x80, 0x00, 0x00, 0x78, 0x0A, 0xDA, 0xFF, 0xA3, 0x58, 0x4A, 0xA2, 0x29,
@@ -93,7 +94,7 @@ static void avInfoFrameChangedCallback(void *context, int param)
 
 	BSTD_UNUSED(param);
 	NEXUS_HdmiInput_GetStatus(hdmiInput, &status);
-	fprintf(stderr, "HDMI Source AV InfoFrame Change callback: video format %ux%u@%.3f%c; color space: %d\n", 
+	fprintf(stderr, "HDMI Source AV InfoFrame Change callback: video format %ux%u@%.3f%c; color space: %d\n",
 		status.avWidth,
 		status.avHeight,
 		(double)status.vertFreq/100,
@@ -119,6 +120,7 @@ int main(void)  {
     size_t bytes;
     NEXUS_HdmiInputHandle hdmiInput;
     NEXUS_HdmiInputSettings hdmiInputSettings;
+    NEXUS_TimebaseSettings timebaseSettings;
     void *pDataBuffer;
     NEXUS_DisplaySettings displaySettings;
 
@@ -130,14 +132,19 @@ int main(void)  {
     NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
     stcSettings.timebase = NEXUS_Timebase_e0;
     stcSettings.mode = NEXUS_StcChannelMode_eAuto;
+    stcSettings.autoConfigTimebase = false;
     stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
+
+    NEXUS_Timebase_GetSettings(NEXUS_Timebase_e0, &timebaseSettings);
+    timebaseSettings.sourceType = NEXUS_TimebaseSourceType_eHdDviIn;
+    NEXUS_Timebase_SetSettings(NEXUS_Timebase_e0, &timebaseSettings);
 
     NEXUS_HdmiInput_GetDefaultSettings(&hdmiInputSettings);
     hdmiInputSettings.timebase = NEXUS_Timebase_e0;
     /* use NEXUS_HdmiInput_OpenWithEdid ()
-        if EDID PROM (U1304 and U1305) is NOT installed; 
+        if EDID PROM (U1304 and U1305) is NOT installed;
         reference boards usually have the PROMs installed.
-        this example assumes Port1 EDID has been removed 
+        this example assumes Port1 EDID has been removed
     */
 
     /* all HDMI Tx/Rx combo chips have EDID RAM */
@@ -171,7 +178,7 @@ int main(void)  {
     windowTranscode = NEXUS_VideoWindow_Open(displayTranscode, 0);
     assert(windowTranscode);
 
-    /* connect same decoder to encoder display 
+    /* connect same decoder to encoder display
      * This simul mode is for video encoder bringup only; audio path may have limitation
      * for simul display+transcode mode;
      */
@@ -208,7 +215,7 @@ int main(void)  {
         unsigned i,j;
         unsigned descs;
 
-        
+
         NEXUS_VideoEncoder_GetBuffer(videoEncoder, &desc[0], &size[0], &desc[1], &size[1]);
         if(size[0]==0 && size[1]==0) {
             fflush(fout);
@@ -235,7 +242,7 @@ int main(void)  {
 
     NEXUS_Display_Close(displayTranscode);
     NEXUS_VideoEncoder_Close(videoEncoder);
-    
+
     NEXUS_Platform_Uninit();
 
     return 0;

@@ -2775,8 +2775,6 @@ NEXUS_Error NEXUS_AudioInput_P_ExplictlyStartFMMMixers(NEXUS_AudioInput input)
                 {
                     return BERR_TRACE(errCode);
                 }
-                pMixerNode->usageCount++;
-
         }
     }
     return errCode;
@@ -2797,7 +2795,6 @@ void NEXUS_AudioInput_P_ExplictlyStopFMMMixers(NEXUS_AudioInput input)
               pMixerNode = BLST_Q_NEXT(pMixerNode, mixerNode) )
         {
                 BAPE_Mixer_Stop(pMixerNode->inputMixer);
-                pMixerNode->usageCount--;
         }
     }
     return;

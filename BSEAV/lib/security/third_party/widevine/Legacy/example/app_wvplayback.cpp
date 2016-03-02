@@ -42,10 +42,10 @@ bool BcmNexus_Platform_Init();
 #if defined(PANASONIC_FUNAITV)
 #define FILE_NAME "http://edge.cinemanow.com.edgesuite.net/adaptive/studio/yes_man_c338331d_wv_SD_Trailer.vob"
 #endif
-#define DRM_SERVER_URL "https://wstfcps005.shibboleth.tv/widevine/cypherpc/cgi-bin/GetEMMs.cgi"
-#define DRM_ACK_SERVER_URL "https://wstfcps005.shibboleth.tv/widevine/cypherpc/cgi-bin/Ack.cgi"
+#define DRM_SERVER_URL "https://license.uat.widevine.com/getlicense/widevine_test"
+#define DRM_ACK_SERVER_URL ""
 
-#define DRM_HEARTBEAT_URL "https://wstfcps005.shibboleth.tv/widevine/cypherpc/cgi-bin/Heartbeat.cgi"
+#define DRM_HEARTBEAT_URL "https://license.uat.widevine.com/classsic/heartbeat"
 #define DRM_HEARTBEAT_PERIOD 120
 
 #define DRM_CLIENT_IP ""

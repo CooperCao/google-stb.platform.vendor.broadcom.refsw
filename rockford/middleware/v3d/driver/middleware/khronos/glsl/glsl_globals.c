@@ -14,10 +14,6 @@ Standalone GLSL compiler
 
 // TODO: there are some globals we've left out here, e.g. primitiveType stuff
 
-int g_ShaderSourceCurrentIndex;
-int g_ShaderSourceCount;
-const char** g_ShaderSourceValues;
-
 /*
    g_ShaderFlavour
 

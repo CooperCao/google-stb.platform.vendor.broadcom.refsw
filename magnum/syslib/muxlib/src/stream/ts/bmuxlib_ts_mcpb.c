@@ -1245,7 +1245,7 @@ BMUXlib_TS_MCPB_P_InsertBuffer_PESHeaderExtended(
 
    stTransportDescriptor = pstEntry->stTransportDescriptor;
 
-   stTransportDescriptor.uiBufferOffset = hMuxMCPB->stBuffer.uiPUSIBtpOffset[hMuxMCPB->stBuffer.uiRAIExtendedWriteOffset];
+   stTransportDescriptor.uiBufferOffset = hMuxMCPB->stBuffer.uiRAIExtendedOffset[hMuxMCPB->stBuffer.uiRAIExtendedWriteOffset];
    pBufferAddress = hMuxMCPB->stBuffer.pRAIExtended[hMuxMCPB->stBuffer.uiRAIExtendedWriteOffset];
 
    /* TODO: Only stuff the PES header if the next ES frame is less than 184-19 bytes */
@@ -1282,7 +1282,7 @@ BMUXlib_TS_MCPB_P_InsertBuffer_PESHeaderExtended(
    stMetadata.uiSourceDescriptorCount = pstEntry->uiSourceDescriptorCount;
 
    uiBufferLength = stTransportDescriptor.uiBufferLength;
-   BMMA_FlushCache( hMuxMCPB->stBuffer.hPUSIBtpBlock[hMuxMCPB->stBuffer.uiRAIExtendedWriteOffset], pBufferAddress, uiBufferLength );
+   BMMA_FlushCache( hMuxMCPB->stBuffer.hRAIExtendedBlock[hMuxMCPB->stBuffer.uiRAIExtendedWriteOffset], pBufferAddress, uiBufferLength );
 
    bResult = BMUXlib_TS_MCPB_P_InsertBuffer( hMuxMCPB, &stTransportDescriptor, &stMetadata, NULL );
 

@@ -1,5 +1,5 @@
 /***************************************************************************
-*     (c)2003-2015 Broadcom Corporation
+*     (c)2003-2016 Broadcom Corporation
 *
 *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -877,7 +877,7 @@ B_PlaybackIp_UtilsTcpSocketConnect(
 
     if (nonBlockingSocket) {
         int nonblock = 1;
-        if (ioctl(sd, FIONBIO, (int) &nonblock) == -1) {
+        if (ioctl(sd, FIONBIO, &nonblock) == -1) {
             BDBG_WRN(("%s: can't set O_NONBLOCK mode, errno %d", __FUNCTION__, errno));
             goto error;
         }
@@ -2627,8 +2627,8 @@ B_PlaybackIp_UtilsUdpNetIndexRead(bfile_io_read_t self, void *buf, size_t length
     int rc = -1;
     struct bfile_io_read_net *file = (struct bfile_io_read_net *) self;
     B_PlaybackIpHandle playback_ip;
-    ssize_t bytesRead = 0, totalBytesRead = 0;
-    ssize_t bytesToRead = 0;
+    int bytesRead = 0, totalBytesRead = 0;
+    int bytesToRead = 0;
     size_t bytesToCopy;
     B_Time curTime;
     int mediaProbeTime;

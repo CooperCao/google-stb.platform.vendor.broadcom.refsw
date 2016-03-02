@@ -130,7 +130,7 @@ void RF4CE_PairInd(RF4CE_PairingIndParams_t *indication);
  \param[in] indication - pointer to the indication structure.
  \return Nothing.
  ****************************************************************************************/
-void RF4CE_ZRC2_PairInd(RF4CE_PairingIndParams_t *indication);
+void RF4CE_ZRC2_PairInd(RF4CE_PairingIndParams_t *indication, uint8_t protocolId);
 
 #endif /* RF4CE_TARGET */
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- * (c) 2007-2014 Broadcom Corporation
+ * (c) 2007-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -182,7 +182,7 @@ b_rtp_process_pkt(brtp_t rtp, brtp_packet_t rtp_pkt)
     unsigned cc;
     unsigned offset;
     unsigned ext_len;
-    unsigned base;
+    unsigned long base;
     size_t pkt_len;
     batom_t atom;
     batom_cursor cursor;
@@ -225,7 +225,7 @@ b_rtp_process_pkt(brtp_t rtp, brtp_packet_t rtp_pkt)
         batom_cursor_from_atom(&cursor, rtp_pkt->cookie);
 
         ext_len = 0;
-        base = (unsigned)((uint8_t *)cursor.vec->base)+offset;
+        base = (unsigned long)((uint8_t *)cursor.vec->base)+offset;
         if (B_RTP_GET_BIT(word0, 3)) {
             rtp->cfg.copy_to_user((void*)rtp_pkt->data, (void*)base, 4); /* copy header extension, reusing the rtp_pkt->data buffer */
             ext_len = (B_RTP_LOAD16(rtp_pkt->data, 2)*4)+4;
@@ -676,7 +676,7 @@ b_rtp_process_pkt(brtp_spf_t rtp, brtp_packet_t rtp_pkt)
     unsigned cc;
     unsigned offset;
     unsigned ext_len;
-    unsigned base;
+    unsigned long base;
     size_t pkt_len;
     batom_t atom;
     batom_cursor cursor;
@@ -719,7 +719,7 @@ b_rtp_process_pkt(brtp_spf_t rtp, brtp_packet_t rtp_pkt)
         batom_cursor_from_atom(&cursor, rtp_pkt->cookie);
 
         ext_len = 0;
-        base = (unsigned)((uint8_t *)cursor.vec->base)+offset;
+        base = (unsigned long)((uint8_t *)cursor.vec->base)+offset;
         if (B_RTP_GET_BIT(word0, 3)) {
             rtp->cfg.copy_to_user((void*)rtp_pkt->data, (void*)base, 4); /* copy header extension, reusing the rtp_pkt->data buffer */
             ext_len = (B_RTP_LOAD16(rtp_pkt->data, 2)*4)+4;

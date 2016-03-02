@@ -428,6 +428,8 @@ const char *BSAGElib_Tools_ReturnCodeToString(BERR_Code returnCode)
     /* SVP error codes */
     case BSAGE_ERR_SVP_VIOLATION:
         return BSAGE_ERR_SVP_VIOLATION_STRING;
+    case BSAGE_ERR_SVP_INVALID_URR:
+        return BSAGE_ERR_SVP_INVALID_URR_STRING;
 
     case BSAGE_INSUFFICIENT_HDCP_VERSION:
         return BSAGE_INSUFFICIENT_HDCP_VERSION_STRING;

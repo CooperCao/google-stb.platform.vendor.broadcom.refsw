@@ -122,6 +122,8 @@ struct _RF4CE_ZRC1_CommandDiscoveryReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC1_CommandDiscoveryReqParams_t params;
     RF4CE_ZRC1_CommandDiscoveryCallback_t callback;

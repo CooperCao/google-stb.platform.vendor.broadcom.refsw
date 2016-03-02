@@ -100,6 +100,9 @@ typedef struct _ZbProZdpTransaction_t
         SYS_DataPointer_t                       matchDescRespStorage;               /*!< Client side uses it to store
                                                                                         responses. */
 
+        SYS_DataPointer_t                       serverDiscoveryRespStorage;         /*!< Client side uses it to store
+                                                                                        responses. */
+
         ZBPRO_ZDO_EndDeviceBindReqParams_t      zdoEndDeviceBindReqParams;          /*!< Parameters of received ZDO
                                                                                         End_Device_Bind Request. */
 

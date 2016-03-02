@@ -29,8 +29,8 @@ extern int pplex(void);
 MacroList *directive_macros;
 
 static bool allow_directive;
+static bool allow_extension;
 static bool allow_version;
-static bool first_token;
 
 #define MAX_DEPTH 32
 
@@ -47,24 +47,24 @@ void glsl_init_preprocessor(void)
    directive_macros = glsl_macrolist_construct_initial();
 
    allow_directive = true;
+   allow_extension = false;
    allow_version = false;
-   first_token = true;
    depth = 0;
 }
 
-void glsl_directive_reset_macros()
+void glsl_directive_reset_macros(void)
 {
    directive_macros = NULL;
 }
 
-void glsl_directive_allow_version()
+void glsl_directive_allow_version(void)
 {
    allow_version = true;
 }
 
-void glsl_directive_disallow_version()
+void glsl_directive_allow_extension(void)
 {
-   allow_version = false;
+   allow_extension = true;
 }
 
 static void push(bool active)
@@ -140,31 +140,23 @@ static void set_active(bool active)
 
 static V3DTokenType get_type(bool skip)
 {
-   if (first_token) {
-      first_token = false;
-
-      return HASH;
-   } else {
-      V3DTokenType t;
-
-      do {
-         t = (V3DTokenType)pplex();
-      } while (skip && t == WHITESPACE);
-
-      return t;
-   }
+   V3DTokenType t;
+   do {
+      t = (V3DTokenType)pplex();
+   } while (skip && t == WHITESPACE);
+   return t;
 }
 
-static Token *get_token(void)
+static Token *get_token(bool skip)
 {
-   V3DTokenType t = get_type(true);          // TODO: end of file handling
+   V3DTokenType t = get_type(skip);          // TODO: end of file handling
 
    return glsl_token_construct(t, pptoken);
 }
 
 static Token *get_identifier(void)
 {
-   Token *token = get_token();
+   Token *token = get_token(true);
 
    if (!is_pp_identifier(token))
       glsl_compile_error(ERROR_PREPROCESSOR, 1, g_LineNumber, "expected identifier");
@@ -176,7 +168,7 @@ static TokenList *get_identifier_list(void)
 {
    TokenList *list = NULL;
 
-   Token *token = get_token();
+   Token *token = get_token(true);
 
    if (!is_rparen(token)) {
       V3DTokenType type;
@@ -190,7 +182,7 @@ static TokenList *get_identifier_list(void)
          if (type != COMMA)
             glsl_compile_error(ERROR_PREPROCESSOR, 1, g_LineNumber, "expected comma");
 
-         token = get_token();
+         token = get_token(true);
 
          if (!is_pp_identifier(token))
             glsl_compile_error(ERROR_PREPROCESSOR, 1, g_LineNumber, "expected identifier");
@@ -205,13 +197,17 @@ static TokenList *get_identifier_list(void)
    return list;
 }
 
-static TokenSeq *get_remainder(void)
+static TokenSeq *get_remainder(bool skip)
 {
    TokenSeq *seq = NULL;
    Token *token;
 
-   for (token = get_token(); !is_newline(token); token = get_token())
+   for (token = get_token(true); !is_newline(token); token = get_token(skip)) {
+      // merge consequtive whitespaces into single whitespace token
+      if (seq != NULL && seq->token->type == WHITESPACE && token->type == WHITESPACE)
+         continue;
       seq = glsl_tokenseq_construct(token, NULL, seq);
+   }
 
    seq = glsl_tokenseq_destructive_reverse(seq, NULL);
 
@@ -240,7 +236,7 @@ static void check_no_remainder(void)
 
 static void check_valid_name(const char *s)
 {
-   if (strstr(s, "__") || (strlen(s) >= 3 && !strncmp(s, "GL_", 3)))
+   if (strlen(s) >= 3 && !strncmp(s, "GL_", 3))
       glsl_compile_error(ERROR_PREPROCESSOR, 1, g_LineNumber, "reserved macro name");
 }
 
@@ -257,7 +253,7 @@ static void parse_define(void)
 
       switch (get_type(false)) {
       case WHITESPACE:
-         curr = glsl_macro_construct_object(name, get_remainder());
+         curr = glsl_macro_construct_object(name, get_remainder(false));
          break;
       case NEWLINE:
          curr = glsl_macro_construct_object(name, NULL);
@@ -265,7 +261,7 @@ static void parse_define(void)
       case LEFT_PAREN:
       {
          TokenList *args = get_identifier_list();
-         TokenSeq *body = get_remainder();
+         TokenSeq *body = get_remainder(false);
 
          curr = glsl_macro_construct_function(name, args, body);
          break;
@@ -292,7 +288,10 @@ static void parse_undef(void)
    if (is_active(0)) {
       Token *name = get_identifier();
 
-      check_valid_name(name->data.s);
+      /* Check that this doesn't undef a builtin */
+      Macro *prev = glsl_macrolist_find(directive_macros, name);
+      if (prev != NULL && glsl_macro_is_builtin(prev))
+         glsl_compile_error(ERROR_PREPROCESSOR, 1, g_LineNumber, "Cannot undef builtin: %s", name->data.s);
 
       directive_macros = glsl_macrolist_construct(glsl_macro_construct_undef(name), directive_macros);
 
@@ -308,7 +307,7 @@ static void parse_undef(void)
 static void parse_if(void)
 {
    if (is_active(0)) {
-      TokenSeq *seq = get_remainder();
+      TokenSeq *seq = get_remainder(true);
 
       g_LineNumber--;         // compensate for the fact that we've now fetched the line feed
 
@@ -390,7 +389,7 @@ static void parse_helse(void)
 static void parse_helif(void)
 {
    if (is_active(1)) {
-      TokenSeq *seq = get_remainder();
+      TokenSeq *seq = get_remainder(true);
 
       if (!allow_else())
          glsl_compile_error(ERROR_PREPROCESSOR, 1, g_LineNumber, "unexpected #elif");
@@ -429,7 +428,7 @@ static void parse_endif(void)
 static void parse_error(void)
 {
    if (is_active(0)) {
-      get_remainder();
+      get_remainder(true);
 
       glsl_compile_error(ERROR_PREPROCESSOR, 2, g_LineNumber - 1, NULL);
    } else
@@ -443,26 +442,7 @@ static INLINE bool is_matching_identifier(Token *t, char const* ident)
 
 static void parse_pragma(void)
 {
-   if (is_active(0)) {
-      Token* token = get_token();
-      if (is_matching_identifier(token, "debug") || is_matching_identifier(token, "optimize")) {
-         if (!is_lparen(get_token()))
-            glsl_compile_error(ERROR_PREPROCESSOR, 1, g_LineNumber, "expected left parenthesis");
-
-         token = get_token();
-         if (!is_matching_identifier(token, "on") && !is_matching_identifier(token, "off"))
-            glsl_compile_error(ERROR_PREPROCESSOR, 1, g_LineNumber, "expected \"on\" or \"off\"");
-
-         if (!is_rparen(get_token()))
-            glsl_compile_error(ERROR_PREPROCESSOR, 1, g_LineNumber, "expected right parenthesis");
-
-         check_no_remainder();
-      } else {
-         if (!is_newline(token))
-            skip_remainder();
-      }
-   } else
-      skip_remainder();
+   skip_remainder();
 }
 
 static void expect_colon(void)
@@ -487,7 +467,10 @@ static void parse_extension(void)
         return;
     }
 
-    tok = get_token();
+    if (!allow_extension)
+       glsl_compile_error(ERROR_PREPROCESSOR, 1, g_LineNumber, "Invalid extension enable");
+
+    tok = get_token(true);
 
     switch (tok->type) {
     case IDENTIFIER:
@@ -550,7 +533,7 @@ static void parse_extension(void)
 static void parse_version(bool allow)
 {
    if (is_active(0)) {
-      Token *token = get_token();
+      Token *token = get_token(true);
 
       if (!allow)
          glsl_compile_error(ERROR_PREPROCESSOR, 5, g_LineNumber, NULL);
@@ -568,7 +551,7 @@ static void parse_line(void)
    if (is_active(0)) {
       int line;
 
-      TokenSeq *seq = get_remainder();
+      TokenSeq *seq = get_remainder(true);
 
       g_LineNumber--;         // compensate for the fact that we've now fetched the line feed
 
@@ -601,6 +584,14 @@ Token *glsl_directive_next_token(void)
             glsl_compile_error(ERROR_PREPROCESSOR, 1, g_LineNumber, "unexpected end of file");
 
          return NULL;
+      }
+
+      // Eagerly expand __LINE__ to line number in effort to get accurate answer.
+      // If __LINE__ is part of a macro, this code path will not be hit, and we will get the line number during macro expansion.
+      if (type == IDENTIFIER && strcmp(pptoken.s, "__LINE__") == 0)
+      {
+         type = PPNUMBERI;
+         pptoken.i = g_LineNumber;
       }
 
       if (allow_directive && type == HASH) {
@@ -658,6 +649,7 @@ Token *glsl_directive_next_token(void)
             allow_directive = true;
          else {
             allow_directive = false;
+            allow_extension = false;
             allow_version = false;
 
             if (is_active(0))

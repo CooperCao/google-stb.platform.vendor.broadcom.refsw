@@ -361,6 +361,11 @@ void NEXUS_Heap_ToString( /* attr{local=true} */
 
 #include "nexus_core_priv.h"
 
+typedef struct NEXUS_HeapRuntimeSettings
+{
+    bool secure;
+} NEXUS_HeapRuntimeSettings;
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -43,6 +43,7 @@
 #ifndef AUDIO_DECODE_NX_H__
 #define AUDIO_DECODE_NX_H__
 
+#include "nxclient.h"
 #include "audio_decode.h"
 
 #ifdef __cplusplus
@@ -61,8 +62,6 @@ public:
 
     virtual eRet             open(CWidgetEngine * pWidgetEngine, CStc * pStc);
     virtual CStc *           close(void);
-    virtual eRet             start(CPid * pPid, CStc * pStc = NULL);
-    virtual CPid *           stop(void);
     virtual bool             isCodecSupported(NEXUS_AudioCodec codec) { BSTD_UNUSED(codec); return(true); }
     virtual eHdmiAudioInput  getHdmiInput(NEXUS_AudioCodec codec);
     virtual bool             isEncodeSupportedAc3(void)       { return(_bEncodeAc3); }
@@ -72,6 +71,7 @@ public:
     virtual bool             isTruVolumeSupported(void)       { return(_bTruVolume); }
     virtual eRet             setAudioProcessing(eAudioProcessing audioProcessing);
     virtual eAudioProcessing getAudioProcessing(void) { return(_audioProcessing); }
+    virtual eRet             updateConnectSettings(NxClient_ConnectSettings * pSettings);
 
 protected:
     unsigned _connectId;

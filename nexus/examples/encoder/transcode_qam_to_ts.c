@@ -628,6 +628,7 @@ static int transcode_ts( TranscodeContext  *pContext )
     stcSettings.timebase = NEXUS_Timebase_e0;/* should be the same timebase for end-to-end locking */
     stcSettings.mode = NEXUS_StcChannelMode_eAuto;
     stcSettings.pcrBits = NEXUS_StcChannel_PcrBits_eFull42;/* ViCE2 requires 42-bit STC broadcast */
+    stcSettings.autoConfigTimebase = false; /* don't let encoder but decoder stc to auto config timebase */
     pContext->stcChannelTranscode = NEXUS_StcChannel_Open(2, &stcSettings);
 
     /* bring up decoder and connect to local display */

@@ -101,6 +101,8 @@ struct _RF4CE_NWK_RXEnableReqDescr_t
         SYS_QueueElement_t queueElement;
         Bool8_t isPrivate;
     } service;
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_NWK_RXEnableReqParams_t params;    /*!< Request data filled by the sender. */
     RF4CE_NWK_RXEnableConfCallback_t callback;  /*!< Callback to inform sender on the result. */

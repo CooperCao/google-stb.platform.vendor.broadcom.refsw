@@ -77,6 +77,14 @@ typedef enum _RF4CE_ZRC_TaskID_t
     RF4CE_ZRC2_BIND_VALIDATION_TIMER_HANDLER,
     RF4CE_ZRC2_BR_PUSHBUTTON_TIMEOUT_HANDLER,
 
+    // TODO FOR DEBUG ONLY
+    RF4CE_ZRC2_ORIGNATOR_CONFIGURATION_TIMEOUT_HANDLER,
+    // TODO FOR DEBUG ONLY - END
+
+#ifdef RF4CE_TARGET
+    RF4CE_ZRC2_BIND_RECIPIENT_TIMER_HANDLER,
+#endif /* #ifdef RF4CE_TARGET */
+
     RF4CE_NUMBER_OF_HANDLERS,
 } RF4CE_ZRC_TaskID_t;
 
@@ -343,5 +351,9 @@ void rf4ceZrc2KeyExchangeConfirmHandler(SYS_QueueElement_t *queueElement);
   \brief Starts timer with specified parameters.
 ****************************************************************************************/
 void rf4cePostTimeoutTask(SYS_TimeoutTask_t *timeoutTask, SYS_TimeoutTaskMode_t mode);
+
+// TODO FOR DEBUG ONLY
+void rf4cezrc2OriginatorConfigurationTimeoutHandler(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
+// TODO FOR DEBUG ONLY - END
 
 #endif // BBRF4CEZRCTASKS_H

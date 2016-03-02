@@ -74,11 +74,6 @@ static void nexus_p_modifyMemoryRtsSettings(NEXUS_MemoryRtsSettings *pRtsSetting
 #else
     BSTD_UNUSED(pRtsSettings);
 #endif
-#if NEXUS_HAS_VIDEO_ENCODER
-    pRtsSettings->vce[0].memcIndex = 1;
-#else
-    BSTD_UNUSED(pRtsSettings);
-#endif
 }
 
 static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfigurationSettings *pSettings )

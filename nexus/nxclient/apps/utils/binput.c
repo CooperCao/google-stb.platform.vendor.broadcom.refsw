@@ -35,23 +35,20 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
 #include "bstd.h"
 #include "binput.h"
-#if NEXUS_HAS_INPUT_ROUTER
 #include "bkni_multi.h"
+#if !NEXUS_HAS_INPUT_ROUTER
+/* for this file, no input router is the same as no nxclient */
+#undef NXCLIENT_SUPPORT
+#endif
+#if NXCLIENT_SUPPORT
 #include "nxclient.h"
 #include "nexus_input_client.h"
+#else
+#include "nexus_ir_input.h"
+#endif
 #include <string.h>
 #include <stdio.h>
 
@@ -132,8 +129,13 @@ b_remote_key b_get_evdev_key(unsigned code)
 struct binput
 {
     struct binput_settings settings;
+#if NXCLIENT_SUPPORT
     NxClient_AllocResults allocResults;
     NEXUS_InputClientHandle inputClient;
+#else
+    NEXUS_IrInputHandle irInput;
+    NEXUS_IrInputMode irInputMode;
+#endif
     BKNI_EventHandle event;
     struct {
 #define MAX_SCRIPT 100
@@ -155,6 +157,9 @@ static unsigned binput_p_find_script(const char *s)
 void binput_get_default_settings(struct binput_settings *psettings)
 {
     BKNI_Memset(psettings, 0, sizeof(*psettings));
+#if NEXUS_HAS_IR_INPUT && !NXCLIENT_SUPPORT
+    psettings->irInputMode = NEXUS_IrInputMode_eCirNec;
+#endif
 }
 
 static void binput_p_callback(void *context, int param)
@@ -185,10 +190,14 @@ static void binput_p_add_script(binput_t input, const char *s)
 
 binput_t binput_open(const struct binput_settings *psettings)
 {
+#if NXCLIENT_SUPPORT
     NxClient_AllocSettings allocSettings;
-    int rc;
-    binput_t input;
     NEXUS_InputClientSettings settings;
+    int rc;
+#else
+    NEXUS_IrInputSettings irInputSettings;
+#endif
+    binput_t input;
 
     input = BKNI_Malloc(sizeof(*input));
     if (!input) return NULL;
@@ -196,7 +205,12 @@ binput_t binput_open(const struct binput_settings *psettings)
     if (psettings) {
         input->settings = *psettings;
     }
+    else {
+        binput_get_default_settings(&input->settings);
+    }
 
+    BKNI_CreateEvent(&input->event);
+#if NXCLIENT_SUPPORT
     NxClient_GetDefaultAllocSettings(&allocSettings);
     allocSettings.inputClient = 1;
     rc = NxClient_Alloc(&allocSettings, &input->allocResults);
@@ -211,11 +225,18 @@ binput_t binput_open(const struct binput_settings *psettings)
         settings.codeAvailable = input->settings.codeAvailable;
     }
     else {
-        BKNI_CreateEvent(&input->event);
         settings.codeAvailable.callback = binput_p_callback;
         settings.codeAvailable.context = input;
     }
     NEXUS_InputClient_SetSettings(input->inputClient, &settings);
+#else
+    NEXUS_IrInput_GetDefaultSettings(&irInputSettings);
+    irInputSettings.dataReady.callback = binput_p_callback;
+    irInputSettings.dataReady.context = input;
+    irInputSettings.mode = input->settings.irInputMode;
+    input->irInput = NEXUS_IrInput_Open(0, &irInputSettings);
+    if (!input->irInput) goto error;
+#endif
 
     if (input->settings.script_file) {
         FILE *f = fopen(input->settings.script_file, "r");
@@ -247,19 +268,32 @@ error:
 
 void binput_close(binput_t input)
 {
+#if NXCLIENT_SUPPORT
     if (input->inputClient) {
         NEXUS_InputClient_Release(input->inputClient);
     }
+#else
+    if (input->irInput) {
+        NEXUS_IrInput_Close(input->irInput);
+    }
+#endif
     if (input->event) {
         BKNI_DestroyEvent(input->event);
     }
+#if NXCLIENT_SUPPORT
     NxClient_Free(&input->allocResults);
+#endif
     BKNI_Free(input);
 }
 
 int binput_read(binput_t input, b_remote_key *key, bool *repeat)
 {
+#if NXCLIENT_SUPPORT
     NEXUS_InputRouterCode inputRouterCode;
+#else
+    NEXUS_IrInputEvent event;
+    bool overflow;
+#endif
     unsigned num;
     int rc;
 
@@ -274,6 +308,7 @@ int binput_read(binput_t input, b_remote_key *key, bool *repeat)
         }
     }
 
+#if NXCLIENT_SUPPORT
     rc = NEXUS_InputClient_GetCodes(input->inputClient, &inputRouterCode, 1, &num);
     if (rc || !num) {
         return -1;
@@ -296,6 +331,15 @@ int binput_read(binput_t input, b_remote_key *key, bool *repeat)
     }
     *key = b_remote_key_unknown;
     return 0;
+#else
+    rc = NEXUS_IrInput_GetEvents(input->irInput, &event, 1, &num, &overflow);
+    if (rc || !num) {
+        return -1;
+    }
+    *repeat = event.repeat;
+    *key = b_get_remote_key(input->settings.irInputMode, event.code);
+    return 0;
+#endif
 }
 
 int binput_read_no_repeat(binput_t input, b_remote_key *key)
@@ -342,10 +386,16 @@ void binput_interrupt(binput_t input)
 
 int binput_set_mask(binput_t input, uint32_t mask)
 {
+#if NXCLIENT_SUPPORT
     NEXUS_InputClientSettings settings;
     NEXUS_InputClient_GetSettings(input->inputClient, &settings);
     settings.filterMask = mask;
     return NEXUS_InputClient_SetSettings(input->inputClient, &settings);
+#else
+    BSTD_UNUSED(input);
+    BSTD_UNUSED(mask);
+    return 0;
+#endif
 }
 
 void binput_print_script_usage(void)
@@ -356,58 +406,3 @@ void binput_print_script_usage(void)
         BKNI_Printf("  %s\n", g_input_keymap[i].script);
     }
 }
-#else
-#if NEXUS_HAS_IR_INPUT
-b_remote_key b_get_remote_key(NEXUS_IrInputMode irInput, unsigned code)
-{
-    BSTD_UNUSED(irInput);
-    BSTD_UNUSED(code);
-    return 0;
-}
-#endif
-void binput_get_default_settings(struct binput_settings *psettings)
-{
-    BSTD_UNUSED(psettings);
-}
-binput_t binput_open(const struct binput_settings *psettings)
-{
-    BSTD_UNUSED(psettings);
-    return NULL;
-}
-void binput_close(binput_t input)
-{
-    BSTD_UNUSED(input);
-}
-int binput_read(binput_t input, b_remote_key *key, bool *repeat)
-{
-    BSTD_UNUSED(input);
-    BSTD_UNUSED(key);
-    BSTD_UNUSED(repeat);
-    return 0;
-}
-int binput_read_no_repeat(binput_t input, b_remote_key *key)
-{
-    BSTD_UNUSED(input);
-    BSTD_UNUSED(key);
-    return 0;
-}
-int binput_wait(binput_t input, unsigned timeout_msec)
-{
-    BSTD_UNUSED(input);
-    BSTD_UNUSED(timeout_msec);
-    return 0;
-}
-void binput_interrupt(binput_t input)
-{
-    BSTD_UNUSED(input);
-}
-int binput_set_mask(binput_t input, uint32_t mask)
-{
-    BSTD_UNUSED(input);
-    BSTD_UNUSED(mask);
-    return 0;
-}
-void binput_print_script_usage(void)
-{
-}
-#endif

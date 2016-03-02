@@ -168,6 +168,25 @@ typedef ZBPRO_APS_EndpointId_t  ZBPRO_ZDO_Endpoint_t;       /*!< Endpoint identi
 typedef ZBPRO_APS_ClusterId_t   ZBPRO_ZDO_ClusterId_t;      /*!< Cluster identifier. */
 
 typedef ZBPRO_NWK_DeviceType_t  ZBPRO_ZDO_DeviceType_t;     /*!< Device Type. */
+
+/**//**
+ * \brief Server mask type, the node descriptor part. For more detailed please see spec R20 chapter 2.3.2.3.10 p.85
+ */
+typedef union _ZBPRO_ZDO_ServerMask_t
+{
+    BitField16_t     plain;
+    struct
+    {
+        BitField16_t    primaryTrustCenter : 1;
+        BitField16_t    backupTrustCenter : 1;
+        BitField16_t    primaryBindingTableCache : 1;
+        BitField16_t    backupBindingTableCache : 1;
+        BitField16_t    primaryDiscoveryCache: 1;
+        BitField16_t    backupDiscoveryCache: 1;
+        BitField16_t    networkManager: 1;
+        BitField16_t    reserved : 8;
+    };
+} ZBPRO_ZDO_ServerMask_t;
 /**@}*/
 
 

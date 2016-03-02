@@ -432,6 +432,29 @@ void loopback_test(int words_to_test)
     printf("Ping to stack successfully\n");
 }
 
+static void rf4ce_Send_Vendor_Frame(uint8_t *vendorFrame, int length)
+{
+    uint8_t statusSendVendorFrame = 0;
+
+    RF4CE_ZRC1_VendorSpecificReqDescr_t req = {0};
+    void rf4ce_Send_Vendor_Frame_Callback(RF4CE_ZRC1_VendorSpecificReqDescr_t *request, RF4CE_ZRC1_VendorSpecificConfParams_t *conf)
+    {
+        statusSendVendorFrame = 1;
+    }
+    req.params.pairingRef = 0;
+    req.params.profileID = 1;
+    req.params.vendorID = 0x1234;
+    req.params.nsduLength = length;
+    req.params.txFlags = RF4CE_NWK_DATA_TX_SECURITY | RF4CE_NWK_DATA_TX_VENDOR_SPECIFIC;
+    SYS_MemAlloc(&req.params.payload, length);
+    SYS_CopyToPayload(&req.params.payload, 0, vendorFrame, length);
+    req.callback = rf4ce_Send_Vendor_Frame_Callback;
+
+    RF4CE_ZRC1_VendorSpecificReq(&req);
+    while(!statusSendVendorFrame);
+    printf("rf4ce Sent Vendor Frame successfully\n");
+}
+
 static void rf4ce_Restore_Factory_Settings(uint8_t restore)
 {
     uint8_t statusRestoreFactorySettings = 0;
@@ -484,6 +507,23 @@ void My_RF4CE_ZRC1_ControlCommandInd(RF4CE_ZRC1_ControlCommandIndParams_t *comma
     }
 }
 
+void My_RF4CE_ZRC1_VendorSpecificInd(RF4CE_ZRC1_VendorSpecificIndParams_t *indParams)
+{
+    int length = SYS_GetPayloadSize(&indParams->payload);
+    uint8_t *data = calloc(sizeof(char), length);
+    SYS_CopyFromPayload(data, &indParams->payload, 0, length);
+
+    printf("PairRef:    %d\n", indParams->pairingRef);
+    printf("ProfileId:  0x%02X\n", indParams->profileID);
+    printf("VendorId:   0x%02X\n", indParams->vendorID);
+    printf("nsduLength: %d\n", indParams->nsduLength, length);
+    for(int i = 0; i < length; i++)
+        printf(" %02X ", data[i]);
+    printf("\n");
+
+    return;
+}
+
 const char bindingInstruction[] = "\nNow a remote control can be bound\n\n"
                                   "Binding instruction for RemoteSolution remote control:\n"
                                   "1. Press and hold the Setup button on the remote control,\n"
@@ -522,6 +562,7 @@ int main(int argc, char *argv[])
     zcb.RF4CE_ZRC2_CheckValidationInd = My_RF4CE_ZRC_CheckValidationInd;
     zcb.RF4CE_ZRC2_ControlCommandInd = My_RF4CE_ZRC_ControlCommandInd;
     zcb.RF4CE_ZRC1_ControlCommandInd = My_RF4CE_ZRC1_ControlCommandInd;
+	zcb.RF4CE_ZRC1_VendorSpecificInd = My_RF4CE_ZRC1_VendorSpecificInd;
 
     Zigbee_Open(&zcb, argv[1]);
 
@@ -571,6 +612,10 @@ int main(int argc, char *argv[])
                 printf("\nPlease input the pair ref#[0-9]\n");
                 char pairingRef = getchar() - '0';
                 rf4ce_Test_Get_PairingEntry(pairingRef);
+                break;
+            case 's':
+            case 'S':
+                rf4ce_Send_Vendor_Frame("\x12\x34\x56\x78\x9a\xbc\xde\xf0", 8);
                 break;
             default:
                 goto _exit;

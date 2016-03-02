@@ -1,51 +1,40 @@
 /******************************************************************************
- *    (c)2011-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "nxserverlib_impl.h"
 
 #if NEXUS_HAS_VIDEO_DECODER
@@ -142,11 +131,18 @@ static enum b_cap video_decoder_p_meets_decoder_cap(struct b_connect *connect, u
         return b_cap_preferred;
     }
 
-    if (connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo && server->settings.memConfigSettings.videoDecoder[index].secure == NEXUS_SecureVideo_eUnsecure) {
-        return b_cap_no;
-    }
-    if (!connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo && server->settings.memConfigSettings.videoDecoder[index].secure == NEXUS_SecureVideo_eSecure) {
-        return b_cap_no;
+    if (server->settings.svp == nxserverlib_svp_type_none) {
+        /* unless running SVP 2.0 (with -svp or -svp_urr), we must match secureVideo with decoder secure/unsecure capabilities) */
+        if (connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo) {
+            if (server->settings.memConfigSettings.videoDecoder[index].secure == NEXUS_SecureVideo_eUnsecure) {
+                return b_cap_no;
+            }
+        }
+        else {
+            if (server->settings.memConfigSettings.videoDecoder[index].secure == NEXUS_SecureVideo_eSecure) {
+                return b_cap_no;
+            }
+        }
     }
 
     if (IS_MOSAIC(connect)) {
@@ -169,8 +165,8 @@ static enum b_cap video_decoder_p_meets_decoder_cap(struct b_connect *connect, u
             return b_cap_no;
         }
 
-        /* for now, every platform requires mosaic only on decoder 0, so keep it simple. */
-        if (index != 0) {
+        /* for platforms with linked decoders, only allow mosaic on decoder 0 */
+        if (connect->client->server->videoDecoder.special_mode && index != 0) {
             return b_cap_no;
         }
     }
@@ -353,7 +349,7 @@ struct video_decoder_resource *nx_video_decoder_p_malloc(struct b_connect *conne
     r->connect = connect;
     r->connectSettings = connect->settings;
     r->used = true;
-    BDBG_MSG(("video_decoder_create %p: connect %p, index %d", r, connect, index));
+    BDBG_MSG(("video_decoder_create %p: connect %p, index %d", (void*)r, (void*)connect, index));
     return r;
 }
 
@@ -370,11 +366,9 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
     minimize start time */
     NEXUS_SimpleVideoDecoderModule_SetCacheEnabled(true);
 
+    /* window-only is only used with HDMI input */
+    if (connect->settings.simpleVideoDecoder[0].decoderCapabilities.connectType == NxClient_VideoDecoderConnectType_eWindowOnly) {
 #if NEXUS_HAS_HDMI_INPUT
-    /* if no width/height, must be hdmi input, which requires no VideoDecoder */
-    if (!connect->settings.simpleVideoDecoder[0].decoderCapabilities.maxWidth &&
-        !connect->settings.simpleVideoDecoder[0].decoderCapabilities.maxHeight)
-    {
         index = TOTAL_DECODERS - NEXUS_NUM_HDMI_INPUTS;
         if (g_decoders[index].r) {
             BERR_TRACE(NEXUS_NOT_AVAILABLE);
@@ -382,8 +376,11 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
         }
         r = nx_video_decoder_p_malloc(connect, index);
         return r;
-    }
+#else
+        BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        return NULL;
 #endif
+    }
 
     /* find unused index.
     first, check for an external index.
@@ -502,7 +499,7 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
             else {
                 r->used = true;
                 r->connect = connect;
-                BDBG_MSG(("video_decoder_create %p(recycled): connect %p, index %d", r, connect, index));
+                BDBG_MSG(("video_decoder_create %p(recycled): connect %p, index %d", (void*)r, (void*)connect, index));
                 video_decoder_clear_cache();
                 return r;
             }
@@ -547,7 +544,7 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
         openSettings.avc51Enabled = connect->settings.simpleVideoDecoder[0].decoderCapabilities.avc51Enabled;
         openSettings.enhancementPidChannelSupported = connect->settings.simpleVideoDecoder[0].decoderCapabilities.supportedCodecs[NEXUS_VideoCodec_eH264_Mvc];
         openSettings.secureVideo = connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo;
-        if (server->settings.svp) {
+        if ((openSettings.secureVideo) || (server->settings.svp != nxserverlib_svp_type_none)) {
             openSettings.cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
             if (!openSettings.cdbHeap) {
                 rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
@@ -579,7 +576,7 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
 #endif
 
         BDBG_MSG(("  videoDecoder[%d]: %p, max %dx%d",
-            index, r->handle[0],
+                  index, (void*)r->handle[0],
             connect->settings.simpleVideoDecoder[0].decoderCapabilities.maxWidth,
             connect->settings.simpleVideoDecoder[0].decoderCapabilities.maxHeight));
     }
@@ -599,7 +596,8 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
             if (connect->settings.simpleVideoDecoder[i].decoderCapabilities.fifoSize) {
                 openSettings.openSettings.fifoSize = connect->settings.simpleVideoDecoder[i].decoderCapabilities.fifoSize;
             }
-            if (server->settings.svp) {
+            openSettings.openSettings.secureVideo = connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo;
+            if ((openSettings.openSettings.secureVideo) || (server->settings.svp != nxserverlib_svp_type_none)) {
                 openSettings.openSettings.cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
                 if (!openSettings.openSettings.cdbHeap) {
                     rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
@@ -623,7 +621,7 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
             }
             NEXUS_VideoDecoder_GetSettings(r->handle[i], &settings);
             BDBG_MSG(("  mosaic videoDecoder[%d][%d]: %p, max %dx%d",
-                index, i, r->handle[i],
+                      index, i, (void*)r->handle[i],
                 connect->settings.simpleVideoDecoder[i].decoderCapabilities.maxWidth,
                 connect->settings.simpleVideoDecoder[i].decoderCapabilities.maxHeight));
         }
@@ -644,7 +642,7 @@ err_malloc:
 static void video_decoder_release(struct video_decoder_resource *r)
 {
     nxserver_t server = r->server;
-    BDBG_MSG(("video_decoder_release %p: connect %p, index %d", r, r->connect, r->index));
+    BDBG_MSG(("video_decoder_release %p: connect %p, index %d", (void*)r, (void*)r->connect, r->index));
     BDBG_OBJECT_ASSERT(r->connect, b_connect);
     if (IS_MOSAIC(r->connect) || server->settings.externalApp.enableAllocIndex[nxserverlib_index_type_video_decoder] ||
         server->settings.videoDecoder.dynamicPictureBuffers ||
@@ -665,7 +663,7 @@ static void video_decoder_destroy(struct video_decoder_resource *r)
     unsigned i;
     nxserver_t server = r->server;
 
-    BDBG_MSG(("video_decoder_destroy %p: connect %p, index %d", r, r->connect, r->index));
+    BDBG_MSG(("video_decoder_destroy %p: connect %p, index %d", (void*)r, (void*)r->connect, r->index));
 
     if (r->linked) {
         video_decoder_destroy(r->linked);
@@ -822,7 +820,7 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
     }
 
     /* reserve window */
-    BDBG_MSG(("acquire_video_window: connect %p %d", connect, index));
+    BDBG_MSG(("acquire_video_window: connect %p %d", (void*)connect, index));
     session->window[index].connect = connect;
     connect->windowIndex = index;
 
@@ -885,7 +883,7 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
             if (nxserver_p_video_only_display(session, j)) {
                 continue;
             }
-            BDBG_MSG(("  set surfaceClient %p, display[%u].window[%u].window = %p", surfaceClient, j, connect->settings.simpleVideoDecoder[i].windowId, window));
+            BDBG_MSG(("  set surfaceClient %p, display[%u].window[%u].window = %p", (void*)surfaceClient, j, connect->settings.simpleVideoDecoder[i].windowId, (void*)window));
             settings.display[j].window[connect->settings.simpleVideoDecoder[i].windowId].window = window;
 #if NEXUS_NUM_VIDEO_ENCODERS
 #if !NEXUS_NUM_DSP_VIDEO_ENCODERS || NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
@@ -917,7 +915,7 @@ static void release_video_window(struct b_connect *connect, bool remainVisible)
     struct b_session *session = connect->client->session;
     unsigned i, j;
 
-    BDBG_MSG(("release_video_window: connect %p %d", connect, connect->windowIndex));
+    BDBG_MSG(("release_video_window: connect %p %d", (void*)connect, connect->windowIndex));
     if (!has_window(connect)) return;
 
     /* disconnect from SurfaceCompositor */
@@ -1004,7 +1002,7 @@ static NEXUS_Error video_acquire_stc_index(struct b_connect * connect, int *pStc
 static void video_release_stc_index(struct b_connect *connect, int stcIndex)
 {
     stc_index_release(connect, stcIndex);
-    BDBG_MSG(("connect %p released STC%u", connect, stcIndex));
+    BDBG_MSG(("connect %p released STC%u", (void*)connect, stcIndex));
 }
 
 int acquire_video_decoders(struct b_connect *connect, bool grab)
@@ -1056,7 +1054,7 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
             }
         }
         if (!r) {
-            BDBG_WRN(("connect %p: no video decoder available", connect));
+            BDBG_WRN(("connect %p: no video decoder available", (void*)connect));
             rc = NEXUS_NOT_AVAILABLE; /* no BERR_TRACE */
             goto err_create;
         }
@@ -1101,7 +1099,7 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
         settings.stcIndex = stcIndex;
         settings.mosaic = IS_MOSAIC(connect);
 
-        BDBG_MSG(("connect SimpleVideoDecoder %p to VideoDecoder %p (%d)", videoDecoder, settings.videoDecoder, settings.stcIndex));
+        BDBG_MSG(("connect SimpleVideoDecoder %p to decoder %p, window0 %p, stcIndex %u", (void*)videoDecoder, (void*)settings.videoDecoder, (void*)settings.window[0], settings.stcIndex));
         rc = NEXUS_SimpleVideoDecoder_SetServerSettings(videoDecoder, &settings);
         if (rc) {
             rc = BERR_TRACE(rc);
@@ -1182,9 +1180,9 @@ void release_video_decoders(struct b_connect *connect)
                 stcIndex = settings.stcIndex;
             }
             settings.stcIndex = -1;
-            if (settings.videoDecoder) {
+            {
                 unsigned j;
-                BDBG_MSG(("disconnect SimpleVideoDecoder %p from VideoDecoder %p (%d)", videoDecoder, settings.videoDecoder, settings.stcIndex));
+                BDBG_MSG(("disconnect SimpleVideoDecoder %p from decoder %p, window0 %p, stcIndex %u", (void*)videoDecoder, (void*)settings.videoDecoder, (void*)settings.window[0], settings.stcIndex));
                 settings.videoDecoder = NULL;
                 for (j=0;j<NXCLIENT_MAX_DISPLAYS;j++) {
                     settings.window[j] = NULL;

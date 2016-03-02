@@ -630,8 +630,20 @@ BSAGElib_P_Rpc_PopResponseCallback(
     BKNI_LeaveCriticalSection();
     if (item) {
         if (item->rc) {
-            BDBG_ERR(("%s: remote %p error %x '%s'",
+            /* If the command was openPlatform, and return was platform unknown,
+            * change the open flag to false to allow for proper cleanup */
+            if((item->rc==BSAGE_ERR_PLATFORM_ID)&&item->remote&&item->remote->message
+                &&(item->remote->message->systemCommandId==BSAGElib_SystemCommandId_ePlatformOpen))
+            {
+                item->remote->open = false;
+                BDBG_WRN(("%s: remote %p warning %x '%s'",
                       __FUNCTION__, item->remote, item->rc, BSAGElib_Tools_ReturnCodeToString(item->rc)));
+            }
+            else
+            {
+                BDBG_ERR(("%s: remote %p error %x '%s'",
+                      __FUNCTION__, item->remote, item->rc, BSAGElib_Tools_ReturnCodeToString(item->rc)));
+            }
         }
 
         if (prep_to_fire) {

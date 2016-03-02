@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2016 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -1713,62 +1713,41 @@ errorBluetooth:
 #ifdef PLAYBACK_IP_SUPPORT
     case eNotify_ShowDiscoveredPlaylists:
     {
-        CPlaylist *   pPlaylist   = NULL;
+        int           index       = 0;
+        int *         pIndex      = (int *)notification.getData();
         CPlaylistDb * pPlaylistDb = _pModel->getPlaylistDb();
-        int           i           = 0;
 
-        BDBG_WRN(("Discovered Atlas Playlists"));
-        BDBG_WRN(("=========================="));
-        if ((NULL == pPlaylistDb) || (0 == pPlaylistDb->numPlaylists()))
+        if (NULL != pPlaylistDb)
         {
-            BDBG_WRN(("No Playlists Found"));
-            goto error;
-        }
-
-        /* print list of discovered playlists from database */
-        for (pPlaylist = pPlaylistDb->getPlaylist(i); pPlaylist; pPlaylist = pPlaylistDb->getPlaylist(++i))
-        {
-            CChannelBip * pChannel;
-
-            pChannel = (CChannelBip *)pPlaylist->getChannel(0);
-            if (NULL == pChannel)
+            if (NULL == pIndex)
             {
-                BDBG_ERR(("discovered playlist (%s) does not have an IP address", pPlaylist->getName().s()));
-                continue;
+                index = 0;
             }
-
-            BDBG_WRN(("%s %s", pChannel->getHost().s(), pPlaylist->getName().s()));
+            else
+            {
+                index = *pIndex;
+            }
+            pPlaylistDb->dump(true, index);
         }
     }
     break;
 
     case eNotify_ShowPlaylist:
     {
-        CPlaylist *     pPlaylist     = NULL;
         CPlaylistData * pPlaylistData = (CPlaylistData *)notification.getData();
+        CPlaylist *     pPlaylist     = NULL;
         CPlaylistDb *   pPlaylistDb   = _pModel->getPlaylistDb();
         int             i             = 0;
 
         /* find playlist using IP and print contents */
         for (pPlaylist = pPlaylistDb->getPlaylist(i); pPlaylist; pPlaylist = pPlaylistDb->getPlaylist(++i))
         {
-            CChannelBip * pChannel;
+            CChannelBip * pChannelBip;
 
-            pChannel = (CChannelBip *)pPlaylist->getChannel(0);
-            if ((NULL != pChannel) && (pPlaylistData->_strIp == pChannel->getHost()))
+            pChannelBip = (CChannelBip *)pPlaylist->getChannel(0);
+            if ((NULL != pChannelBip) && (pPlaylistData->_strIp == pChannelBip->getHost()))
             {
-                int j = 0;
-                BDBG_WRN(("%s %s Playlist:", pChannel->getHost().s(), pPlaylist->getName().s()));
-
-                /* print out all channels in playlist */
-                for (j = 0; j < pPlaylist->numChannels(); j++)
-                {
-                    pChannel = (CChannelBip *)pPlaylist->getChannel(j);
-                    if (NULL != pChannel)
-                    {
-                        BDBG_WRN(("%s %d", pChannel->getUrlPath().s(), pChannel->getProgram()));
-                    }
-                }
+                pPlaylist->dump(true, pPlaylistData->_nIndex);
             }
         }
     }
@@ -1933,8 +1912,8 @@ eRet CControl::unTuneChannel(
 
     if (_pModel->getCurrentChannel(windowType) == pChannel)
     {
-        if (NULL != pAudioDecode) { pAudioDecode->stop(); }
-        if (NULL != pVideoDecode) { pVideoDecode->stop(); }
+        stopDecoders(pVideoDecode, pAudioDecode);
+        disconnectDecoders(windowType);
 
         /* clear current channel */
         _pModel->setCurrentChannel(NULL, windowType);
@@ -2160,31 +2139,11 @@ eRet CControl::decodeChannel(
     }
 #endif /* ifdef MPOD_SUPPORT */
 
-    if ((NULL != pVideoPid) && (NULL != pVideoDecode))
-    {
-        if ((0 == pChannel->getWidth()) && (0 == pChannel->getHeight()) &&
-            (NEXUS_VideoCodec_eH265 == pVideoPid->getVideoCodec()))
-        {
-            /* assume max size is 4K video resolution if codec is H.265 (HEVC)
-             * and width/height is unknown */
-            ret = pVideoDecode->setMaxSize(3840, 2160);
-        }
-        else
-        {
-            /* setMaxSize() may not honor request if platform does not support given sizes */
-            ret = pVideoDecode->setMaxSize(pChannel->getWidth(), pChannel->getHeight());
-        }
-        CHECK_ERROR_GOTO("unable to set max video decoder size", ret, error);
+    ret = connectDecoders(pVideoDecode, pAudioDecode, pChannel->getWidth(), pChannel->getHeight(), pVideoPid, windowType);
+    CHECK_ERROR_GOTO("unable to connect decoders", ret, error);
 
-        ret = pVideoDecode->start(pVideoPid, pStc);
-        CHECK_ERROR_GOTO("unable to start video decode", ret, error);
-    }
-
-    if ((NULL != pAudioPid) && (NULL != pAudioDecode))
-    {
-        ret = pAudioDecode->start(pAudioPid, pStc);
-        CHECK_ERROR_GOTO("unable to start audio decode", ret, error);
-    }
+    ret = startDecoders(pVideoDecode, pVideoPid, pAudioDecode, pAudioPid, pStc);
+    CHECK_ERROR_GOTO("unable to start decoders", ret, error);
 
     pChannel->start(pAudioDecode, pVideoDecode);
 
@@ -2879,8 +2838,10 @@ eRet CControl::playbackStart(
         if (pPlayback->getVideo() != pVideo)
         {
             BDBG_MSG((" Switch Playback %s to %s ", __FUNCTION__, pVideo->getVideoName().s()));
-            pAudioDecode->stop();
-            pVideoDecode->stop();
+
+            stopDecoders(pVideoDecode, pAudioDecode);
+            disconnectDecoders(windowType);
+
             /* pPlayback->stop(); */
             pPlayback->close(); /* stops & closes Playback */
             ret = pPlayback->open(getWidgetEngine());
@@ -2998,32 +2959,11 @@ eRet CControl::playbackStart(
         }
     }
 
-    /* start decoders */
-    if ((NULL != pVideoPid) && (NULL != pVideoDecode))
-    {
-        if ((0 == pVideo->getWidth()) && (0 == pVideo->getHeight()) &&
-            (NEXUS_VideoCodec_eH265 == pVideoPid->getVideoCodec()))
-        {
-            /* assume max size is 4K video resolution if codec is H.265 (HEVC)
-             * and width/height is unknown */
-            ret = pVideoDecode->setMaxSize(3840, 2160);
-        }
-        else
-        {
-            /* setMaxSize() may not honor request if platform does not support given sizes */
-            ret = pVideoDecode->setMaxSize(pVideo->getWidth(), pVideo->getHeight());
-        }
-        CHECK_ERROR_GOTO("unable to set max video decoder size", ret, error);
+    ret = connectDecoders(pVideoDecode, pAudioDecode, pVideo->getWidth(), pVideo->getHeight(), pVideoPid, windowType);
+    CHECK_ERROR_GOTO("unable to connect decoders", ret, error);
 
-        ret = pVideoDecode->start(pVideoPid, pStc);
-        CHECK_ERROR_GOTO("unable to start video decode", ret, error);
-    }
-
-    if ((NULL != pAudioPid) && (NULL != pAudioDecode))
-    {
-        ret = pAudioDecode->start(pAudioPid, (NULL != pVideoPid) ? pStc : NULL);
-        CHECK_ERROR_GOTO("unable to start audio decode", ret, error);
-    }
+    ret = startDecoders(pVideoDecode, pVideoPid, pAudioDecode, pAudioPid, pStc);
+    CHECK_ERROR_GOTO("unable to start decoders", ret, error);
 
     ret = pPlayback->start();
     CHECK_ERROR_GOTO("unable to start playback", ret, error);
@@ -3035,6 +2975,9 @@ done:
     return(ret);
 
 error:
+    stopDecoders(pVideoDecode, pAudioDecode);
+    disconnectDecoders(windowType);
+
     if (pVideoPid)
     {
         /* Check to see if PCR pid is the same as Video Pid */
@@ -3042,18 +2985,10 @@ error:
         {
             pPcrPid = NULL;
         }
-        if (pVideoDecode)
-        {
-            pVideoDecode->stop();
-        }
         pVideoPid->close(pPlayback);
     }
     if (pAudioPid)
     {
-        if (pAudioDecode)
-        {
-            pAudioDecode->stop();
-        }
         pAudioPid->close(pPlayback);
     }
     if (pPcrPid && pPcrPid->isUniquePcrPid())
@@ -3102,8 +3037,8 @@ eRet CControl::playbackStop(
         windowType = _pModel->getFullScreenWindowType();
     }
 
-    if (NULL != pAudioDecode) { pAudioDecode->stop(); }
-    if (NULL != pVideoDecode) { pVideoDecode->stop(); }
+    stopDecoders(pVideoDecode, pAudioDecode);
+    disconnectDecoders(windowType);
 
     /*
      * pPlayback->dump();
@@ -4563,3 +4498,90 @@ done:
     pBoardResources->checkinResource(pPower);
     return(ret);
 } /* setPower */
+
+eRet CControl::connectDecoders(
+    CSimpleVideoDecode * pVideoDecode,
+    CSimpleAudioDecode * pAudioDecode,
+    uint32_t             width,
+    uint32_t             height,
+    CPid *               pVideoPid,
+    eWindowType          winType)
+{
+    eRet ret = eRet_Ok;
+
+    BSTD_UNUSED(pAudioDecode);
+
+    if (NULL != pVideoDecode)
+    {
+        NEXUS_VideoCodec videoCodec = NEXUS_VideoCodec_eUnknown;
+        if (NULL != pVideoPid)
+        {
+            videoCodec = pVideoPid->getVideoCodec();
+        }
+
+        /* set max width/height in video decoder (primarily for 4k support) */
+        if ((0 == width) &&
+            (0 == height) &&
+            (NEXUS_VideoCodec_eH265 == videoCodec) &&
+            (eWindowType_Main == winType))
+        {
+            /* assume max size is 4K video resolution if codec is H.265 (HEVC)
+             * and width/height is unknown */
+            ret = pVideoDecode->setMaxSize(3840, 2160);
+        }
+        else
+        {
+            /* setMaxSize() may not honor request if platform does not support given sizes */
+            ret = pVideoDecode->setMaxSize(width, height);
+        }
+        CHECK_WARN("unable to set max video decoder size", ret);
+    }
+
+    return(ret);
+} /* connectDecoders */
+
+void CControl::disconnectDecoders(eWindowType winType)
+{
+    BSTD_UNUSED(winType);
+    return;
+} /* disconnectDecoders() */
+
+eRet CControl::startDecoders(
+    CSimpleVideoDecode * pVideoDecode,
+    CPid * pVideoPid,
+    CSimpleAudioDecode * pAudioDecode,
+    CPid * pAudioPid,
+    CStc * pStc)
+{
+    eRet ret = eRet_Ok;
+
+    if ((NULL != pVideoDecode) && (NULL != pVideoPid))
+    {
+        ret = pVideoDecode->start(pVideoPid, pStc);
+        CHECK_WARN("unable to start video decode", ret);
+    }
+
+    if ((NULL != pAudioDecode) && (NULL != pAudioPid))
+    {
+        ret = pAudioDecode->start(pAudioPid, (NULL != pVideoPid) ? pStc : NULL);
+        CHECK_WARN("unable to start audio decode", ret);
+    }
+
+    return(ret);
+} /* startDecoders */
+
+eRet CControl::stopDecoders(CSimpleVideoDecode * pVideoDecode, CSimpleAudioDecode * pAudioDecode)
+{
+    eRet ret = eRet_Ok;
+
+    if (NULL != pVideoDecode)
+    {
+        pVideoDecode->stop();
+    }
+    if (NULL != pAudioDecode)
+    {
+        pAudioDecode->stop();
+    }
+
+    return(ret);
+} /* stopDecoders */

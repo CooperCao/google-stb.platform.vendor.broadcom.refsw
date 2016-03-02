@@ -65,12 +65,38 @@ typedef RF4CE_NLDE_DATA_Status_t RF4CE_ZRC1_VendorSpecificStatus_t;
 /**//**
  * \brief RF4CE ZRC 1.1 Vendor Specific request parameters.
  */
+#ifdef _PHY_TEST_HOST_INTERFACE_
+typedef struct _RF4CE_ZRC1_VendorSpecificIndParams_t
+{
+    uint8_t pairingRef;         /*!< The pairing reference. */
+    uint8_t profileID;
+    uint16_t vendorID;
+    uint32_t nsduLength;
+    uint8_t linkQuality;
+    uint8_t rxFlags;
+    SYS_DataPointer_t payload;  /*!< The payload to be sent. */
+} RF4CE_ZRC1_VendorSpecificIndParams_t;
+
 typedef struct _RF4CE_ZRC1_VendorSpecificReqParams_t
 {
-	uint8_t pairingRef;         /*!< The pairing reference. */
-	uint16_t vendorID;          /*!< The Vendor ID. */
-	SYS_DataPointer_t payload;  /*!< The payload to be sent. */
+    uint8_t pairingRef;         /*!< The pairing reference. */
+    uint8_t profileID;
+    uint16_t vendorID;
+    uint32_t nsduLength;
+    uint8_t txFlags;
+    uint8_t reserve;
+    SYS_DataPointer_t payload;  /*!< The payload to be sent. */
 } RF4CE_ZRC1_VendorSpecificReqParams_t;
+
+#else
+
+typedef struct _RF4CE_ZRC1_VendorSpecificReqParams_t
+{
+    uint8_t pairingRef;         /*!< The pairing reference. */
+    uint16_t vendorID;          /*!< The Vendor ID. */
+    SYS_DataPointer_t payload;  /*!< The payload to be sent. */
+} RF4CE_ZRC1_VendorSpecificReqParams_t;
+#endif
 
 /**//**
  * \brief RF4CE ZRC 1.1 Vendor Specific confirmation parameters.
@@ -97,6 +123,8 @@ struct _RF4CE_ZRC1_VendorSpecificReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;           /*!< Service field. */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC1_VendorSpecificReqParams_t params;  /*!< Request params. */
     RF4CE_ZRC1_VendorSpecificCallback_t callback; /*!< Callback on request completion. */

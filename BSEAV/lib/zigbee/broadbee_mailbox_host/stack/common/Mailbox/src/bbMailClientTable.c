@@ -415,6 +415,7 @@ static const MailClientParametersTableEntry_t clientTable[] =
     CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA,    ZBPRO_ZDO_REQ_ACTIVE_EP_FID,                ZBPRO_ZDO_ActiveEpReqDescr_t,               ZBPRO_ZDO_ActiveEpReqParams_t,              UART),
     CLIENT_TABLE_ENTRY(REQ_WITH_NAMED_DATA, ZBPRO_ZDO_REQ_MATCH_DESC_FID,               ZBPRO_ZDO_MatchDescReqDescr_t,              ZBPRO_ZDO_MatchDescReqParams_t,             UART, inOutClusterList),
     CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA,    ZBPRO_ZDO_REQ_DEVICE_ANNCE_FID,             ZBPRO_ZDO_DeviceAnnceReqDescr_t,            ZBPRO_ZDO_DeviceAnnceReqParams_t,           UART),
+    CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA,    ZBPRO_ZDO_REQ_SERVER_DISCOVERY_FID,         ZBPRO_ZDO_ServerDiscoveryReqDescr_t,        ZBPRO_ZDO_ServerDiscoveryReqParams_t,       UART),
     CLIENT_TABLE_ENTRY(REQ_WITH_NAMED_DATA, ZBPRO_ZDO_REQ_ED_BIND_FID,                  ZBPRO_ZDO_EndDeviceBindReqDescr_t,          ZBPRO_ZDO_EndDeviceBindReqParams_t,         UART, clusterList),
     CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA,    ZBPRO_ZDO_REQ_BIND_FID,                     ZBPRO_ZDO_BindUnbindReqDescr_t,             ZBPRO_ZDO_BindUnbindReqParams_t,            UART),
     CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA,    ZBPRO_ZDO_REQ_UNBIND_FID,                   ZBPRO_ZDO_BindUnbindReqDescr_t,             ZBPRO_ZDO_BindUnbindReqParams_t,            UART),
@@ -714,23 +715,28 @@ static const MailClientParametersTableEntry_t clientTable[] =
 #endif /* MAILBOX_STACK_SIDE */
 
 /**********************************************************************************************************************/
-/* DirectTV API                                                                                                       */
+/* Phy API                                                                                                       */
 /**********************************************************************************************************************/
 #ifdef MAILBOX_HOST_SIDE
-    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_GET_CAPS_FID,              DirectTV_Test_Get_Caps_ReqDescr_t,   NoAppropriateType_t, UART),
-    CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA, RF4CE_CTRL_TEST_SET_CHANNEL_FID,           DirectTV_Test_Set_Channel_ReqDescr_t,   DirectTV_Test_Set_Channel_ReqParams_t, UART),
-    CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA, RF4CE_CTRL_TEST_CONTINUOUS_WAVE_START_FID, DirectTV_Test_Continuous_Wave_Start_ReqDescr_t,   DirectTV_Test_Continuous_Wave_Start_ReqParams_t, UART),
-    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_CONTINUOUS_WAVE_STOP_FID,  DirectTV_Test_Continuous_Wave_Stop_ReqDescr_t,   NoAppropriateType_t, UART),
-    CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA, RF4CE_CTRL_TEST_TRANSMIT_START_FID,        DirectTV_Test_Transmit_Start_ReqDescr_t,   DirectTV_Test_Transmit_Start_ReqParams_t, UART),
-    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_TRANSMIT_STOP_FID,         DirectTV_Test_Transmit_Stop_ReqDescr_t,   NoAppropriateType_t, UART),
-    CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA, RF4CE_CTRL_TEST_RECEIVE_START_FID,         DirectTV_Test_Receive_Start_ReqDescr_t,   DirectTV_Test_Receive_Start_ReqParams_t, UART),
-    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_RECEIVE_STOP_FID,          DirectTV_Test_Receive_Stop_ReqDescr_t,   NoAppropriateType_t, UART),
-    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_ECHO_START_FID,            DirectTV_Test_Echo_Start_ReqDescr_t,   NoAppropriateType_t, UART),
-    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_ECHO_STOP_FID,             DirectTV_Test_Echo_Stop_ReqDescr_t,   NoAppropriateType_t, UART),
-    CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA, RF4CE_CTRL_TEST_ENERGY_DETECT_SCAN_FID,    DirectTV_Test_Energy_Detect_Scan_ReqDescr_t,   DirectTV_Test_Energy_Detect_Scan_ReqParams_t, UART),
-    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_GET_STATS_FID,             DirectTV_Test_Get_Stats_ReqDescr_t,   NoAppropriateType_t, UART),
-    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_RESET_STATS_FID,           DirectTV_Test_Reset_Stats_ReqDescr_t,   NoAppropriateType_t, UART),
-    CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA, RF4CE_CTRL_TEST_SET_TX_POWER_FID,          DirectTV_Test_Set_TX_Power_ReqDescr_t,   DirectTV_Test_Set_TX_Power_ReqParams_t, UART),
+#  if defined(_PHY_TEST_HOST_INTERFACE_)
+    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_GET_CAPS_FID,              Phy_Test_Get_Caps_ReqDescr_t,   NoAppropriateType_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA, RF4CE_CTRL_TEST_SET_CHANNEL_FID,           Phy_Test_Set_Channel_ReqDescr_t,   Phy_Test_Set_Channel_ReqParams_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA, RF4CE_CTRL_TEST_CONTINUOUS_WAVE_START_FID, Phy_Test_Continuous_Wave_Start_ReqDescr_t,   Phy_Test_Continuous_Wave_Start_ReqParams_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_CONTINUOUS_WAVE_STOP_FID,  Phy_Test_Continuous_Wave_Stop_ReqDescr_t,   NoAppropriateType_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA, RF4CE_CTRL_TEST_TRANSMIT_START_FID,        Phy_Test_Transmit_Start_ReqDescr_t,   Phy_Test_Transmit_Start_ReqParams_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_TRANSMIT_STOP_FID,         Phy_Test_Transmit_Stop_ReqDescr_t,   NoAppropriateType_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA, RF4CE_CTRL_TEST_RECEIVE_START_FID,         Phy_Test_Receive_Start_ReqDescr_t,   Phy_Test_Receive_Start_ReqParams_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_RECEIVE_STOP_FID,          Phy_Test_Receive_Stop_ReqDescr_t,   NoAppropriateType_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_ECHO_START_FID,            Phy_Test_Echo_Start_ReqDescr_t,   NoAppropriateType_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_ECHO_STOP_FID,             Phy_Test_Echo_Stop_ReqDescr_t,   NoAppropriateType_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA, RF4CE_CTRL_TEST_ENERGY_DETECT_SCAN_FID,    Phy_Test_Energy_Detect_Scan_ReqDescr_t,   Phy_Test_Energy_Detect_Scan_ReqParams_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_GET_STATS_FID,             Phy_Test_Get_Stats_ReqDescr_t,   NoAppropriateType_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_TEST_RESET_STATS_FID,           Phy_Test_Reset_Stats_ReqDescr_t,   NoAppropriateType_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA, RF4CE_CTRL_TEST_SET_TX_POWER_FID,          Phy_Test_Set_TX_Power_ReqDescr_t,   Phy_Test_Set_TX_Power_ReqParams_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA, RF4CE_CTRL_TEST_SELECT_ANTENNA_FID,        Phy_Test_Select_Antenna_ReqDescr_t,   Phy_Test_Select_Antenna_ReqParams_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_NO_PARAM,     RF4CE_CTRL_GET_DIAGNOSTICS_CAPS_FID,       RF4CE_Diag_Caps_ReqDescr_t,   NoAppropriateType_t, UART),
+    CLIENT_TABLE_ENTRY(REQ_WITHOUT_DATA, RF4CE_CTRL_GET_DIAGNOSTIC_FID,             RF4CE_Diag_ReqDescr_t,        RF4CE_Diag_ReqParams_t, UART),
+#  endif
 #endif /* MAILBOX_HOST_SIDE */
 };
 

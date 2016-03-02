@@ -1,5 +1,5 @@
 ############################################################
-#     (c)2008-2011 Broadcom Corporation
+#     (c)2008-2016 Broadcom Corporation
 #
 #  This program is the proprietary software of Broadcom Corporation and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,16 +47,16 @@ CURL_VER?=curl-7.21.2
 export PATH := ${TOOLS_BIN}:${PATH}
 
 
-
 NEXUS_TOP = $(NEXUS)
 CURR_DIR= $(BSEAV)/lib/playbackdevice/example
 #NEXUS_LIB_PATH = $(NEXUS)/platforms/$(PLATFORM)/bin/linuxuser.mipsel-uclibc.release
 
 # Establish bcrypt path
-ifeq ($(B_REFSW_DEBUG),n)
-BCRYPT_LIB_DIR = lib/retail
-else
+B_REFSW_DEBUG ?= y
+ifeq ($(B_REFSW_DEBUG),y)
 BCRYPT_LIB_DIR = lib/debug
+else
+BCRYPT_LIB_DIR = lib/retail
 endif
 
 ifeq ($(DEBUG), n)
@@ -101,7 +101,7 @@ CXXFLAG += $(addprefix -I,$(CURL_INCLUDE_PATH)/curl) $(addprefix -I,$(CURL_INCLU
 CXXFLAG += -DPLAYBACKDEVICE
 
 LDFLAGS = -ldl -L $(CURR_DIR)/../bin -lnexusMgr -lPlaybackDevice -lpthread -lm -lnexus -lb_os -lcurl -lcrypto -lssl
-LDFLAGS += -L$(BSEAV_TOP)/lib/security/common_drm/lib/${BCHP_CHIP}/ -lcmndrm 
+LDFLAGS += -L$(BSEAV_TOP)/lib/security/common_drm/lib/${BCHP_CHIP}/ -lcmndrm
 LDFLAGS += -L$(BSEAV_TOP)/lib/drmrootfs/ -ldrmrootfs
 LDFLAGS += -L$(BSEAV_TOP)/lib/security/bcrypt/${BCRYPT_LIB_DIR} -lbcrypt
 
@@ -160,4 +160,3 @@ playbackdevice_example: lib-environment
 playbackdevice_example-clean:
 	rm -rf *.o
 	rm -rf app_playback_device
-

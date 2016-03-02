@@ -93,6 +93,8 @@ typedef struct _RF4CE_NWK_UpdateKeyReqDescr_t
 {
 #ifndef _HOST_
     SYS_QueueElement_t queueElement;             /*!< Service field. */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_NWK_UpdateKeyReqParams_t params;    /*!< Request data filled by the sender. */
     RF4CE_NWK_UpdateKeyConfCallback_t callback;  /*!< Callback to inform sender on the result. */

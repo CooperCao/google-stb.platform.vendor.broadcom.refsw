@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2016 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -93,6 +93,33 @@ CGraphics * CAtlasNx::graphicsCreate()
 
 error:
     return(pGraphics);
+}
+
+CSimpleVideoDecode * CAtlasNx::videoDecodeCreate(eWindowType windowType)
+{
+    eRet                   ret          = eRet_Ok;
+    CSimpleVideoDecodeNx * pVideoDecode = NULL;
+
+    pVideoDecode = (CSimpleVideoDecodeNx *)_pBoardResources->checkoutResource(this, eBoardResource_simpleDecodeVideo);
+    CHECK_PTR_ERROR_GOTO("unable to checkout simple video decoder", pVideoDecode, ret, eRet_NotAvailable, error);
+
+    _model.addSimpleVideoDecode(pVideoDecode, windowType);
+error:
+    return(pVideoDecode);
+}
+
+CSimpleAudioDecode * CAtlasNx::audioDecodeCreate(eWindowType windowType)
+{
+    eRet                   ret          = eRet_Ok;
+    CSimpleAudioDecodeNx * pAudioDecode = NULL;
+
+    pAudioDecode = (CSimpleAudioDecodeNx *)_pBoardResources->checkoutResource(this, eBoardResource_simpleDecodeAudio);
+    CHECK_PTR_ERROR_GOTO("unable to checkout simple audio decoder", pAudioDecode, ret, eRet_NotAvailable, error);
+
+    /* add audio decode to model for main */
+    _model.addSimpleAudioDecode(pAudioDecode, windowType);
+error:
+    return(pAudioDecode);
 }
 
 COutputHdmi * CAtlasNx::outputHdmiInitialize(CDisplay * pDisplay)
@@ -224,4 +251,15 @@ void CAtlasNx::outputRfmUninitialize(CDisplay * pDisplay, COutputRFM ** pOutputR
 {
     BSTD_UNUSED(pDisplay);
     BSTD_UNUSED(pOutputRfm);
+}
+
+CSimpleAudioDecode * CAtlasNx::audioDecodeInitializePip(
+            COutputHdmi *     pOutputHdmi,
+            COutputSpdif *    pOutputSpdif,
+            COutputAudioDac * pOutputAudioDac,
+            COutputRFM *      pOutputRFM,
+            CStc *            pStc,
+            eWindowType       winType)
+{
+    return(CAtlas::audioDecodeInitialize(pOutputHdmi, pOutputSpdif, pOutputAudioDac, pOutputRFM, pStc,  winType));
 }

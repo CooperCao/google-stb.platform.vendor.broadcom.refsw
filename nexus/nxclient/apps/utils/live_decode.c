@@ -136,8 +136,6 @@ void live_decode_destroy(live_decode_t decode)
 void live_decode_get_default_start_settings( live_decode_start_settings *psettings )
 {
     memset(psettings, 0, sizeof(*psettings));
-    psettings->video.pid = 0x1fff;
-    psettings->audio.pid = 0x1fff;
 }
 
 static void start_audio(live_decode_channel_t channel)
@@ -490,10 +488,5 @@ int live_decode_get_set_tr69c_info(void *context, enum b_tr69c_type type, union 
 }
 #endif
 #else
-#include <stdio.h>
-int main(void)
-{
-    printf("This application is not supported on this platform (needs simple_decoder)!\n");
-    return 0;
-}
+typedef unsigned unused;
 #endif

@@ -225,9 +225,19 @@ BERR_Code BVC5_Close(
 
    if (hVC5->bSchedulerRunning)
    {
-      /* Tell the scheduler to quit ... */
+      /* Tell the scheduler to quit ...
+       * Signaling events to stop the scheduler:
+       * Two events need to be signaled consecutively
+       * One to signal the termination and
+       * one to make the scheduler progress
+       * The scheduler will destroy the events once
+       * terminated so the critical section makes sure
+       * that the two events occurs without interruption
+       * in between. */
+      BKNI_EnterCriticalSection();
       BKNI_SetEvent(hVC5->hSchedulerTerminateEvent);
       BKNI_SetEvent(hVC5->hSchedulerWakeEvent);
+      BKNI_LeaveCriticalSection();
 
       /* ... and wait until it has */
       BKNI_WaitForEvent(hVC5->hSchedulerSyncEvent, BKNI_INFINITE);

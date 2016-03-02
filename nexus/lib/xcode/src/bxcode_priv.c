@@ -1652,14 +1652,10 @@ void bxcode_p_post_start(BXCode_P_Context  *bxcode)
         NEXUS_VideoEncoder_GetStatus(bxcode->video[0].encoder, &videoEncoderStatus);
         if(videoEncoderStatus.bufferBlock) {
             NEXUS_MemoryBlock_Lock(videoEncoderStatus.bufferBlock, &bxcode->video[0].pEncoderBufferBase);
-        } else {
-            bxcode->video[0].pEncoderBufferBase = (void*)videoEncoderStatus.bufferBase;
         }
         BDBG_MSG(("video[%u] pEncoderBufferBase: %p", 0, bxcode->video[0].pEncoderBufferBase));
         if(videoEncoderStatus.metadataBufferBlock) {
             NEXUS_MemoryBlock_Lock(videoEncoderStatus.metadataBufferBlock, &bxcode->video[0].pEncoderMetadataBufferBase);
-        } else {
-            bxcode->video[0].pEncoderMetadataBufferBase = (void*)videoEncoderStatus.metadataBufferBase;
         }
         BDBG_MSG(("video[%u] pEncoderMetadataBufferBase: %p", 0, bxcode->video[0].pEncoderMetadataBufferBase));
     }
@@ -1680,14 +1676,10 @@ void bxcode_p_post_start(BXCode_P_Context  *bxcode)
             NEXUS_AudioMuxOutput_GetStatus(bxcode->audio[i].muxOutput, &audioMuxStatus);
             if(audioMuxStatus.bufferBlock) {
                 NEXUS_MemoryBlock_Lock(audioMuxStatus.bufferBlock, &bxcode->audio[i].pEncoderBufferBase);
-            } else {
-                bxcode->audio[i].pEncoderBufferBase = (void*)audioMuxStatus.pBufferBase;
             }
             BDBG_MSG(("audio[%u] pEncoderBufferBase: %p", i, bxcode->audio[i].pEncoderBufferBase));
             if(audioMuxStatus.metadataBufferBlock) {
                 NEXUS_MemoryBlock_Lock(audioMuxStatus.metadataBufferBlock, &bxcode->audio[i].pEncoderMetadataBufferBase);
-            } else {
-                bxcode->audio[i].pEncoderMetadataBufferBase = (void*)audioMuxStatus.pMetadataBufferBase;
             }
             BDBG_MSG(("audio[%u] pEncoderMetadataBufferBase: %p", i, bxcode->audio[i].pEncoderMetadataBufferBase));
         }

@@ -183,7 +183,6 @@ typedef struct {
       Validity:
       type == WINDOW
    */
-   uint32_t swap_interval;
    uint32_t internal_handle;              // stores "serverwin"
 
    /* For PBUFFER types only */

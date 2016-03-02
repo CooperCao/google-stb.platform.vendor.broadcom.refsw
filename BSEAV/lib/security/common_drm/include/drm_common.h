@@ -57,7 +57,7 @@
 extern "C" {
 #endif
 
-#define COMMON_DRM_VERSION "CMNDRM 1.26" /* SWSECDRM-369 */
+#define COMMON_DRM_VERSION "CMNDRM 1.27" /* SWSECDRM-981 */
 
 #define DRM_MSG_PRINT_BUF(buffer_name, buffer_ptr, buffer_size)                                     \
 do {                                                                                                \
@@ -112,6 +112,7 @@ typedef struct DrmCommonOperationStruct_t
     CommonCryptoKeyLadderSettings* pKeyLadderInfo;
     DmaBlockInfo_t* pDmaBlock;
     uint32_t    num_dma_block;
+    bool byPassKeyConfig;
 }DrmCommonOperationStruct_t;
 
 typedef struct drm_chip_info_t

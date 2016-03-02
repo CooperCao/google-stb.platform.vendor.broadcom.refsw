@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -230,6 +230,10 @@ eRet CVideoDecode::open(
 
     {
         CPlatform *       pPlatform = _pCfg->getPlatformConfig();
+        /* since open() is only called in the nexus atlas (overloaded in nxclient atlas),
+           getNumber() will return the decoder number.  nxclient atlas uses getNumber()
+           to return the nxclient id instead which getDecoderMaxVideoFormat() does not
+           use for its decoder array index. */
         NEXUS_VideoFormat maxFormat = pPlatform->getDecoderMaxVideoFormat(getNumber());
 
         /* get max width and height supported by video decoder */
@@ -374,7 +378,9 @@ CSimpleVideoDecode::CSimpleVideoDecode(
     _simpleDecoder(NULL),
     _pBoardResources(NULL),
     _pDecoder(NULL),
-    _pVideoWindow(NULL)
+    _pVideoWindow(NULL),
+    _windowType(eWindowType_Max),
+    _pModel(NULL)
 {
     eRet ret = eRet_Ok;
 
@@ -429,6 +435,10 @@ eRet CSimpleVideoDecode::open(
 
     {
         CPlatform *       pPlatform = _pCfg->getPlatformConfig();
+        /* since open() is only called in the nexus atlas (overloaded in nxclient atlas),
+           getNumber() will return the decoder number.  nxclient atlas uses getNumber()
+           to return the nxclient id instead which getDecoderMaxVideoFormat() does not
+           use for its decoder array index. */
         NEXUS_VideoFormat maxFormat = pPlatform->getDecoderMaxVideoFormat(getNumber());
 
         /* get max width and height supported by video decoder */
@@ -591,6 +601,7 @@ eRet CSimpleVideoDecode::start(
     _started = true;
 
     notifyObservers(eNotify_VideoDecodeStarted, this);
+    notifyObservers(eNotify_DecodeStarted);
 error:
     return(ret);
 } /* start */
@@ -619,6 +630,7 @@ CPid * CSimpleVideoDecode::stop()
     _started = false;
 
     notifyObservers(eNotify_VideoDecodeStopped, this);
+    notifyObservers(eNotify_DecodeStopped);
 
 error:
     return(pPid);
@@ -858,9 +870,19 @@ eRet CSimpleVideoDecode::setMaxSize(
     uint16_t maxWidthPlatform  = 0;
     uint16_t maxHeightPlatform = 0;
 
+    if ((0 == width) || (0 == height))
+    {
+        BDBG_WRN(("Invalid width/height given so set to default 1920x1080"));
+        width  = 1920;
+        height = 1080;
+    }
+
     {
         CPlatform *       pPlatform         = _pCfg->getPlatformConfig();
-        NEXUS_VideoFormat maxFormatPlatform = pPlatform->getDecoderMaxVideoFormat(getNumber());
+        /* we use getWindowType() here because getDecoderMaxVideoFormat() takes the decoder
+           number as a parameter.  getNumber() returns the video decoder ID in nxclient atlas
+           which can be just about anything. */
+        NEXUS_VideoFormat maxFormatPlatform = pPlatform->getDecoderMaxVideoFormat(getWindowType());
 
         maxWidthPlatform  = videoFormatToHorizRes(maxFormatPlatform).toInt();
         maxHeightPlatform = videoFormatToVertRes(maxFormatPlatform).toInt();
@@ -884,6 +906,8 @@ eRet CSimpleVideoDecode::setMaxSize(
     {
         _maxHeight = MIN(height, maxHeightPlatform);
     }
+
+    BDBG_MSG(("video decode setMaxSize w:%d h:%d", _maxWidth, _maxHeight));
 
     return(ret);
 } /* setMaxSize */

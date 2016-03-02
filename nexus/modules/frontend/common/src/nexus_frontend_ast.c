@@ -1063,7 +1063,9 @@ static NEXUS_Error NEXUS_Frontend_P_Ast_GetSatelliteStatus( void *handle, NEXUS_
     BDBG_OBJECT_ASSERT(pDevice, NEXUS_AstDevice);
     BDBG_ASSERT(NULL != pStatus);
 
+#if NEXUS_POWER_MANAGEMENT
     BAST_PowerUp(pDevice->astChannel, BAST_CORE_SDS);
+#endif
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 

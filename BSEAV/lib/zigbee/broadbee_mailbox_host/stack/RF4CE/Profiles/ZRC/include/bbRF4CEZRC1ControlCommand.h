@@ -101,6 +101,8 @@ struct _RF4CE_ZRC1_ControlCommandReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;           /*!< Service field. */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC1_ControlCommandReqParams_t params;  /*!< Request parameters. */
     RF4CE_ZRC1_ControlCommandCallback_t callback; /*!< Request confirmation callback. */

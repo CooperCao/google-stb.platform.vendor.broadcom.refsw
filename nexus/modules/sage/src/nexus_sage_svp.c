@@ -64,7 +64,7 @@ struct sageSvpInfo {
     BKNI_EventHandle response;
     BKNI_EventHandle indication;
     BKNI_EventHandle initEvent;
-    bool init;
+    bool init; /* SVP delayed init complete */
     uint8_t *pCoreList;
     NEXUS_ThreadHandle hThread;
     struct
@@ -146,7 +146,14 @@ static BERR_Code NEXUS_Sage_SVP_P_WaitForSage(void)
     if(data.rc != BERR_SUCCESS)
     {
         rc = data.rc;
-        BDBG_ERR(("SAGE ERROR: 0x%x (%s)", data.rc, BSAGElib_Tools_ReturnCodeToString(data.rc)));
+        if(data.rc == BSAGE_ERR_PLATFORM_ID)
+        {
+            BDBG_WRN(("SAGE WARNING: Unknown Platform"));
+        }
+        else
+        {
+            BDBG_ERR(("SAGE ERROR: 0x%x (%s)", rc, BSAGElib_Tools_ReturnCodeToString(rc)));
+        }
     }
 
 done:
@@ -226,7 +233,7 @@ void NEXUS_Sage_P_SvpUninit(bool reset)
     if (lHandle->initEvent)
     {
         BKNI_DestroyEvent(lHandle->initEvent);
-        lHandle->indication = NULL;
+        lHandle->initEvent = NULL;
     }
 
     /* Free local info */
@@ -288,7 +295,20 @@ static void NEXUS_Sage_P_SvpInitDelayed(void *dummy)
     rc = NEXUS_Sage_SVP_P_WaitForSage();
     if (rc != BERR_SUCCESS)
     {
-        rc = BERR_TRACE(rc);
+        if(rc == BSAGE_ERR_PLATFORM_ID)
+        {
+            /* Note warning, but don't return error (i.e. allow nexus to continue) */
+            /* System will run w/ no secure buffers */
+            BDBG_WRN(("SVP will not be possible"));
+        }
+        else
+        {
+            rc = BERR_TRACE(rc);
+        }
+        /* Handle will still be valid even if open failed.. clear handle since cleanup will
+        * not know if close will need to be called or not */
+        BSAGElib_Rpc_RemoveRemote(lHandle->hSagelibRpcPlatformHandle);
+        lHandle->hSagelibRpcPlatformHandle=NULL;
         goto EXIT;
     }
 
@@ -316,7 +336,18 @@ static void NEXUS_Sage_P_SvpInitDelayed(void *dummy)
     rc = NEXUS_Sage_SVP_P_WaitForSage();
     if (rc != BERR_SUCCESS)
     {
-        rc = BERR_TRACE(rc);
+        if(rc == BSAGE_ERR_SVP_INVALID_URR)
+        {
+            /* Note error, but don't return error (i.e. allow nexus to continue) */
+            /* System will run w/ no access to CRR */
+            BDBG_ERR(("INVALID URR(s) specified! Current SAGE binary requires secure picture buffers!"));
+            BDBG_ERR(("Please correctly configure heaps to allow for SVP."));
+            BDBG_ERR(("ALL ACCESS to NEXUS_VIDEO_SECURE_HEAP blocked. Video playback NOT possible!"));
+        }
+        else
+        {
+            rc = BERR_TRACE(rc);
+        }
         goto EXIT;
     }
     BDBG_MSG(("Initialized SVP SAGE platform: assignedAsyncId [0x%x]", lHandle->uiLastAsyncId));
@@ -332,6 +363,10 @@ static void NEXUS_Sage_P_SvpInitDelayed(void *dummy)
         BDBG_ERR(("Error initializing SAGE SVP Monitor module, error [0x%x] '%s'",
                 rc, BSAGElib_Tools_ReturnCodeToString(rc)));
         BERR_TRACE(rc);
+        /* Handle will still be valid even if init failed.. clear handle since cleanup will
+        * not know if uninit will need to be called or not */
+        BSAGElib_Rpc_RemoveRemote(lHandle->hSagelibRpcModuleHandle);
+        lHandle->hSagelibRpcModuleHandle=NULL;
         goto EXIT;
     }
 
@@ -349,13 +384,13 @@ static void NEXUS_Sage_P_SvpInitDelayed(void *dummy)
     /* Allocate some shared memory */
     lHandle->pCoreList = BSAGElib_Rai_Memory_Allocate(lHandle->sagelibClientHandle, sizeof(BAVC_CoreList), BSAGElib_MemoryType_Global);
 
+EXIT:
     /* Init complete */
     lHandle->init = true;
     BKNI_SetEvent(lHandle->initEvent);
 
-    BDBG_MSG(("SAGE SVP init complete"));
+    BDBG_MSG(("SAGE SVP init complete (0x%x)", rc));
 
-EXIT:
     NEXUS_UnlockModule();
     return;
 }
@@ -442,6 +477,12 @@ NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
         }
     }
 
+    if(!lHandle->hSagelibRpcModuleHandle)
+    {
+        rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        goto EXIT;
+    }
+
     BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
     BKNI_Memcpy(lHandle->pCoreList, pCoreList, sizeof(*pCoreList));
     lHandle->sageContainer->blocks[0].len = sizeof(*pCoreList);
@@ -479,9 +520,8 @@ void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
 
     if(!lHandle)
     {
-        NEXUS_UnlockModule();
         BERR_TRACE(NEXUS_NOT_INITIALIZED);
-        return;
+        goto EXIT;
     }
 
     if(!lHandle->init)
@@ -491,16 +531,20 @@ void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
         {
             BDBG_ERR(("%s: Timeout (%dms) waiting for SVP Init",
                 __FUNCTION__, SAGERESPONSE_TIMEOUT));
-            NEXUS_UnlockModule();
             BERR_TRACE(NEXUS_NOT_INITIALIZED);
-            return;
+            goto EXIT;
         }
         else if (rc)
         {
-            NEXUS_UnlockModule();
             BERR_TRACE(NEXUS_NOT_INITIALIZED);
-            return;
+            goto EXIT;
         }
+    }
+
+    if(!lHandle->hSagelibRpcModuleHandle)
+    {
+        BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        goto EXIT;
     }
 
     BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
@@ -521,5 +565,6 @@ void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
         BERR_TRACE(rc);
     }
 
+EXIT:
     NEXUS_UnlockModule();
 }

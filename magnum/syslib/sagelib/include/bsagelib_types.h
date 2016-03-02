@@ -61,7 +61,7 @@ The two following are the only standard ones present in all systems.
 #define BSAGE_PLATFORM_ID_HDCP22        (0x101)
 #define BSAGE_PLATFORM_ID_MANUFACTURING (0x102)
 #define BSAGE_PLATFORM_ID_UTILITY       (0x103)
-#define BSAGE_PLATFORM_ID_SECURE_VIDEO  (0x104)
+#define BSAGE_PLATFORM_ID_SECURE_VIDEO  (0x107)
 
 /**
 Summary:
@@ -121,6 +121,7 @@ Description:
 
 /* SVP error codes */
 #define BSAGE_ERR_SVP_VIOLATION                   BERR_MAKE_CODE(BERR_SAGElib_ID, 38) /* SVP violation has occurred */
+#define BSAGE_ERR_SVP_INVALID_URR                   BERR_MAKE_CODE(BERR_SAGElib_ID, 39) /* Invalid URR specified, SVP not possible */
 
 #define BSAGE_INSUFFICIENT_HDCP_VERSION            BERR_MAKE_CODE(BERR_SAGElib_ID, 100)
 
@@ -177,6 +178,7 @@ Description:
 
 /* SVP error codes */
 #define BSAGE_ERR_SVP_VIOLATION_STRING                     "SVP Violation has occurred"
+#define BSAGE_ERR_SVP_INVALID_URR_STRING                   "Invalid URR(s) specified for SVP"
 
 #define BSAGE_INSUFFICIENT_HDCP_VERSION_STRING              "Insufficient HDCP version."
 

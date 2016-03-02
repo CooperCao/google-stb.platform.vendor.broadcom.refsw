@@ -111,8 +111,6 @@ void NxClient_GetDefaultConnectSettings( NxClient_ConnectSettings *pSettings )
     unsigned i;
     memset(pSettings, 0, sizeof(*pSettings));
     for (i=0;i<NXCLIENT_MAX_IDS;i++) {
-        pSettings->simpleVideoDecoder[i].decoderCapabilities.maxWidth = 1920;
-        pSettings->simpleVideoDecoder[i].decoderCapabilities.maxHeight = 1080;
         pSettings->simpleVideoDecoder[i].windowCapabilities.maxWidth = 1920;
         pSettings->simpleVideoDecoder[i].windowCapabilities.maxHeight = 1080;
     }

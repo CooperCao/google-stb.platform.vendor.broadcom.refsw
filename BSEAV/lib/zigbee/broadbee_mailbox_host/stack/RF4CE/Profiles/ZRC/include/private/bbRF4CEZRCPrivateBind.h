@@ -215,6 +215,8 @@ typedef struct _RF4CE_ZRC2_BindingData_t
     SYS_TimeoutTask_t zrc2BindBlackoutTimer;
     SYS_TimeoutTask_t zrc2ValidationTimer;
 
+    SYS_TimeoutTask_t zrc2RecipientBindTimer;
+
     uint16_t zrc2ValidationTotalTimeout;
     uint16_t zrc2AutoCheckValidationTimer;
     uint16_t zrc2LinkLostTimer;
@@ -357,6 +359,21 @@ void rf4cezrc2CompileRecipientUserString(uint8_t *buffer);
     \return Nothing.
  ****************************************************************************************/
 void RF4CE_ZRC1_DiscoveryResponse(RF4CE_NWK_DiscoveryIndParams_t *indication);
+
+// TODO
+// make a comments
+void rf4cezrc2StartRecipientBindTimer(void);
+// TODO
+// make a comments
+void rf4cezrc2RenewRecipientBindTimer(void);
+// TODO
+// make a comments
+void rf4cezrc2StopRecipientBindTimer(void);
+// TODO
+// make a comments
+void rf4cezrc2BindRecipientTimerHandler(SYS_SchedulerTaskDescriptor_t *const taskDescriptor);
+// TODO
+// make a comments
 #endif
 
 /************************************************************************************//**
@@ -371,5 +388,10 @@ bool RF4CE_ZRC2_IsDiscoveryResponseNeeded(RF4CE_NWK_DiscoveryIndParams_t *indica
     \brief Returns true if the device is not binding
  ****************************************************************************************/
 bool rf4cezrc2BindIsStatusIdle(void);
+
+/************************************************************************************//**
+    \brief Clears Push Button Stimulus flag on the Target.
+ ****************************************************************************************/
+void rf4cezrc2ClearPushButtonStimulus(void);
 
 #endif // BBRF4CEZRCPRIVATEBIND_H

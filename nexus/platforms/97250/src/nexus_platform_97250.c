@@ -131,19 +131,9 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
 {
     enum BMEM_SIZE { BMEM_SIZE_LOW, BMEM_SIZE_MED, BMEM_SIZE_HIGH } bmem_size;
 
-    /* Since the 97250 only has a single memory controller, it can be assumed
-       that there will only be a single BMEM carveout. The size of said carveout
-       can then be used to adjust the heap sizes. Note that the carveout size,
-       i.e. osRegion, is used instead of the actual physical memory available.
-       The reason is because the kernel might not be given access to the all of
-       the available physical memory for whatever reason.
-       The following is a rough stab at 'limits' to divide the heap sizes into
-       a LOW, MED, and HIGH setting. Ideally it should be an exact science, but
-       since the picture buffer is dynamically calculated later on (and it
-       varies between box modes), the limits are just rough estimates. */
-    if (g_platformMemory.osRegion[0].length < (512*1024*1024))
+    if (g_platformMemory.memc[0].length < (512*1024*1024))
         bmem_size = BMEM_SIZE_LOW;
-    else if (g_platformMemory.osRegion[0].length > (1024*1024*1024))
+    else if (g_platformMemory.memc[0].length > (1024*1024*1024))
         bmem_size = BMEM_SIZE_HIGH;
     else
         bmem_size = BMEM_SIZE_MED;

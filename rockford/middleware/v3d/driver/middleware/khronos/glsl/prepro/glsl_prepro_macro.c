@@ -116,9 +116,23 @@ bool glsl_macro_equals(Macro *m1, Macro *m2)
    vcos_assert(m2);
 
    return m1->type == m2->type &&
-          glsl_token_equals(m1->name, m2->name) &&
+          glsl_token_equals(m1->name, m2->name, false) &&
           glsl_tokenlist_equals(m1->args, m2->args) &&
           glsl_tokenseq_equals(m1->body, m2->body);
+}
+
+bool glsl_macro_is_builtin(Macro *macro)
+{
+   if (macro->type == MACRO_LINE ||
+      macro->type == MACRO_FILE)
+      return true;
+
+   if (macro->name->type == IDENTIFIER &&
+      strlen(macro->name->data.s) >= 3 &&
+      !strncmp(macro->name->data.s, "GL_", 3))
+      return true;
+
+   return false;
 }
 
 static MacroList *macrolist_alloc(void)
@@ -168,7 +182,7 @@ MacroList *glsl_macrolist_construct_initial()
 Macro *glsl_macrolist_find(MacroList *list, Token *name)
 {
    while (list) {
-      if (glsl_token_equals(list->macro->name, name))
+      if (glsl_token_equals(list->macro->name, name, false))
       {
          if (list->macro->type == MACRO_UNDEF)
             return NULL;

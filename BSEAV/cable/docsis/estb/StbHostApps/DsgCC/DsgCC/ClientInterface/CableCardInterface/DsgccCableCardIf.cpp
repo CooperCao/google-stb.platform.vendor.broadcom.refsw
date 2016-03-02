@@ -1,61 +1,51 @@
-//****************************************************************************
-//
-// Copyright (c) 2005-2012 Broadcom Corporation
-//
-// This program is the proprietary software of Broadcom Corporation and/or
-// its licensors, and may only be used, duplicated, modified or distributed
-// pursuant to the terms and conditions of a separate, written license
-// agreement executed between you and Broadcom (an "Authorized License").
-// Except as set forth in an Authorized License, Broadcom grants no license
-// (express or implied), right to use, or waiver of any kind with respect to
-// the Software, and Broadcom expressly reserves all rights in and to the
-// Software and all intellectual property rights therein.  IF YOU HAVE NO
-// AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY,
-// AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE
-// SOFTWARE.  
-//
-// Except as expressly set forth in the Authorized License,
-//
-// 1.     This program, including its structure, sequence and organization,
-// constitutes the valuable trade secrets of Broadcom, and you shall use all
-// reasonable efforts to protect the confidentiality thereof, and to use this
-// information only in connection with your use of Broadcom integrated circuit
-// products.
-//
-// 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
-// "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
-// OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
-// RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
-// IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
-// A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-// ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-// THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-//
-// 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
-// OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
-// INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
-// RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
-// HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
-// EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
-// WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
-// FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-//
-//****************************************************************************
-//
-//  Filename:       DsgccCablecardIf.cpp
-//  Author:         Kenny Lee
-//  Creation Date:  July 22, 2005
-//
-//****************************************************************************
-//  Description:
-//		This is the Cablecard Interface object that manage the cablecard operation
-//		and receive any DS packet destined to cablecard.
-//		This is also the cpp to c interface code where the cablcecard driver will 
-//		call these functions to register the DSG tunnel with the DSGCC
-//
-//****************************************************************************
+/******************************************************************************
+ *    (c)2010-2014 Broadcom Corporation
+ *
+ * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
+ * $brcm_Workfile: $
+ * $brcm_Revision: $
+ * $brcm_Date: $
+ * Description:
+ *		This is the Cablecard Interface object that manage the cablecard operation
+ *	and receive any DS packet destined to cablecard.
+ *	This is also the cpp to c interface code where the cablcecard driver will
+ *	call these functions to register the DSG tunnel with the DSGCC
+ *
+ *****************************************************************************/
 
-//********************** Include Files ***************************************
 #include "OperatingSystemFactory.h"
 #include "MutexSemaphore.h"
 #include "DsgClientCtlThread.h"
@@ -212,7 +202,7 @@ BcmCableCardIfThread *BcmCableCardIfThread::GetSingletonInstance(void)
         gLogMessageRaw
             << "BcmCableCardIfThread::GetSingletonInstance:  WARNING - the singleton instance is NULL, and someone is accessing it!" << endl;
     }
-    
+
     return pgCableCardIf;
 }
 
@@ -296,20 +286,20 @@ void BcmCableCardIfThread::ThreadMain(void)
 
     	FD_ZERO(&rfds);
        	FD_SET(gUdpTcpSocket, &rfds);
-    	
+
         // set loop every 3 seconds to handle cases where the flow is deleted and open again
     	retcode = select(maxfdp1, &rfds, (fd_set *)0, (fd_set *)0, (struct timeval *)&tv);
-    
-        // If successful, select() returns the number of ready descriptors that are contained in the bit masks. 
-        // If the time limit expires, select returns zero and sets errno to EINTR. 
-        // On failure, it returns -1 and sets errno to one of the following values: 
+
+        // If successful, select() returns the number of ready descriptors that are contained in the bit masks.
+        // If the time limit expires, select returns zero and sets errno to EINTR.
+        // On failure, it returns -1 and sets errno to one of the following values:
         if( retcode > 0 )
     	{
             if(FD_ISSET(gUdpTcpSocket, &rfds))
             {
                 // recvfrom should not block now
-                // Upon successful completion, recvfrom() returns the length of the message in bytes. 
-                // If no messages are available to be received and the peer has performed an orderly shutdown, recvfrom() returns 0. 
+                // Upon successful completion, recvfrom() returns the length of the message in bytes.
+                // If no messages are available to be received and the peer has performed an orderly shutdown, recvfrom() returns 0.
                 // Otherwise the function returns -1 and sets errno to indicate the error
                 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 if ( SocFlowInfo.remote_address_type == SF_IPV6)
@@ -324,10 +314,10 @@ void BcmCableCardIfThread::ThreadMain(void)
                         DsgPrint("DS_SocketFlow pkt with len %d\n", cnt);
                         DumpBytes("DS_SocketFlow", packet_buf, cnt);
                     }
-                
+
                     lost_flow_sent = 0;
 
-                    // For CableCard Driver, this function block until data is sent out to the POD or timeout. 
+                    // For CableCard Driver, this function block until data is sent out to the POD or timeout.
                     // When the function returns, the packet can always be released
                     BcmSendDataToPOD( packet_buf, cnt, gSocketFlowId );
                 }
@@ -346,7 +336,7 @@ void BcmCableCardIfThread::ThreadMain(void)
                 {
                     if( lost_flow_sent == 0 )
                     {
-                        POD_Api_Lost_Flow_Ind( gSocketFlowId , LOSTFLOW_SOCKET_RD_ERR );    //socket read error 
+                        POD_Api_Lost_Flow_Ind( gSocketFlowId , LOSTFLOW_SOCKET_RD_ERR );    //socket read error
                         lost_flow_sent = 1;
                     }
                     gLogMessageRaw	<< "gUdpTcpSocket receive error = " << strerror(errno) << endl;
@@ -371,7 +361,7 @@ void BcmCableCardIfThread::ThreadMain(void)
                 DhcpOptionLen = 0;
 
                 // Docsis ranged and registered, Send proxy DHCP request to eCM
-                DsgStartProxyDhcpRequest( saved_opt_len, saved_mac, saved_opt_data, NULL ); 
+                DsgStartProxyDhcpRequest( saved_opt_len, saved_mac, saved_opt_data, 0 );
 
                 // Now wait for the DHCP reply to come back
                 while( CableCardIpAddress == 0 )
@@ -380,7 +370,7 @@ void BcmCableCardIfThread::ThreadMain(void)
                     BcmOperatingSystemFactory::ThreadSleep(2000);
                     // During IP_U dhcp, at least one tunnel is opened.
                     // NumOpenTunnel suddenly goes to 0 indicate card unplugged
-                    if( NumOpenTunnel == 0 )    
+                    if( NumOpenTunnel == 0 )
                     {
                         cout << "CableCard IP_U: Card removed!" << endl;
                         break;
@@ -498,7 +488,7 @@ void BcmCableCardIfThread::HandleSetDsgMode( unsigned char oper_mode, unsigned c
 
         // Now, open new tunnels. First byte is the number of mac addresses that follow
         NumOpenTunnel = *pmac_struct++;
-        for (i=0; i<NumOpenTunnel; i++ ) 
+        for (i=0; i<NumOpenTunnel; i++ )
         {
             regInfo.clientPort = kClientPort+i;
             // Copy tunnel mac address.
@@ -608,7 +598,7 @@ void BcmCableCardIfThread::HandleConfigureAdvanceDsg(unsigned char *pkt_obj_ptr,
 
     // Now, open new tunnels. First byte is the number of filters
     NumOpenTunnel = *pCfgAdvDsg++;
-    for (i=0; i<NumOpenTunnel; i++ ) 
+    for (i=0; i<NumOpenTunnel; i++ )
     {
         // clear cfr
         cfr = cfr0;
@@ -649,7 +639,7 @@ void BcmCableCardIfThread::HandleConfigureAdvanceDsg(unsigned char *pkt_obj_ptr,
 	    ip_address.Set((uint8 *) pCfgAdvDsg);
         if( ip_address == kAllZerosIp )
         {
-            // OC-SP-CCIF2.0-I20-091211: ..A value of all zeros implies all values of SourceIP Address, i.e., 
+            // OC-SP-CCIF2.0-I20-091211: ..A value of all zeros implies all values of SourceIP Address, i.e.,
             // this parameter was not specified in the DCD message.
             // To make it NOT specified, do not write anythng to the cfr, skip the cfr SourceIpMask processing as well
             pCfgAdvDsg += 4;
@@ -662,7 +652,7 @@ void BcmCableCardIfThread::HandleConfigureAdvanceDsg(unsigned char *pkt_obj_ptr,
             // Get SourceIp mask into placeholder
             pCfgAdvDsg += 4;
             ip_address.Set((uint8 *) pCfgAdvDsg);
-            // OC-SP-CCIF2.0-I20-091211: A value of all ones implies that all 32 bits of the Source IP Address are 
+            // OC-SP-CCIF2.0-I20-091211: A value of all ones implies that all 32 bits of the Source IP Address are
             // to be used for filtering.
             // Just makesure it is not all 0's. treat it as NOT specficied
             if( ip_address != kAllZerosIp )
@@ -679,7 +669,7 @@ void BcmCableCardIfThread::HandleConfigureAdvanceDsg(unsigned char *pkt_obj_ptr,
         if( ip_address != kAllZerosIp )
             cfr.DestIpAddr( ip_address );
         pCfgAdvDsg += 4;
-        
+
         num_port = *pCfgAdvDsg++;
         for(j=0; j<num_port; j++ )
         {
@@ -766,7 +756,7 @@ void BcmCableCardIfThread::HandleConfigureAdvanceDsg(unsigned char *pkt_obj_ptr,
 // For dual processor platform: Handle cablecard Ip Unicast flow request
 // This is supposed to implement as a dhcp proxy for cablecard
 //
-// Parameters:  
+// Parameters:
 //	unsigned short flowid - IP unicast flow id to use when forwarding data to cablecard
 //	unsigned char *mac - CableCard Mac address to use for this flow
 //	unsigned char opt_len - dhcp request option length
@@ -783,7 +773,7 @@ uint32 BcmCableCardIfThread::HandleIpUnicastWithDhcpReq( unsigned long flowid, u
     uint8 dhcploop = 0;
 
     // If Docsis has not ranged and registered, just return....
-    if( !DocsisRangedRegistered ) 
+    if( !DocsisRangedRegistered )
     {
         // OC-ATP 14.1.1 step 8:
         // return 0 and let pod_driver indicating an error (status_field == 0x03, Request denied, network unavailable or not responding)
@@ -793,9 +783,9 @@ uint32 BcmCableCardIfThread::HandleIpUnicastWithDhcpReq( unsigned long flowid, u
         // on some of the cablecard, return 0 will not make the card resend IPU flow req later
         //#if (IPU_REQ_WAIT )
         cout << "CableCard IP_U: Waiting 10sec for Docsis Registration complete..." << endl;
-        
+
         // Wait 10 sec for Docsis ranged and registered
-        while( !DocsisRangedRegistered && (i < 10) ) 
+        while( !DocsisRangedRegistered && (i < 10) )
         {
             BcmOperatingSystemFactory::ThreadSleep(1000);
             i++;
@@ -810,12 +800,12 @@ uint32 BcmCableCardIfThread::HandleIpUnicastWithDhcpReq( unsigned long flowid, u
         #endif
     }
 
-    //ATP test (OC-TP-HOST2.1-ATP-D04-081218.doc ) section 14.1.2.3 CARD INIT - invalid DHCPACK tests 
+    //ATP test (OC-TP-HOST2.1-ATP-D04-081218.doc ) section 14.1.2.3 CARD INIT - invalid DHCPACK tests
     do
     {
         cout << "\nCableCard IP_U: Starting Proxy DHCP...." << endl;
 
-		// PR20830: 
+		// PR20830:
 		// Store last IP address.
 		fLastCableCardIpAddress = 0;
 		if ( CableCardIpAddress != 0xEFEFEFEF )
@@ -836,7 +826,7 @@ uint32 BcmCableCardIfThread::HandleIpUnicastWithDhcpReq( unsigned long flowid, u
         for ( i=0; i<saved_opt_len; i++ )
             saved_opt_data[i] = opt_data[i];
 
-		//PR20830: 
+		//PR20830:
 		cout << "CableCard IP_U: ** Last acquired IP address is 0x" << hex << fLastCableCardIpAddress << endl;
 
         // Docsis ranged and registered, Send proxy DHCP request to eCM
@@ -900,7 +890,7 @@ uint32 BcmCableCardIfThread::HandleIpUnicastWithDhcpReq( unsigned long flowid, u
         else
             cout << "ret_option ptr(" << (int)ret_option << ") is NULL or *ropt_len(" << (int)*ropt_len <<  ") is 0! cannot copied!" << endl;
     }
-    else if( ropt_len )  
+    else if( ropt_len )
         *ropt_len = DhcpOptionLen;  // no dhcp reply option
 
 
@@ -954,7 +944,7 @@ void BcmCableCardIfThread::HandleCardRemovedCleanUp()
 
 //
 // service_type == 04 /* Socket*/
-// 
+//
 // typedef struct _CCARD_CONFIGURE_SOCKET_FLOW_APDU
 // {
 //      protocol_flag       8 uimsbf
@@ -981,7 +971,7 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
     uint32 myIpaddress;
     int i, arg = 1;
 
-    // At this time, this may be private ip address, 
+    // At this time, this may be private ip address,
     // Need to wait for a non private ip, which means Docsis is on 2-way mode
     GetEstbIpAddress(&myIpaddress);     //return in network byte order
     #if ( SOCKET_REQ_WAIT )
@@ -1045,7 +1035,7 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
             return 0x06;    //DNS not supported
         }
 
-        memcpy( pdst, pkt_obj_ptr, namelen ); 
+        memcpy( pdst, pkt_obj_ptr, namelen );
         *(pdst+namelen) = 0;    //terminate string
 
         cout << "Looking up ipaddress for DNS name: " << pdst << endl;
@@ -1092,7 +1082,7 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
     }
     else if( SocFlowInfo.remote_address_type == SF_IPV6 )
     {
-        //cout << "TBD: Do not know how to handle socket flow remote-addrees-type ipv6 " << 
+        //cout << "TBD: Do not know how to handle socket flow remote-addrees-type ipv6 " <<
         //    (int)SocFlowInfo.remote_address_type << endl;
         SocFlowInfo.Var.pNameOrIpv6addr = pkt_obj_ptr;
         pkt_obj_ptr += 16;      //exactly 16 bytes according to CCIF spec.
@@ -1106,7 +1096,7 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
     memset( &sockaddr_param, 0, sizeof(sockaddr_param) );
     sockaddr_param.sin_family = AF_INET;
 
-    gLogMessageRaw << "local port=0x" << hex << (int)SocFlowInfo.local_port_number 
+    gLogMessageRaw << "local port=0x" << hex << (int)SocFlowInfo.local_port_number
          << " eSTB PriIp=0x" << (int)htonl(myIpaddress)
          << " remote port=0x" << (int)SocFlowInfo.remote_port_number
          << " ipv4 address=0x" << (int)SocFlowInfo.Var.ipv4_address << dec << endl;
@@ -1184,7 +1174,7 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
 
 		// first Connect
 		int rc = connect(gUdpTcpSocket, (struct sockaddr *)&sockaddr_param, sizeof(sockaddr_param));
-        // If the connection succeeds, zero is returned. On error, -1 is returned, and errno is set appropriately.   
+        // If the connection succeeds, zero is returned. On error, -1 is returned, and errno is set appropriately.
         if( rc == 0)
         {
             success = 1;
@@ -1193,11 +1183,11 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
         else
         {
             gLogMessageRaw << "After 1st connect, errno = " << (int)errno << "::" << strerror(errno) << endl;
-            
-			if ((errno == EINPROGRESS) || (errno == EALREADY) || (errno == EWOULDBLOCK)) 			
+
+			if ((errno == EINPROGRESS) || (errno == EALREADY) || (errno == EWOULDBLOCK))
 			{
                 /* test to see if socket is writable before we try */
-				struct timeval sock_to; 
+				struct timeval sock_to;
 				fd_set fdwrite;
 				int optval = 0;
 				socklen_t optlen = 0;
@@ -1205,14 +1195,14 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
                 sock_to.tv_usec = 0;
                 FD_ZERO(&fdwrite);
                 FD_SET(gUdpTcpSocket, &fdwrite);
-				
+
 				// Select returns the number of sockets recently became active.
-                if (0 != select(gUdpTcpSocket+1, NULL, &fdwrite, NULL, &sock_to)) 
+                if (0 != select(gUdpTcpSocket+1, NULL, &fdwrite, NULL, &sock_to))
 				{
                     /* double check that the connect completed properly */
                     optlen = sizeof(optval);
                     rc = getsockopt(gUdpTcpSocket, SOL_SOCKET, SO_ERROR, (char*)&optval, &optlen);
-                    if (rc == 0 && optval == 0) 
+                    if (rc == 0 && optval == 0)
 					{
                         success = 1;
                     }
@@ -1260,7 +1250,7 @@ unsigned char BcmCableCardIfThread::HandleSocketFlowConfig( unsigned long flowid
     	{
 	    	int taskId = -1;
 		    DsgPrint("\nStarting cablecard socket flow US test thread\n");
-    		StartMyThread( "CableCard US TEST", &taskId, (void*(*)(void*)) CableCardSocketFlowUsTestThread); 
+			StartMyThread( "CableCard US TEST", &taskId, (void*(*)(void*)) CableCardSocketFlowUsTestThread);
 	    }
         #endif
 
@@ -1292,7 +1282,7 @@ unsigned char BcmCableCardIfThread::HandleDeleteFlowRequest( unsigned long flowi
 			cout << "HandleDeleteFlowRequest - Last DSG_msg APDU value is " << hex << fLastDsgMsgApdu << " .No need to release the IP address." << endl;
 		}
 		else
-		{			
+		{
 			cout << "Delete IPU Flow & shutdown Proxy Ip stack." << endl;
 			// For now: Shut down Proxy IP_U stack.
 			// TBD: Need to implement a non-desstructive way by just caching all DHCP data
@@ -1355,7 +1345,7 @@ void BcmCableCardIfThread::HandleConfigureDsgDirectory(unsigned char *pkt_obj_pt
         cout << "HandleConfigureDsgDirectory:: dir version is the same. No further processing." << endl;
         return;
     }
-        
+
     // Multiple Dsg Dir support: Closed all opened tunnels first
 	CloseAllCableCardClients( pDsgClientCtlThread );
 
@@ -1376,7 +1366,7 @@ void BcmCableCardIfThread::HandleConfigureDsgDirectory(unsigned char *pkt_obj_pt
 
     //Process Host entries
     NumOpenTunnel = *pCfgAdvDsg++;
-    for (i=0; i<NumOpenTunnel; i++ ) 
+    for (i=0; i<NumOpenTunnel; i++ )
     {
         // clear cfr
         cfr = cfr0;
@@ -1469,7 +1459,7 @@ void BcmCableCardIfThread::HandleConfigureDsgDirectory(unsigned char *pkt_obj_pt
             ip_address.Set((uint8 *) pCfgAdvDsg);
             if( ip_address == kAllZerosIp )
             {
-                // OC-SP-CCIF2.0-I20-091211: ..A value of all zeros implies all values of SourceIP Address, i.e., 
+                // OC-SP-CCIF2.0-I20-091211: ..A value of all zeros implies all values of SourceIP Address, i.e.,
                 // this parameter was not specified in the DCD message.
                 // To make it NOT specified, do not write anythng to the cfr, skip the cfr SourceIpMask processing as well
                 pCfgAdvDsg += 4;
@@ -1482,7 +1472,7 @@ void BcmCableCardIfThread::HandleConfigureDsgDirectory(unsigned char *pkt_obj_pt
                 // Get SourceIp mask into placeholder
             pCfgAdvDsg += 4;
             ip_address.Set((uint8 *) pCfgAdvDsg);
-                // OC-SP-CCIF2.0-I20-091211: A value of all ones implies that all 32 bits of the Source IP Address are 
+                // OC-SP-CCIF2.0-I20-091211: A value of all ones implies that all 32 bits of the Source IP Address are
                 // to be used for filtering. When source_IP_address is present in the DCD message and
                 // source_IP_mask is not present, a value of all ones is to be used for source_IP_mask.
                 // In any case, cablecard will send the correct ipMask
@@ -1534,7 +1524,7 @@ void BcmCableCardIfThread::HandleConfigureDsgDirectory(unsigned char *pkt_obj_pt
 
     //Process card entries and use the leftover i value as starting point
     NumOpenTunnel += *pCfgAdvDsg++;
-    for ( ; i<NumOpenTunnel; i++ ) 
+    for ( ; i<NumOpenTunnel; i++ )
     {
         // clear cfr
         cfr = cfr0;
@@ -1564,7 +1554,7 @@ void BcmCableCardIfThread::HandleConfigureDsgDirectory(unsigned char *pkt_obj_pt
             ip_address.Set((uint8 *) pCfgAdvDsg);
             if( ip_address == kAllZerosIp )
             {
-                // OC-SP-CCIF2.0-I20-091211: ..A value of all zeros implies all values of SourceIP Address, i.e., 
+                // OC-SP-CCIF2.0-I20-091211: ..A value of all zeros implies all values of SourceIP Address, i.e.,
                 // this parameter was not specified in the DCD message.
                 // To make it NOT specified, do not write anythng to the cfr, skip the cfr SourceIpMask processing as well
                 pCfgAdvDsg += 4;
@@ -1577,7 +1567,7 @@ void BcmCableCardIfThread::HandleConfigureDsgDirectory(unsigned char *pkt_obj_pt
                 // Get SourceIp mask into placeholder
             pCfgAdvDsg += 4;
             ip_address.Set((uint8 *) pCfgAdvDsg);
-                // OC-SP-CCIF2.0-I20-091211: A value of all ones implies that all 32 bits of the Source IP Address are 
+                // OC-SP-CCIF2.0-I20-091211: A value of all ones implies that all 32 bits of the Source IP Address are
                 // to be used for filtering. When source_IP_address is present in the DCD message and
                 // source_IP_mask is not present, a value of all ones is to be used for source_IP_mask.
                 // In any case, cablecard will send the correct ipMask
@@ -1700,7 +1690,7 @@ int BcmCableCardIfThread::sendTunnelDataToCableCard( const unsigned char *pBufDa
 {
     pkt_count++;
 	// Send potential DSG pacekt to final destination
-    // For CableCard POD SW, it block until data is sent out to the POD or timeout. 
+    // For CableCard POD SW, it block until data is sent out to the POD or timeout.
     // When the function returns, the packet can always be released
     return BcmSendDSGTunnelDataToPOD( (unsigned char *)pBufData + Remove_Header_Bytes, pktLen - Remove_Header_Bytes, gDsgFlowId );
 }
@@ -1715,12 +1705,12 @@ void BcmCableCardIfThread::SendDsDataToCableCard( unsigned char *pBufData, uint1
 	    DumpBytes("DS_IPU", pBufData, pktLen);
     }
 
-    // For CableCard POD SW, this function block until data is sent out to the POD or timeout. 
+    // For CableCard POD SW, this function block until data is sent out to the POD or timeout.
     // When the function returns, the packet can always be released
     BcmSendDataToPOD( (unsigned char *)pBufData, pktLen, gIpUFlowId );
 }
 
-// 
+//
 void BcmCableCardIfThread::sendFixedAppsTunnelRequestToCableCard( void )
 {
     // open 1 app tunnel with Application ID 3
@@ -1728,7 +1718,7 @@ void BcmCableCardIfThread::sendFixedAppsTunnelRequestToCableCard( void )
     POD_Api_Send_DSG_Message( (void *)dsg_message, 4 );
 }
 
-// 
+//
 void BcmCableCardIfThread::sendUcidToCableCard( unsigned char ucid )
 {
     // tell cablecard about UCID
@@ -1743,7 +1733,7 @@ void BcmCableCardIfThread::sendUcidToCableCard( unsigned char ucid )
     POD_Api_Send_DSG_Message( (void *)dsg_message, 2 );
 }
 
-// 
+//
 void BcmCableCardIfThread::sendTwoWayModeToCableCard( int mode )
 {
 	//(0=1way/1=2way)
@@ -1771,7 +1761,7 @@ void BcmCableCardIfThread::sendTwoWayModeToCableCard( int mode )
     }
 }
 
-// 
+//
 void BcmCableCardIfThread::sendDsScanCompleteToCableCard( void )
 {
     const char dsg_message = 0x03;
@@ -1782,7 +1772,7 @@ void BcmCableCardIfThread::sendDsScanCompleteToCableCard( void )
     POD_Api_Send_DSG_Message( (void *)&dsg_message, 1 );
 }
 
-// 
+//
 void BcmCableCardIfThread::sendDccDepartToCableCard( unsigned char init_type )
 {
     // tell cablecard about init_type
@@ -1798,7 +1788,7 @@ void BcmCableCardIfThread::sendDccDepartToCableCard( unsigned char init_type )
 
 }
 
-// 
+//
 void BcmCableCardIfThread::sendDisabledForwardingTypeToCableCard( unsigned char disabled_fwd_type )
 {
     // tell cablecard about init_type
@@ -1822,7 +1812,7 @@ void BcmCableCardIfThread::sendDisabledForwardingTypeToCableCard( unsigned char 
     }
 }
 
-// 
+//
 void BcmCableCardIfThread::sendEcmResetToCableCard( void )
 {
     char dsg_message, i;
@@ -1918,7 +1908,7 @@ void BcmCableCardIfThread::CloseAllCableCardClients( BcmDsgClientCtlThread *pDsg
     int i;
 
     // Sanity check
-    if( NumOpenTunnel == 0 ) 
+    if( NumOpenTunnel == 0 )
         return;
 
     // Sync call to close all eCM tunnels FIRST BEFORE deleting cablecard client objects (pClient)
@@ -1926,7 +1916,7 @@ void BcmCableCardIfThread::CloseAllCableCardClients( BcmDsgClientCtlThread *pDsg
         pDsgClientCtrl->ResetEcmTunnels();
 
     cout << "\n(MuLock)Close/Delete " << dec << (int)NumOpenTunnel << " CableCard Clients Objects..." << endl;
-    for (i=0; i<NumOpenTunnel; i++ ) 
+    for (i=0; i<NumOpenTunnel; i++ )
     {
         uint32 port = kClientPort+i;
         pClient = (BcmDsgCableCardClient *)pDsgClientCtrl->DsgClientManager().FindByPort(port);
@@ -1968,11 +1958,11 @@ unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( void )
             cout << ":";
     }
     #endif
-    gLogMessageRaw << ", local port=0x" << (int)SocFlowInfo.local_port_number 
+    gLogMessageRaw << ", local port=0x" << (int)SocFlowInfo.local_port_number
          << ", remote port=0x" << (int)SocFlowInfo.remote_port_number << dec << endl << endl;
 
 
-    if (getifaddrs(&ifaddr) == -1) 
+    if (getifaddrs(&ifaddr) == -1)
     {
         perror("getifaddrs");
         return 0x02;    //service_type not available
@@ -1980,11 +1970,11 @@ unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( void )
 
     // Pre-set here bind to any
     sockaddr_param.sin6_addr = in6addr_any;         // bind to any
-    myIpAddress.Set((uint8 *) &(sockaddr_param.sin6_addr)); 
+    myIpAddress.Set((uint8 *) &(sockaddr_param.sin6_addr));
 
     /* Walk through linked list, maintaining head pointer so we
        can free list later */
-    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) 
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next)
     {
         if (ifa->ifa_addr == NULL)
             continue;
@@ -2001,13 +1991,13 @@ unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( void )
                 (family == AF_INET6) ?  " (AF_INET6)" : "");
 
         /* For an AF_INET* interface address, display the address */
-        if (family == AF_INET || family == AF_INET6) 
+        if (family == AF_INET || family == AF_INET6)
         {
             s = getnameinfo(ifa->ifa_addr,
                     (family == AF_INET) ? sizeof(struct sockaddr_in) :
                                           sizeof(struct sockaddr_in6),
                     host, INET6_ADDRSTRLEN, NULL, 0, NI_NUMERICHOST);
-            if (s != 0) 
+            if (s != 0)
             {
                 printf("getnameinfo() failed: %s\n", gai_strerror(s));
                 exit(EXIT_FAILURE);
@@ -2057,7 +2047,7 @@ unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( void )
             return 0x02;    //service_type not available
         }
 
-        // bind to the local port                  
+        // bind to the local port
         if (bind(gUdpTcpSocket, (struct sockaddr *)&sockaddr_param, sizeof(sockaddr_param)) < 0)
         {
             perror("DS-UDP ipv6 bind failed");
@@ -2114,7 +2104,7 @@ unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( void )
 
 		// first Connect
 		int rc = connect(gUdpTcpSocket, (struct sockaddr *)&sockaddr_param, sizeof(sockaddr_param));
-        // If the connection succeeds, zero is returned. On error, -1 is returned, and errno is set appropriately.   
+        // If the connection succeeds, zero is returned. On error, -1 is returned, and errno is set appropriately.
         if( rc == 0)
         {
             success = 1;
@@ -2123,11 +2113,11 @@ unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( void )
         else
         {
             gLogMessageRaw << "After 1st connect, errno = " << (int)errno << "::" << strerror(errno) << endl;
-            
-			if ((errno == EINPROGRESS) || (errno == EALREADY) || (errno == EWOULDBLOCK)) 			
+
+			if ((errno == EINPROGRESS) || (errno == EALREADY) || (errno == EWOULDBLOCK))
 			{
                 /* test to see if socket is writable before we try */
-				struct timeval sock_to; 
+				struct timeval sock_to;
 				fd_set fdwrite;
 				int optval = 0;
 				socklen_t optlen = 0;
@@ -2135,14 +2125,14 @@ unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( void )
                 sock_to.tv_usec = 0;
                 FD_ZERO(&fdwrite);
                 FD_SET(gUdpTcpSocket, &fdwrite);
-				
+
 				// Select returns the number of sockets recently became active.
-                if (0 != select(gUdpTcpSocket+1, NULL, &fdwrite, NULL, &sock_to)) 
+                if (0 != select(gUdpTcpSocket+1, NULL, &fdwrite, NULL, &sock_to))
 				{
                     /* double check that the connect completed properly */
                     optlen = sizeof(optval);
                     rc = getsockopt(gUdpTcpSocket, SOL_SOCKET, SO_ERROR, (char*)&optval, &optlen);
-                    if (rc == 0 && optval == 0) 
+                    if (rc == 0 && optval == 0)
 					{
                         success = 1;
                     }
@@ -2190,7 +2180,7 @@ unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( void )
     	{
 	    	int taskId = -1;
 		    DsgPrint("\nStarting cablecard socket flow US test thread\n");
-    		StartMyThread( "CableCard US TEST", &taskId, (void*(*)(void*)) CableCardSocketFlowUsTestThread); 
+			StartMyThread( "CableCard US TEST", &taskId, (void*(*)(void*)) CableCardSocketFlowUsTestThread);
 	    }
         #endif
 
@@ -2207,10 +2197,10 @@ unsigned char BcmCableCardIfThread::ConfigureIpV6SocketFlow( void )
 //
 // pkt_obj_ptr format:
 // operational_mode - 8bit
-// if ((operation_mode == DSG_mode) || (operation_mode == DSG_one-way_mode)) 
+// if ((operation_mode == DSG_mode) || (operation_mode == DSG_one-way_mode))
 // {
 //   number_MAC_addresses - 8it
-//   for (i=0; i<number_MAC_addresses; i++) 
+//   for (i=0; i<number_MAC_addresses; i++)
 //   {
 //     DSG_MAC_address - 48bit
 //   }
@@ -2278,7 +2268,7 @@ void CableCardCallbackConfig_Advanced_DSG( unsigned char *pkt_obj_ptr, unsigned 
 // err_status Indicates the type of error that occurred
 // 0x00 Byte count error  The Card did not receive the same number of bytes
 //   in the DSG packet as was signaled by the Host.
-// 0x01 Invalid_DSG_channel 
+// 0x01 Invalid_DSG_channel
 //   Advanced Mode: The Current DCD message transmitted to the
 //   Card is not valid or does not contain the requested DSG tunnel(s).
 //   The Host SHALL acquire a new DCD on a different downstream
@@ -2307,7 +2297,7 @@ void CableCardCallbackDSGPacketError( unsigned char err_status )
 
         // Tell Dsg Client Controleer to start Hunt for another DCD
         pDsgClientCtlThread->Start();
-        
+
     }
 }
 
@@ -2323,7 +2313,7 @@ unsigned long CableCardCallbackIPUDhcp( unsigned long flowid, unsigned char *mac
     if( pgCableCardIf )
 	{
 		// In Dual processor model, the following function will send the dhcp param
-		// to the eCM proxy dhcp client and will wait for the DHCP done. 
+		// to the eCM proxy dhcp client and will wait for the DHCP done.
 		// The DHCP parameter will arrive asyncronous via eCM notification and set CableCardIpaddress.
 		ret_ipaddr = pgCableCardIf->HandleIpUnicastWithDhcpReq( flowid, mac, opt_len, opt_data, ret_option, ropt_len );
 
@@ -2333,7 +2323,7 @@ unsigned long CableCardCallbackIPUDhcp( unsigned long flowid, unsigned char *mac
     	{
 	    	int taskId = -1;
 		    DsgPrint("\nStarting cablecard IP_U US test thread\n");
-    		StartMyThread( "CableCard US TEST", &taskId, (void*(*)(void*)) CableCardIpUTestThread); 
+			StartMyThread( "CableCard US TEST", &taskId, (void*(*)(void*)) CableCardIpUTestThread);
 	    }
         #endif
 
@@ -2350,9 +2340,9 @@ unsigned long CableCardCallbackIPUDhcp( unsigned long flowid, unsigned char *mac
     // In single process model, the following function will configure the DHCP option
 	// into the proper ip stack and return. DHCP for this stack will automatically start
 	// after Docsis ranged and registered!
-    *ropt_len = DocsisCpeIpconfig( opt_len, mac, opt_data, ret_option ); 
+    *ropt_len = DocsisCpeIpconfig( opt_len, mac, opt_data, ret_option );
 
-    if( !DocsisRangedRegistered ) 
+    if( !DocsisRangedRegistered )
 	{
 		DsgPrint("\n------Starting Docsis Scan...\n");
 		//DsgScan();
@@ -2365,7 +2355,7 @@ unsigned long CableCardCallbackIPUDhcp( unsigned long flowid, unsigned char *mac
 	}
 
     //Wait until Docsis ranged and registered
-    while( !DocsisRangedRegistered ) 
+    while( !DocsisRangedRegistered )
 		BcmOperatingSystemFactory::ThreadSleep(2000);
 	DsgPrint(".....DONE\n");
 
@@ -2502,7 +2492,7 @@ void CableCardCallbackSendSocketFlowUsData( unsigned long flow_id, unsigned char
     }
 }
 //
-//  This function is called by the Cablecard driver to delete a flow that 
+//  This function is called by the Cablecard driver to delete a flow that
 //  has been opened
 //
 unsigned char CableCardCallbackDeleteFlowReq(unsigned long flowid)
@@ -2511,9 +2501,9 @@ unsigned char CableCardCallbackDeleteFlowReq(unsigned long flowid)
 }
 
 //
-//  new for I0-8 spec: 
+//  new for I0-8 spec:
 //
-void CableCardCallbackDSG_Directory( unsigned char *pkt_obj_ptr, unsigned short len ) 
+void CableCardCallbackDSG_Directory( unsigned char *pkt_obj_ptr, unsigned short len )
 {
     if( pgCableCardIf )
 	{
@@ -2611,7 +2601,7 @@ void Ping(void)
 
 	typedef struct _ICMP_ECHO_PKT
 	{
-	  IP_HDR		  IpHdr;  
+	  IP_HDR		  IpHdr;
 	  ICMP_HDR        IcmpHdr;
 	  UCHAR           pucEchoData[64]; // maximum for our purposes. Really this can be as big as you like.
 	} ICMP_ECHO_PKT, *PICMP_ECHO_PKT;
@@ -2683,7 +2673,7 @@ void UdpSend(void)
 
 	typedef struct _UDP_PKT
 	{
-	  IP_HDR		  IpHdr;  
+	  IP_HDR		  IpHdr;
 	  UDP_HDR         UdpHdr;
 	  UCHAR           pucUdpData[0x80]; // maximum for our purposes. Really this can be as big as you like.
 	} UDP_PKT, *PUDP_PKT;
@@ -2782,7 +2772,7 @@ void CableCardSocketFlowUsTestThread ( void )
 #if !(DSGCC_BUILT_AS_LIB)
 //
 // For standalone dsgcc build with cablecard enabled, Stub out these functions
-// 
+//
 unsigned char BcmSendDSGTunnelDataToHost( unsigned char *pBufData, unsigned int pktlen, unsigned long client_type, unsigned long client_id)
 {
     DsgPrint("-->In Stub BcmSendDSGTunnelDataToHost: Just return 0!" );

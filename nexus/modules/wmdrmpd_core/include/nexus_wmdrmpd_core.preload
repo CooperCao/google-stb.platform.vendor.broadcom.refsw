@@ -1,4 +1,0 @@
-# list header files from other modules and from separate include files
-# which must be loaded for proper syncthunk autogen
-
-../../dma/include/nexus_dma.h

@@ -22,11 +22,6 @@ Standalone GLSL compiler
 // Global variable declarations.
 //
 
-// Source management.
-extern int g_ShaderSourceCurrentIndex;
-extern int g_ShaderSourceCount;
-extern const char** g_ShaderSourceValues;
-
 // Whether we're compiling a fragment shader, vertex shader, etc.
 extern ShaderFlavour g_ShaderFlavour;
 

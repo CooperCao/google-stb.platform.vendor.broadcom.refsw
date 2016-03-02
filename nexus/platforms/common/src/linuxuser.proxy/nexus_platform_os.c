@@ -70,7 +70,9 @@
 #include "nexus_platform_debug_log.h"
 #include "priv/nexus_core_features.h"
 #include "priv/nexus_core_module_local.h"
+#if NEXUS_HAS_SURFACE
 #include "priv/nexus_surface_module_local.h"
+#endif
 
 #if NEXUS_CONFIG_IMAGE
 #include "priv/nexus_core_img_id.h"
@@ -102,6 +104,24 @@ extern BIMG_Interface SCM_IMAGE_Interface;
 #include "bsid_img.h"
 #endif
 #if NEXUS_HAS_FRONTEND
+#if NEXUS_HAS_FRONTEND_CTFE_IMG
+#include "bhab_ctfe_img.h"
+#if NEXUS_FRONTEND_7364
+#include "bhab_7364_fw.h"
+#endif
+#if NEXUS_FRONTEND_3128
+#include "bhab_3128_fw.h"
+#endif
+#if NEXUS_FRONTEND_7584
+#include "bhab_7584_fw.h"
+#endif
+#if NEXUS_FRONTEND_3461
+#include "bhab_3461_fw.h"
+#endif
+#if NEXUS_FRONTEND_7563
+#include "bhab_7563_fw.h"
+#endif
+#endif
 #if NEXUS_HAS_FRONTEND_SATFE_IMG
 #include "bhab_satfe_img.h"
 #if NEXUS_FRONTEND_7366
@@ -543,9 +563,11 @@ static NEXUS_Error NEXUS_P_Init(void)
     errCode = NEXUS_CoreModule_LocalInit();
     if ( errCode!=BERR_SUCCESS ) { errCode = BERR_TRACE(errCode); goto err_core_local; }
 
+#if NEXUS_HAS_SURFACE
     BDBG_MSG((">SURFACE_LOCAL"));
     errCode = NEXUS_SurfaceModule_LocalInit();
     if ( errCode!=BERR_SUCCESS ) { errCode = BERR_TRACE(errCode); goto err_surface_local; }
+#endif
 
 
     BDBG_MSG((">MODULE"));
@@ -618,8 +640,10 @@ static NEXUS_Error NEXUS_P_Init(void)
 err_driver:
     NEXUS_Module_Destroy(proxy);
 err_proxy:
+#if NEXUS_HAS_SURFACE
     NEXUS_SurfaceModule_LocalUninit();
 err_surface_local:
+#endif
     NEXUS_CoreModule_LocalUninit();
 err_core_local:
     NEXUS_Base_Uninit();
@@ -649,8 +673,10 @@ static void NEXUS_P_Uninit(void)
     NEXUS_Module_Destroy(state->module);
     state->module = NULL;
 
+#if NEXUS_HAS_SURFACE
     BDBG_MSG(("<SURFACE_LOCAL"));
     NEXUS_SurfaceModule_LocalUninit();
+#endif
 
     BDBG_MSG(("<CORE_LOCAL"));
     NEXUS_CoreModule_LocalUninit();
@@ -810,6 +836,21 @@ static NEXUS_Error NEXUS_Platform_P_InitImage(const NEXUS_PlatformImgInterface *
 #endif
 
 #if NEXUS_HAS_FRONTEND
+#if NEXUS_FRONTEND_7364
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_CTFE_IMG_Interface, (void *)&bcm7364_leap_image, NEXUS_CORE_IMG_ID_FRONTEND_7364); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
+#endif
+#if NEXUS_FRONTEND_3128
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_CTFE_IMG_Interface, (void *)&bcm3128_leap_image, NEXUS_CORE_IMG_ID_FRONTEND_3128); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
+#endif
+#if NEXUS_FRONTEND_7584
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_CTFE_IMG_Interface, (void *)&bcm7584_leap_image, NEXUS_CORE_IMG_ID_FRONTEND_7584); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
+#endif
+#if NEXUS_FRONTEND_3461
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_CTFE_IMG_Interface, (void *)&bcm3461_leap_image, NEXUS_CORE_IMG_ID_FRONTEND_3461); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
+#endif
+#if NEXUS_FRONTEND_7563
+    rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_CTFE_IMG_Interface, (void *)&bcm7563_leap_image, NEXUS_CORE_IMG_ID_FRONTEND_7563); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
+#endif
 #if NEXUS_FRONTEND_7366
     rc = Nexus_Platform_P_Image_Interfaces_Register(&BHAB_SATFE_IMG_Interface, &BHAB_7366_IMG_Context, NEXUS_CORE_IMG_ID_FRONTEND_7366); if (rc != NEXUS_SUCCESS) { return BERR_TRACE(NEXUS_UNKNOWN); }
 #endif
@@ -1370,9 +1411,11 @@ NEXUS_Platform_AuthenticatedJoin(const NEXUS_ClientAuthenticationSettings *pSett
     rc = NEXUS_CoreModule_LocalInit();
     if ( rc!=BERR_SUCCESS ) { rc = BERR_TRACE(rc); goto err_core_local; }
 
+#if NEXUS_HAS_SURFACE
     BDBG_MSG((">SURFACE_LOCAL"));
     rc = NEXUS_SurfaceModule_LocalInit();
     if ( rc!=BERR_SUCCESS ) { rc = BERR_TRACE(rc); goto err_surface_local; }
+#endif
 
     BDBG_MSG((">MODULE"));
     state->module = NEXUS_Module_Create("proxy", NULL);
@@ -1410,8 +1453,10 @@ err_join:
 err_os:
     NEXUS_Module_Destroy(state->module);
 err_proxy:
+#if NEXUS_HAS_SURFACE
     NEXUS_SurfaceModule_LocalUninit();
 err_surface_local:
+#endif
     NEXUS_CoreModule_LocalUninit();
 err_core_local:
     NEXUS_Base_Uninit();

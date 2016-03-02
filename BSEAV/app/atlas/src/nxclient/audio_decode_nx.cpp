@@ -1,5 +1,5 @@
 /***************************************************************************
- * (c) 2002-2015 Broadcom Corporation
+ * (c) 2002-2016 Broadcom Corporation
  *
  * This program is the proprietary software of Broadcom Corporation and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -256,46 +256,6 @@ CStc * CSimpleAudioDecodeNx::close()
     return(pStc);
 } /* close */
 
-eRet CSimpleAudioDecodeNx::start(
-        CPid * pPid,
-        CStc * pStc
-        )
-{
-    eRet                     ret    = eRet_Ok;
-    NEXUS_Error              nerror = NEXUS_SUCCESS;
-    NxClient_ConnectSettings settings;
-
-    if (0 != _connectId)
-    {
-        BDBG_ERR(("audio decoder connect id is invalid - possibly trying to connect more than once?!"));
-    }
-
-    NxClient_GetDefaultConnectSettings(&settings);
-    settings.simpleAudioDecoder.id = getNumber();
-    nerror                         = NxClient_Connect(&settings, &_connectId);
-    CHECK_NEXUS_ERROR_GOTO("unable to connect to simple audio decoder", nerror, ret, error);
-
-    return(CSimpleAudioDecode::start(pPid, pStc));
-
-error:
-    return(ret);
-} /* start */
-
-CPid * CSimpleAudioDecodeNx::stop()
-{
-    if (0 < _connectId)
-    {
-        NxClient_Disconnect(_connectId);
-        _connectId = 0;
-    }
-    else
-    {
-        BDBG_ERR(("unable to disconnect audio decoder!"));
-    }
-
-    return(CSimpleAudioDecode::stop());
-} /* stop */
-
 eRet CSimpleAudioDecodeNx::setAudioProcessing(eAudioProcessing audioProcessing)
 {
     eRet        ret    = eRet_Ok;
@@ -375,3 +335,14 @@ eRet CSimpleAudioDecodeNx::setAudioProcessing(eAudioProcessing audioProcessing)
 error:
     return(ret);
 } /* setAudioProcessing */
+
+eRet CSimpleAudioDecodeNx::updateConnectSettings(NxClient_ConnectSettings * pSettings)
+{
+     eRet ret = eRet_Ok;
+
+     pSettings->simpleAudioDecoder.id = getNumber();
+     /* set primer if we are connecting to a window that is not fullscreen. */
+     pSettings->simpleAudioDecoder.primer = (_pModel->getFullScreenWindowType() == getWindowType()) ? false : true;
+
+     return(ret);
+} /* updateConnectSettings */

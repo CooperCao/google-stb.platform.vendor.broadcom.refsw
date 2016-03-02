@@ -120,7 +120,7 @@ typedef struct media_player_start_settings
     NEXUS_TransportType transportType; /* override probe */
     struct {
         unsigned pid; /* override probe */
-        NEXUS_VideoCodec codec; /* override probe */
+        NEXUS_AudioCodec codec; /* override probe */
         NEXUS_AudioDecoderDolbyDrcMode dolbyDrcMode; /* applied to ac3, ac3+, aac and aac+ as able */
     } audio;
 

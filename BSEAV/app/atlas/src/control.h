@@ -1,7 +1,7 @@
-/***************************************************************************
- * (c) 2002-2016 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -80,6 +80,23 @@ public:
     virtual eRet    setVolume(int32_t level);
     virtual bool    getMute(void);
     virtual eRet    setMute(bool muted);
+    virtual eRet    showPip(bool bShow = true);
+    virtual eRet    swapPip(void);
+    virtual eRet    connectDecoders(
+                        CSimpleVideoDecode * pVideoDecode,
+                        CSimpleAudioDecode * pAudioDecode,
+                        uint32_t             width,
+                        uint32_t             height,
+                        CPid *               pVideoPid,
+                        eWindowType          winType);
+    virtual void    disconnectDecoders(eWindowType winType);
+    virtual eRet    startDecoders(
+                        CSimpleVideoDecode * pVideoDecode,
+                        CPid *               pVideoPid,
+                        CSimpleAudioDecode * pAudioDecode,
+                        CPid *               pAudioPid,
+                        CStc *               pStc);
+    virtual eRet    stopDecoders(CSimpleVideoDecode * pVideoDecode, CSimpleAudioDecode * pAudioDecode);
 
     eRet            initialize(void * id, CConfig * pConfig, CChannelMgr * pChannelMgr, CWidgetEngine * pWidgetEngine);
     eRet            uninitialize();
@@ -121,8 +138,6 @@ public:
     eRet            setAutoVideoFormat(bool bAutoVideoFormat);
     eRet            setWindowGeometry(void);
     eRet            showWindowType(eWindowType windowType, bool bShow = true);
-    eRet            showPip(bool bShow = true);
-    eRet            swapPip(void);
     void            setModel(CModel * pModel)                { _pModel = pModel; }
     void            setChannelMgr(CChannelMgr * pChannelMgr) { _pChannelMgr = pChannelMgr; }
     CChannelMgr *   getChannelMgr(void)                      { return(_pChannelMgr); }

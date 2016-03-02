@@ -1,43 +1,43 @@
 /******************************************************************************
-* (c) 2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
+ *
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -133,6 +133,9 @@ static void process_rx_message(unsigned int *message_rx, int socket)
         #endif
         server_RF4CE_StartReq(&socket_cb[socket].message_rx[0], socket);
         break;
+   case RPC_C2S_RF4CE_ZRC1_VendorSpecificReq:
+        server_RF4CE_ZRC1_VendorSpecificReq(&socket_cb[socket].message_rx[0], socket);
+        break;
    case RPC_C2S_RF4CE_GetReq:
         server_RF4CE_NWK_GetReq(&socket_cb[socket].message_rx[0], socket);
         break;
@@ -142,8 +145,14 @@ static void process_rx_message(unsigned int *message_rx, int socket)
    case RPC_C2S_RF4CE_ZRC1_GetAttributesReq:
         server_RF4CE_ZRC1_GetAttributesReq(&socket_cb[socket].message_rx[0], socket);
         break;
+   case RPC_C2S_RF4CE_ZRC1_SetAttributesReq:
+        server_RF4CE_ZRC1_SetAttributesReq(&socket_cb[socket].message_rx[0], socket);
+        break;
     case RPC_C2S_Mail_TestEngineEcho:
         server_Mail_TestEngineEcho(&socket_cb[socket].message_rx[0], socket);
+        break;
+    case RPC_C2S_SYS_EventSubscribe:
+        server_SYS_EventSubscribe(&socket_cb[socket].message_rx[0], socket);
         break;
     case RPC_C2S_Mail_SetEchoDelay:
         server_Mail_SetEchoDelay(&socket_cb[socket].message_rx[0], socket);
@@ -189,47 +198,57 @@ static void process_rx_message(unsigned int *message_rx, int socket)
     case (RPC_C2S_TE_Host2Uart1Req):
         server_Mail_Host2Uart1(&socket_cb[socket].message_rx[0], socket);
         break;
-    case (RPC_C2S_DirectTV_Test_Get_Caps_Req):
-        server_DirectTV_Test_Get_Caps_Req(&socket_cb[socket].message_rx[0], socket);
+    case (RPC_C2S_Phy_Test_Get_Caps_Req):
+        server_Phy_Test_Get_Caps_Req(&socket_cb[socket].message_rx[0], socket);
         break;
-    case (RPC_C2S_DirectTV_Test_Set_Channel_Req):
-        server_DirectTV_Test_Set_Channel_Req(&socket_cb[socket].message_rx[0], socket);
+    case (RPC_C2S_Phy_Test_Set_Channel_Req):
+        server_Phy_Test_Set_Channel_Req(&socket_cb[socket].message_rx[0], socket);
         break;
-    case (RPC_C2S_DirectTV_Test_Continuous_Wave_Start_Req):
-        server_DirectTV_Test_Continuous_Wave_Start_Req(&socket_cb[socket].message_rx[0], socket);
+    case (RPC_C2S_Phy_Test_Continuous_Wave_Start_Req):
+        server_Phy_Test_Continuous_Wave_Start_Req(&socket_cb[socket].message_rx[0], socket);
         break;
-    case (RPC_C2S_DirectTV_Test_Continuous_Wave_Stop_Req):
-        server_DirectTV_Test_Continuous_Wave_Stop_Req(&socket_cb[socket].message_rx[0], socket);
+    case (RPC_C2S_Phy_Test_Continuous_Wave_Stop_Req):
+        server_Phy_Test_Continuous_Wave_Stop_Req(&socket_cb[socket].message_rx[0], socket);
         break;
-    case (RPC_C2S_DirectTV_Test_Transmit_Start_Req):
-        server_DirectTV_Test_Transmit_Start_Req(&socket_cb[socket].message_rx[0], socket);
+    case (RPC_C2S_Phy_Test_Transmit_Start_Req):
+        server_Phy_Test_Transmit_Start_Req(&socket_cb[socket].message_rx[0], socket);
         break;
-    case (RPC_C2S_DirectTV_Test_Transmit_Stop_Req):
-        server_DirectTV_Test_Transmit_Stop_Req(&socket_cb[socket].message_rx[0], socket);
+    case (RPC_C2S_Phy_Test_Transmit_Stop_Req):
+        server_Phy_Test_Transmit_Stop_Req(&socket_cb[socket].message_rx[0], socket);
         break;
-    case (RPC_C2S_DirectTV_Test_Receive_Start_Req):
-        server_DirectTV_Test_Receive_Start_Req(&socket_cb[socket].message_rx[0], socket);
+    case (RPC_C2S_Phy_Test_Receive_Start_Req):
+        server_Phy_Test_Receive_Start_Req(&socket_cb[socket].message_rx[0], socket);
         break;
-    case (RPC_C2S_DirectTV_Test_Receive_Stop_Req):
-        server_DirectTV_Test_Receive_Stop_Req(&socket_cb[socket].message_rx[0], socket);
+    case (RPC_C2S_Phy_Test_Receive_Stop_Req):
+        server_Phy_Test_Receive_Stop_Req(&socket_cb[socket].message_rx[0], socket);
         break;
-    case (RPC_C2S_DirectTV_Test_Echo_Start_Req):
-        server_DirectTV_Test_Echo_Start_Req(&socket_cb[socket].message_rx[0], socket);
+    case (RPC_C2S_Phy_Test_Echo_Start_Req):
+        server_Phy_Test_Echo_Start_Req(&socket_cb[socket].message_rx[0], socket);
         break;
-    case (RPC_C2S_DirectTV_Test_Echo_Stop_Req):
-        server_DirectTV_Test_Echo_Stop_Req(&socket_cb[socket].message_rx[0], socket);
+    case (RPC_C2S_Phy_Test_Echo_Stop_Req):
+        server_Phy_Test_Echo_Stop_Req(&socket_cb[socket].message_rx[0], socket);
         break;
-    case (RPC_C2S_DirectTV_Test_Energy_Detect_Scan_Req):
-        server_DirectTV_Test_Energy_Detect_Scan_Req(&socket_cb[socket].message_rx[0], socket);
+    case (RPC_C2S_Phy_Test_Energy_Detect_Scan_Req):
+        server_Phy_Test_Energy_Detect_Scan_Req(&socket_cb[socket].message_rx[0], socket);
         break;
-    case (RPC_C2S_DirectTV_Test_Get_Stats_Req):
-        server_DirectTV_Test_Get_Stats_Req(&socket_cb[socket].message_rx[0], socket);
+    case (RPC_C2S_Phy_Test_Get_Stats_Req):
+        server_Phy_Test_Get_Stats_Req(&socket_cb[socket].message_rx[0], socket);
         break;
-    case (RPC_C2S_DirectTV_Test_Reset_Stats_Req):
-        server_DirectTV_Test_Get_Stats_Req(&socket_cb[socket].message_rx[0], socket);
+    case (RPC_C2S_Phy_Test_Reset_Stats_Req):
+        server_Phy_Test_Get_Stats_Req(&socket_cb[socket].message_rx[0], socket);
         break;
-    case (RPC_C2S_DirectTV_Test_Set_TX_Power_Req):
-        server_DirectTV_Test_Set_TX_Power_Req(&socket_cb[socket].message_rx[0], socket);
+    case (RPC_C2S_Phy_Test_Set_TX_Power_Req):
+        server_Phy_Test_Set_TX_Power_Req(&socket_cb[socket].message_rx[0], socket);
+        break;
+    case (RPC_C2S_Phy_Test_SelectAntenna_Req):
+        server_Phy_Test_SelectAntenna_Req(&socket_cb[socket].message_rx[0], socket);
+        break;
+    case (RPC_C2S_RF4CE_Get_Diag_Caps_Req):
+        server_RF4CE_Get_Diag_Caps_Req(&socket_cb[socket].message_rx[0], socket);
+        break;
+    case (RPC_C2S_RF4CE_Get_Diag_Req):
+        server_RF4CE_Get_Diag_Req(&socket_cb[socket].message_rx[0], socket);
+        break;
     /* ZBPRO NWK */
     case (RPC_S2C_Mail_TestEngineReset):
         server_Mail_TestEngineReset(&socket_cb[socket].message_rx[0], socket);

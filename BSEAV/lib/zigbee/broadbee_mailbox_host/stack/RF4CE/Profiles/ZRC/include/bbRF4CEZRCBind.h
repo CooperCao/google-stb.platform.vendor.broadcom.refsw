@@ -133,6 +133,8 @@ typedef struct _RF4CE_ZRC2_BindReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;  /*!< Service field */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC2_BindCallback_t callback; /*!< Callback on request completion. */
 } RF4CE_ZRC2_BindReqDescr_t;
@@ -162,6 +164,8 @@ struct _RF4CE_ZRC2_ProxyBindReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;      /*!< Service field */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC2_ProxyBindReqParams_t params;  /*!< Request parameters. */
     RF4CE_ZRC2_ProxyBindCallback_t callback; /*!< Callback on request completion. */
@@ -200,6 +204,8 @@ struct _RF4CE_ZRC2_ButtonBindingReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;          /*!< Service field */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC2_ButtonBindingReqParams_t params;  /*!< Request parameters. */
     RF4CE_ZRC2_ButtonBindingCallback_t callback; /*!< Pointer to the callback  */
@@ -222,6 +228,8 @@ struct _RF4CE_ZRC2_BindingReqDescr_t
 {
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;      /*!< Service field */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC2_BindingCallback_t callback;   /*!< Pointer to the callback  */
 };

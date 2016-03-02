@@ -35,25 +35,12 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  ***************************************************************************/
 #ifndef NEXUS_PLATFORM_FEATURES_H__
 #define NEXUS_PLATFORM_FEATURES_H__
 
 #include "bstd.h"
 #include "nexus_platform_generic_features_priv.h"
-
-/* 7366 Single memory controller configuration starts here
-   This is useful to do emulation for other single memory controller chips */
 
 /* Transport Features */
 #define NEXUS_NUM_PARSER_BANDS 24
@@ -65,8 +52,7 @@
 /* SPI Channels as defined in MSPI_CDRAM00->PCS[2:0] = three bits or three channels */
 #define NEXUS_NUM_SPI_CHANNELS 3
 
-#define NEXUS_NUM_VIDEO_DECODERS 3         /* 3 each for HEVD; TODO: bring up 3rd channel */
-
+#define NEXUS_NUM_VIDEO_DECODERS 3
 
 /* Audio Features */
 #define NEXUS_NUM_AUDIO_DECODERS 6
@@ -97,12 +83,6 @@
 #define NEXUS_NUM_SVIDEO_OUTPUTS 0
 
 /* Transcode Proprerties */
-#if (BCHP_VER == BCHP_VER_A0)
-#ifdef NEXUS_NUM_DSP_VIDEO_ENCODERS
-#define NEXUS_NUM_VIDEO_ENCODERS 1
-#define NEXUS_NUM_DISPLAYS   2 /* A0 only, C0/C1 for local HD/SD simul */
-#endif
-#elif (BCHP_VER >= BCHP_VER_B0)
 #define NEXUS_NUM_VCE_DEVICES    1
 #define NEXUS_NUM_VCE_CHANNELS   2 /* per device */
 #define NEXUS_NUM_VIDEO_ENCODERS   (NEXUS_NUM_VCE_CHANNELS * NEXUS_NUM_VCE_DEVICES)
@@ -111,7 +91,6 @@
 by this platform. Actual numbers may vary depeding
 upon the chip usage. See below */
 #define NEXUS_NUM_DISPLAYS   3 /* C0/C1 for local HD/SD simul,C2,C3 for dual transcodes on >= B0*/
-#endif
 
 #define NEXUS_NUM_VIDEO_WINDOWS   2 /* per display */
 
@@ -143,13 +122,6 @@ upon the chip usage. See below */
 
 /* Memory features */
 
-#if (BCHP_VER == BCHP_VER_A0)
-#define NEXUS_NUM_MEMC 1
-/* default heap indices, refer to memory map document  */
-#define NEXUS_MEMC0_MAIN_HEAP           0 /* Main Heap */
-#define NEXUS_MEMC0_PICTURE_BUFFER_HEAP 1 /* XVD/VDC buffers for 2 decode/encode*/
-#define NEXUS_MEMC0_GRAPHICS_HEAP       2 /* Single large graphics heap*/
-#elif (BCHP_VER >= BCHP_VER_B0)
 #define NEXUS_NUM_MEMC 2
 /* default heap indices, refer to memory map document  */
 #define NEXUS_MEMC0_MAIN_HEAP           0 /* Main Heap */
@@ -162,7 +134,6 @@ upon the chip usage. See below */
 #define NEXUS_MEMC1_DRIVER_HEAP         8
 #define NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP 9
 #define NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP 10
-#endif
 
 #define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
 

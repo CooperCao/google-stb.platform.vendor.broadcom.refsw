@@ -471,6 +471,8 @@ struct _RF4CE_ZRC2_GetAttributesReqDescr_t
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;             /*!< Service field */
     uint8_t pairingRef;                             /*!< Service field */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC2_GetAttributesReqParams_t params;     /*!< Request parameters */
     RF4CE_ZRC2_GetAttributesReqCallback_t callback; /*!< Request callback */
@@ -521,6 +523,8 @@ struct _RF4CE_ZRC2_SetAttributesReqDescr_t
 #ifndef _HOST_
     RF4CE_NWK_RequestService_t service;             /*!< Service field */
     uint8_t pairingRef;                             /*!< Service field */
+#else
+	void *context;
 #endif /* _HOST_ */
     RF4CE_ZRC2_SetAttributesReqParams_t params;     /*!< Request parameters */
     RF4CE_ZRC2_SetAttributesReqCallback_t callback; /*!< Request callback */

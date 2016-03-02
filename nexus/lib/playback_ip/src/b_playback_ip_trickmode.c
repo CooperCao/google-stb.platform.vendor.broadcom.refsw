@@ -1499,19 +1499,24 @@ B_PlaybackIp_PlayImpl(
         rc = B_ERROR_IN_PROGRESS;
     }
     else {
-        /* Play is being called in the non-blocking mode, just call the function to do the actual work. */
+        /* Play is being called in the blocking mode, just call the function to do the actual work. */
         rc = trickModePlay_locked(playback_ip);
+        /* we release lock here as blocking API is complete. */
+        unlock_ip_session(playback_ip);
     }
 
+    /* Note: we dont un-lock for non-blocking cases as the lock is held until non-blocking API completes. */
+    /* Lock is then released in the trickModeThread() after it completes the non-blocking API. */
 out:
-error:
-    if (rc != B_ERROR_IN_PROGRESS) {
-        unlock_ip_session(playback_ip);
-        if (rc == B_ERROR_SUCCESS) {
-            B_PlaybackIp_ResetPsiState(playback_ip->pPsiState);
-        }
+    if (rc == B_ERROR_SUCCESS) {
+        B_PlaybackIp_ResetPsiState(playback_ip->pPsiState);
     }
     BDBG_MSG(("%s: returning rc =%d", __FUNCTION__, rc));
+    return rc;
+
+error:
+    unlock_ip_session(playback_ip);
+    BDBG_ERR(("%s: ERROR: returning rc =%d", __FUNCTION__, rc));
     return rc;
 }
 
@@ -1795,7 +1800,7 @@ trickModeThread(
     BDBG_MSG(("%s: started, playback_ip %p", __FUNCTION__, playback_ip));
 
     while (true) {
-        if ((rc = BKNI_WaitForEvent(playback_ip->newTrickModeJobEvent, 1000)) != BERR_SUCCESS && rc != BERR_TIMEOUT) {
+        if ((rc = BKNI_WaitForEvent(playback_ip->newTrickModeJobEvent, 10)) != BERR_SUCCESS && rc != BERR_TIMEOUT) {
             BDBG_ERR(("%s: got error while waiting for new trickMode job event, rc %d", __FUNCTION__, rc));
             break;
         }
@@ -1827,6 +1832,7 @@ trickModeThread(
         playback_ip->apiCompleted = true;
         if (playback_ip->openSettings.eventCallback && playback_ip->playback_state != B_PlaybackIpState_eStopping && playback_ip->playback_state != B_PlaybackIpState_eStopped)
             playback_ip->openSettings.eventCallback(playback_ip->openSettings.appCtx, B_PlaybackIpEvent_eSeekComplete);
+        unlock_ip_session(playback_ip);
     }
 
     playback_ip->trickModeThreadDone = true;
@@ -1916,16 +1922,22 @@ B_PlaybackIp_Seek(
     else {
         /* seek function is being called in the non-blocking mode, just call the function to do the seek work */
         rc = trickModeSeek_locked(playback_ip, ipTrickModeSettings);
+        /* we release lock here as blocking API is complete. */
+        unlock_ip_session(playback_ip);
     }
 
+    /* Note: we dont un-lock for non-blocking cases as the lock is held until non-blocking API completes. */
+    /* Lock is then released in the trickModeThread() after it completes the non-blocking API. */
 out:
-error:
-    if (rc != B_ERROR_IN_PROGRESS) {
-        unlock_ip_session(playback_ip);
-        if (rc == B_ERROR_SUCCESS) {
-            B_PlaybackIp_ResetPsiState(playback_ip->pPsiState);
-        }
+    if (rc == B_ERROR_SUCCESS) {
+        B_PlaybackIp_ResetPsiState(playback_ip->pPsiState);
     }
+    BDBG_MSG(("%s: returning rc =%d", __FUNCTION__, rc));
+    return rc;
+
+error:
+    unlock_ip_session(playback_ip);
+    BDBG_ERR(("%s: ERROR: returning rc =%d", __FUNCTION__, rc));
     return rc;
 }
 
@@ -2316,16 +2328,22 @@ B_PlaybackIpError B_PlaybackIp_TrickMode(
     else {
         /* trickmode function is being called in the non-blocking mode, just call the function to do the trickmode work */
         rc = trickModeTrick_locked(playback_ip, ipTrickModeSettings);
+        /* we release lock here as blocking API is complete. */
+        unlock_ip_session(playback_ip);
     }
 
+    /* Note: we dont un-lock for non-blocking cases as the lock is held until non-blocking API completes. */
+    /* Lock is then released in the trickModeThread() after it completes the non-blocking API. */
 out:
-error:
-    if (rc != B_ERROR_IN_PROGRESS) {
-        unlock_ip_session(playback_ip);
-        if (rc == B_ERROR_SUCCESS) {
-            B_PlaybackIp_ResetPsiState(playback_ip->pPsiState);
-        }
+    if (rc == B_ERROR_SUCCESS) {
+        B_PlaybackIp_ResetPsiState(playback_ip->pPsiState);
     }
+    BDBG_MSG(("%s: returning rc =%d", __FUNCTION__, rc));
+    return rc;
+
+error:
+    unlock_ip_session(playback_ip);
+    BDBG_ERR(("%s: ERROR: returning rc =%d", __FUNCTION__, rc));
     return rc;
 }
 
@@ -2583,17 +2601,21 @@ B_PlaybackIpError B_PlaybackIp_FrameAdvance(
     else {
         /* frameAdvance function is being called in the non-blocking mode, just call the function to do the actual work. */
         rc = trickModeFrameAdvance_locked(playback_ip, playback_ip->forward);
+        unlock_ip_session(playback_ip);
     }
 
+    /* Note: we dont un-lock for non-blocking cases as the lock is held until non-blocking API completes. */
+    /* Lock is then released in the trickModeThread() after it completes the non-blocking API. */
 out:
-error:
-    if (rc != B_ERROR_IN_PROGRESS) {
-        unlock_ip_session(playback_ip);
-        if (rc == B_ERROR_SUCCESS) {
-            B_PlaybackIp_ResetPsiState(playback_ip->pPsiState);
-        }
+    if (rc == B_ERROR_SUCCESS) {
+        B_PlaybackIp_ResetPsiState(playback_ip->pPsiState);
     }
     BDBG_MSG(("%s: returning rc =%d", __FUNCTION__, rc));
+    return rc;
+
+error:
+    unlock_ip_session(playback_ip);
+    BDBG_ERR(("%s: ERROR: returning rc =%d", __FUNCTION__, rc));
     return rc;
 }
 

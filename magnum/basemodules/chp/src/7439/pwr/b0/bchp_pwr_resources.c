@@ -447,16 +447,16 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_HVD1[] = {{
     BDBG_STRING("HW_HVD1")
 }};
 
-const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_HVD_SID1_HVD1_GISB[] = {{
-    BCHP_PWR_P_ResourceType_eLeaf,
-    BCHP_PWR_HW_HVD_SID1_HVD1_GISB,
-    BDBG_STRING("HW_HVD_SID1_HVD1_GISB")
-}};
-
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_HVD1_SID[] = {{
     BCHP_PWR_P_ResourceType_eLeaf,
     BCHP_PWR_HW_HVD1_SID,
     BDBG_STRING("HW_HVD1_SID")
+}};
+
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_HVD_SID1_HVD1_GISB[] = {{
+    BCHP_PWR_P_ResourceType_eLeaf,
+    BCHP_PWR_HW_HVD_SID1_HVD1_GISB,
+    BDBG_STRING("HW_HVD_SID1_HVD1_GISB")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_HW_HVD1_SRAM[] = {{
@@ -988,10 +988,10 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_HW_HVD0_HVD0_GISB,
     BCHP_PWR_P_Resource_HW_HVD0_SRAM,
     BCHP_PWR_P_Resource_HW_HVD1,
+    BCHP_PWR_P_Resource_HW_HVD1_SID,
     BCHP_PWR_P_Resource_HW_HVD_SID1_HVD1_CORE,
     BCHP_PWR_P_Resource_HW_HVD_SID1_HVD1_CPU,
     BCHP_PWR_P_Resource_HW_HVD_SID1_HVD1_GISB,
-    BCHP_PWR_P_Resource_HW_HVD1_SID,
     BCHP_PWR_P_Resource_HW_HVD1_SRAM,
     BCHP_PWR_P_Resource_HW_VICE0_CORE_CLK,
     BCHP_PWR_P_Resource_HW_VICE0_GISB_CLK,
@@ -1100,10 +1100,10 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AVD0_PWR[] = {
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_AVD1_CLK[] = {
     BCHP_PWR_P_Resource_HW_HVD1,
+    BCHP_PWR_P_Resource_HW_HVD1_SID,
     BCHP_PWR_P_Resource_HW_HVD_SID1_HVD1_CORE,
     BCHP_PWR_P_Resource_HW_HVD_SID1_HVD1_CPU,
     BCHP_PWR_P_Resource_HW_HVD_SID1_HVD1_GISB,
-    BCHP_PWR_P_Resource_HW_HVD1_SID,
     NULL
 };
 
@@ -1731,9 +1731,9 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     NULL,
     NULL,
     NULL,
+    NULL,
     BCHP_PWR_P_Depend_HW_HVD_SID1_HVD1_CORE,
     BCHP_PWR_P_Depend_HW_HVD_SID1_HVD1_CPU,
-    NULL,
     NULL,
     NULL,
     BCHP_PWR_P_Depend_HW_VICE0_CORE_CLK,
@@ -1833,6 +1833,9 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate)
         case BCHP_PWR_HW_HVD1:
             BCHP_PWR_P_HW_HVD1_Control(handle, activate);
             break;
+        case BCHP_PWR_HW_HVD1_SID:
+            BCHP_PWR_P_HW_HVD1_SID_Control(handle, activate);
+            break;
         case BCHP_PWR_HW_HVD_SID1_HVD1_CORE:
             BCHP_PWR_P_HW_HVD_SID1_HVD1_CORE_Control(handle, activate);
             break;
@@ -1841,9 +1844,6 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate)
             break;
         case BCHP_PWR_HW_HVD_SID1_HVD1_GISB:
             BCHP_PWR_P_HW_HVD_SID1_HVD1_GISB_Control(handle, activate);
-            break;
-        case BCHP_PWR_HW_HVD1_SID:
-            BCHP_PWR_P_HW_HVD1_SID_Control(handle, activate);
             break;
         case BCHP_PWR_HW_HVD1_SRAM:
             BCHP_PWR_P_HW_HVD1_SRAM_Control(handle, activate);
