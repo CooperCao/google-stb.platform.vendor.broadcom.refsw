@@ -199,6 +199,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     data = 0x78;
     NEXUS_I2c_Write(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_VOLTAGE_REG_CH], ISL9492_CH1_I2C_ADDR, 0x00, (const uint8_t *) &data, 1);
 
+
     /* Configure FPGA on 7346(5) SV board */
     BDBG_MSG(("fpga i2c %d %p", I2C_DEVICE_FPGA_CH , g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH]));
     (void)NEXUS_I2c_Read(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, 0xc, &data_c, 1);
@@ -325,7 +326,12 @@ void NEXUS_Platform_UninitFrontend(void)
             deviceHandles[i] = NULL;
         }
     }
-
+#if NEXUS_PLATFORM_97346_SV
+    if (gpioHandleInt) {
+       NEXUS_Gpio_Close(gpioHandleInt);
+       gpioHandleInt = NULL;
+    }
+#endif
     return;
 }
 
