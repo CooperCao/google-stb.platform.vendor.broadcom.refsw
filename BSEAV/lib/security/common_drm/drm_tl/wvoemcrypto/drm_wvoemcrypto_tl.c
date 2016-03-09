@@ -111,6 +111,20 @@ static uint8_t *gPadding = NULL;
 #define USAGE_TABLE_BACKUP_FILE_PATH "UsageTable.bkp"
 #endif
 
+/* Scatter/gather definitions */
+static DmaBlockInfo_t *gWvDmaBlockInfoList[MAX_NUMBER_SESSIONS];
+#define MAX_SG_DMA_BLOCKS 32
+#define WV_OEMCRYPTO_FIRST_SUBSAMPLE 1
+#define WV_OEMCRYPTO_LAST_SUBSAMPLE 2
+
+/* Enable S/G only for Android at this point, since we know for a fact that
+ * it requires as much optimization as possible for Secure Video Playback */
+#ifdef ANDROID
+static bool scatterGatherEnabled = true;
+#else
+static bool scatterGatherEnabled = false;
+#endif
+
 
 static DrmRC DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory,
                                               uint32_t *pUsageTableSharedMemorySize);
@@ -511,6 +525,11 @@ DrmRC drm_WVOemCrypto_CloseSession(uint32_t session,int *wvRc)
             gHostSessionCtx[session].keySlot.hSwKeySlot[i] = NULL;
             gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot=NULL;
         }
+    }
+
+    if (scatterGatherEnabled && (gWvDmaBlockInfoList[session] != NULL)) {
+        SRAI_Memory_Free((uint8_t*)gWvDmaBlockInfoList[session]);
+        gWvDmaBlockInfoList[session] = NULL;
     }
 
 ErrorExit:
@@ -1814,6 +1833,78 @@ ErrorExit:
 
 }
 
+static DrmRC drm_WVOemCrypto_P_DecryptCTR_Secure_SG(uint8_t *data_addr,
+                                                    uint32_t data_length,
+                                                    uint32_t block_offset,
+                                                    uint32_t subsample_flags,
+                                                    uint32_t session)
+{
+    bool isFirstSubsample = false;
+    bool isLastSubsample = false;
+    DmaBlockInfo_t *blockInfo;
+    uint32_t dmaBlockIdx;
+    DrmRC rc;
+
+    BDBG_ASSERT(scatterGatherEnabled); /* this is a programming error */
+    isFirstSubsample = subsample_flags & WV_OEMCRYPTO_FIRST_SUBSAMPLE;
+    isLastSubsample = subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE;
+
+    /* Allocate the dma block memory if it doesn't exist yet */
+    blockInfo = gWvDmaBlockInfoList[session];
+    if (blockInfo == NULL) {
+        blockInfo = (DmaBlockInfo_t *)SRAI_Memory_Allocate(sizeof(DmaBlockInfo_t) * MAX_SG_DMA_BLOCKS, SRAI_MemoryType_Shared);
+        if (blockInfo == NULL) {
+            BDBG_ERR(("%s: error allocating dma blockinfo memory", __FUNCTION__));
+            return Drm_Err;
+        }
+        gWvDmaBlockInfoList[session] = blockInfo;
+    }
+
+    if (isFirstSubsample) {
+        dmaBlockIdx = 0;
+        if(block_offset != 0)
+        {
+            blockInfo[dmaBlockIdx].pDstData = gPadding;
+            blockInfo[dmaBlockIdx].pSrcData = gPadding;
+            blockInfo[dmaBlockIdx].uiDataSize = block_offset;
+            blockInfo[dmaBlockIdx].sg_start = true;
+            blockInfo[dmaBlockIdx].sg_end = false;
+            ++dmaBlockIdx;
+        }
+        gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = dmaBlockIdx;
+    }
+
+    /* Fill up sg structure */
+    dmaBlockIdx = gHostSessionCtx[session].drmCommonOpStruct.num_dma_block;
+    if (dmaBlockIdx == MAX_SG_DMA_BLOCKS) {
+        BDBG_ERR(("%s: exceeded maximum number (%d) of blocks per dma s/g job", __FUNCTION__, MAX_SG_DMA_BLOCKS));
+        return Drm_Err;
+    }
+
+    blockInfo[dmaBlockIdx].pDstData = data_addr;
+    blockInfo[dmaBlockIdx].pSrcData = data_addr;
+    blockInfo[dmaBlockIdx].uiDataSize = data_length;
+    blockInfo[dmaBlockIdx].sg_start = (dmaBlockIdx == 0);
+    blockInfo[dmaBlockIdx].sg_end = isLastSubsample;
+    ++gHostSessionCtx[session].drmCommonOpStruct.num_dma_block;
+
+    if (!isLastSubsample)
+        return Drm_Success;
+
+    /*start M2M transfer*/
+    gHostSessionCtx[session].drmCommonOpStruct.pDmaBlock = gWvDmaBlockInfoList[session];
+    rc = DRM_Common_TL_M2mOperation(&gHostSessionCtx[session].drmCommonOpStruct, true);
+    if(rc != Drm_Success)
+    {
+        BDBG_ERR(("%s - Call to 'DRM_Common_TL_M2mOperation' failed 0x%x", __FUNCTION__, rc));
+        return rc;
+    }
+    BDBG_MSG(("%s - Decrypted %d dma blocks", __FUNCTION__,
+               gHostSessionCtx[session].drmCommonOpStruct.num_dma_block ));
+
+    return rc;
+}
+
 static DrmRC drm_WVOemCrypto_P_DecryptCTR(const uint8_t* cipher_data,
                                  void* clear_data,
                                  uint32_t cipher_data_length,
@@ -1967,10 +2058,11 @@ DrmRC drm_WVOemCrypto_DecryptCTR(uint32_t session,
     DrmRC rc = Drm_Success;
     BERR_Code sage_rc = BERR_SUCCESS;
     *wvRc = SAGE_OEMCrypto_SUCCESS;
-    BSTD_UNUSED(subsample_flags);
+    bool isSecureDecrypt = (buffer_type == Drm_WVOEMCrypto_BufferType_Secure);
 
     BDBG_ENTER(drm_WVOemCrypto_DecryptCTR);
-    BDBG_MSG(("%s:input data len=%d,is_encrypted=%d, buffertype=%d",__FUNCTION__, data_length,is_encrypted,buffer_type));
+    BDBG_MSG(("%s:input data len=%d, is_encrypted=%d, buffertype=%d, sf=%d, secure=%d",
+                __FUNCTION__, data_length, is_encrypted, buffer_type, subsample_flags, isSecureDecrypt));
 
     if(data_addr == NULL)
     {
@@ -2001,7 +2093,7 @@ DrmRC drm_WVOemCrypto_DecryptCTR(uint32_t session,
 
     if (!is_encrypted)
     {
-        if (buffer_type == Drm_WVOEMCrypto_BufferType_Secure) {
+        if (isSecureDecrypt) {
             BDBG_ERR(("%s: clear data came with secure setting!!", __FUNCTION__));
             *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
             goto ErrorExit;
@@ -2009,6 +2101,10 @@ DrmRC drm_WVOemCrypto_DecryptCTR(uint32_t session,
         BKNI_Memcpy(out_buffer,data_addr, data_length);
         return Drm_Success;
     }
+
+    /* For s/g, we only need to load the iv for the first subsample */
+    if(scatterGatherEnabled && isSecureDecrypt && !(subsample_flags & WV_OEMCRYPTO_FIRST_SUBSAMPLE))
+        goto StartDma;
 
     container = SRAI_Container_Allocate();
     if(container == NULL)
@@ -2066,11 +2162,21 @@ DrmRC drm_WVOemCrypto_DecryptCTR(uint32_t session,
         goto ErrorExit;
     }
 
+StartDma:
     /* Now kickoff dma */
      BDBG_MSG(("%s:now call drm_WVOemCrypto_P_DecryptCTR ",__FUNCTION__));
-     if(buffer_type == Drm_WVOEMCrypto_BufferType_Secure)
+     if(isSecureDecrypt)
      {
-        if(drm_WVOemCrypto_P_DecryptCTR_Secure(out_buffer,data_length, out_sz, &block_offset,session) != Drm_Success)
+        if(scatterGatherEnabled &&
+            drm_WVOemCrypto_P_DecryptCTR_Secure_SG(out_buffer, data_length, block_offset, subsample_flags, session) != Drm_Success)
+        {
+            BDBG_ERR(("%s: decryption failed for SG Secure Buffer Type",__FUNCTION__));
+            rc = Drm_Err;
+            *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
+            goto ErrorExit;
+        }
+        else if(!scatterGatherEnabled &&
+             drm_WVOemCrypto_P_DecryptCTR_Secure(out_buffer,data_length, out_sz, &block_offset,session) != Drm_Success)
         {
             BDBG_ERR(("%s: decryption failed for Secure Buffer Type",__FUNCTION__));
             rc = Drm_Err;
