@@ -493,6 +493,7 @@ DrmRC DRM_Common_TL_Finalize(void)
     }
     else
     {
+        DRM_Common_Finalize();
         if(DrmCommon_TL_Counter > 0){
             DrmCommon_TL_Counter--;
         }
