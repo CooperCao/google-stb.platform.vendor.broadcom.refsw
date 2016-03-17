@@ -206,8 +206,11 @@ static bool BHDM_HDCP_P_RegisterAccessAllowed(
 	/* if not authenticated, any register can be accessed */
 	if ((!authenticated) || (hHDMI->HdcpVersion == BHDM_HDCP_Version_eUnused))
 	{
-		BDBG_MSG((" Authenticated: %d Register Access at offset %#x Allowed At line %d",
-			authenticated, offset, __LINE__)) ;
+#if 0
+		/* message for i2c register access debuggingitg */
+		BDBG_MSG((" Authenticated: %d Register Access at offset %#x allowed",
+			authenticated, offset)) ;
+#endif
 		accessAllowed = true ;
 		goto done ;
 	}
@@ -3096,7 +3099,7 @@ done:
 		version = 0 ;
 	}
 
-	BDBG_MSG(("BCM%d will use Rx supported HDCP %d.x", BCHP_CHIP, version)) ;
+	BDBG_MSG(("Attached Rx supports up to HDCP %d.x", version)) ;
 #endif
 
 	*eVersion = hHDMI->HdcpVersion;

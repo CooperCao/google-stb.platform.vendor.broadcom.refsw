@@ -513,13 +513,18 @@ NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_Open( unsigned index, const NEXUS_HdmiOu
         goto err_event;
 #endif
 
-#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
     /* Update Rx supported hdcp version - use hdcp 2.2 if support */
     errCode = BHDM_HDCP_GetHdcpVersion(pOutput->hdmHandle, &pOutput->eHdcpVersion);
     /* default to HDCP 1.x if cannot read HDCP Version */
     if (errCode != BERR_SUCCESS) {
         pOutput->eHdcpVersion = BHDM_HDCP_Version_e1_1;
+    }
 
+    /* If no SAGE support for HDCP 2.2 or 2.2 disabled, downgrade to 1.1 */
+#if ! (NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT))
+    if (pOutput->eHdcpVersion == BHDM_HDCP_Version_e2_2)
+    {
+            pOutput->eHdcpVersion = BHDM_HDCP_Version_e1_1 ;
     }
 #endif
 
@@ -631,7 +636,12 @@ static void NEXUS_HdmiOutput_P_StopTimers(NEXUS_HdmiOutputHandle hdmiOutput )
         NEXUS_CancelTimer(hdmiOutput->postFormatChangeTimer);
         hdmiOutput->postFormatChangeTimer = NULL;
 
+        /* when stopping post FormatChangeTimer; reset hdcp Restart counter */
+        BDBG_MSG(("Reset HDCP Restart Counter from %d to 0",
+            hdmiOutput->hdcpRestartCounter)) ;
+        hdmiOutput->hdcpRestartCounter = 0 ;
     }
+
     if (hdmiOutput->connectTimer)
     {
         NEXUS_CancelTimer(hdmiOutput->connectTimer);
@@ -2905,6 +2915,10 @@ NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiO
         rc = NEXUS_HdmiOutput_DisableHdcpEncryption(hdmiOutput);
         if (rc) return BERR_TRACE(rc);
 
+        hdmiOutput->hdcpRestartCounter++ ;
+
+        BDBG_MSG(("(%d) HDCP Restart Counter: %d", __LINE__, hdmiOutput->hdcpRestartCounter)) ;
+
         rc = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus);
         if (rc) return BERR_TRACE(rc);
         hdmiOutput->pixelClkRatePreFormatChange = hdmiStatus.pixelClockRate;
@@ -2943,10 +2957,11 @@ static void NEXUS_HdmiOutput_P_PostFormatChangeTimer(void *context)
     if (rc) rc = BERR_TRACE(rc);
 
     /* restart HDCP authentication */
-
-    /* always retry HDCP post format change if it was enabled by the client */
-    if (hdmiOutput->hdcpStarted)
+    if (hdmiOutput->hdcpRestartCounter)
     {
+        BDBG_MSG(("(%d) HDCP Restart Counter: %d", __LINE__, hdmiOutput->hdcpRestartCounter)) ;
+        hdmiOutput->hdcpRestartCounter-- ;
+
         rc = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus);
         if (rc) rc = BERR_TRACE(rc);
 
@@ -2976,7 +2991,9 @@ NEXUS_Error NEXUS_HdmiOutput_P_PostFormatChange_priv(NEXUS_HdmiOutputHandle hdmi
         hdmiOutput->postFormatChangeTimer = NULL;
     }
 
-    hdmiOutput->postFormatChangeTimer = NEXUS_ScheduleTimer(hdmiOutput->settings.postFormatChangeAvMuteDelay, NEXUS_HdmiOutput_P_PostFormatChangeTimer, hdmiOutput);
+    hdmiOutput->postFormatChangeTimer = NEXUS_ScheduleTimer(
+        hdmiOutput->settings.postFormatChangeAvMuteDelay,
+        NEXUS_HdmiOutput_P_PostFormatChangeTimer, hdmiOutput);
     return NEXUS_SUCCESS ;
 }
 

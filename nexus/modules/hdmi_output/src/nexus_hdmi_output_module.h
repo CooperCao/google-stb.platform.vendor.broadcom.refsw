@@ -69,8 +69,8 @@
 #endif
 #endif
 
-#if NEXUS_HAS_SECURITY
 #include "bhdm_hdcp.h"
+#if NEXUS_HAS_SECURITY
 #include "bhdcplib.h"
 #include "bhdcplib_keyloader.h"
 #endif
@@ -149,6 +149,7 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_EventCallbackHandle scrambleEventCallback;
     NEXUS_EventCallbackHandle avRateChangeEventCallback;
     NEXUS_TimerHandle powerTimer;
+    unsigned hdcpRestartCounter;
     bool formatChangeMute;
     bool avMuteSetting;
     bool hdcpStarted;
@@ -182,8 +183,8 @@ typedef struct NEXUS_HdmiOutput
     BKNI_EventHandle notifyAudioEvent;
     BKNI_EventHandle notifyHotplugEvent ;
 
-#if NEXUS_HAS_SECURITY
     BHDM_HDCP_Version eHdcpVersion;
+#if NEXUS_HAS_SECURITY
     BHDCPlib_Handle hdcpHandle;
     NEXUS_EventCallbackHandle hdcpHotplugCallback;
     NEXUS_EventCallbackHandle riCallback;
