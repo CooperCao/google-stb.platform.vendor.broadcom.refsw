@@ -628,7 +628,7 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
                 continue;
             }
             if(stage!=3 && heap[heapIndex].size<0) {
-                break;
+                continue;
             }
             if(realAllocation) {
                 if(stage == 0 && !heap[heapIndex].placement.first) {
