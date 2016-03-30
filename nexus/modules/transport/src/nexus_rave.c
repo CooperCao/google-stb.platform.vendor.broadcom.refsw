@@ -355,6 +355,11 @@ NEXUS_RaveHandle NEXUS_Rave_Open_priv(const NEXUS_RaveOpenSettings *pSettings)
     allocSettings.BufferCfg = pSettings->config;
     allocSettings.BufferCfg.Cdb.Alignment = 8; /* non-configurable 256 byte alignment */
     allocSettings.BufferCfg.Itb.Alignment = 7; /* non-configurable 128 byte alignment */
+    if (pSettings->config.Itb.Length % 128) {
+        BDBG_ERR(("Itb.Length %#x is not a multiple of 128 bytes", pSettings->config.Itb.Length));
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        return NULL;
+    }
     rave->cdb.block = allocSettings.CdbBlock = BMMA_Alloc(rave->cdb.heap, pSettings->config.Cdb.Length, 1 << allocSettings.BufferCfg.Cdb.Alignment, NULL);
     if (!rave->cdb.block) {rc = BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); goto error;}
     rave->cdb.ptr = BMMA_Lock(rave->cdb.block);

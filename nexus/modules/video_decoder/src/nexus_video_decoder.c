@@ -582,10 +582,8 @@ void NEXUS_VideoDecoder_P_GetRaveSettings(unsigned avdIndex, NEXUS_RaveOpenSetti
         else {
             /* change ITB size relative to the fifoSize change */
             pRaveSettings->config.Itb.Length = pRaveSettings->config.Itb.Length * (pOpenSettings->openSettings.fifoSize/10000) / (pRaveSettings->config.Cdb.Length/10000);
-            /* AV ITB length must be 4-bit aligned */
-            if (pRaveSettings->config.Itb.Length % 16) {
-                pRaveSettings->config.Itb.Length = 16 * ((pRaveSettings->config.Itb.Length / 16) + 1);
-            }
+            /* ITB length must be 128 byte aligned */
+            pRaveSettings->config.Itb.Length -= (pRaveSettings->config.Itb.Length % 128);
         }
 
         /* If the user has specified a CDB size, use it...
