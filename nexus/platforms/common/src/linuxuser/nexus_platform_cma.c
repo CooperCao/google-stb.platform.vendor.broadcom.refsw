@@ -897,6 +897,8 @@ err_alloc:
 NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings(const NEXUS_PlatformSettings *pSettings, const NEXUS_PlatformMemory *pMemory, NEXUS_Core_Settings *pCoreSettings)
 {
     NEXUS_Error rc;
+    nexus_p_memory_info *info;
+
     bool useCma = pMemory->osRegion[0].cma;
     if(!useCma) {
         unsigned i;
@@ -983,7 +985,25 @@ NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings(const NEXUS_PlatformSettings *pS
         rc = NEXUS_Platform_P_SetCoreCmaSettings_priv(pSettings->heap, pMemory, pCoreSettings, true);
     }
     if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
-    return NEXUS_Platform_P_SetCoreCmaSettings_Verify(pSettings, pCoreSettings, pMemory);
+
+    info = BKNI_Malloc(sizeof(*info));
+    if(!info) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    rc = NEXUS_Platform_P_GetMemoryInfo(info);
+    if(rc!=NEXUS_SUCCESS) {
+        BKNI_Free(info);
+        info = NULL;
+    }
+    rc = NEXUS_Platform_P_SetCoreCmaSettings_Verify(info, pSettings, pCoreSettings, pMemory);
+    if(info) {
+        BKNI_Free(info);
+    }
+    if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
+    rc = NEXUS_Platform_P_SetCoreCmaSettings_Adjust(pSettings->heap, pCoreSettings);
+    if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
+
+    return NEXUS_SUCCESS;
 }
 
 static NEXUS_Error NEXUS_Platform_P_GetHostCmaMemory(NEXUS_PlatformMemory *pMemory, unsigned cma_offset)
@@ -1045,11 +1065,6 @@ static NEXUS_Error NEXUS_Platform_P_GetHostCmaMemory(NEXUS_PlatformMemory *pMemo
         BDBG_MODULE_MSG(nexus_platform_settings, ("cma.%u MEMC%u[%u] " BDBG_UINT64_FMT " " BDBG_UINT64_FMT "(%u MBytes)", i, pMemory->osRegion[i].memcIndex, pMemory->osRegion[i].subIndex, BDBG_UINT64_ARG(pMemory->osRegion[i].base), BDBG_UINT64_ARG(pMemory->osRegion[i].length), (unsigned)(pMemory->osRegion[i].length/(1024*1024))));
     }
     return NEXUS_SUCCESS;
-}
-
-static bool NEXUS_Platform_P_RangeTestIntersect(const nexus_p_memory_range *outer, NEXUS_Addr addr, size_t size)
-{
-    return NEXUS_Platform_P_TestIntersect(outer->addr, outer->size, addr, size);
 }
 
 NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)

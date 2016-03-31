@@ -713,6 +713,16 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
             #elif NEXUS_NUM_I2S_OUTPUTS
             rc = NEXUS_AudioOutput_AddInput(NEXUS_I2sOutput_GetConnector(server->platformConfig.outputs.i2s[0]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
             BERR_TRACE(rc);
+            #elif NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA && NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
+            unsigned i;
+            for (i=0;i<NEXUS_NUM_AUDIO_DUMMY_OUTPUTS;i++) {
+                if (!g_dummyOutputs[i]) {
+                    rc = NEXUS_AudioOutput_AddInput( NEXUS_AudioDummyOutput_GetConnector(server->platformConfig.outputs.audioDummy[i]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
+                    BERR_TRACE(rc);
+                    g_dummyOutputs[i] = r;
+                    break;
+                }
+            }
             #endif
             #if NEXUS_NUM_RFM_OUTPUTS
             if (server->platformConfig.outputs.rfm[0]) {
@@ -817,19 +827,23 @@ void audio_decoder_destroy(struct b_audio_resource *r)
     nxserver_t server = r->session->server;
 
     BDBG_MSG(("destroy %p", (void*)r));
-#if NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA && NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
-    for (i=0;i<NEXUS_NUM_AUDIO_DUMMY_OUTPUTS;i++) {
-        if (g_dummyOutputs[i] == r) {
-            g_dummyOutputs[i] = NULL;
-        }
-    }
-#endif
+    NEXUS_SimpleAudioDecoder_Suspend(r->masterSimpleAudioDecoder);
     if (r->masterSimpleAudioDecoder) {
         NEXUS_SimpleAudioDecoder_Destroy(r->masterSimpleAudioDecoder);
     }
     if (r->audioEncoder) {
         NEXUS_AudioEncoder_RemoveAllInputs(r->audioEncoder);
     }
+
+    #if NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA && NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
+    for (i=0;i<NEXUS_NUM_AUDIO_DUMMY_OUTPUTS;i++) {
+        if (g_dummyOutputs[i] == r) {
+            NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDummyOutput_GetConnector(server->platformConfig.outputs.audioDummy[i]));
+            g_dummyOutputs[i] = NULL;
+        }
+    }
+    #endif
+
     if (r->mixer[nxserver_audio_mixer_stereo]) {
         if (r->localSession && r->session->index == 0) {
             #if NEXUS_NUM_AUDIO_DACS

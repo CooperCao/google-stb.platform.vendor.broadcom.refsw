@@ -1,7 +1,7 @@
 /******************************************************************************
- * (c) 2003-2015 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
+ * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
  * to the terms and conditions of a separate, written license agreement executed
  * between you and Broadcom (an "Authorized License").  Except as set forth in
@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 
@@ -7166,6 +7165,8 @@ void BXPT_Rave_AdvanceSoftContext(
     uint32_t dest_valid, dest_wrap, dest_read;
     uint32_t reg, overflow;
 
+    uint32_t src_valid_copy, src_wrap_copy, dest_read_copy;
+
     BDBG_ASSERT( DestCtx );
 
     /* Copy over the overflow bits. Decoder needs them. */
@@ -7190,13 +7191,9 @@ void BXPT_Rave_AdvanceSoftContext(
     src_wrap = BREG_Read32(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + CDB_WRAP_PTR_OFFSET);
     dest_read = BREG_Read32(DestCtx->hReg, DestCtx->BaseAddr + CDB_READ_PTR_OFFSET);
 
-    /* produce: advance the dest VALID and WRAP pointers.
-    always write WRAP before VALID, always produce on dest before consuming on src */
-    BREG_Write32(DestCtx->hReg, DestCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, src_wrap);
-    BREG_Write32(DestCtx->hReg, DestCtx->BaseAddr + CDB_VALID_PTR_OFFSET, src_valid);
-
-    /* consume: advance the src READ pointer */
-    BREG_Write32(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + CDB_READ_PTR_OFFSET, dest_read);
+    src_valid_copy =  src_valid;
+    src_wrap_copy = src_wrap;
+    dest_read_copy = dest_read;
 
     /* ITB */
     src_valid = BREG_Read32(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_VALID_PTR_OFFSET );
@@ -8030,12 +8027,22 @@ skip_itb_and_restart:
     /* Write back updates to device memory */
     BMMA_FlushCache(DestCtx->mma.itbBlock, DestCtx->SoftRave.dest_itb_mem, DestCtx->SoftRave.ItbSize);
 
+    BKNI_EnterCriticalSection();
+    /* produce: advance the dest VALID and WRAP pointers.
+    always write WRAP before VALID, always produce on dest before consuming on src */
+    BREG_Write32(DestCtx->hReg, DestCtx->BaseAddr + CDB_WRAP_PTR_OFFSET, src_wrap_copy);
+    BREG_Write32(DestCtx->hReg, DestCtx->BaseAddr + CDB_VALID_PTR_OFFSET, src_valid_copy);
+
+    /* consume: advance the src READ pointer */
+    BREG_Write32(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + CDB_READ_PTR_OFFSET, dest_read_copy);
+
     /* produce: advance the dest VALID and WRAP pointers */
     BREG_Write32(DestCtx->hReg, DestCtx->BaseAddr + ITB_WRAP_PTR_OFFSET, dest_wrap);
     BREG_Write32(DestCtx->hReg, DestCtx->BaseAddr + ITB_VALID_PTR_OFFSET, dest_valid);
 
     /* consume: advance the src READ pointer */
     BREG_Write32(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_READ_PTR_OFFSET, src_read);
+    BKNI_LeaveCriticalSection();
 }
 
 BERR_Code BXPT_Rave_ResetSoftContext(

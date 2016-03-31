@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #include "nexus_video_decoder_module.h"
@@ -374,7 +366,7 @@ static void NEXUS_VideoDecoder_P_PrimerProcessItb(NEXUS_VideoDecoderPrimerHandle
             }
 
             if(0 != ( (CDB_OVERFLOW|ITB_OVERFLOW) & pitb->word2)){
-                BDBG_ERR(("overflow %p", (void *)primer));
+                BDBG_ERR(("overflow(%p) pitb %p, overflow=%#x", (void *)primer, (void*)pitb, ( (CDB_OVERFLOW|ITB_OVERFLOW) & pitb->word2)));
                 flush_primer(primer);
                 return;
             }
@@ -403,7 +395,10 @@ static void NEXUS_VideoDecoderPrimer_P_Prime(NEXUS_VideoDecoderPrimerHandle prim
     if (itb_valid < primer->sitb_read) {
         /* for this to be true, the HW must have wrapped. */
         itb_wrap = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Wrap);
-        if (!itb_wrap) return;
+        if (!itb_wrap) {
+            BDBG_WRN(("invalid wrap: %#x < %#x, but 0 wrap", itb_valid, primer->sitb_read));
+            return;
+        }
         itb_wrap++;
         NEXUS_VideoDecoder_P_PrimerProcessItb(primer, itb_wrap);
         /* if we consumed up to wrap point then wrap */
@@ -556,10 +551,14 @@ static void flush_primer(NEXUS_VideoDecoderPrimerHandle primer)
     valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Valid);
     base = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Base);
     BREG_Write32(g_pCoreHandles->reg, primer->cx_map.CDB_Read, (valid == base)?base:valid+1);
+    BREG_Write32(g_pCoreHandles->reg, primer->cx_map.CDB_Wrap, 0);
 
     /* ITB_READ and ITB_VALID both have inclusive semantics, so we can copy directly to flush. */
     valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
-    BREG_Write32(g_pCoreHandles->reg, primer->cx_map.ITB_Read, valid);
+    primer->sitb_read = valid+1;
+    BREG_Write32(g_pCoreHandles->reg, primer->cx_map.ITB_Read, primer->sitb_read);
+    BREG_Write32(g_pCoreHandles->reg, primer->cx_map.ITB_Wrap, 0);
+    reset_primer(primer);
 }
 
 static NEXUS_Error NEXUS_VideoDecoderPrimer_P_Start(NEXUS_VideoDecoderPrimerHandle primer);

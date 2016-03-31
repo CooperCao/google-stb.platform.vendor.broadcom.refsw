@@ -1,12 +1,39 @@
 /***************************************************************************
- *     Copyright (c) 2010-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  * ***************************************************************************/
 /*
     Title: ViCE Firmware API definitions (bvce_fw_api.h)
@@ -40,7 +67,7 @@ extern "C"
  * API Version  MM.mm.pp.bb
  */
 
-#define VICE_API_VERSION                  0x050B0000
+#define VICE_API_VERSION                  0x050C0000
 
 /*
  * Size of the command buffer between host (PI) and FW in bytes
@@ -349,7 +376,9 @@ typedef enum
     VICE_WDOG_TRACE_MB_WAIT_MBARC_IMD_PICSTART                  = 0x3B0,
     VICE_WDOG_TRACE_MB_WAIT_MBARC_IMD_PICSTART_AFTER            = 0x3B1,
     VICE_WDOG_TRACE_MB_WAIT_MBARC_TO_IMD_DINO                   = 0x3C0,
-    VICE_WDOG_TRACE_MB_WAIT_MBARC_TO_IMD_DINO_AFTER             = 0x3C1
+    VICE_WDOG_TRACE_MB_WAIT_MBARC_TO_IMD_DINO_AFTER             = 0x3C1,
+    VICE_WDOG_TRACE_MB_WAIT_REWIND_SG_DINO                      = 0x3D0,
+    VICE_WDOG_TRACE_MB_WAIT_REWIND_SG_DINO_AFTER                = 0x3D1
 
 
 } WdogTraceCode_e;
@@ -840,7 +869,8 @@ typedef struct ViceCmdConfigChannel_t
 /* Flag to enable Segment Mode Rate Control (as opposed to the default HRD buffer model RC).
    0: Use HRD Mode Rate Control.  1: Use Segment Mode Rate Control */
 #define CONFIG_FLAG_ENABLE_RC_SEGMENT_MODE                  11
-
+/* Flag for disabling picture drops from HRD underflow. 0: Enable HRD picture drop  1: Disable HRD picture drop */
+#define CONFIG_FLAG_DISABLE_HRD_DROP_PICTURE                12
 
 #define GOP_LENGTH_MASK                                     0x0000FFFF          /* Gop length is limited to 16 bits     */
 #define GOP_LENGTH_OR_DURATION_FLAG_MASK                    0x80000000          /* 0 = gop length is in frames. 1= gop length is in 1/1000 sec duration  */

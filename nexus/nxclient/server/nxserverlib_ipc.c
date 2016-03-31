@@ -82,11 +82,13 @@ struct nxclient_ipc {
     BDBG_OBJECT(nxclient_ipc)
     BLST_D_ENTRY(nxclient_ipc) link;
     int fd;
+    bool do_close;
     bipc_server_client_t ipc;
     nxclient_t client;
     struct ipc_server *server;
     nxclient_ipc_thread id;
     pid_t pid;
+    struct nxclient_ipc *other_client;
 };
 
 static struct ipc_server g_ipc;
@@ -113,12 +115,16 @@ static void nxserver_client_destroy(struct ipc_server *server, struct nxclient_i
 {
     BDBG_OBJECT_ASSERT(client, nxclient_ipc);
     bipc_server_client_destroy(server->ipc, client->ipc);
-    if (client->fd != -1) {
-        close(client->fd);
+    close(client->fd);
+    if (client->other_client) {
+        /* uncross link */
+        client->other_client->other_client = NULL;
     }
-    if (client->client) {
-        NxClient_P_DestroyClient(client->client);
-        client->client = NULL;
+    else {
+        /* only destroy nxclient_t for unlinked client */
+        if (client->client) {
+            NxClient_P_DestroyClient(client->client);
+        }
     }
     BLST_D_REMOVE(&server->clients, client, link);
     BDBG_OBJECT_DESTROY(client, nxclient_ipc);
@@ -163,7 +169,7 @@ static void ipc_thread(void *context)
         for(client=BLST_D_FIRST(&server->clients);client;) {
             struct nxclient_ipc *next = BLST_D_NEXT(client, link);
             if(client->id == id) {
-                if (client->fd == -1) {
+                if (client->do_close) {
                     BDBG_MSG(("destroy %s client %p", dbg_str, (void*)client));
                     nxserver_client_destroy(server, client);
                 }
@@ -318,9 +324,10 @@ void nxserver_ipc_close_client(nxclient_t nxclient)
     struct ipc_server *server = &g_ipc;
     for(client=BLST_D_FIRST(&server->clients);client;client=BLST_D_NEXT(client,link))  {
         if (client->client == nxclient) {
-            int fd = client->fd;
-            client->fd = -1;
-            close(fd);
+            client->do_close = true;
+            if (client->other_client) {
+                client->other_client->do_close = true;
+            }
             break;
         }
     }
@@ -353,6 +360,9 @@ nxclient_ipc_t nxclient_p_create(bipc_t ipc, const NxClient_JoinSettings *pJoinS
         BDBG_ASSERT(id == nxclient_ipc_thread_restricted);
         BDBG_ASSERT(pClient->id == nxclient_ipc_thread_regular);
         client->client = pClient->client;
+        /* cross link */
+        client->other_client = pClient;
+        pClient->other_client = client;
     } else {
         BDBG_ASSERT(id == nxclient_ipc_thread_regular);
         client->client = NxClient_P_CreateClient(client->server->server, pJoinSettings, &info->certificate, credentials.pid);
@@ -368,28 +378,15 @@ nxclient_ipc_t nxclient_p_create(bipc_t ipc, const NxClient_JoinSettings *pJoinS
 
 void nxclient_p_destroy(nxclient_ipc_t _client)
 {
-    struct nxclient_ipc *pClient, *client = _client;
-    struct ipc_server *server = &g_ipc;
-    bool standby = nxserver_is_standby(server->server);
+    struct nxclient_ipc *client = _client;
 
     if (!client) {
         /* will be NULL if nxclient_p_create fails */
         return;
     }
-    BDBG_OBJECT_ASSERT(client, nxclient_ipc);
-    if (client->client) {
-        NxClient_P_DestroyClient(client->client);
-        client->client = NULL;
-    }
-    for(pClient=BLST_D_FIRST(&server->clients);pClient;pClient=BLST_D_NEXT(pClient,link))  {
-        if(pClient->pid == client->pid && client != pClient) {
-            if(standby) {
-                int fd = pClient->fd;
-                pClient->fd = -1;
-                close(fd);
-            }
-            pClient->client = NULL;
-        }
+    client->do_close = true;
+    if (client->other_client) {
+        client->other_client->do_close = true;
     }
     return;
 }
@@ -451,8 +448,7 @@ int nxclient_p_general(nxclient_ipc_t _client, enum nxclient_p_general_param_typ
 
 int nxclient_p_get_standby_status(nxclient_ipc_t _client, NxClient_StandbyStatus *pStatus)
 {
-    BSTD_UNUSED(_client);
-    return NxClient_P_GetStandbyStatus(g_ipc.server, pStatus);
+    return NxClient_P_GetStandbyStatus(_client->client, pStatus);
 }
 
 int nxclient_p_set_standby_settings(nxclient_ipc_t _client, const NxClient_StandbySettings *pSettings)

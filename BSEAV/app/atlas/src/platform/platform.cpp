@@ -197,7 +197,6 @@ NEXUS_VideoFormat CPlatform::getDisplayMaxVideoFormat(int numDisplay)
     else
     {
         int                       format       = 0;
-        NEXUS_VideoFormat         maxFormat    = NEXUS_VideoFormat_eUnknown;
         NEXUS_DisplayCapabilities capabilities;
 
         NEXUS_GetDisplayCapabilities(&capabilities);
@@ -206,9 +205,13 @@ NEXUS_VideoFormat CPlatform::getDisplayMaxVideoFormat(int numDisplay)
         {
             if (true == capabilities.displayFormatSupported[format])
             {
-                if (videoFormatToVertRes(maxFormat) < videoFormatToVertRes((NEXUS_VideoFormat)format))
-                {
-                    maxFormat = (NEXUS_VideoFormat)format;
+                if (videoFormatToVertRes(maxFormat).toInt() < videoFormatToVertRes((NEXUS_VideoFormat)format).toInt())
+                {   /* Simple fix hard-codes SD display 1 to fix 7125 and any other 65nm platform that doesn't have
+                     _bMemSettingsValid.  Can be removed when those platforms are no longer supported in Nexus. */
+                    if ((numDisplay != 1) || (videoFormatToVertRes((NEXUS_VideoFormat)format).toInt() <= 576))
+                    {
+                        maxFormat = (NEXUS_VideoFormat)format;
+                    }
                 }
             }
         }

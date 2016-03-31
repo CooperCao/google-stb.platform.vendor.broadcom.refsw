@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_base.h"
@@ -181,7 +173,7 @@ static BERR_Code NEXUS_VideoOutput_P_SetHdmiDvoFormat(void *output, NEXUS_Displa
 static NEXUS_Error NEXUS_VideoOutput_P_HdmiDvoFormatChange(void *output, NEXUS_DisplayHandle display, NEXUS_VideoFormat format, NEXUS_DisplayAspectRatio aspectRatio, bool _3dOrientationChange)
 {
     NEXUS_Error errCode= NEXUS_SUCCESS;
-	BSTD_UNUSED(_3dOrientationChange);
+    BSTD_UNUSED(_3dOrientationChange);
     BDBG_MSG(("> NEXUS_VideoOutput_P_HdmiDvoFormatChange"));
     (void)NEXUS_VideoOutput_P_SetHdmiDvoFormat(output, display, format, aspectRatio);
     BDBG_MSG(("< NEXUS_VideoOutput_P_HdmiDvoFormatChange"));
@@ -751,7 +743,7 @@ NEXUS_VideoOutput_P_SetDac(NEXUS_VideoOutput_P_Link *link, NEXUS_DisplayHandle d
     unsigned i, j;
 
     if ((connect == false) && (link->dacsConnected == false))
-		return NEXUS_SUCCESS;
+        return NEXUS_SUCCESS;
 
     if (connect && !nexus_videooutput_p_allow_analog_display(link->output->type, display)) return NEXUS_SUCCESS;
 
@@ -1184,6 +1176,7 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
     NEXUS_HdmiOutputVideoSettings requested ;
     NEXUS_HdmiOutputVideoSettings preferred ;
     bool overrideRequestedSettings = false ;
+    NEXUS_CallbackDesc notifyDisplay;
 
     if (display->hdmi.rateChangeCb_isr == NULL)
     {
@@ -1387,6 +1380,7 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
     rc = BVDC_Display_SetDvoConfiguration(display->displayVdc, &dvoSettings);
     if (rc) {rc = BERR_TRACE(rc); goto error;}
 
+    /* Check if any hdmi upscale change or hdmi format change */
     if (display->hdmi.outputFormat != settings.outputFormat || hdmiFormatChange) {
         if(settings.outputFormat != NEXUS_VideoFormat_eUnknown)
         {
@@ -1402,10 +1396,6 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
         rc = BVDC_Display_SetHdmiFormat(display->displayVdc, hdmiFmt, videoFmt);
         if (rc) {rc = BERR_TRACE(rc); goto error;}
 
-        /* Use hdmiFmt to set HDMI module */
-        if(settings.outputFormat != NEXUS_VideoFormat_eUnknown){
-            videoFmt = hdmiFmt;
-        }
         display->hdmi.outputFormat = settings.outputFormat;
     }
 
@@ -1418,26 +1408,27 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
         if (rc) { rc = BERR_TRACE(rc); goto error; }
     }
 
-    /* post-ApplyChanges format change */
-    if (hdmiFormatChange) {
-        NEXUS_CallbackDesc notifyDisplay;
-        NEXUS_CallbackHandler_PrepareCallback(display->hdmi.outputNotifyDisplay, notifyDisplay);
-
-        NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-
-        (void)NEXUS_HdmiOutput_SetDisplayParams_priv(hdmiOutput, videoFmt, magnumMatrixCoefficients, aspectRatioVdc,
-            display->timingGenerator == NEXUS_DisplayTimingGenerator_eHdmiDvo,
-            &notifyDisplay);
-        (void)NEXUS_HdmiOutput_P_PostFormatChange_priv(hdmiOutput);
-        NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
+    /* if upscale, use upscale format to set HDMI instead of videoFmt */
+    if(display->hdmi.outputFormat != NEXUS_VideoFormat_eUnknown) {
+        rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(display->hdmi.outputFormat, &hdmiFmt);
     }
     else {
-        NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-        (void)NEXUS_HdmiOutput_SetDisplayParams_priv(hdmiOutput, videoFmt, magnumMatrixCoefficients, aspectRatioVdc,
-            display->timingGenerator == NEXUS_DisplayTimingGenerator_eHdmiDvo,
-            NULL /* no change */);
-        NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
+        hdmiFmt = videoFmt;
     }
+
+    /* post-ApplyChanges format change */
+    NEXUS_CallbackHandler_PrepareCallback(display->hdmi.outputNotifyDisplay, notifyDisplay);
+
+    NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
+        (void)NEXUS_HdmiOutput_SetDisplayParams_priv(hdmiOutput, hdmiFmt, magnumMatrixCoefficients, aspectRatioVdc,
+            display->timingGenerator == NEXUS_DisplayTimingGenerator_eHdmiDvo,
+            hdmiFormatChange ? &notifyDisplay : NULL) ;
+
+        if (hdmiFormatChange)
+        {
+            (void)NEXUS_HdmiOutput_P_PostFormatChange_priv(hdmiOutput);
+        }
+    NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
 
     return NEXUS_SUCCESS;
 
@@ -1649,7 +1640,7 @@ NEXUS_Rfm_P_FormatChange(void *output, NEXUS_DisplayHandle display, NEXUS_VideoF
     const NEXUS_DisplayModule_State *video = &g_NEXUS_DisplayModule_State;
     BSTD_UNUSED(display);
     BSTD_UNUSED(aspectRatio);
-	BSTD_UNUSED(_3dOrientationChange);
+    BSTD_UNUSED(_3dOrientationChange);
 
     NEXUS_Module_Lock(video->modules.rfm);
     NEXUS_Rfm_GetConnectionSettings_priv(rfm, &rfmConnectionSettings);

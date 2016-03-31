@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   Management of timebase (clock rate) blocks.
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_TIMEBASE_H__
 #define NEXUS_TIMEBASE_H__
@@ -308,9 +300,7 @@ NEXUS_Error NEXUS_Timebase_SetHdDviFrameRate(
     );
 
 /* 
-Atomically set NEXUS_TimebaseSettings.sourceSettings.vdec
-This function is automatically called by the AnalogVideoDecoder interface.
-A non-zero value will override anything set by NEXUS_TimebaseSettings.
+deprecated
 */
 NEXUS_Error NEXUS_Timebase_SetVdecFrameRate(
     NEXUS_Timebase timebase,

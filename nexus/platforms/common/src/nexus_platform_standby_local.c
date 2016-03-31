@@ -1,23 +1,41 @@
-/***************************************************************************
-*     Copyright (c) 2006-2014, Broadcom Corporation*
-*     All Rights Reserved*
-*     Confidential Property of Broadcom Corporation*
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 
 #include "nexus_platform_standby.h"
 #include "nexus_platform_local_priv.h"
@@ -50,6 +68,7 @@ BDBG_MODULE(nexus_platform_standby_local);
 static struct NEXUS_Platform_Standby_State {
     int wakeFd;
     int rtcFd;
+    NEXUS_PlatformStandbyMode mode;
     NEXUS_PlatformStandbyStatus standbyStatus;
     bool wakeupStatusCached;
     struct NEXUS_Platform_WakeupTimer_State {
@@ -264,31 +283,31 @@ NEXUS_Error NEXUS_Platform_SetStandbySettings( const NEXUS_PlatformStandbySettin
     wakeup_devices wakeups;
 
     rc = NEXUS_Platform_P_InitWakeupDriver();
-    if (rc) return BERR_TRACE(rc);
+    if (!rc) {
+        /*Disable all wakeups first */
+        wakeups.ir = wakeups.uhf = wakeups.keypad = wakeups.gpio = wakeups.cec = wakeups.transport = 1;
+        if(ioctl(g_Standby_State.wakeFd, BRCM_IOCTL_WAKEUP_DISABLE, &wakeups) ||
+                NEXUS_Platform_P_SetWakeTimer(0)) {
+            BDBG_ERR(("Unable to clear wakeup devices"));
+            rc = BERR_TRACE(BERR_OS_ERROR);
+        }
 
-    /*Disable all wakeups first */
-    wakeups.ir = wakeups.uhf = wakeups.keypad = wakeups.gpio = wakeups.cec = wakeups.transport = 1;
-    if(ioctl(g_Standby_State.wakeFd, BRCM_IOCTL_WAKEUP_DISABLE, &wakeups) ||
-            NEXUS_Platform_P_SetWakeTimer(0)) {
-        BDBG_ERR(("Unable to clear wakeup devices"));
-        rc = BERR_TRACE(BERR_OS_ERROR);
+        /* Set new wakeup settings */
+        wakeups.ir = pSettings->wakeupSettings.ir;
+        wakeups.uhf = pSettings->wakeupSettings.uhf;
+        wakeups.keypad = pSettings->wakeupSettings.keypad;
+        wakeups.gpio = pSettings->wakeupSettings.gpio;
+        wakeups.cec = pSettings->wakeupSettings.cec;
+        wakeups.transport = pSettings->wakeupSettings.transport;
+        if(ioctl(g_Standby_State.wakeFd, BRCM_IOCTL_WAKEUP_ENABLE, &wakeups) ||
+                NEXUS_Platform_P_SetWakeTimer(pSettings->wakeupSettings.timeout)) {
+            BDBG_ERR(("Unable to set wakeup devices"));
+            rc = BERR_TRACE(BERR_OS_ERROR);
+            return rc;
+        }
     }
 
-    /* Set new wakeup settings */
-    wakeups.ir = pSettings->wakeupSettings.ir;
-    wakeups.uhf = pSettings->wakeupSettings.uhf;
-    wakeups.keypad = pSettings->wakeupSettings.keypad;
-    wakeups.gpio = pSettings->wakeupSettings.gpio;
-    wakeups.cec = pSettings->wakeupSettings.cec;
-    wakeups.transport = pSettings->wakeupSettings.transport;
-    if(ioctl(g_Standby_State.wakeFd, BRCM_IOCTL_WAKEUP_ENABLE, &wakeups) ||
-            NEXUS_Platform_P_SetWakeTimer(pSettings->wakeupSettings.timeout)) {
-        BDBG_ERR(("Unable to set wakeup devices"));
-        rc = BERR_TRACE(BERR_OS_ERROR);
-        return rc;
-    }
-
-    if(pSettings->mode != NEXUS_PlatformStandbyMode_eOn) {
+    if(pSettings->mode == NEXUS_PlatformStandbyMode_ePassive || pSettings->mode == NEXUS_PlatformStandbyMode_eDeepSleep) {
         BKNI_Memset(&g_Standby_State.standbyStatus, 0, sizeof(NEXUS_PlatformStandbyStatus));
         g_Standby_State.wakeupStatusCached = false;
     }
@@ -296,6 +315,10 @@ NEXUS_Error NEXUS_Platform_SetStandbySettings( const NEXUS_PlatformStandbySettin
 
     rc = NEXUS_Platform_SetStandbySettings_driver(pSettings);
     if (rc) { rc = BERR_TRACE(rc); }
+
+#if NEXUS_CPU_ARM
+    g_Standby_State.mode = pSettings->mode;
+#endif
 
     return rc;
 #else
@@ -312,17 +335,16 @@ NEXUS_Error NEXUS_Platform_GetStandbyStatus(NEXUS_PlatformStandbyStatus *pStatus
     wakeup_devices wakeups;
     unsigned int wktmr_count=0;
 
-    rc = NEXUS_Platform_P_InitWakeupDriver();
-    if (rc) return BERR_TRACE(rc);
-
     if(!g_Standby_State.wakeupStatusCached) {
-        BKNI_Memset(&wakeups, 0, sizeof(wakeups));
-
-        if ( g_Standby_State.wakeFd < 0 ) {
-            BDBG_ERR(("wakeup driver not found. Cannot get status"));
-            BERR_TRACE(BERR_OS_ERROR);
-            goto err;
+        rc = NEXUS_Platform_P_InitWakeupDriver();
+        if (rc) {
+            if(g_Standby_State.mode == NEXUS_PlatformStandbyMode_eOn || g_Standby_State.mode == NEXUS_PlatformStandbyMode_eActive) {
+                g_Standby_State.wakeupStatusCached = true;
+            }
+            return BERR_TRACE(rc);
         }
+
+        BKNI_Memset(&wakeups, 0, sizeof(wakeups));
 
         if(ioctl(g_Standby_State.wakeFd, BRCM_IOCTL_WAKEUP_ACK_STATUS, &wakeups) ||
                NEXUS_Platform_P_GetWakeTimer(&wktmr_count)) {
@@ -340,6 +362,8 @@ NEXUS_Error NEXUS_Platform_GetStandbyStatus(NEXUS_PlatformStandbyStatus *pStatus
             g_Standby_State.standbyStatus.wakeupStatus.transport = wakeups.transport;
             g_Standby_State.standbyStatus.wakeupStatus.timeout = wktmr_count;
 
+            g_Standby_State.wakeupStatusCached = true;
+        } else if(g_Standby_State.mode == NEXUS_PlatformStandbyMode_eOn || g_Standby_State.mode == NEXUS_PlatformStandbyMode_eActive) {
             g_Standby_State.wakeupStatusCached = true;
         }
     }
@@ -369,7 +393,6 @@ NEXUS_Error NEXUS_Platform_P_InitWakeupDriver(void)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     const char *devname;
-    struct stat buffer;
 
     if (g_Standby_State.wakeFd > 0) {
         /* already open */
@@ -403,16 +426,19 @@ NEXUS_Error NEXUS_Platform_P_InitWakeupDriver(void)
         rc = BERR_TRACE(BERR_OS_ERROR);
     }
 
-    if(!stat(RTC_WAKE_SYSFS, &buffer)) {
-        BDBG_MSG(("using rtc wake timer"));
-       g_Standby_State.rtcFd = timerfd_create(CLOCK_BOOTTIME_ALARM, 0);
-       if (g_Standby_State.rtcFd < 0) {
-           BDBG_ERR(("Failed to create rtc timer. Timer wakeup may not work."));
-           rc = BERR_TRACE(BERR_OS_ERROR);
-       }
-    } else {
-        BDBG_MSG(("using sysfs wake timer"));
+#ifdef B_REFSW_ANDROID
+    {
+        struct stat buffer;
+        if(!stat(RTC_WAKE_SYSFS, &buffer)) {
+            BDBG_MSG(("using rtc wake timer"));
+           g_Standby_State.rtcFd = timerfd_create(CLOCK_BOOTTIME_ALARM, 0);
+           if (g_Standby_State.rtcFd < 0) {
+               BDBG_ERR(("Failed to create rtc timer. Timer wakeup may not work."));
+               rc = BERR_TRACE(BERR_OS_ERROR);
+           }
+        }
     }
+#endif
 
     return rc;
 }

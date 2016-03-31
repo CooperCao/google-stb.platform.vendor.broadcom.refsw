@@ -63,14 +63,6 @@ Summary:
     Initialise Keyslots
 
 *****************************************************************************/
-BERR_Code BHSM_P_InitialiseByPassKeyslot_sage( BHSM_Handle hHsm );
-
-
-/*****************************************************************************
-Summary:
-    Initialise Keyslots
-
-*****************************************************************************/
 void BHSM_P_StashKeySlotTableRead( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeyslots );
 
 

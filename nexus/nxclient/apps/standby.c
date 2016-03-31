@@ -318,6 +318,7 @@ static void set_power_state(struct appcontext *pContext)
     NxClient_StandbySettings standbySettings;
     NEXUS_Error rc;
     unsigned timeout = (pContext->timeout == -1) ? DEFAULT_TIMEOUT : pContext->timeout;
+    unsigned cnt=15;
 
     printf("Entering %s Mode\n", lookup_name(g_platformStandbyModeStrs, pContext->mode));
     NxClient_GetDefaultStandbySettings(&standbySettings);
@@ -336,8 +337,11 @@ static void set_power_state(struct appcontext *pContext)
     /* Wait for nexus to enter standby */
     while(!pContext->done) {
         NxClient_GetStandbyStatus(&standbyStatus);
-        if(standbyStatus.standbyTransition)
+        if(standbyStatus.transition == NxClient_StandbyTransition_eDone)
             break;
+        BKNI_Sleep(1000);
+        cnt--;
+        if(!cnt) {BDBG_WRN(("Timeout waiting for standby")); break;}
     }
     /* Return if standby fails */
     if(standbyStatus.settings.mode == NEXUS_PlatformStandbyMode_eOn) {

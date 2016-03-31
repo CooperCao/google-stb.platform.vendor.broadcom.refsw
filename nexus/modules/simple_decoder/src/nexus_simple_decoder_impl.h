@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2010-2014 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,12 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- **************************************************************************/
+ ******************************************************************************/
 #ifndef NEXUS_SIMPLE_DECODER_IMPL_H__
 #define NEXUS_SIMPLE_DECODER_IMPL_H__
 
@@ -72,6 +67,7 @@ typedef struct NEXUS_SimpleStcChannelDecoderStatus
     bool primer; /* is this a primer channel (which doesn't have a server decoder resource, but still needs a valid stc channel with autoConfigTimebase = false */
     int stcIndex; /* server preferred stc index */
     NEXUS_SimpleStcChannelEncoderStatus encoder;
+    bool hdDviInput;
 } NEXUS_SimpleStcChannelDecoderStatus;
 
 void NEXUS_SimpleVideoDecoder_GetStcStatus_priv(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_SimpleStcChannelDecoderStatus * pStatus);

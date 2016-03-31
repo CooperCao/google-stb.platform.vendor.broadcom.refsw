@@ -58,6 +58,7 @@ static unsigned vmalloc_size(
     unsigned vmalloc;
     const unsigned _1mb = 1024 * 1024;
     const unsigned default_vmalloc = 248 * _1mb;
+    const unsigned vmalloc_offset = 8 * _1mb; /* based on VMALLOC_OFFSET */
     const unsigned fudge = 64 * _1mb; /* some address space for core Linux use */
 
 #if defined(CONFIG_VMSPLIT_3G)
@@ -71,9 +72,9 @@ static unsigned vmalloc_size(
     return 0;
 #endif
     required_vmalloc += fudge;
-    required_vmalloc += 8 * _1mb;  /* based on VMALLOC_OFFSET */
+    required_vmalloc += vmalloc_offset;
     if(highest_installed_dram < addrspace_lim) {
-        vmalloc_lim = highest_installed_dram - (8  * _1mb);
+        vmalloc_lim = highest_installed_dram - vmalloc_offset;
     } else {
         vmalloc_lim = min((uint64_t)addrspace_lim, highest_installed_dram) - default_vmalloc;
     }
@@ -81,10 +82,10 @@ static unsigned vmalloc_size(
     if(lowest_bmem_addr > vmalloc_lim) {
         vmalloc = required_vmalloc;
     } else {
-        if(addrspace_lim  < (lowest_bmem_addr + fudge)) {
+        if(addrspace_lim  < (lowest_bmem_addr + vmalloc_offset)) {
             goto error;
         }
-        vmalloc = addrspace_lim - (lowest_bmem_addr + fudge);
+        vmalloc = addrspace_lim - (lowest_bmem_addr + vmalloc_offset);
     }
     vmalloc = vmalloc_align(vmalloc, _1mb);
     vmalloc /= _1mb;

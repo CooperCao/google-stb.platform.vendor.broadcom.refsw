@@ -321,9 +321,14 @@ NEXUS_Error NEXUS_Platform_P_SetStandbySettings( const NEXUS_PlatformStandbySett
     BSTD_UNUSED(resetWakeupStatus);
 
     /* If state is unchanged; let app reconfigure wakeup up devices and exit */
+    /* If Sage is defined, then we need to wakeup and go to sleep again. This allows
+     * for Sage BSP handshake to complete.
+     * TODO : Only resume Sage and put it back to sleep instead of waking up all modules */
+#ifndef NEXUS_HAS_SAGE
     if (pSettings->mode == g_standbyState.settings.mode) {
         goto set_wakeup;
     }
+#endif
 
     BDBG_MSG(("Entering Standby mode %d", pSettings->mode));
 
@@ -333,7 +338,7 @@ NEXUS_Error NEXUS_Platform_P_SetStandbySettings( const NEXUS_PlatformStandbySett
     BDBG_CASSERT(NEXUS_PlatformStandbyMode_eDeepSleep == (NEXUS_PlatformStandbyMode)NEXUS_StandbyMode_eDeepSleep);
 
     if (g_standbyState.settings.mode == NEXUS_PlatformStandbyMode_eDeepSleep && pSettings->mode!= NEXUS_PlatformStandbyMode_eDeepSleep) {
-	NEXUS_Platform_P_InitBoard();
+        NEXUS_Platform_P_InitBoard();
         NEXUS_Platform_P_InitPinmux();
     }
 
@@ -369,7 +374,9 @@ NEXUS_Error NEXUS_Platform_P_SetStandbySettings( const NEXUS_PlatformStandbySett
         break;
     }
 
+#ifndef NEXUS_HAS_SAGE
 set_wakeup:
+#endif
 #if !NEXUS_CPU_ARM
     if (pSettings->mode == NEXUS_PlatformStandbyMode_ePassive || pSettings->mode == NEXUS_PlatformStandbyMode_eDeepSleep) {
         NEXUS_Platform_P_SetWakeupDevices(pSettings);

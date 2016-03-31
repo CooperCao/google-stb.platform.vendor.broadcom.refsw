@@ -479,6 +479,7 @@ void release_video_encoders(struct b_connect *connect)
         settings.videoEncoder = NULL;
         settings.stcChannelTranscode = NULL;
         settings.mixer = NULL;
+        settings.audioMuxOutput = NULL;
         settings.displayEncode.display = NULL;
         settings.displayEncode.masterAudio = NULL;
         settings.displayEncode.slaveAudio = NULL;

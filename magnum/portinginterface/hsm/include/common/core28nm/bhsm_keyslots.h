@@ -1692,6 +1692,16 @@ BERR_Code BHSM_InvalidateTransportKeySlots(
     BHSM_ClientType_e   ownerShip
 );
 
+/*
+    Configure/reconfigure  both the g2gr and gr2r bypass keyslots.
+        - This function will be called internally by HSM moduele during initialisation.
+          It needs to be re-called if the client performs an operation that would invalidate
+          the bypass keyslots.
+*/
+
+BERR_Code BHSM_InitialiseBypassKeyslots( BHSM_Handle hHsm );
+
+
 
 /**
 Summary:

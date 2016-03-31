@@ -251,6 +251,9 @@ static void BXPT_P_PMUMemPwr_Control(BREG_Handle hReg, bool powerOn, const BXPT_
 {
 #ifdef BCHP_XPT_PMU_FE_SP_PD_MEM_PWR_DN_CTRL /* use single ifdef for all registers */
     uint32_t val = powerOn ? 0 : 0xffffffff;
+#if (!BXPT_POWER_MANAGEMENT)
+    val = 0;
+#endif
     BREG_Write32(hReg, BCHP_XPT_PMU_FE_SP_PD_MEM_PWR_DN_CTRL, val);
     BREG_Write32(hReg, BCHP_XPT_PMU_MCPB_SP_PD_MEM_PWR_DN_CTRL, val);
     BREG_Write32(hReg, BCHP_XPT_PMU_MEMDMA_SP_PD_MEM_PWR_DN_CTRL, val);
@@ -921,8 +924,6 @@ BERR_Code BXPT_Standby(
 #endif
         rc = BXPT_P_RegisterToMemory(hXpt->hRegister, &hXpt->regBackup, XPT_REG_SAVE_LIST);
         if (rc) return BERR_TRACE(rc);
-        rc = BXPT_P_Mcpb_Standby(hXpt);
-        if (rc) return BERR_TRACE(rc);
         rc = BXPT_P_Dma_Standby(hXpt);
         if (rc) return BERR_TRACE(rc);
 #ifdef BCHP_PWR_RESOURCE_XPT_REMUX
@@ -932,6 +933,9 @@ BERR_Code BXPT_Standby(
     hXpt->bS3Standby = pSettings->S3Standby;
 
     rc = BXPT_P_RegisterToMemory(hXpt->hRegister, &hXpt->sramBackup, XPT_SRAM_LIST);
+    if (rc) return BERR_TRACE(rc);
+
+    rc = BXPT_P_Mcpb_Standby(hXpt);
     if (rc) return BERR_TRACE(rc);
 
     BXPT_P_PMUMemPwr_Control(hXpt->hRegister, false, pSettings);
@@ -990,6 +994,7 @@ BERR_Code BXPT_Resume(
     BCHP_PWR_AcquireResource(hXpt->hChip, BCHP_PWR_RESOURCE_XPT_SRAM);
 #endif
     BXPT_P_MemoryToRegister(hXpt->hRegister, &hXpt->sramBackup, XPT_SRAM_LIST);
+    BXPT_P_Mcpb_Resume(hXpt);
 
     if( hXpt->bS3Standby )
     {
@@ -997,7 +1002,6 @@ BERR_Code BXPT_Resume(
         BCHP_PWR_AcquireResource(hXpt->hChip, BCHP_PWR_RESOURCE_XPT_REMUX);
 #endif
         BXPT_P_MemoryToRegister(hXpt->hRegister, &hXpt->regBackup, XPT_REG_SAVE_LIST);
-        BXPT_P_Mcpb_Resume(hXpt);
         BXPT_P_Dma_Resume(hXpt);
 #ifdef BCHP_PWR_RESOURCE_XPT_REMUX
         BCHP_PWR_ReleaseResource(hXpt->hChip, BCHP_PWR_RESOURCE_XPT_REMUX);

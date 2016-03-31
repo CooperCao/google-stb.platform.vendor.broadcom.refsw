@@ -144,8 +144,8 @@ static BERR_Code BMXT_Open_PreOpen(BMXT_Handle *pHandle, BCHP_Handle hChp, BREG_
                 }
                 break;
             case BMXT_P_PlatformType_eReg:
-                if (!mxt->hReg) {
-                    BDBG_ERR(("BREG_Handle argument must be set"));
+                if (!mxt->hReg || !mxt->hChp) {
+                    BDBG_ERR(("BREG_Handle and BCHP_Handle arguments must be set"));
                     rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto error;
                 }
                 break;
@@ -198,7 +198,9 @@ static void BMXT_Open_PostOpen(BMXT_Handle mxt)
     BMXT_Handle handle = mxt; /* for R() / STEP() macros */
 
 #ifdef BCHP_PWR_RESOURCE_XPT_DEMOD
-    BCHP_PWR_AcquireResource(mxt->hChp, BCHP_PWR_RESOURCE_XPT_DEMOD);
+    if (mxt->platform.type==BMXT_P_PlatformType_eReg) {
+        BCHP_PWR_AcquireResource(mxt->hChp, BCHP_PWR_RESOURCE_XPT_DEMOD);
+    }
 #endif
 
     /* SW7425-1655 */
@@ -392,7 +394,9 @@ void BMXT_Close(BMXT_Handle handle)
     }
 
 #ifdef BCHP_PWR_RESOURCE_XPT_DEMOD
-    BCHP_PWR_ReleaseResource(handle->hChp, BCHP_PWR_RESOURCE_XPT_DEMOD);
+    if (handle->platform.type==BMXT_P_PlatformType_eReg) {
+        BCHP_PWR_ReleaseResource(handle->hChp, BCHP_PWR_RESOURCE_XPT_DEMOD);
+    }
 #endif
 
     BKNI_Free(handle);
@@ -623,18 +627,26 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
     switch(pConfig->mtsifTxSelect) {
         case 0:
 #ifdef BCHP_PWR_RESOURCE_MTSIF_TX0
-            if(pConfig->Enable && !parserEnabled)
-                BCHP_PWR_AcquireResource(handle->hChp, BCHP_PWR_RESOURCE_MTSIF_TX0);
-            else if(!pConfig->Enable && parserEnabled)
-                BCHP_PWR_ReleaseResource(handle->hChp, BCHP_PWR_RESOURCE_MTSIF_TX0);
+            if (handle->platform.type==BMXT_P_PlatformType_eReg) {
+                if (pConfig->Enable && !parserEnabled) {
+                    BCHP_PWR_AcquireResource(handle->hChp, BCHP_PWR_RESOURCE_MTSIF_TX0);
+                }
+                else if (!pConfig->Enable && parserEnabled) {
+                    BCHP_PWR_ReleaseResource(handle->hChp, BCHP_PWR_RESOURCE_MTSIF_TX0);
+                }
+            }
 #endif
             break;
         case 1:
 #ifdef BCHP_PWR_RESOURCE_MTSIF_TX1
-            if(pConfig->Enable && !parserEnabled)
-                BCHP_PWR_AcquireResource(handle->hChp, BCHP_PWR_RESOURCE_MTSIF_TX1);
-            else if(!pConfig->Enable && parserEnabled)
-                BCHP_PWR_ReleaseResource(handle->hChp, BCHP_PWR_RESOURCE_MTSIF_TX1);
+            if (handle->platform.type==BMXT_P_PlatformType_eReg) {
+                if (pConfig->Enable && !parserEnabled) {
+                    BCHP_PWR_AcquireResource(handle->hChp, BCHP_PWR_RESOURCE_MTSIF_TX1);
+                }
+                else if (!pConfig->Enable && parserEnabled) {
+                    BCHP_PWR_ReleaseResource(handle->hChp, BCHP_PWR_RESOURCE_MTSIF_TX1);
+                }
+            }
 #endif
             break;
         default:

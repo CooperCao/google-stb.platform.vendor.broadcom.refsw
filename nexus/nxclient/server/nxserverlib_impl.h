@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2011-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #ifndef NXSERVERLIB_IMPL_H__
@@ -288,8 +280,11 @@ struct b_session {
         } drm;
     } hdmi;
 #endif
-    enum {nxserver_hdcp_off, nxserver_hdcp_optional_pending, nxserver_hdcp_mandatory_pending, nxserver_hdcp_on} hdcp;
-    bool hdcp_mute;
+    struct {
+        NxClient_HdcpLevel level;
+        enum {nxserver_hdcp_not_pending, nxserver_hdcp_pending, nxserver_hdcp_pending_with_failure} pending;
+        bool mute;
+    } hdcp;
     struct {
         struct {
             void *buffer;

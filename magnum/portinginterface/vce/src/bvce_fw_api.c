@@ -1,12 +1,39 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ***************************************************************************/
 /*
    Title: calcDelay
@@ -130,20 +157,6 @@
 #define MPEG2_MAX_VBV_LEVEL_MAIN        1835008
 #define MPEG2_MAX_VBV_LEVEL_HIGH1440    7340032
 #define MPEG2_MAX_VBV_LEVEL_HIGH        9781248
-
-/* define max buffer size according to profile and level for MPEG4 */
-#define MPEG4_MAX_VBV_SP_LEVEL_0    (10*16384)
-#define MPEG4_MAX_VBV_SP_LEVEL_1    (10*16384)
-#define MPEG4_MAX_VBV_SP_LEVEL_2    (40*16384)
-#define MPEG4_MAX_VBV_SP_LEVEL_3    (40*16384)
-
-#define MPEG4_MAX_VBV_ASP_LEVEL_0    (10*16384)
-#define MPEG4_MAX_VBV_ASP_LEVEL_1    (10*16384)
-#define MPEG4_MAX_VBV_ASP_LEVEL_2    (40*16384)
-#define MPEG4_MAX_VBV_ASP_LEVEL_3    (40*16384)
-#define MPEG4_MAX_VBV_ASP_LEVEL_3B   (65*16384)
-#define MPEG4_MAX_VBV_ASP_LEVEL_4    (80*16384)
-#define MPEG4_MAX_VBV_ASP_LEVEL_5    (112*16384)
 
 /* FIXME: this is just to keep the interface, however at this point VP8 does not define any HRD */
 #define VP8_DUMMY_HRD_BUFFER_SIZE          (1000*240000)
@@ -773,6 +786,8 @@ BVCE_FW_P_CalcHRDbufferSize(
 {
     uint32_t   hrdBufferSize;
 
+    BSTD_UNUSED(Profile);
+
     /* compute size based on encoding standard level and profile */
     switch(Protocol)
     {
@@ -814,35 +829,6 @@ BVCE_FW_P_CalcHRDbufferSize(
         }
         break;
 
-    case ENCODING_STD_MPEG4:
-        switch(Profile)
-        {
-        case ENCODING_MPEG4_PROFILE_SIMPLE:
-            switch(Level)
-            {
-            case ENCODING_MPEG4_LEVEL_1: hrdBufferSize = MPEG4_MAX_VBV_SP_LEVEL_1; break;
-            case ENCODING_MPEG4_LEVEL_2: hrdBufferSize = MPEG4_MAX_VBV_SP_LEVEL_2; break;
-            case ENCODING_MPEG4_LEVEL_3: hrdBufferSize = MPEG4_MAX_VBV_SP_LEVEL_3; break;
-            default: hrdBufferSize = 0; /*error*/
-            }
-            break;
-
-        case ENCODING_MPEG4_PROFILE_ADVANCED_SIMPLE:
-            switch(Level)
-            {
-            case ENCODING_MPEG4_LEVEL_1: hrdBufferSize = MPEG4_MAX_VBV_ASP_LEVEL_1; break;
-            case ENCODING_MPEG4_LEVEL_2: hrdBufferSize = MPEG4_MAX_VBV_ASP_LEVEL_2; break;
-            case ENCODING_MPEG4_LEVEL_3: hrdBufferSize = MPEG4_MAX_VBV_ASP_LEVEL_3; break;
-            case ENCODING_MPEG4_LEVEL_4: hrdBufferSize = MPEG4_MAX_VBV_ASP_LEVEL_4; break;
-            case ENCODING_MPEG4_LEVEL_5: hrdBufferSize = MPEG4_MAX_VBV_ASP_LEVEL_5; break;
-            default: hrdBufferSize = 0; /*error*/
-            }
-            break;
-        default:
-            hrdBufferSize = 0; /*error*/
-            break;
-        }
-        break;
 
     case ENCODING_STD_VP8:
         hrdBufferSize = VP8_DUMMY_HRD_BUFFER_SIZE;
@@ -1460,13 +1446,13 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
 
         size_of_2h1v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV2_ROUND(max_horizontal_size_in_pels) , max_vertical_size_in_pels , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
         size_of_2h2v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV2_ROUND(max_horizontal_size_in_pels) , DIV2_ROUND(max_vertical_size_in_pels) , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
-        /*
+
         if ( pstCoreSettings->eVersion != BVCE_FW_P_COREVERSION_V1 )
         if ( max_horizontal_size_in_pels > (HOR_SIZE_IN_PELS_1080P/2))
         {
         size_of_2h1v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV4_ROUND(HOR_SIZE_IN_PELS_1080P) , max_vertical_size_in_pels , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
         size_of_2h2v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV4_ROUND(HOR_SIZE_IN_PELS_1080P) , DIV2_ROUND(max_vertical_size_in_pels) , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
-        }*/
+        }
 
 
         size_of_csc_buffer=bvceEpmAlignJword(6*max_horizontal_size_in_mbs*max_vertical_size_in_mbs);
@@ -1581,13 +1567,13 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
 
         size_of_2h1v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV2_ROUND(max_horizontal_size_in_pels) , max_vertical_size_in_pels , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
         size_of_2h2v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV2_ROUND(max_horizontal_size_in_pels) , DIV2_ROUND(max_vertical_size_in_pels) , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
-        /*
+
         if ( pstCoreSettings->eVersion != BVCE_FW_P_COREVERSION_V1 )
         if ( max_horizontal_size_in_pels > (HOR_SIZE_IN_PELS_1080P/2))
         {
         size_of_2h1v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV4_ROUND(HOR_SIZE_IN_PELS_1080P) , max_vertical_size_in_pels , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
         size_of_2h2v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV4_ROUND(HOR_SIZE_IN_PELS_1080P) , DIV2_ROUND(max_vertical_size_in_pels) , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
-        }*/
+        }
 
 
         size_of_csc_buffer=bvceEpmAlignJword(6*max_horizontal_size_in_mbs*max_vertical_size_in_mbs);
@@ -1658,13 +1644,13 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
 
         size_of_2h1v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV2_ROUND(max_horizontal_size_in_pels) , max_vertical_size_in_pels , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
         size_of_2h2v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV2_ROUND(max_horizontal_size_in_pels) , DIV2_ROUND(max_vertical_size_in_pels) , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
-        /*
+
         if ( pstCoreSettings->eVersion != BVCE_FW_P_COREVERSION_V1 )
         if ( max_horizontal_size_in_pels > (HOR_SIZE_IN_PELS_1080P/2))
         {
         size_of_2h1v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV4_ROUND(HOR_SIZE_IN_PELS_1080P) , max_vertical_size_in_pels , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
         size_of_2h2v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV4_ROUND(HOR_SIZE_IN_PELS_1080P) , DIV2_ROUND(max_vertical_size_in_pels) , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
-        }*/
+        }
 
 
         size_of_csc_buffer=bvceEpmAlignJword(6*max_horizontal_size_in_mbs*max_vertical_size_in_mbs);
@@ -1771,13 +1757,13 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
 
         size_of_2h1v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV2_ROUND(max_horizontal_size_in_pels) , max_vertical_size_in_pels , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
         size_of_2h2v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV2_ROUND(max_horizontal_size_in_pels) , DIV2_ROUND(max_vertical_size_in_pels) , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
-        /*
+
         if ( pstCoreSettings->eVersion != BVCE_FW_P_COREVERSION_V1 )
         if ( max_horizontal_size_in_pels > (HOR_SIZE_IN_PELS_1080P/2))
         {
         size_of_2h1v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV4_ROUND(HOR_SIZE_IN_PELS_1080P) , max_vertical_size_in_pels , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
         size_of_2h2v_luma_buffer = bvceEpmCalcStripeBufferSize( DIV4_ROUND(HOR_SIZE_IN_PELS_1080P) , DIV2_ROUND(max_vertical_size_in_pels) , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
-        }*/
+        }
 
 
         size_of_csc_buffer=bvceEpmAlignJword(6*max_horizontal_size_in_mbs*max_vertical_size_in_mbs);

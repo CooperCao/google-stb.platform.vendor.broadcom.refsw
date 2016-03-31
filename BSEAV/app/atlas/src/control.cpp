@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "control.h"
@@ -53,6 +52,7 @@
 #include "tsb.h"
 #endif
 #include "record.h"
+#include "remote.h"
 #include "encode.h"
 #include "screen.h"
 #include "screen_main.h"
@@ -855,6 +855,24 @@ void CControl::processNotification(CNotification & notification)
     case eNotify_ChDown:
         channelDown();
         break;
+
+#if RF4CE_SUPPORT
+    case eNotify_AddRf4ceRemote:
+    {
+        CRf4ceRemoteData * pRf4ceData = (CRf4ceRemoteData *)notification.getData();
+        addRf4ceRemote(pRf4ceData->_name);
+    }
+    break;
+    case eNotify_DisplayRf4ceRemotes:
+        displayRf4ceRemotes();
+        break;
+    case eNotify_RemoveRf4ceRemote:
+    {
+        CRf4ceRemoteData * pRf4ceData = (CRf4ceRemoteData *)notification.getData();
+        removeRf4ceRemote(pRf4ceData->_pairingRefNum);
+    }
+    break;
+#endif
 
     case eNotify_Tune:
     {
@@ -3185,6 +3203,26 @@ done:
 } /* scanTuner */
 
 #endif /* NEXUS_HAS_FRONTEND */
+
+#if RF4CE_SUPPORT
+eRet CControl::addRf4ceRemote(const char *remote_name)
+{
+    CRemote::addRf4ceRemote(remote_name);
+    return (eRet_Ok);
+}
+
+eRet CControl::removeRf4ceRemote(int pairingRefNum)
+{
+    CRemote::removeRf4ceRemote(pairingRefNum);
+    return (eRet_Ok);
+}
+
+eRet CControl::displayRf4ceRemotes()
+{
+    CRemote::displayRf4ceRemotes();
+    return (eRet_Ok);
+}
+#endif
 
 eRet CControl::channelUp()
 {

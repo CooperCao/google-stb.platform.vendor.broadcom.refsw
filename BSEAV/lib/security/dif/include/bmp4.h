@@ -166,9 +166,9 @@ typedef struct bmp4_mp4_frag_headers {
     bmp4_track_fragment_run_state state;
     bmp4_track_fragment_run_sample sample_info[BMP4_MAX_SAMPLES];
 
-    bool saio;                      /* Set when SAIO box is detected */
+    bool encrypted; /* Set when SAIO or UUID box is detected */
     size_t aux_info_size;
-    bmp4_drm_mp4_se samples_enc;
+    bmp4_drm_mp4_se samples_info;
 
 } bmp4_mp4_frag_headers;
 

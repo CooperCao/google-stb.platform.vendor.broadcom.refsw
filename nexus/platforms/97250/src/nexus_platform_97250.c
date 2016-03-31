@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2010-2014 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,15 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #include "nexus_platform_priv.h"
 #include "nexus_platform_features.h"
@@ -126,39 +117,32 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 }
 
 
-
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
-    enum BMEM_SIZE { BMEM_SIZE_LOW, BMEM_SIZE_MED, BMEM_SIZE_HIGH } bmem_size;
-
-    if (g_platformMemory.memc[0].length < (512*1024*1024))
-        bmem_size = BMEM_SIZE_LOW;
-    else if (g_platformMemory.memc[0].length > (1024*1024*1024))
-        bmem_size = BMEM_SIZE_HIGH;
-    else
-        bmem_size = BMEM_SIZE_MED;
-
     BSTD_UNUSED(boxMode);
 
-    if (bmem_size == BMEM_SIZE_LOW)
+#if NEXUS_HAS_SAGE
+    pSettings->heap[NEXUS_SAGE_SECURE_HEAP].size = 32*1024*1024;
+#endif
+
+    if (g_platformMemory.memc[0].length <= (512*1024*1024))
+    {
+        BDBG_WRN(("Using low memory heap configuration"));
         pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 128*1024*1024;
-    else
-        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 258*1024*1024;
-
-    if (bmem_size == BMEM_SIZE_LOW)
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 64*1024 *1024;
-    else
-        pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 112*1024 *1024;
-
-    if (bmem_size == BMEM_SIZE_LOW)
         pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 64*1024*1024;
-    else if (bmem_size == BMEM_SIZE_HIGH)
-        pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 384*1024*1024;
+
+    }
     else
-        pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 128*1024*1024;
+    {
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 258*1024*1024;
+        pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 112*1024 *1024;
+        pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 192*1024*1024;
+    }
 
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
     pSettings->heap[NEXUS_MEMC0_DRIVER_HEAP].size = (0x00400000);
+
     return;
 }
 

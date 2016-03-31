@@ -1,42 +1,43 @@
-#############################################################################
-#    (c)2015 Broadcom Corporation
-#
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
-# and may only be used, duplicated, modified or distributed pursuant to the terms and
-# conditions of a separate, written license agreement executed between you and Broadcom
-# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-# no license (express or implied), right to use, or waiver of any kind with respect to the
-# Software, and Broadcom expressly reserves all rights in and to the Software and all
-# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-#
-# Except as expressly set forth in the Authorized License,
-#
-# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-# and to use this information only in connection with your use of Broadcom integrated circuit products.
-#
-# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-# USE OR PERFORMANCE OF THE SOFTWARE.
-#
-# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-# ANY LIMITED REMEDY.
-#
-#
-#############################################################################
+#/******************************************************************************
+#* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#*
+#* This program is the proprietary software of Broadcom and/or its
+#* licensors, and may only be used, duplicated, modified or distributed pursuant
+#* to the terms and conditions of a separate, written license agreement executed
+#* between you and Broadcom (an "Authorized License").  Except as set forth in
+#* an Authorized License, Broadcom grants no license (express or implied), right
+#* to use, or waiver of any kind with respect to the Software, and Broadcom
+#* expressly reserves all rights in and to the Software and all intellectual
+#* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+#* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+#* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#*
+#* Except as expressly set forth in the Authorized License,
+#*
+#* 1. This program, including its structure, sequence and organization,
+#*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+#*    reasonable efforts to protect the confidentiality thereof, and to use
+#*    this information only in connection with your use of Broadcom integrated
+#*    circuit products.
+#*
+#* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+#*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+#*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+#*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+#*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+#*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+#*
+#* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+#*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+#*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+#*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+#*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+#*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+#*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+#******************************************************************************/
 URSR_TOP ?= ../../../..
 NEXUS_TOP := $(URSR_TOP)/nexus
 BSEAV_TOP := $(URSR_TOP)/BSEAV/
@@ -68,13 +69,13 @@ endif
 
 SECURITY_TOP := $(BSEAV_TOP)/lib/security
 COMMON_DRM_TOP := $(SECURITY_TOP)/common_drm
+WIDEVINE_CENC_DIR := $(SECURITY_TOP)/third_party/widevine/CENC21
 
 include $(COMMON_DRM_TOP)/lib/prdy_libdir.inc
 include $(COMMON_DRM_TOP)/common_drm.inc
 
-include $(SECURITY_TOP)/third_party/widevine/CENC21/oemcrypto_libdir.inc
+include $(WIDEVINE_CENC_DIR)/oemcrypto_libdir.inc
 
-WIDEVINE_CENC_DIR := $(SECURITY_TOP)/third_party/widevine/CENC21
 WVCDM_PREBUILT :=$(WIDEVINE_CENC_DIR)/cdm/$(WVCDM_LIBDIR)
 OEMCRYPTO_PREBUILT :=$(WIDEVINE_CENC_DIR)/oemcrypto/$(OEMCRYPTO_LIBDIR)
 
@@ -110,13 +111,14 @@ prep_wvcdm: prep_security
 	$(Q_)echo [DIF..... building protobuf];
 	$(Q_)$(MAKE) -C $(BSEAV_TOP)/lib/protobuf all > /dev/null
 	$(Q_)echo [DIF..... copying protobuf lib...];
-	$(Q_)install -c -m 0755 $(B_REFSW_OBJ_ROOT)/BSEAV/lib/protobuf/$(B_REFSW_ARCH).$(DEBUG_SUFFIX)/protobuf-2.5.0/$(NEXUS_PLATFORM)/lib/*.so* $(NEXUS_BIN_DIR);
+	$(Q_)cp -af $(B_REFSW_OBJ_ROOT)/BSEAV/lib/protobuf/$(B_REFSW_ARCH).$(DEBUG_SUFFIX)/protobuf-2.5.0/$(NEXUS_PLATFORM)/lib/*.so* $(NEXUS_BIN_DIR);
 	$(Q_)echo [DIF..... copying gtest lib...];
-	$(Q_)install -c -m 0755 $(B_REFSW_OBJ_ROOT)/BSEAV/lib/protobuf/$(B_REFSW_ARCH).$(DEBUG_SUFFIX)/protobuf-2.5.0/gtest/lib/.libs/*.so* $(NEXUS_BIN_DIR);
+	$(Q_)cp -af $(B_REFSW_OBJ_ROOT)/BSEAV/lib/protobuf/$(B_REFSW_ARCH).$(DEBUG_SUFFIX)/protobuf-2.5.0/gtest/lib/.libs/*.so* $(NEXUS_BIN_DIR);
 	$(Q_)echo [DIF..... building curl];
 	$(Q_)$(MAKE) -C $(BSEAV_TOP)/lib/curl all > /dev/null
 	$(Q_)echo [DIF..... copying curl];
-	$(Q_)install -c -m 0755 $(B_REFSW_OBJ_ROOT)/BSEAV/lib/curl/$(B_REFSW_ARCH).$(DEBUG_SUFFIX)/curl-7.41.0/lib/.libs/*.so* $(NEXUS_BIN_DIR)/;
+	$(Q_)cp -af $(B_REFSW_OBJ_ROOT)/BSEAV/lib/curl/$(B_REFSW_ARCH).$(DEBUG_SUFFIX)/curl-7.41.0/lib/.libs/*.so* $(NEXUS_BIN_DIR)/;
+	$(Q_)chmod 755 $(NEXUS_BIN_DIR)/lib*.so
 	$(Q_)echo [DIF..... copying prebuilt oemcrypto and wvcdm];
 	$(Q_)install -c -m 0755 $(WVCDM_PREBUILT)/lib*.so $(NEXUS_BIN_DIR)
 	$(Q_)install -c -m 0755 $(OEMCRYPTO_PREBUILT)/lib*.so $(NEXUS_BIN_DIR)
@@ -143,12 +145,13 @@ prep_security: prep_nexus
 	$(Q_)$(MAKE) -C $(COMMON_DRM_TOP) install > /dev/null
 	$(Q_)echo [DIF..... building cmndrmprdy];
 	$(Q_)$(MAKE) -C $(COMMON_DRM_TOP) playready > /dev/null
-	$(Q_)echo [DIF..... copying Common DRM libs...]
-	$(Q_)install -c -m 0755 $(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR)/libcmndrm*.so $(NEXUS_BIN_DIR)
+	$(Q_)echo [DIF..... copying CommonDRM dependent libs...];
+	$(Q_)cp -af $(COMMON_DRM_BIN_DEPS_LIST) $(NEXUS_BIN_DIR)
 	$(Q_)install -c -m 0755 $(COMMON_DRM_TOP)/$(CMNDRM_PRDY_LIBDIR)/libcmndrm*.so $(NEXUS_BIN_DIR)
+	$(Q_)echo [DIF..... building oemcrypto];
+	$(Q_)$(MAKE) -C $(WIDEVINE_CENC_DIR) oemcrypto > /dev/null
 ifeq ($(SAGE_SUPPORT),y)
-	$(Q_)echo [DIF..... copying sage version Common DRM lib version...]
-	$(Q_)install -c -m 0755 $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/common_drm/lib/$(CMNDRM_DIR)/libcmndrm*.so $(NEXUS_BIN_DIR)
+	$(Q_)echo [DIF..... copying playreadypk lib...];
 	$(Q_)install -c -m 0755 ${BSEAV_TOP}/lib/playready/${MSDRM_PRDY_SDK_VERSION}/bin/$(ARCH_DIR_PRDY)/lib/libplayreadypk_host.so $(NEXUS_BIN_DIR)
 else
 	$(Q_)install -c -m 0755 ${BSEAV_TOP}/lib/playready/${MSDRM_PRDY_SDK_VERSION}/bin/$(ARCH_DIR_PRDY)/lib/libplayreadypk.so $(NEXUS_BIN_DIR)

@@ -1,50 +1,40 @@
-#/***************************************************************************
-# *     (c)2015 Broadcom Corporation
-# *
-# *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-# *  and may only be used, duplicated, modified or distributed pursuant to the terms and
-# *  conditions of a separate, written license agreement executed between you and Broadcom
-# *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-# *  no license (express or implied), right to use, or waiver of any kind with respect to the
-# *  Software, and Broadcom expressly reserves all rights in and to the Software and all
-# *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-# *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-# *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-# *
-# *  Except as expressly set forth in the Authorized License,
-# *
-# *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-# *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-# *  and to use this information only in connection with your use of Broadcom integrated circuit products.
-# *
-# *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-# *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-# *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-# *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-# *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-# *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-# *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-# *  USE OR PERFORMANCE OF THE SOFTWARE.
-# *
-# *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-# *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-# *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-# *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-# *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-# *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-# *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-# *  ANY LIMITED REMEDY.
-# *
-# *
-# *
-# * Module Description: Playback application example
-# *
-# * Revision History:
-# *
-# *
-# *
-# **************************************************************************/
-
+#############################################################################
+# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#
+#  This program is the proprietary software of Broadcom and/or its licensors,
+#  and may only be used, duplicated, modified or distributed pursuant to the terms and
+#  conditions of a separate, written license agreement executed between you and Broadcom
+#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+#  no license (express or implied), right to use, or waiver of any kind with respect to the
+#  Software, and Broadcom expressly reserves all rights in and to the Software and all
+#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#
+#  Except as expressly set forth in the Authorized License,
+#
+#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+#  and to use this information only in connection with your use of Broadcom integrated circuit products.
+#
+#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+#  USE OR PERFORMANCE OF THE SOFTWARE.
+#
+#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+#  ANY LIMITED REMEDY.
+#############################################################################
 NEXUS_PLATFORM ?= $(PLATFORM)
 ifndef NEXUS_PLATFORM
 $(error NEXUS_PLATFORM is not defined)
@@ -58,6 +48,9 @@ endif
 NEXUS_TOP=$(URSR_TOP)/nexus
 BSEAV_TOP=$(URSR_TOP)/BSEAV
 B_REFSW_OBJ_ROOT = $(URSR_TOP)/obj.$(NEXUS_PLATFORM)
+
+target ?= playback
+$(warning target = $(target))
 
 ifeq ($(COMMON_DRM_TOP),)
 COMMON_DRM_TOP := $(BSEAV_TOP)/lib/security/common_drm
@@ -121,7 +114,7 @@ NEXUS_APP_DEFINES += $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINES))
 
 CFLAGS += -DPIC -fpic
 CFLAGS += -Wl,--exclude-libs,ALL
-CFLAGS += -Wno-variadic-macros
+CFLAGS += -Wno-variadic-macros -Wno-sign-compare
 ifeq ($(ARCH_DIR),arm)
 CFLAGS += -DARM_PLATFORM
 endif
@@ -141,9 +134,11 @@ CFLAGS += $(COMMON_DRM_CFLAGS)
 CFLAGS := $(filter-out -std=c89 -Wstrict-prototypes, $(CFLAGS))
 
 ifeq ($(NXCLIENT_SUPPORT),y)
-PLAYBACK_SRCS := ./playback/playback.cpp
+TARGET_SRCS := ./$(target)/$(target).cpp
+TARGET_SRCS += ./$(target)/bgui.c
+INCLUDES += -I$(NEXUS_TOP)/modules/graphics2d/include
 else
-PLAYBACK_SRCS := ./playback/playback_single.cpp
+TARGET_SRCS := ./$(target)/$(target)_single.cpp
 endif
 
 DEFINES := $(addprefix -D, $(DEFINES))
@@ -153,12 +148,12 @@ INCLUDES += $(addprefix -I, ${NEXUS_APP_INCLUDE_PATHS})
 INCLUDES += $(addprefix -I, ${DIF_INCLUDES})
 
 # Filter out all non c/cpp files
-PLAYBACK_SRCS    := $(filter %.c %.cpp, $(PLAYBACK_SRCS))
+TARGET_SRCS    := $(filter %.c %.cpp, $(TARGET_SRCS))
 
 # Make object files to use as dependencies
-PLAYBACK_OBJS := $(patsubst %.cpp, %.o, $(PLAYBACK_SRCS))
-PLAYBACK_OBJS := $(patsubst %.c, %.o, $(PLAYBACK_OBJS))
-PLAYBACK_OBJS := $(patsubst ./%, $(OUT_ROOT_DIR)/%, $(PLAYBACK_OBJS))
+TARGET_OBJS := $(patsubst %.cpp, %.o, $(TARGET_SRCS))
+TARGET_OBJS := $(patsubst %.c, %.o, $(TARGET_OBJS))
+TARGET_OBJS := $(patsubst ./%, $(OUT_ROOT_DIR)/%, $(TARGET_OBJS))
 
 ifeq ($(USE_CURL),y)
 LDFLAGS := -lcurl $(CURL_LDFLAGS)
@@ -186,13 +181,21 @@ LDFLAGS += -L$(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/BSEAV/lib/security/bcrypt/$(B
             -L$(BSEAV_TOP)/lib/drmrootfs/$(DRMROOTFS_LIBDIR) -ldrmrootfs
 LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm -lcmndrmprdy
 ifeq ($(SAGE_SUPPORT),y)
-LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm_tl
+LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm_tl -lplayreadypk_host
+else
+LDFLAGS += -lplayreadypk
 endif
-PLAYBACK_LDFLAGS += $(LDFLAGS) -L$(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/dif/$(DIF_LIBDIR) -ldif
+TARGET_LDFLAGS += $(LDFLAGS) -L$(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/dif/$(DIF_LIBDIR) -ldif
 
-.PHONY: clean all prep_nexus prep_openssl prep_bcrypt playback_dif copy
+.PHONY: clean all $(target)_dif
 
-.SUFFIXES: .cpp
+.SUFFIXES: .cpp .c
+
+$(OUT_ROOT_DIR)/%.o: %.c
+	@test -d $(OUT_ROOT_DIR) || mkdir -pm 775 $(OUT_ROOT_DIR)
+	@test -d $(@D) || mkdir -pm 775 $(@D)
+	@echo [Compiling $<]
+	${CC} -c $(FLAGS) $(CFLAGS) $(INCLUDES) $(DEFINES) $< -o $@
 
 $(OUT_ROOT_DIR)/%.o: %.cpp
 	@test -d $(OUT_ROOT_DIR) || mkdir -pm 775 $(OUT_ROOT_DIR)
@@ -200,35 +203,7 @@ $(OUT_ROOT_DIR)/%.o: %.cpp
 	@echo [Compiling $<]
 	${CXX} -c $(FLAGS) $(CFLAGS) $(INCLUDES) $(DEFINES) $< -o $@
 
-all: prep_nexus prep_openssl prep_bcrypt prep_dif playback_dif copy
-
-prep_nexus:
-ifeq ($(NXCLIENT_SUPPORT),y)
-	@if [ ! -e $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/nexus/bin/nxserver ]; then \
-		echo [ building nxclient .... ]; \
-		$(MAKE) -C $(NEXUS_TOP)/nxclient >/dev/null; \
-	fi
-else
-	@if [ ! -e $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/nexus/bin/libnexus.so ]; then \
-		echo [ building nexus .... ]; \
-		$(MAKE) -C $(NEXUS_TOP)/build >/dev/null; \
-	fi
-endif
-
-prep_bcrypt:
-	@echo [..... prep_bcrypt target ]
-	@if [ ! -d $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR) ]; then \
-		echo [ building bcrypt .... ]; \
-		$(MAKE) -C $(BSEAV_TOP)/lib/security/bcrypt install >/dev/null; \
-	fi
-
-prep_openssl:
-	@echo [..... prep_openssl target];
-	@if [ ! -d $(B_OPENSSL_LIB_INSTALL_DIR) ]; then \
-		echo [ building openssl .... ]; \
-		$(MAKE) -C $(B_OPENSSL_BUILD_DIR) install >/dev/null; \
-	fi
-
+all: $(target)_dif
 
 prep_dif:
 	@echo [..... prep_dif target ]
@@ -240,7 +215,6 @@ prep_dif:
 
 report:
 	@echo "Reporting ..."
-
 	@echo NEXUS_BIN_DIR = "$(NEXUS_BIN_DIR)"
 	@echo WIDEVINE_CENC_DIR = "$(WIDEVINE_CENC_DIR)"
 	@echo NEXUS_TOP = "$(NEXUS_TOP)"
@@ -259,7 +233,7 @@ report:
 	@echo
 	@echo WVCDM_LIBDIR = "$(WVCDM_LIBDIR)"
 	@echo OUT_ROOT_DIR = "$(OUT_ROOT_DIR)"
-	@echo PLAYBACK_OBJS = "$(PLAYBACK_OBJS)"
+	@echo TARGET_OBJS = "$(TARGET_OBJS)"
 	@echo CC = "${CC}"
 	@echo CXX = "${CXX}"
 	@echo ARCH_DIR = "${ARCH_DIR}"
@@ -281,22 +255,8 @@ clean:
 	@echo "Cleaning ..."
 	@rm -rf $(OUT_ROOT_DIR)
 
-playback_dif:  $(PLAYBACK_OBJS)
+$(target)_dif: $(TARGET_OBJS) prep_dif
 	@echo "Building $@ ..."
 	@mkdir -p $(OUT_ROOT_DIR)/final/
-	$(CXX) $(CFLAGS) $(INCLUDES) $(DEFINES) $(PLAYBACK_OBJS) $(PLAYBACK_LDFLAGS) $(CDM_API_LDFLAGS) $(LDFLAGS_OEMCRYPTO_CDM_LIB)  -o $(OUT_ROOT_DIR)/final/$@
-	@cp -rf $(OUT_ROOT_DIR)/final/$@ $(NEXUS_BIN_DIR)
-
-copy: copy-security  copy-openssl
-
-
-copy-security:
-	@echo [Copying DRM rootfs lib version...]
-	@cp -f $(BSEAV_TOP)/lib/drmrootfs/$(DRMROOTFS_LIBDIR)/libdrmrootfs.so $(NEXUS_BIN_DIR)
-	@echo [Copying bcrypt lib version...]
-	@cp -f $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR)/libbcrypt.so $(NEXUS_BIN_DIR)
-
-
-copy-openssl:
-	@echo [Copying openssl libs...]
-	@cp -f $(B_OPENSSL_LIB_INSTALL_DIR)/lib* $(NEXUS_BIN_DIR)
+	$(CXX) $(CFLAGS) $(INCLUDES) $(DEFINES) $(TARGET_OBJS) $(TARGET_LDFLAGS) $(CDM_API_LDFLAGS) $(LDFLAGS_OEMCRYPTO_CDM_LIB)  -o $(OUT_ROOT_DIR)/final/$@
+	@install -m 0755 $(OUT_ROOT_DIR)/final/$@ $(NEXUS_BIN_DIR)

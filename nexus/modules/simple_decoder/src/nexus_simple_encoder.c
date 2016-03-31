@@ -984,6 +984,7 @@ void nexus_simpleencoder_p_stop( NEXUS_SimpleEncoderHandle handle )
     BDBG_MSG(("nexus_simpleencoder_p_stop %p: %d %d %p %p", (void *)handle, handle->started, handle->audioStarted, (void *)handle->startSettings.input.video, (void *)handle->transcodeWindow));
     if (handle->started) {
         unsigned i;
+        handle->started = false;
         if ( handle->startSettings.output.transport.type == NEXUS_TransportType_eTs ) {
             NEXUS_RecpumpSettings recpumpSettings;
             NEXUS_Recpump_RemoveAllPidChannels(handle->startSettings.recpump); /* TODO: remove only the pid channels we've added */
@@ -1029,15 +1030,12 @@ void nexus_simpleencoder_p_stop( NEXUS_SimpleEncoderHandle handle )
         handle->inputStarted = false;
     }
 
-    if (handle->started) {
-        if (handle->startSettings.input.video) {
-            nexus_simplevideodecoder_p_remove_encoder(handle->startSettings.input.video, handle->transcodeWindow, handle);
-        }
-        if (handle->transcodeWindow) {
-            NEXUS_VideoWindow_Close(handle->transcodeWindow);
-            handle->transcodeWindow = NULL;
-        }
-        handle->started = false;
+    if (handle->startSettings.input.video) {
+        nexus_simplevideodecoder_p_remove_encoder(handle->startSettings.input.video, handle->transcodeWindow, handle);
+    }
+    if (handle->transcodeWindow) {
+        NEXUS_VideoWindow_Close(handle->transcodeWindow);
+        handle->transcodeWindow = NULL;
     }
     handle->wait.video = false;
     handle->wait.audio = false;
@@ -1254,7 +1252,7 @@ NEXUS_Error NEXUS_SimpleEncoder_GetVideoBuffer(
     }
     else
     {
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
+        return BERR_NOT_SUPPORTED;
     }
 #else
     BSTD_UNUSED(pBuffer);
@@ -1282,7 +1280,7 @@ NEXUS_Error NEXUS_SimpleEncoder_VideoReadComplete(
     }
     else
     {
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
+        return BERR_NOT_SUPPORTED;
     }
 #else
     BSTD_UNUSED(descriptorsCompleted);
@@ -1310,7 +1308,7 @@ NEXUS_Error NEXUS_SimpleEncoder_GetAudioBuffer(
     }
     else
     {
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
+        return BERR_NOT_SUPPORTED;
     }
 #else
     BSTD_UNUSED(pBuffer);
@@ -1338,7 +1336,7 @@ NEXUS_Error NEXUS_SimpleEncoder_AudioReadComplete(
     }
     else
     {
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
+        return BERR_NOT_SUPPORTED;
     }
 #else
     BSTD_UNUSED(descriptorsCompleted);

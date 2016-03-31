@@ -389,8 +389,7 @@ int media_player_bip_start(media_player_bip_t player, const media_player_start_s
     }
     BDBG_MSG(( BIP_MSG_PRE_FMT "Player connected for url:|%s|" BIP_MSG_PRE_ARG, url));
 
-    BDBG_ASSERT(player->hResponseHandle);
-
+    if (player->hResponseHandle)
     {
         const char *pPlaySpeedString = NULL;
         BIP_HttpHeaderHandle hHeader = NULL;

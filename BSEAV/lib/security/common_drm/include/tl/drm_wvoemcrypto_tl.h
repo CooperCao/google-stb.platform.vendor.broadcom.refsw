@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2014 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- *
- *
- * Module Description: Thin layer Widevine oemcrypto r implementation
- *
- * Revision History:
- *
- *
- *
- **************************************************************************/
 
+ ******************************************************************************/
 #ifndef __DRM_WVOEMCRYPTO_TL_H__
 #define __DRM_WVOEMCRYPTO_TL_H__
 
@@ -73,7 +64,7 @@ static const size_t WVCDM_MAC_KEY_SIZE = 32;
 #define SHA256_DIGEST_SIZE         (32)
 #define DRM_WVOEMCRYPTO_SHA256_DIGEST_LENGTH    32
 
-
+#define DRM_WVOEMCRYPTO_NUM_KEY_SLOT 2
 
 typedef struct Drm_WVOemCryptoParamSettings_t
 {
@@ -139,13 +130,18 @@ typedef enum Drm_WVOemCryptoAlgorithm
     Drm_WVOemCryptoAlgorithm_AES_CBC_128_NO_PADDING = 2
 } Drm_WVOemCryptoAlgorithm;
 
+typedef struct Drm_WVoemCryptoKeySlot_t
+{
+    NEXUS_KeySlotHandle hSwKeySlot[DRM_WVOEMCRYPTO_NUM_KEY_SLOT];
+    uint32_t keySlotID[DRM_WVOEMCRYPTO_NUM_KEY_SLOT];
+} Drm_WVoemCryptoKeySlot_t;
+
 typedef struct Drm_WVOemCryptoHostSessionCtx_t
 {
         uint32_t session_id;
         uint8_t key_id[16];
         size_t key_id_length;
-        NEXUS_KeySlotHandle hSwKeySlot;
-        uint32_t keySlotID;
+        Drm_WVoemCryptoKeySlot_t keySlot;
         DrmCommonOperationStruct_t drmCommonOpStruct;
 }Drm_WVOemCryptoHostSessionCtx_t;
 
@@ -520,6 +516,109 @@ DrmRC DRM_WVOemCrypto_DeleteUsageEntry(uint32_t sessionContext,
  ****************************************************************************************/
 DrmRC DRM_WVOemCrypto_DeleteUsageTable(int *wvRc);
 
+
+/*WV v10*/
+/*****************************************************************************************
+ * DRM_WVOemCrypto_GetNumberOfOpenSessions
+ *
+ * Returns the current number of open sessions. The CDM and OEMCrypto consumers can query
+ * this value so they can use resources more effectively
+ *
+ * PARAMETERS:
+ * [out]noOfOpenSessions:this is the current number of opened sessions
+ *
+ * RETURNS:
+ * SAGE_OEMCrypto_SUCCESS success
+ * SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE
+ *
+ ****************************************************************************************/
+DrmRC DRM_WVOemCrypto_GetNumberOfOpenSessions(uint32_t* noOfOpenSessions,int *wvRc);
+
+/*****************************************************************************************
+ * DRM_WVOemCrypto_GetMaxNumberOfSessions
+ *
+ * Returns the maximum number of concurrent OEMCrypto sessions supported by the device.
+ *
+ * PARAMETERS:
+ * [noOfMaxSessions]noOfOpenSessions:this is the current number of opened sessions
+ *
+ * RETURNS:
+ * SAGE_OEMCrypto_SUCCESS success
+ * SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE
+ *
+ ****************************************************************************************/
+DrmRC DRM_WVOemCrypto_GetMaxNumberOfSessions(uint32_t* noOfMaxSessions,int *wvRc);
+
+/*****************************************************************************************
+ * Drm_WVOemCrypto_CopyBuffer
+ *
+ * Copies the payload in the buffer referenced by the *data_addr parameter into the buffer
+ * referenced by the destination parameter. The data is simply copied.
+ *
+ * PARAMETERS:
+ * [in] data_addr: An unaligned pointer to the buffer to be copied.
+ * [in] data_length: The length of the buffer, in bytes.
+ * [in] destination: A callerowned buffer where the data has to be copied
+ *
+ * RETURNS:
+ * SAGE_OEMCrypto_SUCCESS success
+ * SAGE_OEMCrypto_ERROR_INVALID_CONTEXT
+ * SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES
+ * SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE
+ *
+ ****************************************************************************************/
+DrmRC Drm_WVOemCrypto_CopyBuffer(uint8_t* destination,
+                           const uint8_t* data_addr,
+                           uint32_t data_length
+                           );
+
+/*****************************************************************************************
+ * Drm_WVOemCrypto_QueryKeyControl
+ *
+ * Returns the decrypted key control block for the given key_id.the returned key control block has
+ * to be in network byte order
+ *
+ * PARAMETERS:
+ * [in] session: Current session Id
+ * [in] key_id: The unique id of the key of interest.
+ * [in] key_id_length: The length of key_id, in bytes.
+ * [out] key_control_block: A caller owned buffer to return teh keycontrol block.
+ * [in/out] key_control_block_length. The length of key_control_block buffer.
+ *
+ * RETURNS:
+ * SAGE_OEMCrypto_SUCCESS
+ * SAGE_OEMCrypto_ERROR_INVALID_CONTEXT
+ * SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES
+ * SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE
+ *
+ ****************************************************************************************/
+DrmRC Drm_WVOemCrypto_QueryKeyControl(uint32_t session,
+                                      const uint8_t* key_id,
+                                      uint32_t key_id_length,
+                                      uint8_t* key_control_block,
+                                      uint32_t* key_control_block_length,
+                                      int*wvRc);
+
+
+/***********************************************************************************************
+ * DRM_WVOemCrypto_ForceDeleteUsageEntry
+ *
+ * This function deletes an entry from the session usage table. This will be used for stale entries
+ * without a signed request from the server, hence sifnature verification is not needed
+ *
+ * PARAMETERS:
+ * [in] pst: pointer to memory containing Provider Session Token.
+ * [in] pst_length: length of the pst, in bytes.
+ *
+ * RETURNS:
+ * SAGE_OEMCrypto_SUCCESS
+ * SAGE_OEMCrypto_ERROR_NOT_IMPLEMENTED
+ * SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE
+ *
+ ******************************************************************************************/
+DrmRC DRM_WVOemCrypto_ForceDeleteUsageEntry( const uint8_t* pst,
+                                        uint32_t pst_length,
+                                        int *wvRc);
 
 #ifdef __cplusplus
 }

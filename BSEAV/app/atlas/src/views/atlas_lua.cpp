@@ -1,43 +1,39 @@
 /***************************************************************************
- * (c) 2002-2016 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "atlas.h"
@@ -4045,6 +4041,10 @@ static int atlasLua_AddRf4ceRemote(lua_State * pLua)
     uint8_t      argNum      = 1;
     uint8_t      numArgTotal = lua_gettop(pLua);
     const char * remoteName  = NULL;
+    eRet         err         = eRet_Ok;
+    CLua *       pThis       = getCLua(pLua);
+    CRf4ceRemoteData * pRf4ceRemoteData  = NULL;
+    CLuaDataEvent <CRf4ceRemoteData> * pLuaEvent = NULL;
 
     /* check number of lua arguments on stack */
     if (numArgTotal != 1)
@@ -4054,12 +4054,28 @@ static int atlasLua_AddRf4ceRemote(lua_State * pLua)
     }
     remoteName = luaL_checkstring(pLua, argNum++);
 
-	/* DISABLED: this call is not thread-safe!  must call trigger() to sync with main loop */
-    goto error;
-    AddRf4ceRemote(remoteName);
+    pRf4ceRemoteData = new CRf4ceRemoteData();
+
+    /* error checking for arguments */
+    if (NULL == pRf4ceRemoteData)
+    {
+        LUA_ERROR(pLua, "unable to allocate rf4ce data", error);
+    }
+    pRf4ceRemoteData->_name = remoteName;
+
+    /* create lua event and give it tune data */
+    pLuaEvent = new CLuaDataEvent <CRf4ceRemoteData>(eNotify_AddRf4ceRemote, pRf4ceRemoteData);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addEvent(pLuaEvent);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pLuaEvent);
     goto done;
 error:
-    luaL_error(pLua, "Atlas Lua Error");
+    DEL(pLuaEvent);
+    luaL_error(pLua, "Atlas Lua Error - atlasLua_AddRf4ceRemote()");
 done:
     LUA_RETURN(err);
 } /* atlasLua_AddRf4ceRemote */
@@ -4068,6 +4084,10 @@ static int atlasLua_RemoveRf4ceRemote(lua_State * pLua)
 {
     int     remote_num;
     uint8_t numArgTotal = lua_gettop(pLua);
+    eRet    err         = eRet_Ok;
+    CLua *  pThis       = getCLua(pLua);
+    CRf4ceRemoteData * pRf4ceRemoteData  = NULL;
+    CLuaDataEvent <CRf4ceRemoteData> * pLuaEvent = NULL;
 
     /* check number of lua arguments on stack */
     if (numArgTotal != 1)
@@ -4078,33 +4098,47 @@ static int atlasLua_RemoveRf4ceRemote(lua_State * pLua)
 
     remote_num = lua_tointeger(pLua, 1);
 
-	/* DISABLED: this call is not thread-safe!  must call trigger() to sync with main loop */
-    goto error;
-    RemoveRf4ceRemote(remote_num);
+    pRf4ceRemoteData = new CRf4ceRemoteData();
+
+    /* error checking for arguments */
+    if (NULL == pRf4ceRemoteData)
+    {
+        LUA_ERROR(pLua, "unable to allocate rf4ce data", error);
+    }
+    pRf4ceRemoteData->_pairingRefNum = remote_num;
+
+    /* create lua event and give it tune data */
+    pLuaEvent = new CLuaDataEvent <CRf4ceRemoteData>(eNotify_RemoveRf4ceRemote, pRf4ceRemoteData);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+
+    pThis->addEvent(pLuaEvent);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pLuaEvent);
     goto done;
 error:
-    luaL_error(pLua, "Atlas Lua Error");
+    DEL(pLuaEvent);
+    luaL_error(pLua, "Atlas Lua Error - atlasLua_RemoveRf4ceRemote()");
 done:
     LUA_RETURN(err);
 } /* atlasLua_RemoveRf4ceRemote */
 
 static int atlasLua_DisplayRf4ceRemotes(lua_State * pLua)
 {
-    uint8_t numArgTotal = lua_gettop(pLua);
+    CLua *  pThis       = getCLua(pLua);
+    CLuaEvent * pLuaEvent = NULL;
+    eRet    err         = eRet_Ok;
 
-    /* check number of lua arguments on stack */
-    if (numArgTotal != 0)
-    {
-        /* wrong number of arguments */
-        LUA_ERROR(pLua, "no arguments required", error);
-    }
+    pLuaEvent = new CLuaEvent(eNotify_DisplayRf4ceRemotes);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    pThis->addEvent(pLuaEvent);
 
-	/* DISABLED: this call is not thread-safe!  must call trigger() to sync with main loop */
-    goto error;
-    DisplayRf4ceRemotes();
+    /* trigger bwin io event here */
+    err = pThis->trigger(pLuaEvent);
     goto done;
 error:
-    luaL_error(pLua, "Atlas Lua Error");
+    DEL(pLuaEvent);
+    luaL_error(pLua, "Atlas Lua Error - atlasLua_DisplayRf4ceRemotes()");
 done:
     LUA_RETURN(err);
 } /* atlasLua_DisplayRf4ceRemotes */

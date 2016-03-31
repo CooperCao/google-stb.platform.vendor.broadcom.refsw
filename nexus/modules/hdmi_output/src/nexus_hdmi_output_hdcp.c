@@ -51,6 +51,7 @@
 #include "priv/nexus_core.h"
 #include "nexus_hdmi_types.h"
 
+
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
 #include "nexus_sage.h"
 #include "bsagelib.h"
@@ -627,6 +628,7 @@ static void NEXUS_HdmiOutput_P_Hdcp2xAuthenticationStatusUpdate(void *pContext)
     BHDCPlib_Hdcp2x_AuthenticationStatus stAuthenticationStatus;
     BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
 
+
     rc = BHDCPlib_Hdcp2x_GetAuthenticationStatus(output->hdcpHandle, &stAuthenticationStatus);
     if (rc != BERR_SUCCESS)
     {
@@ -1091,40 +1093,6 @@ done :
 }
 
 
-static void NEXUS_HdmiOutput_StartHdcpAuthentication_priv(void *pContext)
-{
-    NEXUS_Error errCode;
-    NEXUS_HdmiOutputHandle hdmiOutput = (NEXUS_HdmiOutputHandle) pContext ;
-
-    BDBG_MSG(("Starting HDCP Authentication"));
-    hdmiOutput->hdcpStarted = true;
-
-
-    /* Reset Auth State */
-    LOCK_SECURITY();
-    hdmiOutput->hdcpState = BHDCPlib_State_eUnauthenticated;
-    errCode = BHDCPlib_StartAuthentication(hdmiOutput->hdcpHandle);
-    UNLOCK_SECURITY();
-
-    if ( errCode )
-    {
-        errCode = BERR_TRACE(errCode) ;
-        return ;
-    }
-
-    /* NEXUS have to drive the state machine in HDCP 1.x authentication process */
-    if (hdmiOutput->eHdcpVersion != BHDM_HDCP_Version_e2_2)
-    {
-        /* State Changed */
-        NEXUS_HdmiOutput_P_UpdateHdcpState(hdmiOutput);
-
-        /* Kickstart state machine by faking timer callback */
-        NEXUS_HdmiOutput_P_HdcpTimerCallback(hdmiOutput);
-    }
-
-}
-
-
 /**
 Summary:
 Initiate HDCP authentication
@@ -1142,7 +1110,7 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
 {
     NEXUS_Error errCode = NEXUS_SUCCESS ;
     NEXUS_HdmiOutputState state;
-    bool encryptionEnabled ;
+    bool linkAuthenticated = false;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
     if (IS_ALIAS(handle))
@@ -1160,27 +1128,29 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
         goto done ;
     }
 
-    BDBG_MSG(("Current Authentication State: %d", handle->hdcpState)) ;
-    encryptionEnabled = handle->hdcpState == BHDCPlib_State_eEncryptionEnabled ;
+    errCode = BHDM_HDCP_IsLinkAuthenticated(handle->hdmHandle, &linkAuthenticated);
+    if (errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("Error checking HDCP link status"));
+        errCode = BERR_TRACE(errCode);
+    }
 
     /******************/
     /**** HDCP 2.x ****/
     /******************/
     if (handle->eHdcpVersion == BHDM_HDCP_Version_e2_2) {
-        errCode = NEXUS_HdmiOutput_DisableHdcpEncryption(handle);
-        if (errCode != BERR_SUCCESS) {
-            BDBG_ERR(("Error disabling HDCP 2.x encryption"));
-            errCode = BERR_TRACE(errCode);
-            goto done ;
-        }
-
-        if (encryptionEnabled)
+        if (linkAuthenticated)
         {
+            errCode = NEXUS_HdmiOutput_DisableHdcpEncryption(handle);
+            if (errCode != BERR_SUCCESS) {
+                BDBG_ERR(("Error disabling HDCP 2.x encryption"));
+                errCode = BERR_TRACE(errCode);
+                goto done ;
+            }
+
             /* delay start of HDCP Authentication */
             BDBG_MSG(("Delay HDCP Auth Start (allow DisableEncryption to complete)")) ;
-            NEXUS_ScheduleTimer(50, NEXUS_HdmiOutput_StartHdcpAuthentication_priv, handle) ;
-            errCode = BERR_SUCCESS ;
-            goto done ;
+            BKNI_Sleep(50);
         }
     }
     /******************/
@@ -1195,8 +1165,30 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
         }
     }
 
+    BDBG_WRN(("Starting HDCP Authentication"));
+    handle->hdcpStarted = true;
 
-    NEXUS_HdmiOutput_StartHdcpAuthentication_priv(handle) ;
+    /* Reset Auth State */
+    LOCK_SECURITY();
+    handle->hdcpState = BHDCPlib_State_eUnauthenticated;
+    errCode = BHDCPlib_StartAuthentication(handle->hdcpHandle);
+    UNLOCK_SECURITY();
+
+    if ( errCode )
+    {
+        errCode = BERR_TRACE(errCode) ;
+        goto done;
+    }
+
+    /* NEXUS have to drive the state machine in HDCP 1.x authentication process */
+    if (handle->eHdcpVersion != BHDM_HDCP_Version_e2_2)
+    {
+        /* State Changed */
+        NEXUS_HdmiOutput_P_UpdateHdcpState(handle);
+
+        /* Kickstart state machine by faking timer callback */
+        NEXUS_HdmiOutput_P_HdcpTimerCallback(handle);
+    }
 
 done:
     return errCode ;
@@ -1407,6 +1399,9 @@ static void NEXUS_HdmiOutput_P_UpdateHdcpState(NEXUS_HdmiOutputHandle handle)
             if ( errCode )
             {
                 errCode = BERR_TRACE(errCode);
+            }
+            else {
+                handle->hdcpState = BHDCPlib_State_eEncryptionEnabled;
             }
         }
 

@@ -1634,6 +1634,13 @@ static void make_cursor(NEXUS_SurfaceHandle surface, const NEXUS_SurfaceCreateSe
 }
 
 #if NEXUS_HAS_HDMI_OUTPUT
+static bool nxserver_p_hdcp_authenticated(const NEXUS_HdmiOutputHdcpStatus *pStatus)
+{
+    return pStatus->hdcpError == NEXUS_HdmiOutputHdcpError_eSuccess && (pStatus->linkReadyForEncryption || pStatus->transmittingEncrypted);
+}
+
+static const char *g_hdcpLevelStr[NxClient_HdcpLevel_eMax] = {"off","optional","mandatory"};
+
 static void nxserver_check_hdcp(struct b_session *session)
 {
     nxclient_t client;
@@ -1651,27 +1658,61 @@ static void nxserver_check_hdcp(struct b_session *session)
         }
     }
 
+    BDBG_MSG(("HDCP %s --> %s, pending %u", g_hdcpLevelStr[session->hdcp.level], g_hdcpLevelStr[hdcp], session->hdcp.pending));
+
     if (hdcp > NxClient_HdcpLevel_eNone) {
+        /* Turning on or moving between optional and mandatory */
         int rc;
-        bool mandatory = hdcp==NxClient_HdcpLevel_eMandatory;
-        BDBG_LOG(("starting %s HDCP authentication", mandatory?"mandatory":"optional"));
-        session->hdcp = mandatory?nxserver_hdcp_mandatory_pending:nxserver_hdcp_optional_pending;
-        rc = NEXUS_HdmiOutput_StartHdcpAuthentication(session->hdmiOutput);
-        if (rc) {
-            BDBG_ERR(("NEXUS_HdmiOutput_StartHdcpAuthentication failed: %d", rc));
+        NEXUS_HdmiOutputStatus status;
+
+        session->hdcp.level = hdcp;
+        if (!session->hdcp.pending) {
+            session->hdcp.pending = nxserver_hdcp_pending;
+        }
+
+        rc = NEXUS_HdmiOutput_GetStatus(session->hdmiOutput, &status);
+        if (rc) { BERR_TRACE(rc); goto done; }
+
+        /* only status.rxPowered is needed for HDCP. if true, then status.connected will be true. */
+        if (status.rxPowered) {
+            int rc;
+            NEXUS_HdmiOutputHdcpStatus hdcpStatus;
+
+            rc = NEXUS_HdmiOutput_GetHdcpStatus(session->hdmiOutput, &hdcpStatus);
+            if (rc) { BERR_TRACE(rc); /* fall through */ }
+            if (nxserver_p_hdcp_authenticated(&hdcpStatus)) {
+                if (session->hdcp.pending) {
+                    BDBG_MSG(("HDCP authenticated, line %d ", __LINE__));
+                    session->hdcp.pending = nxserver_hdcp_not_pending;
+                    session->callbackStatus.hdmiOutputHdcpChanged++;
+                }
+            }
+            else {
+                BDBG_LOG(("starting %s HDCP authentication", g_hdcpLevelStr[hdcp]));
+                session->callbackStatus.hdmiOutputHdcpChanged++;
+                rc = NEXUS_HdmiOutput_StartHdcpAuthentication(session->hdmiOutput);
+                if (rc) {
+                    BDBG_ERR(("NEXUS_HdmiOutput_StartHdcpAuthentication failed: %d", rc));
+                    /* stay at pending level, but don't retry. */
+                }
+            }
+        }
+        else if (!session->hdcp.pending) {
+            /* else, can't start until we are powered, so stay pending */
+            session->hdcp.pending = nxserver_hdcp_pending;
             session->callbackStatus.hdmiOutputHdcpChanged++;
-            /* stay at pending level, but don't retry. */
-            nxserver_hdcp_mute(session);
         }
     }
-    else {
-        if (session->hdcp != nxserver_hdcp_off) {
-            NEXUS_HdmiOutput_DisableHdcpAuthentication(session->hdmiOutput);
-            session->hdcp = nxserver_hdcp_off;
-            session->callbackStatus.hdmiOutputHdcpChanged++;
-            nxserver_hdcp_mute(session);
-        }
-    }
+    else if (session->hdcp.level) {
+        NEXUS_HdmiOutput_DisableHdcpAuthentication(session->hdmiOutput);
+        session->hdcp.level = NxClient_HdcpLevel_eNone;
+        session->hdcp.pending = nxserver_hdcp_not_pending;
+        session->callbackStatus.hdmiOutputHdcpChanged++;
+     }
+
+done:
+    /* any change in pending or level may change mute, so recheck */
+    nxserver_hdcp_mute(session);
 }
 
 static void hotplug_callback_locked(void *pParam, int iParam)
@@ -1690,7 +1731,7 @@ static void hotplug_callback_locked(void *pParam, int iParam)
     if (rc!=NEXUS_SUCCESS) {
         return;
     }
-    if(status.connected) {
+    if (status.connected) {
         if (session->nxclient.displaySettings.hdmiPreferences.followPreferredFormat) {
             bserver_hdmi_edid_audio_config(session, &status);
             if (session->main_audio) {
@@ -1707,19 +1748,12 @@ static void hotplug_callback_locked(void *pParam, int iParam)
                 NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
             }
         }
+    }
 
+    if (status.rxPowered) {
         initializeHdmiOutputHdcpSettings(session);
-        nxserver_check_hdcp(session);
     }
-    else {
-        rc = NEXUS_HdmiOutput_DisableHdcpAuthentication(session->hdmiOutput);
-        if (rc) {
-            BDBG_ERR(("NEXUS_HdmiOutput_DisableHdcpAuthentication failed: %d", rc));
-            session->hdcp = nxserver_hdcp_off;
-            session->callbackStatus.hdmiOutputHdcpChanged++;
-            nxserver_hdcp_mute(session);
-        }
-    }
+    nxserver_check_hdcp(session);
 }
 
 static void hotplug_callback(void *pParam, int iParam)
@@ -1802,29 +1836,28 @@ static const char *g_hdcpErrorStr[NEXUS_HdmiOutputHdcpError_eMax] = {
 
 static void nxserver_hdcp_mute(struct b_session *session)
 {
-    bool mute = session->hdmiOutput && session->hdcp == nxserver_hdcp_mandatory_pending;
     int rc;
-    if (mute) {
-        NEXUS_HdmiOutputHdcpStatus hdcpStatus;
-        rc = NEXUS_HdmiOutput_GetHdcpStatus(session->hdmiOutput, &hdcpStatus);
-        if (!rc && hdcpStatus.hdcpError == NEXUS_HdmiOutputHdcpError_eSuccess) {
-            mute = false;
-        }
-    }
-    if (mute != session->hdcp_mute) {
+    bool mute = session->hdmiOutput && session->hdcp.level == NxClient_HdcpLevel_eMandatory;
+#if NEXUS_HAS_SAGE
+    /* for SAGE_SECURE_MODE 6/9, we need to mute on nxserver_hdcp_pending as well. */
+    mute = mute && session->hdcp.pending;
+#else
+    mute = mute && session->hdcp.pending == nxserver_hdcp_pending_with_failure;
+#endif
+    if (mute != session->hdcp.mute) {
         NEXUS_SurfaceCompositorSettings surface_compositor_settings;
 
-        session->hdcp_mute = mute;
+        session->hdcp.mute = mute;
 
         NEXUS_SurfaceCompositor_GetSettings(session->surfaceCompositor, &surface_compositor_settings);
         /* only mute HD (HDMI) no SD (composite) */
-        surface_compositor_settings.muteVideo[0] = session->hdcp_mute;
+        surface_compositor_settings.muteVideo[0] = session->hdcp.mute;
         rc = NEXUS_SurfaceCompositor_SetSettings(session->surfaceCompositor, &surface_compositor_settings);
         if (rc) {BERR_TRACE(rc);}
 
         NxClient_P_SetSessionAudioSettings(session, &session->audioSettings);
     }
-    BDBG_MSG(("nxserver_hdcp_mute:%p %d", (void*)session, session->hdcp_mute));
+    BDBG_MSG(("nxserver_hdcp_mute:%p %d", (void*)session, session->hdcp.mute));
 }
 
 static void hdmiOutputHdcpStateChanged(void *pContext, int param)
@@ -1834,14 +1867,25 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
     NEXUS_HdmiOutputHdcpStatus hdcpStatus;
     int rc;
 
+    BSTD_UNUSED(param);
     BKNI_AcquireMutex(server->settings.lock);
     if (!session->hdmiOutput) goto done;
 
-    BSTD_UNUSED(param);
+    if (!session->hdcp.level) goto done;
+
     rc = NEXUS_HdmiOutput_GetHdcpStatus(session->hdmiOutput, &hdcpStatus);
+    if (rc) BERR_TRACE(rc);
+
+    BDBG_MSG(("HDCP level %s, error %u, state %u", g_hdcpLevelStr[session->hdcp.level], hdcpStatus.hdcpError, hdcpStatus.hdcpState));
+
     if (!rc && hdcpStatus.hdcpError == NEXUS_HdmiOutputHdcpError_eSuccess) {
-        BDBG_LOG(("HDCP authentication successful"));
-        session->hdcp = nxserver_hdcp_on;
+        if (nxserver_p_hdcp_authenticated(&hdcpStatus)) {
+            BDBG_LOG(("HDCP authenticated"));
+            session->hdcp.pending = nxserver_hdcp_not_pending;
+        }
+        else {
+            session->hdcp.pending = nxserver_hdcp_pending_with_failure;
+        }
         session->callbackStatus.hdmiOutputHdcpChanged++;
         nxserver_hdcp_mute(session);
     }
@@ -1850,9 +1894,6 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
             hdcpStatus.hdcpError < NEXUS_HdmiOutputHdcpError_eMax ? g_hdcpErrorStr[hdcpStatus.hdcpError] : "invalid value",
             hdcpStatus.hdcpState));
         session->callbackStatus.hdmiOutputHdcpChanged++;
-        nxserver_hdcp_mute(session);
-
-        /* always retry */
         nxserver_check_hdcp(session);
     }
 done:
@@ -2052,6 +2093,11 @@ static void initializeHdmiOutputHdcpSettings(struct b_session *session)
     if (session->hdcpKeys.hdcp1x.size) {
         BKNI_Memcpy(hdmiOutputHdcpSettings.aksv.data, session->hdcpKeys.hdcp1x.buffer, sizeof(hdmiOutputHdcpSettings.aksv.data));
         BKNI_Memcpy(&hdmiOutputHdcpSettings.encryptedKeySet, &((uint8_t*)session->hdcpKeys.hdcp1x.buffer)[sizeof(hdmiOutputHdcpSettings.aksv.data)+3], sizeof(hdmiOutputHdcpSettings.encryptedKeySet));
+	}
+	else {
+        BKNI_Memset(hdmiOutputHdcpSettings.aksv.data, 0, sizeof(hdmiOutputHdcpSettings.aksv.data));
+        BKNI_Memset(&hdmiOutputHdcpSettings.encryptedKeySet, 0, sizeof(hdmiOutputHdcpSettings.encryptedKeySet));
+    }
 
         hdmiOutputHdcpSettings.successCallback.callback = hdmiOutputHdcpStateChanged;
         hdmiOutputHdcpSettings.successCallback.context = session;
@@ -2068,12 +2114,8 @@ static void initializeHdmiOutputHdcpSettings(struct b_session *session)
         if (rc) {
             BERR_TRACE(rc);
             /* fall through */
-        }
     }
-    else {
-        BKNI_Memset(hdmiOutputHdcpSettings.aksv.data, 0, sizeof(hdmiOutputHdcpSettings.aksv.data));
-        BKNI_Memset(&hdmiOutputHdcpSettings.encryptedKeySet, 0, sizeof(hdmiOutputHdcpSettings.encryptedKeySet));
-    }
+
 }
 #endif
 
@@ -3327,7 +3369,7 @@ static int nxserver_p_set_audio_output(struct b_session *session, NEXUS_AudioOut
         outputSettings.leftVolume = pOutputSettings->leftVolume;
         outputSettings.rightVolume = pOutputSettings->rightVolume;
     }
-    outputSettings.muted = pSettings->muted || pOutputSettings->muted || session->hdcp_mute;
+    outputSettings.muted = pSettings->muted || pOutputSettings->muted || session->hdcp.mute;
     outputSettings.additionalDelay = pOutputSettings->additionalDelay;
     outputSettings.channelMode = pOutputSettings->channelMode;
     return NEXUS_AudioOutput_SetSettings(audioOutput, &outputSettings);
@@ -3453,13 +3495,30 @@ NEXUS_Error NxClient_P_SetPictureQualitySettings(nxclient_t client, const NxClie
     return 0;
 }
 
-NEXUS_Error NxClient_P_GetStandbyStatus(nxserver_t server, NxClient_StandbyStatus *pStatus)
+NEXUS_Error NxClient_P_GetStandbyStatus(nxclient_t client, NxClient_StandbyStatus *pStatus)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
+    struct b_client_standby_ack *ack;
 
     NEXUS_Platform_GetStandbyStatus(&pStatus->status);
-    pStatus->settings = server->standby.standbySettings.settings;
-    pStatus->standbyTransition = server->standby.state==b_standby_state_exit?true:false;
+    pStatus->settings = client->server->standby.standbySettings.settings;
+    switch (client->server->standby.state) {
+        default:
+        case b_standby_state_none:
+            pStatus->transition = NxClient_StandbyTransition_eNone;
+            break;
+        case b_standby_state_pending:
+            for (ack = BLST_S_FIRST(&client->standby.acks); ack; ack = BLST_S_NEXT(ack, link)) {
+                if (ack->waiting) break;
+            }
+            if (ack) pStatus->transition = NxClient_StandbyTransition_eAckNeeded;
+            else pStatus->transition = NxClient_StandbyTransition_ePending;
+            break;
+        case b_standby_state_exit:
+            pStatus->transition = NxClient_StandbyTransition_eDone;
+            break;
+    }
+    pStatus->standbyTransition =  pStatus->transition == NxClient_StandbyTransition_eDone?true:false;
 
     return rc;
 }

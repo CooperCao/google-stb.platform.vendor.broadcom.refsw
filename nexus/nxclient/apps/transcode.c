@@ -68,6 +68,7 @@
 #include <assert.h>
 #include <time.h>
 #include <sys/time.h>
+#include <pthread.h>
 #include "bstd.h"
 #include "bkni.h"
 
@@ -79,16 +80,64 @@ BDBG_MODULE(transcode);
 typedef struct EncodeContext
 {
     NEXUS_SimpleEncoderHandle hEncoder;
+    NEXUS_SimpleVideoDecoderHandle hVideoDecoder;
+    NEXUS_SimpleAudioDecoderHandle hAudioDecoder;
+    NEXUS_PlaybackHandle hPlayback;
+    NEXUS_PlaypumpHandle hPlaypump;
+    NEXUS_RecpumpHandle hRecpump;
+    BNAV_Indexer_Handle bcmindexer;
+#if NEXUS_HAS_HDMI_INPUT
+    NEXUS_HdmiInputHandle hdmiInput;
+#endif
+    const char *filename, *indexname, *outputfile, *outputindex, *outputAes;
+    NEXUS_FilePlayHandle file;
     FILE *pOutputFile;
+    FILE *pOutputIndex;
     FILE *pOutputAes;
     void *pVideoBase;
     void *pAudioBase;
     size_t videoSize, lastVideoSize;
     size_t audioSize, lastAudioSize;
+    unsigned streamTotal, indexTotal, lastsize;
+    bool stopped;
+    bool outputEs;
+    struct {
+        unsigned videoBitrate;/* bps */
+        unsigned width;
+        unsigned height;
+        unsigned window_x, window_y, window_w, window_h;
+        NEXUS_ClipRect clip;
+        bool interlaced;
+        unsigned frameRate, refreshRate;
+        bool rampBitrate;
+        NEXUS_SimpleEncoderStopMode stopMode;
+    } encoderSettings;
+    struct {
+        unsigned videoPid;
+        unsigned videoCodec;
+        unsigned videoCodecProfile;
+        unsigned videoCodecLevel;
+        unsigned audioPid;
+        unsigned audioCodec;
+        unsigned audioSampleRate;
+        bool audPassThrough;
+        bool raiIndex;
+        NEXUS_PidChannelHandle passthrough[NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS];
+        unsigned num_passthrough;
+    } encoderStartSettings;
+    NEXUS_SimpleEncoderStartSettings startSettings;
+    NEXUS_SimpleVideoDecoderStartSettings videoProgram;
+    NEXUS_SimpleAudioDecoderStartSettings audioProgram;
+    enum {input_type_decoder, input_type_hdmi, input_type_graphics} input_type;
+    struct {
+        NEXUS_VideoImageInputHandle handle;
+        NEXUS_SurfaceHandle surface;
+    } imageInput;
 }EncodeContext;
 
 #define IS_START_OF_UNIT(pDesc) (((pDesc)->flags & (NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_FRAME_START|NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_EOS))?true:false)
 #define MB (1024*1024)
+#define NULL_PID 0x1fff
 
 static bool HaveCompletePacket(
     const NEXUS_VideoEncoderDescriptor *pDesc0,
@@ -353,6 +402,328 @@ static unsigned rai_Indexer_Feed(FILE *fp, const void*indexBuffer, unsigned numE
     return i;
 }
 
+static int start_encode(EncodeContext *pContext)
+{
+    NEXUS_SimpleEncoderSettings encoderSettings;
+    NEXUS_SimpleEncoderStartSettings startSettings;
+    NEXUS_SimpleEncoderStatus encStatus;
+    unsigned i;
+    NEXUS_Error rc;
+
+    if (pContext->input_type == input_type_decoder) {
+        pContext->file = NEXUS_FilePlay_OpenPosix(pContext->filename, pContext->indexname);
+        if (!pContext->file) {
+            BDBG_ERR(("can't open files: %s %s", pContext->filename, pContext->indexname));
+            return -1;
+        }
+    }
+    pContext->pOutputFile = fopen(pContext->outputfile, "w+");
+    if (!pContext->pOutputFile) {
+        BDBG_ERR(("unable to open '%s' for writing", pContext->outputfile));
+        return -1;
+    }
+    if (pContext->outputindex) {
+        pContext->pOutputIndex = fopen(pContext->outputindex, "w+");
+        if (!pContext->pOutputIndex) {
+            BDBG_ERR(("unable to open '%s' for writing", pContext->outputindex));
+            return -1;
+        }
+    }
+    if (pContext->outputAes) {
+        pContext->pOutputAes = fopen(pContext->outputAes, "w+");
+        if (!pContext->pOutputAes) {
+            BDBG_ERR(("unable to open '%s' for writing", pContext->outputAes));
+            return -1;
+        }
+    }
+
+    NEXUS_SimpleEncoder_GetSettings(pContext->hEncoder, &encoderSettings);
+    if (pContext->encoderSettings.videoBitrate) {
+        encoderSettings.videoEncoder.bitrateMax = pContext->encoderSettings.videoBitrate;
+    } else {
+        pContext->encoderSettings.videoBitrate = encoderSettings.videoEncoder.bitrateMax;
+    }
+    if (pContext->encoderSettings.width || pContext->encoderSettings.height) {
+        encoderSettings.video.width = pContext->encoderSettings.width;
+        encoderSettings.video.height = pContext->encoderSettings.height;
+    } else {/* save default */
+        pContext->encoderSettings.width  = encoderSettings.video.width;
+        pContext->encoderSettings.height = encoderSettings.video.height;
+    }
+    encoderSettings.video.window.x = pContext->encoderSettings.window_x;
+    encoderSettings.video.window.y = pContext->encoderSettings.window_y;
+    encoderSettings.video.window.width = pContext->encoderSettings.window_w;
+    encoderSettings.video.window.height = pContext->encoderSettings.window_h;
+    encoderSettings.video.clip = pContext->encoderSettings.clip;
+
+    if(pContext->encoderSettings.rampBitrate) {/* ramp from quarter dimension and bitrate */
+        encoderSettings.videoEncoder.bitrateMax /= 4;
+        encoderSettings.video.width /= 2;
+        encoderSettings.video.height /= 2;
+        BDBG_WRN(("Video bitrate ramps up -> %u bps; resolution: %ux%u", encoderSettings.videoEncoder.bitrateMax,
+            encoderSettings.video.width, encoderSettings.video.height));
+    }
+
+#if !NEXUS_NUM_DSP_VIDEO_ENCODERS
+    /* with 1000/1001 rate tracking by default */
+    if (pContext->encoderSettings.frameRate == 29970 || pContext->encoderSettings.frameRate == 30000) {
+        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e30;
+        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 60000;
+    } else if (pContext->encoderSettings.frameRate == 59940 || pContext->encoderSettings.frameRate == 60000) {
+        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e60;
+        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 60000;
+    } else if (pContext->encoderSettings.frameRate == 20000) {
+        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e20;
+        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 60000;
+    } else if (pContext->encoderSettings.frameRate == 23976 || pContext->encoderSettings.frameRate == 24000) {
+        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e24;
+        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 60000;
+    } else if (pContext->encoderSettings.frameRate == 14985 || pContext->encoderSettings.frameRate == 15000) {
+        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e14_985;
+        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 60000;
+    } else if (pContext->encoderSettings.frameRate == 50000) {
+        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e50;
+        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 50000;
+    } else if (pContext->encoderSettings.frameRate == 25000) {
+        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e25;
+        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 50000;
+    } else if (pContext->encoderSettings.frameRate == 12500) {
+        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e12_5;
+        encoderSettings.video.refreshRate = pContext->encoderSettings.refreshRate? pContext->encoderSettings.refreshRate : 50000;
+    }
+#endif
+
+    encoderSettings.video.interlaced = pContext->encoderSettings.interlaced;
+    encoderSettings.stopMode = pContext->encoderSettings.stopMode;
+    rc = NEXUS_SimpleEncoder_SetSettings(pContext->hEncoder, &encoderSettings);
+    BDBG_ASSERT(!rc);
+
+    NEXUS_SimpleEncoder_GetDefaultStartSettings(&startSettings);
+    startSettings.input.video = pContext->hVideoDecoder;
+    startSettings.input.audio = pContext->hAudioDecoder;
+    startSettings.recpump = pContext->outputEs? NULL : pContext->hRecpump;
+    startSettings.output.transport.type = pContext->outputEs? NEXUS_TransportType_eEs : NEXUS_TransportType_eTs;
+    startSettings.output.video.index = !pContext->encoderStartSettings.raiIndex;
+    startSettings.output.video.raiIndex = pContext->encoderStartSettings.raiIndex;
+    startSettings.output.video.settings.interlaced = pContext->encoderSettings.interlaced;
+    if (pContext->encoderStartSettings.videoCodec) {
+        startSettings.output.video.settings.codec = pContext->encoderStartSettings.videoCodec;
+    }
+    if (pContext->encoderStartSettings.videoCodecProfile) {
+        startSettings.output.video.settings.profile = pContext->encoderStartSettings.videoCodecProfile;
+    }
+    if (pContext->encoderStartSettings.videoCodecLevel) {
+        startSettings.output.video.settings.level = pContext->encoderStartSettings.videoCodecLevel;
+    }
+    if (pContext->encoderStartSettings.videoPid != NULL_PID) {
+        startSettings.output.video.pid = pContext->encoderStartSettings.videoPid;
+    }
+    if (pContext->encoderStartSettings.audioCodec) {
+        startSettings.output.audio.codec = pContext->encoderStartSettings.audioCodec;
+    }
+    if (pContext->encoderStartSettings.audioSampleRate != 0) {
+        startSettings.output.audio.sampleRate = pContext->encoderStartSettings.audioSampleRate;
+    }
+    if (pContext->encoderStartSettings.audPassThrough) {
+        startSettings.output.audio.passthrough = true;
+        startSettings.output.audio.codec = pContext->audioProgram.primary.codec;
+        startSettings.output.audio.sampleRate = 0; /* passthrough cannot change audio sample rate */
+    }
+    if (pContext->encoderStartSettings.audioPid != NULL_PID) {
+        startSettings.output.audio.pid = pContext->encoderStartSettings.audioPid;
+    }
+    for (i=0;i<pContext->encoderStartSettings.num_passthrough;i++) {
+        startSettings.passthrough[i] = pContext->encoderStartSettings.passthrough[i];
+    }
+
+    rc = NEXUS_SimpleEncoder_Start(pContext->hEncoder, &startSettings);
+    if (rc) {
+        BDBG_ERR(("unable to start encoder"));
+        return -1;
+    }
+    pContext->startSettings = startSettings;
+
+    /* can't start decode before encode because encoder provides display for decoder */
+    if (pContext->videoProgram.settings.pidChannel) {
+        rc = NEXUS_SimpleVideoDecoder_Start(pContext->hVideoDecoder, &pContext->videoProgram);
+        BDBG_ASSERT(!rc);
+    }
+    if (pContext->hAudioDecoder && pContext->audioProgram.primary.pidChannel) {
+        NEXUS_SimpleAudioDecoder_Start(pContext->hAudioDecoder, &pContext->audioProgram);
+        /* decode may fail if audio codec not supported */
+    }
+#if NEXUS_HAS_HDMI_INPUT
+    if (pContext->input_type == input_type_hdmi) {
+        if (pContext->hVideoDecoder) {
+            rc = NEXUS_SimpleVideoDecoder_StartHdmiInput(pContext->hVideoDecoder, pContext->hdmiInput, NULL);
+            BDBG_ASSERT(!rc);
+        }
+        if (pContext->hAudioDecoder) {
+            rc = NEXUS_SimpleAudioDecoder_StartHdmiInput(pContext->hAudioDecoder, pContext->hdmiInput, NULL);
+            BDBG_ASSERT(!rc);
+        }
+    }
+#endif
+    if (pContext->input_type == input_type_graphics) {
+        NEXUS_SurfaceCreateSettings surfaceCreateSettings;
+        NEXUS_SurfaceMemory mem;
+        unsigned x,y,i;
+        NEXUS_ClientConfiguration clientConfig;
+        NEXUS_VideoImageInputStatus imageInputStatus;
+
+        NEXUS_Platform_GetClientConfiguration(&clientConfig);
+
+        pContext->imageInput.handle = NEXUS_SimpleVideoDecoder_StartImageInput(pContext->hVideoDecoder, NULL);
+        if (!pContext->imageInput.handle) {
+            BDBG_WRN(("graphics transcode not supported"));
+            return -1;
+        }
+
+        NEXUS_VideoImageInput_GetStatus(pContext->imageInput.handle, &imageInputStatus);
+
+        if(pContext->imageInput.surface == NULL) {
+            NEXUS_Surface_GetDefaultCreateSettings(&surfaceCreateSettings);
+            surfaceCreateSettings.width  = 720;
+            surfaceCreateSettings.height = 480;
+            surfaceCreateSettings.pixelFormat = NEXUS_PixelFormat_eCr8_Y18_Cb8_Y08;
+            for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+                NEXUS_MemoryStatus s;
+                if (!clientConfig.heap[i] || NEXUS_Heap_GetStatus(clientConfig.heap[i], &s)) continue;
+                if (s.memcIndex == imageInputStatus.memcIndex && (s.memoryType & NEXUS_MemoryType_eApplication) && s.largestFreeBlock >= 960*1080*2) {
+                    surfaceCreateSettings.heap = clientConfig.heap[i];
+                    BDBG_WRN(("found heap[%d] on MEMC%d for VideoImageInput", i, s.memcIndex));
+                    break;
+                }
+            }
+            if (!surfaceCreateSettings.heap) {
+                BDBG_ERR(("no heap found. RTS failure likely."));
+            }
+            /* create, render and push a single surface */
+            pContext->imageInput.surface = NEXUS_Surface_Create(&surfaceCreateSettings);
+            NEXUS_Surface_GetMemory(pContext->imageInput.surface, &mem);
+            /* draw green/magenta checker board splash screen */
+            for (y=0;y<surfaceCreateSettings.height;y++) {
+                uint32_t *ptr = (uint32_t *)(((uint8_t*)mem.buffer) + y * mem.pitch);
+                for (x=0;x<surfaceCreateSettings.width;x++) {
+                    if ((x/10)%2 != (y/10)%2) {
+                        ptr[x] = 0x00800080;
+                    }
+                    else {
+                        ptr[x] = 0xFF80FF80;
+                    }
+                }
+            }
+            NEXUS_Surface_Flush(pContext->imageInput.surface);
+            NEXUS_VideoImageInput_PushSurface(pContext->imageInput.handle, pContext->imageInput.surface, NULL);
+        }
+    }
+
+    /* use bcmindexer to convert SCT to NAV */
+    if (pContext->outputindex) {
+        BNAV_Indexer_Settings settings;
+        get_default_bcmindexer_settings(startSettings.output.video.settings.codec, pContext->pOutputIndex, &settings);
+        rc = BNAV_Indexer_Open(&pContext->bcmindexer, &settings);
+        BDBG_ASSERT(!rc);
+    }
+
+    /* recpump must start after decoders start */
+    if(!pContext->outputEs) {
+        rc = NEXUS_Recpump_Start(pContext->hRecpump);
+        BDBG_ASSERT(!rc);
+    }
+
+    if (pContext->hPlayback) {
+        rc = NEXUS_Playback_Start(pContext->hPlayback, pContext->file, NULL);
+        BDBG_ASSERT(!rc);
+    }
+
+    NEXUS_SimpleEncoder_GetStatus(pContext->hEncoder, &encStatus);
+    rc = NEXUS_MemoryBlock_Lock(encStatus.video.bufferBlock, &pContext->pVideoBase);
+    BDBG_ASSERT(!rc);
+    rc = NEXUS_MemoryBlock_Lock(encStatus.audio.bufferBlock, &pContext->pAudioBase);
+    BDBG_ASSERT(!rc);
+
+    return 0;
+}
+
+static void stop_encode(EncodeContext *pContext)
+{
+    NEXUS_SimpleEncoderSettings encoderSettings;
+
+    if (pContext->hPlayback) {
+        NEXUS_Playback_Stop(pContext->hPlayback);
+    }
+    if(!pContext->outputEs) {
+        NEXUS_Recpump_Stop(pContext->hRecpump);
+    }
+    /* resume auto stop mode before stop */
+    NEXUS_SimpleEncoder_GetSettings(pContext->hEncoder,&encoderSettings);
+    encoderSettings.stopMode = NEXUS_SimpleEncoderStopMode_eAll;
+    NEXUS_SimpleEncoder_SetSettings(pContext->hEncoder,&encoderSettings);
+    NEXUS_SimpleEncoder_Stop(pContext->hEncoder);
+
+    if (pContext->hVideoDecoder) {
+        NEXUS_SimpleVideoDecoder_Stop(pContext->hVideoDecoder);
+    }
+    if (pContext->hAudioDecoder) {
+        NEXUS_SimpleAudioDecoder_Stop(pContext->hAudioDecoder);
+    }
+    if (pContext->input_type == input_type_hdmi) {
+        if (pContext->hVideoDecoder) {
+            NEXUS_SimpleVideoDecoder_StopHdmiInput(pContext->hVideoDecoder);
+        }
+        if (pContext->hAudioDecoder) {
+            NEXUS_SimpleAudioDecoder_StopHdmiInput(pContext->hAudioDecoder);
+        }
+    }
+    if (pContext->input_type == input_type_graphics) {
+        NEXUS_SimpleVideoDecoder_StopImageInput(pContext->hVideoDecoder);
+    }
+    if (pContext->outputAes) {
+        fclose(pContext->pOutputAes);
+    }
+    if (pContext->outputindex) {
+        fclose(pContext->pOutputIndex);
+        BNAV_Indexer_Close(pContext->bcmindexer);
+    }
+    fclose(pContext->pOutputFile);
+    if (pContext->input_type == input_type_decoder) {
+        NEXUS_FilePlay_Close(pContext->file);
+    }
+    pContext->videoSize=pContext->lastVideoSize=pContext->audioSize=pContext->lastAudioSize=0;
+    pContext->streamTotal=pContext->indexTotal=pContext->lastsize=0;
+}
+
+static void *standby_monitor(void *context)
+{
+    EncodeContext *pContext = context;
+    NEXUS_Error rc;
+    NxClient_StandbyStatus standbyStatus, prevStatus;
+
+    rc = NxClient_GetStandbyStatus(&prevStatus);
+    BDBG_ASSERT(!rc);
+
+    while(!pContext->stopped) {
+        rc = NxClient_GetStandbyStatus(&standbyStatus);
+        BDBG_ASSERT(!rc);
+
+        if(standbyStatus.transition == NxClient_StandbyTransition_eAckNeeded) {
+            printf("'transcode' acknowledges standby state: %s\n", lookup_name(g_platformStandbyModeStrs, standbyStatus.settings.mode));
+            stop_encode(pContext);
+            NxClient_AcknowledgeStandby(true);
+        } else {
+            if(standbyStatus.settings.mode == NEXUS_PlatformStandbyMode_eOn && prevStatus.settings.mode != NEXUS_PlatformStandbyMode_eOn)
+                start_encode(pContext);
+
+        }
+
+        prevStatus = standbyStatus;
+        BKNI_Sleep(100);
+    }
+
+    return NULL;
+}
+
 int main(int argc, const char **argv)  {
     NxClient_JoinSettings joinSettings;
     NxClient_AllocSettings allocSettings;
@@ -360,70 +731,25 @@ int main(int argc, const char **argv)  {
     NxClient_ConnectSettings connectSettings;
     struct probe_results probe_results;
     unsigned connectId;
-    NEXUS_SimpleVideoDecoderHandle videoDecoder;
-    NEXUS_SimpleVideoDecoderStartSettings videoProgram;
     NEXUS_SimpleEncoderSettings encoderSettings;
-    NEXUS_SimpleAudioDecoderHandle audioDecoder = NULL;
-    NEXUS_SimpleAudioDecoderStartSettings audioProgram;
-    NEXUS_FilePlayHandle file;
     NEXUS_PlaypumpOpenSettings openSettings;
-    NEXUS_PlaypumpHandle playpump;
-    NEXUS_PlaybackHandle playback = NULL;
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
     NEXUS_SimpleStcChannelHandle stcChannel;
     NEXUS_SimpleStcChannelSettings stcSettings;
     NEXUS_Error rc = 0;
     int curarg = 1;
-    const char *filename = NULL, *outputfile = NULL, *outputindex = NULL, *outputAes = NULL;
-    NEXUS_SimpleEncoderHandle encoder;
-    NEXUS_SimpleEncoderStartSettings startSettings;
-    NEXUS_RecpumpHandle recpump;
     NEXUS_RecpumpSettings recpumpSettings;
     NEXUS_RecpumpOpenSettings recpumpOpenSettings;
     BKNI_EventHandle dataReadyEvent;
-    FILE *streamOut, *indexOut, *aesOut;
-    BNAV_Indexer_Handle bcmindexer;
-    unsigned streamTotal = 0, indexTotal = 0;
-#define NULL_PID 0x1fff
-    unsigned videoPid = NULL_PID;
-    unsigned videoCodec = NEXUS_VideoCodec_eNone;
-    unsigned videoCodecProfile = NEXUS_VideoCodecProfile_eUnknown;
-    unsigned videoCodecLevel   = NEXUS_VideoCodecLevel_eUnknown;
-    unsigned videoBitrate = 0;/* bps */
-    unsigned width = 0;
-    unsigned height = 0;
-    unsigned window_x = 0, window_y = 0, window_w = 0, window_h = 0;
-    NEXUS_ClipRect clip = {0, 0, 0, 0};
-    bool interlaced = false;
-    unsigned frameRate = 0, refreshRate=0;
-    unsigned audioPid = NULL_PID;
-    unsigned audioSampleRate = 0;
-    NEXUS_SimpleEncoderStopMode stopMode = NEXUS_SimpleEncoderStopMode_eAll;
-    NEXUS_SimpleEncoderStatus encStatus;
-    bool outputEs = false;
-    bool stopped = false;
     EncodeContext context;
-    unsigned audioCodec = NEXUS_AudioCodec_eUnknown;
-    bool audPassThrough = false;
     unsigned timeout = 0;
     bool loop = false;
     unsigned starttime, thistime;
-    unsigned lastsize = 0;
     bool gui = true;
-    bool rampBitrate = false;
     brecord_gui_t record_gui = NULL;
-    enum {input_type_decoder, input_type_hdmi, input_type_graphics} input_type = input_type_decoder;
-#if NEXUS_HAS_HDMI_INPUT
-    NEXUS_HdmiInputHandle hdmiInput = NULL;
-#endif
-    struct {
-        NEXUS_VideoImageInputHandle handle;
-        NEXUS_SurfaceHandle surface;
-    } imageInput;
     bool realtime = false;
     NEXUS_TransportTimestampType timestampType = NEXUS_TransportTimestampType_eNone;
-    bool raiIndex = false;
     struct {
         unsigned pid, remap_pid;
     } passthrough[NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS];
@@ -432,6 +758,10 @@ int main(int argc, const char **argv)  {
     struct nxapps_cmdline cmdline;
     int n;
     NEXUS_VideoFormat maxFormat = 0;
+    pthread_t standby_thread_id;
+
+    BKNI_Memset(&context, 0, sizeof(context));
+    context.encoderStartSettings.videoPid = context.encoderStartSettings.audioPid = NULL_PID;
 
     nxapps_cmdline_init(&cmdline);
     nxapps_cmdline_allow(&cmdline, nxapps_cmdline_type_SimpleVideoDecoderPictureQualitySettings);
@@ -442,67 +772,67 @@ int main(int argc, const char **argv)  {
             return 0;
         }
         else if (!strcmp(argv[curarg], "-video") && curarg+1 < argc) {
-            videoPid = strtoul(argv[++curarg], NULL, 0);
+            context.encoderStartSettings.videoPid = strtoul(argv[++curarg], NULL, 0);
         }
         else if (!strcmp(argv[curarg], "-audio") && curarg+1 < argc) {
-            audioPid = strtoul(argv[++curarg], NULL, 0);
+            context.encoderStartSettings.audioPid = strtoul(argv[++curarg], NULL, 0);
         }
         else if (!strcmp(argv[curarg], "-audio_samplerate") && curarg+1 < argc) {
-            audioSampleRate = strtoul(argv[++curarg], NULL, 0);
+            context.encoderStartSettings.audioSampleRate = strtoul(argv[++curarg], NULL, 0);
         }
         else if (!strcmp(argv[curarg], "-stopStartVideoEncoder")) {
-            stopMode = NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly;
+            context.encoderSettings.stopMode = NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly;
         }
         else if (!strcmp(argv[curarg], "-video_type") && curarg+1 < argc) {
-            videoCodec = lookup(g_videoCodecStrs, argv[++curarg]);
+            context.encoderStartSettings.videoCodec = lookup(g_videoCodecStrs, argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-profile") && curarg+1 < argc) {
-            videoCodecProfile = lookup(g_videoCodecProfileStrs, argv[++curarg]);
+            context.encoderStartSettings.videoCodecProfile = lookup(g_videoCodecProfileStrs, argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-level") && curarg+1 < argc) {
-            videoCodecLevel = lookup(g_videoCodecLevelStrs, argv[++curarg]);
+            context.encoderStartSettings.videoCodecLevel = lookup(g_videoCodecLevelStrs, argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-video_bitrate") && curarg+1 < argc) {
             float rate;
             sscanf(argv[++curarg], "%f", &rate);
-            videoBitrate = rate * 1000 * 1000;
+            context.encoderSettings.videoBitrate = rate * 1000 * 1000;
         }
         else if (!strcmp(argv[curarg], "-video_size") && curarg+1 < argc) {
-            if (sscanf(argv[++curarg], "%u,%u", &width, &height) != 2) {
+            if (sscanf(argv[++curarg], "%u,%u", &context.encoderSettings.width, &context.encoderSettings.height) != 2) {
                 print_usage(&cmdline);
                 return -1;
             }
         }
         else if (!strcmp(argv[curarg], "-window") && curarg+1 < argc) {
-            if (sscanf(argv[++curarg], "%u,%u,%u,%u", &window_x, &window_y, &window_w, &window_h) != 4) {
+            if (sscanf(argv[++curarg], "%u,%u,%u,%u", &context.encoderSettings.window_x, &context.encoderSettings.window_y, &context.encoderSettings.window_w, &context.encoderSettings.window_h) != 4) {
                 print_usage(&cmdline);
                 return -1;
             }
         }
         else if (!strcmp(argv[curarg], "-clip") && curarg+1 < argc) {
-            if (sscanf(argv[++curarg], "%u,%u,%u,%u", &clip.left, &clip.right, &clip.top, &clip.bottom) != 4) {
+            if (sscanf(argv[++curarg], "%u,%u,%u,%u", &context.encoderSettings.clip.left, &context.encoderSettings.clip.right, &context.encoderSettings.clip.top, &context.encoderSettings.clip.bottom) != 4) {
                 print_usage(&cmdline);
                 return -1;
             }
         }
         else if (!strcmp(argv[curarg], "-output_es")) {
-            outputEs = true;
+            context.outputEs = true;
         }
         else if (!strcmp(argv[curarg], "-interlaced")) {
-            interlaced = true;
+            context.encoderSettings.interlaced = true;
         }
         else if (!strcmp(argv[curarg], "-video_framerate") && curarg+1 < argc) {
             float rate;
             sscanf(argv[++curarg], "%f", &rate);
-            frameRate = rate * 1000;
+            context.encoderSettings.frameRate = rate * 1000;
         }
         else if (!strcmp(argv[curarg], "-video_refreshrate") && curarg+1 < argc) {
             float rate;
             sscanf(argv[++curarg], "%f", &rate);
-            refreshRate = rate * 1000;
+            context.encoderSettings.refreshRate = rate * 1000;
         }
         else if (!strcmp(argv[curarg], "-audio_type") && curarg+1 < argc) {
-            audioCodec = lookup(g_audioCodecStrs, argv[++curarg]);
+            context.encoderStartSettings.audioCodec = lookup(g_audioCodecStrs, argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-timeout") && argc>curarg+1) {
             timeout = strtoul(argv[++curarg], NULL, 0);
@@ -514,18 +844,18 @@ int main(int argc, const char **argv)  {
             gui = strcmp(argv[++curarg], "off");
         }
         else if (!strcmp(argv[curarg], "-ramp_bitrate")) {
-            rampBitrate = true;
+            context.encoderSettings.rampBitrate = true;
         }
         else if (!strcmp(argv[curarg], "-hdmi_input")) {
 #if NEXUS_HAS_HDMI_INPUT
-            input_type = input_type_hdmi;
+            context.input_type = input_type_hdmi;
             realtime = true;
 #else
             BDBG_ERR(("hdmi input not supported"));
 #endif
         }
         else if (!strcmp(argv[curarg], "-graphics")) {
-            input_type = input_type_graphics;
+            context.input_type = input_type_graphics;
             realtime = true;
         }
         else if (!strcmp(argv[curarg], "-format")) {
@@ -535,13 +865,13 @@ int main(int argc, const char **argv)  {
             realtime = true;
         }
         else if (!strcmp(argv[curarg], "-audio_passthrough")) {
-            audPassThrough = true;
+            context.encoderStartSettings.audPassThrough = true;
         }
         else if (!strcmp(argv[curarg], "-tts")) {
             timestampType = NEXUS_TransportTimestampType_eBinary;
         }
         else if (!strcmp(argv[curarg], "-rai_index")) {
-            raiIndex = true;
+            context.encoderStartSettings.raiIndex = true;
         }
         else if (!strcmp(argv[curarg], "-passthrough") && argc>curarg+1) {
             const char *s = argv[++curarg];
@@ -561,7 +891,7 @@ int main(int argc, const char **argv)  {
             else {
                 passthrough[num_passthrough].remap_pid = 0;
             }
-            num_passthrough++;
+            context.encoderStartSettings.num_passthrough = num_passthrough++;
         }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {
@@ -570,68 +900,67 @@ int main(int argc, const char **argv)  {
             }
             curarg += n;
         }
-        else if (!filename && input_type == input_type_decoder) {
-            filename = argv[curarg];
+        else if (!context.filename && context.input_type == input_type_decoder) {
+            context.filename = argv[curarg];
         }
-        else if (!outputfile) {
-            outputfile = argv[curarg];
+        else if (!context.outputfile) {
+            context.outputfile = argv[curarg];
         }
-        else if (!outputindex) {
-            outputindex = argv[curarg];
+        else if (!context.outputindex) {
+            context.outputindex = argv[curarg];
         }
         curarg++;
     }
 
-    if (stopMode == NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly && !realtime) {
+    if (context.encoderSettings.stopMode == NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly && !realtime) {
         BDBG_WRN(("forcing -rt because of -stopStartVideoEncoder"));
         realtime = true;
     }
-    if (input_type == input_type_graphics) {
-        if (filename) {
+    if (context.input_type == input_type_graphics) {
+        if (context.filename) {
             print_usage(&cmdline);
             return -1;
         }
-        filename = "graphics";
+        context.filename = "graphics";
     }
-    else if (input_type == input_type_hdmi) {
-        if (filename) {
+    else if (context.input_type == input_type_hdmi) {
+        if (context.filename) {
             print_usage(&cmdline);
             return -1;
         }
-        filename = "hdmi";
+        context.filename = "hdmi";
     }
-    if (!filename) {
+    if (!context.filename) {
         print_usage(&cmdline);
         return -1;
     }
 
     NxClient_GetDefaultJoinSettings(&joinSettings);
-    snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s %s", argv[0], filename);
+    snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s %s", argv[0], context.filename);
     rc = NxClient_Join(&joinSettings);
     if (rc) {
         printf("cannot join: %d\n", rc);
         return -1;
     }
 
+    rc = pthread_create(&standby_thread_id, NULL, standby_monitor, &context);
+    BDBG_ASSERT(!rc);
+
     stcChannel = NEXUS_SimpleStcChannel_Create(NULL);
     BDBG_ASSERT(stcChannel);
 
-    if (input_type == input_type_decoder) {
-        rc = probe_media(filename, &probe_results);
+    if (context.input_type == input_type_decoder) {
+        rc = probe_media(context.filename, &probe_results);
         if (rc) return BERR_TRACE(rc);
 
-        file = NEXUS_FilePlay_OpenPosix(filename, probe_results.useStreamAsIndex?filename:NULL);
-        if (!file) {
-            BDBG_ERR(("can't open files: %s %s", filename, filename));
-            return -1;
-        }
+        context.indexname = probe_results.useStreamAsIndex?context.filename:NULL;
 
         NEXUS_Playpump_GetDefaultOpenSettings(&openSettings);
         openSettings.fifoSize /= 2;
-        playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, &openSettings);
-        if (!playpump) {BDBG_WRN(("unable to alloc transcode resources")); return -1;}
-        playback = NEXUS_Playback_Create();
-        BDBG_ASSERT(playback);
+        context.hPlaypump = NEXUS_Playpump_Open(NEXUS_ANY_ID, &openSettings);
+        if (!context.hPlaypump) {BDBG_WRN(("unable to alloc transcode resources")); return -1;}
+        context.hPlayback = NEXUS_Playback_Create();
+        BDBG_ASSERT(context.hPlayback);
 
         NEXUS_SimpleStcChannel_GetSettings(stcChannel, &stcSettings);
         stcSettings.modeSettings.Auto.transportType = probe_results.transportType;
@@ -639,21 +968,21 @@ int main(int argc, const char **argv)  {
         rc = NEXUS_SimpleStcChannel_SetSettings(stcChannel, &stcSettings);
         if (rc) {BDBG_WRN(("unable to set stcsettings")); return -1;}
 
-        NEXUS_Playback_GetSettings(playback, &playbackSettings);
-        playbackSettings.playpump = playpump;
+        NEXUS_Playback_GetSettings(context.hPlayback, &playbackSettings);
+        playbackSettings.playpump = context.hPlaypump;
         playbackSettings.playpumpSettings.transportType = probe_results.transportType;
         playbackSettings.playpumpSettings.timestamp.type = probe_results.timestampType;
         playbackSettings.simpleStcChannel = stcChannel;
         playbackSettings.endOfStreamAction = loop ? NEXUS_PlaybackLoopMode_eLoop : NEXUS_PlaybackLoopMode_ePause;
-        NEXUS_Playback_SetSettings(playback, &playbackSettings);
+        NEXUS_Playback_SetSettings(context.hPlayback, &playbackSettings);
     }
     else {
         memset(&probe_results, 0, sizeof(probe_results));
     }
 
     NxClient_GetDefaultAllocSettings(&allocSettings);
-    allocSettings.simpleVideoDecoder = (videoPid && (input_type != input_type_decoder || probe_results.num_video))?1:0;
-    allocSettings.simpleAudioDecoder = (audioPid && (input_type == input_type_hdmi || probe_results.num_audio))?1:0;
+    allocSettings.simpleVideoDecoder = (context.encoderStartSettings.videoPid && (context.input_type != input_type_decoder || probe_results.num_video))?1:0;
+    allocSettings.simpleAudioDecoder = (context.encoderStartSettings.audioPid && (context.input_type == input_type_hdmi || probe_results.num_audio))?1:0;
     allocSettings.simpleEncoder = 1;
     rc = NxClient_Alloc(&allocSettings, &allocResults);
     if (rc) {BDBG_WRN(("unable to alloc transcode resources")); return -1;}
@@ -661,7 +990,7 @@ int main(int argc, const char **argv)  {
     NxClient_GetDefaultConnectSettings(&connectSettings);
     connectSettings.simpleVideoDecoder[0].id = allocResults.simpleVideoDecoder[0].id;
     connectSettings.simpleVideoDecoder[0].windowCapabilities.encoder = true;
-    if (input_type == input_type_decoder) {
+    if (context.input_type == input_type_decoder) {
         if (maxFormat) {
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.maxFormat = maxFormat;
         }
@@ -671,7 +1000,7 @@ int main(int argc, const char **argv)  {
         }
         connectSettings.simpleVideoDecoder[0].decoderCapabilities.supportedCodecs[probe_results.video[0].codec] = true;
     }
-    else if (input_type == input_type_hdmi) {
+    else if (context.input_type == input_type_hdmi) {
         connectSettings.simpleVideoDecoder[0].decoderCapabilities.connectType = NxClient_VideoDecoderConnectType_eWindowOnly;
     }
     connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
@@ -680,79 +1009,89 @@ int main(int argc, const char **argv)  {
     rc = NxClient_Connect(&connectSettings, &connectId);
     if (rc) {BDBG_WRN(("unable to connect transcode resources")); return -1;}
 
-    memset(&videoProgram, 0, sizeof(videoProgram));
-    memset(&audioProgram, 0, sizeof(audioProgram));
+    memset(&context.videoProgram, 0, sizeof(context.videoProgram));
+    memset(&context.audioProgram, 0, sizeof(context.audioProgram));
 
     if (allocResults.simpleVideoDecoder[0].id) {
-        videoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
-        if (!videoDecoder) {
+        context.hVideoDecoder = NEXUS_SimpleVideoDecoder_Acquire(allocResults.simpleVideoDecoder[0].id);
+        if (!context.hVideoDecoder) {
             BDBG_WRN(("video decoder not available"));
         }
-        else if (playback) {
-            NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&videoProgram);
+        else if (context.hPlayback) {
+            NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&context.videoProgram);
             NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
             playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
             playbackPidSettings.pidTypeSettings.video.codec = probe_results.video[0].codec;
             playbackPidSettings.pidTypeSettings.video.index = true;
-            playbackPidSettings.pidTypeSettings.video.simpleDecoder = videoDecoder;
-            videoProgram.settings.pidChannel = NEXUS_Playback_OpenPidChannel(playback, probe_results.video[0].pid, &playbackPidSettings);
-            videoProgram.settings.codec = probe_results.video[0].codec;
-            videoProgram.maxWidth = probe_results.video[0].width;
-            videoProgram.maxHeight = probe_results.video[0].height;
+            playbackPidSettings.pidTypeSettings.video.simpleDecoder = context.hVideoDecoder;
+            context.videoProgram.settings.pidChannel = NEXUS_Playback_OpenPidChannel(context.hPlayback, probe_results.video[0].pid, &playbackPidSettings);
+            context.videoProgram.settings.codec = probe_results.video[0].codec;
+            context.videoProgram.maxWidth = probe_results.video[0].width;
+            context.videoProgram.maxHeight = probe_results.video[0].height;
             if (probe_results.video[0].colorDepth > 8) {
                 NEXUS_VideoDecoderSettings settings;
-                NEXUS_SimpleVideoDecoder_GetSettings(videoDecoder, &settings);
+                NEXUS_SimpleVideoDecoder_GetSettings(context.hVideoDecoder, &settings);
                 settings.colorDepth = probe_results.video[0].colorDepth;
-                NEXUS_SimpleVideoDecoder_SetSettings(videoDecoder, &settings);
+                NEXUS_SimpleVideoDecoder_SetSettings(context.hVideoDecoder, &settings);
             }
             BDBG_MSG(("transcode video %#x %s", probe_results.video[0].pid, lookup_name(g_videoCodecStrs, probe_results.video[0].codec)));
         }
-        NEXUS_SimpleVideoDecoder_SetStcChannel(videoDecoder, stcChannel);
+        NEXUS_SimpleVideoDecoder_SetStcChannel(context.hVideoDecoder, stcChannel);
     }
     else {
-        videoDecoder = NULL;
+        context.hVideoDecoder = NULL;
     }
 
     if (allocResults.simpleAudioDecoder.id) {
-        audioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
-        if (!audioDecoder) {
+        context.hAudioDecoder = NEXUS_SimpleAudioDecoder_Acquire(allocResults.simpleAudioDecoder.id);
+        if (!context.hAudioDecoder) {
             BDBG_WRN(("audio decoder not available"));
         }
-        else if (playback) {
-            NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&audioProgram);
+        else if (context.hPlayback) {
+            NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&context.audioProgram);
             NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
             playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
-            playbackPidSettings.pidTypeSettings.audio.simpleDecoder = audioDecoder;
-            audioProgram.primary.pidChannel = NEXUS_Playback_OpenPidChannel(playback, probe_results.audio[0].pid, &playbackPidSettings);
-            audioProgram.primary.codec = probe_results.audio[0].codec;
+            playbackPidSettings.pidTypeSettings.audio.simpleDecoder = context.hAudioDecoder;
+            context.audioProgram.primary.pidChannel = NEXUS_Playback_OpenPidChannel(context.hPlayback, probe_results.audio[0].pid, &playbackPidSettings);
+            context.audioProgram.primary.codec = probe_results.audio[0].codec;
             BDBG_MSG(("transcode audio %#x %s", probe_results.audio[0].pid, lookup_name(g_audioCodecStrs, probe_results.audio[0].codec)));
         }
-        NEXUS_SimpleAudioDecoder_SetStcChannel(audioDecoder, stcChannel);
+        NEXUS_SimpleAudioDecoder_SetStcChannel(context.hAudioDecoder, stcChannel);
     }
     else {
-        audioDecoder = NULL;
+        context.hAudioDecoder = NULL;
     }
 
     BKNI_CreateEvent(&dataReadyEvent);
 
-    encoder = NEXUS_SimpleEncoder_Acquire(allocResults.simpleEncoder[0].id);
-    BDBG_ASSERT(encoder);
+    context.hEncoder = NEXUS_SimpleEncoder_Acquire(allocResults.simpleEncoder[0].id);
+    BDBG_ASSERT(context.hEncoder);
 
-    if(outputEs) {
-        if (!outputfile) {
+#if NEXUS_HAS_HDMI_INPUT
+    if (context.input_type == input_type_hdmi) {
+        unsigned index = 0;
+        context.hdmiInput = NEXUS_HdmiInput_Open(index, NULL);
+        if (!context.hdmiInput) {
+            BDBG_ERR(("HdmiInput %d not available", index));
+            return -1;
+        }
+    }
+#endif
+
+    if(context.outputEs) {
+        if (!context.outputfile) {
             static char buf[64], aes[64];
-            outputfile = buf;
-            outputAes  = aes;
+            context.outputfile = buf;
+            context.outputAes  = aes;
             snprintf(buf, sizeof(buf), "videos/stream.ves");
             snprintf(aes, sizeof(aes), "videos/stream.aes");
-            BKNI_Memset(&context, 0, sizeof(context));
         }
     } else {
         NEXUS_Recpump_GetDefaultOpenSettings(&recpumpOpenSettings);
-        recpump = NEXUS_Recpump_Open(NEXUS_ANY_ID, &recpumpOpenSettings);
-        BDBG_ASSERT(recpump);
+        context.hRecpump = NEXUS_Recpump_Open(NEXUS_ANY_ID, &recpumpOpenSettings);
+        BDBG_ASSERT(context.hRecpump);
 
-        NEXUS_Recpump_GetSettings(recpump, &recpumpSettings);
+        NEXUS_Recpump_GetSettings(context.hRecpump, &recpumpSettings);
         recpumpSettings.data.dataReady.callback = complete;
         recpumpSettings.data.dataReady.context = dataReadyEvent;
         recpumpSettings.index.dataReady.callback = complete;
@@ -762,144 +1101,35 @@ int main(int argc, const char **argv)  {
         recpumpSettings.adjustTimestampUsingPcrs = (timestampType != NEXUS_TransportTimestampType_eNone);
         recpumpSettings.dropBtpPackets = (timestampType != NEXUS_TransportTimestampType_eNone);
         recpumpSettings.bandHold = !realtime; /* flow control required for NRT mode */
-        rc = NEXUS_Recpump_SetSettings(recpump, &recpumpSettings);
+        rc = NEXUS_Recpump_SetSettings(context.hRecpump, &recpumpSettings);
         BDBG_ASSERT(!rc);
 
-        if (!outputfile) {
+        if (!context.outputfile) {
             static char buf[64];
             NEXUS_RecpumpStatus status;
-            NEXUS_Recpump_GetStatus(recpump, &status);
-            outputfile = buf;
+            NEXUS_Recpump_GetStatus(context.hRecpump, &status);
+            context.outputfile = buf;
             snprintf(buf, sizeof(buf), "videos/stream%d.mpg", status.rave.index);
         }
     }
 
-    /* starting encode */
-    context.pOutputFile = streamOut = fopen(outputfile, "w+");
-    if (!streamOut) {
-        BDBG_ERR(("unable to open '%s' for writing", outputfile));
-        return -1;
-    }
-    if (outputindex) {
-        indexOut = fopen(outputindex, "w+");
-        if (!indexOut) {
-            BDBG_ERR(("unable to open '%s' for writing", outputindex));
-            return -1;
-        }
-    }
-    if (outputAes) {
-        context.pOutputAes = aesOut = fopen(outputAes, "w+");
-        if (!aesOut) {
-            BDBG_ERR(("unable to open '%s' for writing", outputAes));
-            return -1;
-        }
-    }
-
-    if (gui && !outputEs) {
+    if (gui && !context.outputEs) {
         struct brecord_gui_settings settings;
         brecord_gui_get_default_settings(&settings);
-        settings.sourceName = filename;
-        settings.destName = outputfile;
-        settings.recpump = recpump;
+        settings.sourceName = context.filename;
+        settings.destName = context.outputfile;
+        settings.recpump = context.hRecpump;
         settings.color = 0xFF00AAAA;
         record_gui = brecord_gui_create(&settings);
     }
 
-    NEXUS_SimpleEncoder_GetSettings(encoder, &encoderSettings);
-    if (videoBitrate) {
-        encoderSettings.videoEncoder.bitrateMax = videoBitrate;
-    } else {
-        videoBitrate = encoderSettings.videoEncoder.bitrateMax;
-    }
-    if (width || height) {
-        encoderSettings.video.width = width;
-        encoderSettings.video.height = height;
-    } else {/* save default */
-        width  = encoderSettings.video.width;
-        height = encoderSettings.video.height;
-    }
-    encoderSettings.video.window.x = window_x;
-    encoderSettings.video.window.y = window_y;
-    encoderSettings.video.window.width = window_w;
-    encoderSettings.video.window.height = window_h;
-    encoderSettings.video.clip = clip;
-
-    if(rampBitrate) {/* ramp from quarter dimension and bitrate */
-        encoderSettings.videoEncoder.bitrateMax /= 4;
-        encoderSettings.video.width /= 2;
-        encoderSettings.video.height /= 2;
-        BDBG_WRN(("Video bitrate ramps up -> %u bps; resolution: %ux%u", encoderSettings.videoEncoder.bitrateMax,
-            encoderSettings.video.width, encoderSettings.video.height));
+    if (nxapps_cmdline_is_set(&cmdline, nxapps_cmdline_type_SimpleVideoDecoderPictureQualitySettings)) {
+        NEXUS_SimpleVideoDecoderPictureQualitySettings settings;
+        NEXUS_SimpleVideoDecoder_GetPictureQualitySettings(context.hVideoDecoder, &settings);
+        nxapps_cmdline_apply_SimpleVideoDecodePictureQualitySettings(&cmdline, &settings);
+        NEXUS_SimpleVideoDecoder_SetPictureQualitySettings(context.hVideoDecoder, &settings);
     }
 
-#if !NEXUS_NUM_DSP_VIDEO_ENCODERS
-    /* with 1000/1001 rate tracking by default */
-    if (frameRate == 29970 || frameRate == 30000) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e30;
-        encoderSettings.video.refreshRate = refreshRate? refreshRate : 60000;
-    } else if (frameRate == 59940 || frameRate == 60000) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e60;
-        encoderSettings.video.refreshRate = refreshRate? refreshRate : 60000;
-    } else if (frameRate == 20000) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e20;
-        encoderSettings.video.refreshRate = refreshRate? refreshRate : 60000;
-    } else if (frameRate == 23976 || frameRate == 24000) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e24;
-        encoderSettings.video.refreshRate = refreshRate? refreshRate : 60000;
-    } else if (frameRate == 14985 || frameRate == 15000) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e14_985;
-        encoderSettings.video.refreshRate = refreshRate? refreshRate : 60000;
-    } else if (frameRate == 50000) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e50;
-        encoderSettings.video.refreshRate = refreshRate? refreshRate : 50000;
-    } else if (frameRate == 25000) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e25;
-        encoderSettings.video.refreshRate = refreshRate? refreshRate : 50000;
-    } else if (frameRate == 12500) {
-        encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e12_5;
-        encoderSettings.video.refreshRate = refreshRate? refreshRate : 50000;
-    }
-#endif
-
-    encoderSettings.video.interlaced = interlaced;
-    encoderSettings.stopMode = stopMode;
-    rc = NEXUS_SimpleEncoder_SetSettings(encoder, &encoderSettings);
-    BDBG_ASSERT(!rc);
-
-    NEXUS_SimpleEncoder_GetDefaultStartSettings(&startSettings);
-    startSettings.input.video = videoDecoder;
-    startSettings.input.audio = audioDecoder;
-    startSettings.recpump = outputEs? NULL : recpump;
-    startSettings.output.transport.type = outputEs? NEXUS_TransportType_eEs : NEXUS_TransportType_eTs;
-    startSettings.output.video.index = !raiIndex;
-    startSettings.output.video.raiIndex = raiIndex;
-    startSettings.output.video.settings.interlaced = interlaced;
-    if (videoCodec) {
-        startSettings.output.video.settings.codec = videoCodec;
-    }
-    if (videoCodecProfile) {
-        startSettings.output.video.settings.profile = videoCodecProfile;
-    }
-    if (videoCodecLevel) {
-        startSettings.output.video.settings.level = videoCodecLevel;
-    }
-    if (videoPid != NULL_PID) {
-        startSettings.output.video.pid = videoPid;
-    }
-    if (audioCodec) {
-        startSettings.output.audio.codec = audioCodec;
-    }
-    if (audioSampleRate != 0) {
-        startSettings.output.audio.sampleRate = audioSampleRate;
-    }
-    if (audPassThrough) {
-        startSettings.output.audio.passthrough = true;
-        startSettings.output.audio.codec = audioProgram.primary.codec;
-        startSettings.output.audio.sampleRate = 0; /* passthrough cannot change audio sample rate */
-    }
-    if (audioPid != NULL_PID) {
-        startSettings.output.audio.pid = audioPid;
-    }
     for (i=0;i<num_passthrough;i++) {
         NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
         playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eOther;
@@ -907,143 +1137,33 @@ int main(int argc, const char **argv)  {
             playbackPidSettings.pidSettings.pidSettings.remap.enabled = true;
             playbackPidSettings.pidSettings.pidSettings.remap.pid = passthrough[i].remap_pid;
         }
-        startSettings.passthrough[i] = NEXUS_Playback_OpenPidChannel(playback, passthrough[i].pid, &playbackPidSettings);
+        context.encoderStartSettings.passthrough[i] = NEXUS_Playback_OpenPidChannel(context.hPlayback, passthrough[i].pid, &playbackPidSettings);
     }
-    rc = NEXUS_SimpleEncoder_Start(encoder, &startSettings);
-    if (rc) {
-        BDBG_ERR(("unable to start encoder"));
+
+    /* starting encode */
+    if(start_encode(&context) != 0)
         return -1;
-    }
 
-    if (nxapps_cmdline_is_set(&cmdline, nxapps_cmdline_type_SimpleVideoDecoderPictureQualitySettings)) {
-        NEXUS_SimpleVideoDecoderPictureQualitySettings settings;
-        NEXUS_SimpleVideoDecoder_GetPictureQualitySettings(videoDecoder, &settings);
-        nxapps_cmdline_apply_SimpleVideoDecodePictureQualitySettings(&cmdline, &settings);
-        NEXUS_SimpleVideoDecoder_SetPictureQualitySettings(videoDecoder, &settings);
-    }
-
-    /* can't start decode before encode because encoder provides display for decoder */
-    if (videoProgram.settings.pidChannel) {
-        rc = NEXUS_SimpleVideoDecoder_Start(videoDecoder, &videoProgram);
-        BDBG_ASSERT(!rc);
-    }
-    if (audioDecoder && audioProgram.primary.pidChannel) {
-        NEXUS_SimpleAudioDecoder_Start(audioDecoder, &audioProgram);
-        /* decode may fail if audio codec not supported */
-    }
-#if NEXUS_HAS_HDMI_INPUT
-    if (input_type == input_type_hdmi) {
-        unsigned index = 0;
-        hdmiInput = NEXUS_HdmiInput_Open(index, NULL);
-        if (!hdmiInput) {
-            BDBG_ERR(("HdmiInput %d not available", index));
-            return -1;
-        }
-
-        if (videoDecoder) {
-            rc = NEXUS_SimpleVideoDecoder_StartHdmiInput(videoDecoder, hdmiInput, NULL);
-            BDBG_ASSERT(!rc);
-        }
-        if (audioDecoder) {
-            rc = NEXUS_SimpleAudioDecoder_StartHdmiInput(audioDecoder, hdmiInput, NULL);
-            BDBG_ASSERT(!rc);
-        }
-    }
-#endif
-    if (input_type == input_type_graphics) {
-        NEXUS_SurfaceCreateSettings surfaceCreateSettings;
-        NEXUS_SurfaceMemory mem;
-        unsigned x,y,i;
-        NEXUS_ClientConfiguration clientConfig;
-        NEXUS_VideoImageInputStatus imageInputStatus;
-
-        NEXUS_Platform_GetClientConfiguration(&clientConfig);
-
-        imageInput.handle = NEXUS_SimpleVideoDecoder_StartImageInput(videoDecoder, NULL);
-        if (!imageInput.handle) {
-            BDBG_WRN(("graphics transcode not supported"));
-            return -1;
-        }
-
-        NEXUS_VideoImageInput_GetStatus(imageInput.handle, &imageInputStatus);
-
-        NEXUS_Surface_GetDefaultCreateSettings(&surfaceCreateSettings);
-        surfaceCreateSettings.width  = 720;
-        surfaceCreateSettings.height = 480;
-        surfaceCreateSettings.pixelFormat = NEXUS_PixelFormat_eCr8_Y18_Cb8_Y08;
-        for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-            NEXUS_MemoryStatus s;
-            if (!clientConfig.heap[i] || NEXUS_Heap_GetStatus(clientConfig.heap[i], &s)) continue;
-            if (s.memcIndex == imageInputStatus.memcIndex && (s.memoryType & NEXUS_MemoryType_eApplication) && s.largestFreeBlock >= 960*1080*2) {
-                surfaceCreateSettings.heap = clientConfig.heap[i];
-                BDBG_WRN(("found heap[%d] on MEMC%d for VideoImageInput", i, s.memcIndex));
-                break;
-            }
-        }
-        if (!surfaceCreateSettings.heap) {
-            BDBG_ERR(("no heap found. RTS failure likely."));
-        }
-        /* create, render and push a single surface */
-        imageInput.surface = NEXUS_Surface_Create(&surfaceCreateSettings);
-        NEXUS_Surface_GetMemory(imageInput.surface, &mem);
-        /* draw green/magenta checker board splash screen */
-        for (y=0;y<surfaceCreateSettings.height;y++) {
-            uint32_t *ptr = (uint32_t *)(((uint8_t*)mem.buffer) + y * mem.pitch);
-            for (x=0;x<surfaceCreateSettings.width;x++) {
-                if ((x/10)%2 != (y/10)%2) {
-                    ptr[x] = 0x00800080;
-                }
-                else {
-                    ptr[x] = 0xFF80FF80;
-                }
-            }
-        }
-        NEXUS_Surface_Flush(imageInput.surface);
-        NEXUS_VideoImageInput_PushSurface(imageInput.handle, imageInput.surface, NULL);
-    }
-
-    /* use bcmindexer to convert SCT to NAV */
-    if (outputindex) {
-        BNAV_Indexer_Settings settings;
-        get_default_bcmindexer_settings(startSettings.output.video.settings.codec, indexOut, &settings);
-        rc = BNAV_Indexer_Open(&bcmindexer, &settings);
-        BDBG_ASSERT(!rc);
-    }
-
-    /* recpump must start after decoders start */
-    if(!outputEs) {
-        rc = NEXUS_Recpump_Start(recpump);
-        BDBG_ASSERT(!rc);
-    }
-
-    if (playback) {
-        rc = NEXUS_Playback_Start(playback, file, NULL);
-        BDBG_ASSERT(!rc);
-    }
-
-    context.hEncoder = encoder;
-
-    NEXUS_SimpleEncoder_GetStatus(context.hEncoder, &encStatus);
-    rc = NEXUS_MemoryBlock_Lock(encStatus.video.bufferBlock, &context.pVideoBase);
-    BDBG_ASSERT(!rc);
-    rc = NEXUS_MemoryBlock_Lock(encStatus.audio.bufferBlock, &context.pAudioBase);
-    BDBG_ASSERT(!rc);
-
-    BDBG_WRN(("%s -> %s: started", filename, outputfile));
+    BDBG_WRN(("%s -> %s: started", context.filename, context.outputfile));
     starttime = b_get_time();
     do {
         thistime = b_get_time();
-        if(!outputEs) {
+        if(!context.outputEs) {
             const void *dataBuffer, *indexBuffer;
-            unsigned dataSize, indexSize;
+            unsigned dataSize=0, indexSize=0;
+            NEXUS_RecpumpStatus status;
 
-            rc = NEXUS_Recpump_GetDataBuffer(recpump, &dataBuffer, &dataSize);
-            if (rc) {
-                BDBG_ERR(("recpump not internally started"));
-                break;
+            NEXUS_Recpump_GetStatus(context.hRecpump, &status);
+
+            if(status.started) {
+                rc = NEXUS_Recpump_GetDataBuffer(context.hRecpump, &dataBuffer, &dataSize);
+                if (rc) {
+                    BDBG_ERR(("recpump not internally started"));
+                    break;
+                }
+                rc = NEXUS_Recpump_GetIndexBuffer(context.hRecpump, &indexBuffer, &indexSize);
+                BDBG_ASSERT(!rc);
             }
-            rc = NEXUS_Recpump_GetIndexBuffer(recpump, &indexBuffer, &indexSize);
-            BDBG_ASSERT(!rc);
             if (!dataSize && !indexSize) {
                 BKNI_WaitForEvent(dataReadyEvent, 250);
                 thistime = b_get_time();
@@ -1057,43 +1177,43 @@ int main(int argc, const char **argv)  {
                 }
             }
             if (dataSize) {
-                streamTotal += dataSize;
-                fwrite(dataBuffer, 1, dataSize, streamOut);
-                rc = NEXUS_Recpump_DataReadComplete(recpump, dataSize);
+                context.streamTotal += dataSize;
+                fwrite(dataBuffer, 1, dataSize, context.pOutputFile);
+                rc = NEXUS_Recpump_DataReadComplete(context.hRecpump, dataSize);
                 BDBG_ASSERT(!rc);
             }
             if (indexSize) {
                 indexSize -= indexSize % sizeof(BSCT_SixWord_Entry);
-                if (outputindex) {
-                    if(raiIndex) {
-                        indexSize = rai_Indexer_Feed(indexOut, indexBuffer,indexSize/sizeof(BSCT_SixWord_Entry), indexTotal/sizeof(BSCT_SixWord_Entry))
+                if (context.outputindex) {
+                    if(context.encoderStartSettings.raiIndex) {
+                        indexSize = rai_Indexer_Feed(context.pOutputIndex, indexBuffer,indexSize/sizeof(BSCT_SixWord_Entry), context.indexTotal/sizeof(BSCT_SixWord_Entry))
                             * sizeof(BSCT_SixWord_Entry);
                     } else {
-                        indexSize = BNAV_Indexer_Feed(bcmindexer, (void*)indexBuffer, indexSize/sizeof(BSCT_SixWord_Entry)) * sizeof(BSCT_SixWord_Entry);
+                        indexSize = BNAV_Indexer_Feed(context.bcmindexer, (void*)indexBuffer, indexSize/sizeof(BSCT_SixWord_Entry)) * sizeof(BSCT_SixWord_Entry);
                     }
                 }
-                indexTotal += indexSize;
-                rc = NEXUS_Recpump_IndexReadComplete(recpump, indexSize);
+                context.indexTotal += indexSize;
+                rc = NEXUS_Recpump_IndexReadComplete(context.hRecpump, indexSize);
                 BDBG_ASSERT(!rc);
             }
-            if (lastsize + MB < streamTotal) {
-                lastsize = streamTotal;
-                BDBG_WRN(("%s -> %s: %d MB stream, %d KB index", filename, outputfile, streamTotal/MB, indexTotal/1024));
+            if (context.lastsize + MB < context.streamTotal) {
+                context.lastsize = context.streamTotal;
+                BDBG_WRN(("%s -> %s: %d MB stream, %d KB index", context.filename, context.outputfile, context.streamTotal/MB, context.indexTotal/1024));
 
                 /* dynamically ramp up bitrate in 4 steps */
-                if(rampBitrate && encoderSettings.videoEncoder.bitrateMax < videoBitrate) {/* ramp from quarter dimension and bitrate */
-                    NEXUS_SimpleEncoder_GetSettings(encoder, &encoderSettings);
-                    encoderSettings.videoEncoder.bitrateMax += videoBitrate/4;
-                    encoderSettings.video.width += width/4;
-                    encoderSettings.video.height += height/4;
-                    if(encoderSettings.videoEncoder.bitrateMax > videoBitrate) {
-                        encoderSettings.videoEncoder.bitrateMax = videoBitrate;
+                NEXUS_SimpleEncoder_GetSettings(context.hEncoder, &encoderSettings);
+                if(context.encoderSettings.rampBitrate && encoderSettings.videoEncoder.bitrateMax < context.encoderSettings.videoBitrate) {/* ramp from quarter dimension and bitrate */
+                    encoderSettings.videoEncoder.bitrateMax += context.encoderSettings.videoBitrate/4;
+                    encoderSettings.video.width += context.encoderSettings.width/4;
+                    encoderSettings.video.height += context.encoderSettings.height/4;
+                    if(encoderSettings.videoEncoder.bitrateMax > context.encoderSettings.videoBitrate) {
+                        encoderSettings.videoEncoder.bitrateMax = context.encoderSettings.videoBitrate;
                     }
-                    if(encoderSettings.video.width > width || encoderSettings.video.height > height) {
-                        encoderSettings.video.width  = width;
-                        encoderSettings.video.height = height;
+                    if(encoderSettings.video.width > context.encoderSettings.width || encoderSettings.video.height > context.encoderSettings.height) {
+                        encoderSettings.video.width  = context.encoderSettings.width;
+                        encoderSettings.video.height = context.encoderSettings.height;
                     }
-                    rc = NEXUS_SimpleEncoder_SetSettings(encoder, &encoderSettings);
+                    rc = NEXUS_SimpleEncoder_SetSettings(context.hEncoder, &encoderSettings);
                     BDBG_ASSERT(!rc);
                     BDBG_WRN(("Video bitrate ramps up -> %u bps; resolution: %ux%u", encoderSettings.videoEncoder.bitrateMax,
                         encoderSettings.video.width, encoderSettings.video.height));
@@ -1108,125 +1228,89 @@ int main(int argc, const char **argv)  {
             /* NOTE: stop mode 1 allows audio output to continue in mute while stopping video and audio input */
             if(context.videoSize - context.lastVideoSize > MB) {
                 context.lastVideoSize = context.videoSize;
-                BDBG_WRN(("%s -> %s: %u MB video ES", filename, outputfile, context.videoSize/MB));
+                BDBG_WRN(("%s -> %s: %u MB video ES", context.filename, context.outputfile, context.videoSize/MB));
 
                 /* stop simple encoder/decoder/playback */
-                if(stopMode == NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly) {
+                if(context.encoderSettings.stopMode == NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly) {
                     BDBG_WRN(("stopping transcoder"));
-                    NEXUS_SimpleEncoder_Stop(encoder);
-                    stopped = true;
+                    NEXUS_SimpleEncoder_Stop(context.hEncoder);
+                    context.stopped = true;
                 }
             }
             if(context.audioSize - context.lastAudioSize > 1024*100) {
                 context.lastAudioSize = context.audioSize;
-                BDBG_WRN(("%s -> %s: %u KB audio ES", filename, outputAes, context.audioSize/1024));
+                BDBG_WRN(("%s -> %s: %u KB audio ES", context.filename, context.outputAes, context.audioSize/1024));
 
                 /* restart simple encoder/decoder/playback */
-                if(stopped && stopMode == NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly) {
-                    NEXUS_SimpleEncoder_GetSettings(encoder, &encoderSettings);
+                if(context.stopped && context.encoderSettings.stopMode == NEXUS_SimpleEncoderStopMode_eVideoEncoderOnly) {
+                    NEXUS_SimpleEncoder_GetSettings(context.hEncoder, &encoderSettings);
                     if(encoderSettings.video.height == 480) {
-                        encoderSettings.video.width = width;
-                        encoderSettings.video.height = height;
+                        encoderSettings.video.width = context.encoderSettings.width;
+                        encoderSettings.video.height = context.encoderSettings.height;
                     } else {
                         encoderSettings.video.width = 720;
                         encoderSettings.video.height = 480;
                     }
                     BDBG_WRN(("restarting transcoder with resolution %ux%u..", encoderSettings.video.width, encoderSettings.video.height));
-                    rc = NEXUS_SimpleEncoder_SetSettings(encoder, &encoderSettings);
+                    rc = NEXUS_SimpleEncoder_SetSettings(context.hEncoder, &encoderSettings);
                     BDBG_ASSERT(!rc);
-                    rc = NEXUS_SimpleEncoder_Start(encoder, &startSettings);
+                    rc = NEXUS_SimpleEncoder_Start(context.hEncoder, &context.startSettings);
                     if (rc) {
                         BDBG_ERR(("unable to restart transcoder"));
                         return -1;
                     }
-                    stopped = false;
+                    context.stopped = false;
                 }
             }
         }
 
 check_for_end:
-        if (!loop && playback) {
+        if (!loop && context.hPlayback) {
             NEXUS_PlaybackStatus status;
-            NEXUS_Playback_GetStatus(playback, &status);
+            NEXUS_Playback_GetStatus(context.hPlayback, &status);
             if (status.state == NEXUS_PlaybackState_ePaused) break;
         }
-    } while (!timeout || (thistime - starttime)/1000 < timeout || stopped);
+    } while (!timeout || (thistime - starttime)/1000 < timeout || context.stopped);
 
     /* encoder thread will exit when EOS is received */
-    BDBG_WRN(("%s -> %s: stopped", filename, outputfile));
+    BDBG_WRN(("%s -> %s: context.stopped", context.filename, context.outputfile));
 
-    fclose(streamOut);
-    if (outputindex) {
-        fclose(indexOut);
-        BNAV_Indexer_Close(bcmindexer);
-    }
-    if (outputAes) {
-        fclose(aesOut);
-    }
-
-    if(!outputEs) {
-        NEXUS_Recpump_Stop(recpump);
-    }
-    /* resume auto stop mode before stop */
-    NEXUS_SimpleEncoder_GetSettings(encoder,&encoderSettings);
-    encoderSettings.stopMode = NEXUS_SimpleEncoderStopMode_eAll;
-    NEXUS_SimpleEncoder_SetSettings(encoder,&encoderSettings);
-    NEXUS_SimpleEncoder_Stop(encoder);
-
-    if (videoDecoder) {
-        NEXUS_SimpleVideoDecoder_Stop(videoDecoder);
-    }
-    if (audioDecoder) {
-        NEXUS_SimpleAudioDecoder_Stop(audioDecoder);
-    }
-    if (playback) {
-        NEXUS_Playback_Stop(playback);
-    }
+    stop_encode(&context);
 
     /* Bring down system */
     if (record_gui) {
         brecord_gui_destroy(record_gui);
     }
-    NEXUS_SimpleEncoder_Release(encoder);
+    NEXUS_SimpleEncoder_Release(context.hEncoder);
     BKNI_DestroyEvent(dataReadyEvent);
-    if(!outputEs) {
-        NEXUS_Recpump_Close(recpump);
+    if(!context.outputEs) {
+        NEXUS_Recpump_Close(context.hRecpump);
     }
-    if (input_type == input_type_hdmi) {
-        if (videoDecoder) {
-            NEXUS_SimpleVideoDecoder_StopHdmiInput(videoDecoder);
-        }
-        if (audioDecoder) {
-            NEXUS_SimpleAudioDecoder_StopHdmiInput(audioDecoder);
-        }
+    if (context.input_type == input_type_hdmi) {
 #if NEXUS_HAS_HDMI_INPUT
-        NEXUS_HdmiInput_Close(hdmiInput);
+        NEXUS_HdmiInput_Close(context.hdmiInput);
 #endif
     }
-    else if (input_type == input_type_graphics) {
-        NEXUS_SimpleVideoDecoder_StopImageInput(videoDecoder);
-        NEXUS_Surface_Destroy(imageInput.surface);
+    else if (context.input_type == input_type_graphics) {
+        NEXUS_Surface_Destroy(context.imageInput.surface);
     }
-    if (videoProgram.settings.pidChannel) {
-        NEXUS_Playback_ClosePidChannel(playback, videoProgram.settings.pidChannel);
+    if (context.videoProgram.settings.pidChannel) {
+        NEXUS_Playback_ClosePidChannel(context.hPlayback, context.videoProgram.settings.pidChannel);
     }
-    if (audioProgram.primary.pidChannel) {
-        NEXUS_Playback_ClosePidChannel(playback, audioProgram.primary.pidChannel);
+    if (context.audioProgram.primary.pidChannel) {
+        NEXUS_Playback_ClosePidChannel(context.hPlayback, context.audioProgram.primary.pidChannel);
     }
-    if (videoDecoder) {
-        NEXUS_SimpleVideoDecoder_Release(videoDecoder);
+    if (context.hVideoDecoder) {
+        NEXUS_SimpleVideoDecoder_Release(context.hVideoDecoder);
     }
-    if (audioDecoder) {
-        NEXUS_SimpleAudioDecoder_Release(audioDecoder);
+    if (context.hAudioDecoder) {
+        NEXUS_SimpleAudioDecoder_Release(context.hAudioDecoder);
     }
-    if (playback) {
-        NEXUS_Playback_Destroy(playback);
-        NEXUS_Playpump_Close(playpump);
+    if (context.hPlayback) {
+        NEXUS_Playback_Destroy(context.hPlayback);
+        NEXUS_Playpump_Close(context.hPlaypump);
     }
 
-    if (input_type == input_type_decoder) {
-        NEXUS_FilePlay_Close(file);
-    }
     NxClient_Disconnect(connectId);
     NxClient_Free(&allocResults);
     NxClient_Uninit();

@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #ifndef ATLAS_MAIN_H__
@@ -221,7 +220,7 @@ public:
     void                 networkUninitialize(void);
     void                 bluetoothDestroy(CBluetooth * pBluetooth);
     CBluetoothRemote *   bluetoothRemoteInitialize(void);
-    void                 bluetoothRemoteUninitialize(CBluetoothRemote * pBluetoothRemote);
+    void               bluetoothRemoteUninitialize(void);
     CBluetooth *         bluetoothInitialize(void);
     void                 bluetoothUninitialize(void);
 #endif

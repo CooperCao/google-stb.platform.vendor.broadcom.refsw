@@ -3215,6 +3215,9 @@ NEXUS_Error NEXUS_AudioDecoder_P_Stop(NEXUS_AudioDecoderHandle handle, bool flus
     }
 
     NEXUS_AudioDecoder_P_SetCompressedMute(handle, false); /* Unset compressed output mutes incase outputs do not get attached again for compressed output */
+
+    /* Invalidate the output list */
+    BKNI_Memset(handle->outputLists, 0, sizeof(handle->outputLists));
     BDBG_LEAVE(NEXUS_AudioDecoder_P_Stop);
 
     return BERR_SUCCESS;

@@ -58,37 +58,37 @@ void cenc_parse_auxiliary_info_sizes(batom_cursor *cursor,
     uint32_t samplecount = 0;
     uint8_t sampleinfo = 0;
 
-LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", __FUNCTION__, cursor->cursor, cursor->left, cursor->pos, cursor->count));
+    LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", __FUNCTION__, cursor->cursor, cursor->left, cursor->pos, cursor->count));
     batom_cursor_copy(cursor, &version, 1);
     if (version != 0) {
-LOGW(("%s: version %u not supported",__FUNCTION__, version));
+        LOGW(("%s: version %u not supported", __FUNCTION__, version));
     }
 
     batom_cursor_copy(cursor, &flags, 3);
-LOGD(("%s: flags 0x%x",__FUNCTION__, flags));
+    LOGD(("%s: flags 0x%x", __FUNCTION__, flags));
     if (flags & 1) {
         /* TODO: handle info type*/
     }
 
     batom_cursor_copy(cursor, &defsize, 1);
-LOGD(("%s: defsize %u",__FUNCTION__, defsize));
-    frag_header->samples_enc.default_sample_info_size = defsize;
+    LOGD(("%s: defsize %u", __FUNCTION__, defsize));
+    frag_header->samples_info.default_sample_info_size = defsize;
 
     samplecount = batom_cursor_uint32_be(cursor);
-LOGD(("%s: sampleCount %u",__FUNCTION__, samplecount));
-    frag_header->samples_enc.sample_count = samplecount;
+    LOGD(("%s: sampleCount %u", __FUNCTION__, samplecount));
+    frag_header->samples_info.sample_count = samplecount;
 
     frag_header->aux_info_size = 0;
     if (defsize == 0) {
         for (i = 0; i < samplecount; i++) {
             batom_cursor_copy(cursor, &sampleinfo, 1);
-            frag_header->samples_enc.samples[i].size = sampleinfo;
+            frag_header->samples_info.samples[i].size = sampleinfo;
             frag_header->aux_info_size += sampleinfo;
         }
     } else {
         frag_header->aux_info_size += samplecount * defsize;
     }
-LOGD(("%s: aux_info_size %u",__FUNCTION__, frag_header->aux_info_size));
+    LOGD(("%s: aux_info_size %u", __FUNCTION__, frag_header->aux_info_size));
 }
 
 size_t cenc_parse_auxiliary_info_offsets(batom_cursor *cursor,
@@ -100,39 +100,36 @@ size_t cenc_parse_auxiliary_info_offsets(batom_cursor *cursor,
     uint32_t i;
     size_t drmoffset;
 
-LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", __FUNCTION__, cursor->cursor, cursor->left, cursor->pos, cursor->count));
+    LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", __FUNCTION__, cursor->cursor, cursor->left, cursor->pos, cursor->count));
     batom_cursor_copy(cursor, &version, 1);
-LOGD(("%s: version %u",__FUNCTION__, version));
+    LOGD(("%s: version %u", __FUNCTION__, version));
 
     flags = batom_cursor_uint24_be(cursor);
-LOGD(("%s: flags 0x%x",__FUNCTION__, flags));
+    LOGD(("%s: flags 0x%x", __FUNCTION__, flags));
 
     entrycount = batom_cursor_uint32_be(cursor);
-LOGD(("%s: entrycount %u",__FUNCTION__, entrycount));
+    LOGD(("%s: entrycount %u", __FUNCTION__, entrycount));
 
     for (i = 0; i < entrycount; i++) {
         if (version == 0) {
             uint32_t tmp;
             tmp = batom_cursor_uint32_be(cursor);
-LOGD(("tmp[%d]=%lu", i, tmp));
-            frag_header->samples_enc.samples[i].offset = tmp;
+            LOGD(("%s: offset[%d]=%lu", __FUNCTION__, i, tmp));
+            frag_header->samples_info.samples[i].offset = tmp;
         } else {
             uint64_t tmp;
             tmp = batom_cursor_uint64_be(cursor);
-LOGD(("tmp[%d]=%llu", i, tmp));
-            frag_header->samples_enc.samples[i].offset = tmp;
+            LOGD(("%s: offset[%d]=%llu", __FUNCTION__, i, tmp));
+            frag_header->samples_info.samples[i].offset = tmp;
         }
     }
 
     /* parse clear/encrypted data*/
-    drmoffset = (size_t)frag_header->samples_enc.samples[0].offset;
+    drmoffset = (size_t)frag_header->samples_info.samples[0].offset;
 
-LOGD(("drmoffset=%u current moof size=%u", drmoffset, frag_header->current_moof_size));
+    LOGD(("drmoffset=%u current moof size=%u", drmoffset,
+        frag_header->current_moof_size));
 
-/*    drmoffset -= (size_t)frag_header->current_moof_size;*/
-
-LOGD(("%s: cursor.cursor %p", __FUNCTION__, cursor->cursor));
-LOGD(("%s: returning %u", __FUNCTION__, drmoffset));
     return drmoffset;
 }
 
@@ -147,12 +144,13 @@ void cenc_parse_mdat_head(mp4_parse_frag_info *frag_info,
     uint32_t numencrypted;
     size_t length;
 
-LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", __FUNCTION__, cursor->cursor, cursor->left, cursor->pos, cursor->count));
+    LOGD(("%s: cursor.cursor=%p left=%d pos=%u count=%u", __FUNCTION__,
+        cursor->cursor, cursor->left, cursor->pos, cursor->count));
 
-LOGD(("sample_count %d", frag_header->samples_enc.sample_count));
+    LOGD(("sample_count %d", frag_header->samples_info.sample_count));
     /* read CencSampleAuxiliaryDataFormats */
-    for (i = 0; i < frag_header->samples_enc.sample_count; i++) {
-        SampleInfo *smpl = &frag_header->samples_enc.samples[i];
+    for (i = 0; i < frag_header->samples_info.sample_count; i++) {
+        SampleInfo *smpl = &frag_header->samples_info.samples[i];
 
         memset(smpl->iv, 0, 16);
         length = batom_cursor_copy(cursor, smpl->iv, ivlength);
@@ -161,9 +159,10 @@ LOGD(("sample_count %d", frag_header->samples_enc.sample_count));
             return;
         }
 
-        if (frag_header->samples_enc.default_sample_info_size != 0) {
+        if (frag_header->samples_info.default_sample_info_size != 0) {
             /* Probably audio case */
-LOGD(("%s: only 1 subsample in %dth sample: size=%u", __FUNCTION__, i, frag_info->sample_info[i].size));
+            LOGD(("%s: only 1 subsample in %dth sample: size=%u", __FUNCTION__,
+                i, frag_info->sample_info[i].size));
             smpl->nbOfEntries = 1;
             smpl->entries[0].bytesOfClearData = 0;
             smpl->entries[0].bytesOfEncData = frag_info->sample_info[i].size;
@@ -172,14 +171,11 @@ LOGD(("%s: only 1 subsample in %dth sample: size=%u", __FUNCTION__, i, frag_info
 
         numsubsamples = batom_cursor_uint16_be(cursor);
         smpl->nbOfEntries = numsubsamples;
-/*LOGD(("%s: #subsamples for %dth sample: %u", __FUNCTION__, i, numsubsamples));*/
 
         for (j = 0; j < numsubsamples; j++) {
             numclear = batom_cursor_uint16_be(cursor);
-/*LOGD(("%s: %dth clear bytes for %dth subsample: %u", __FUNCTION__, i, j, numclear));*/
 
             numencrypted = batom_cursor_uint32_be(cursor);
-/*LOGD(("%s: %dth enc bytes for %dth subsample: %u", __FUNCTION__, i, j, numencrypted));*/
             smpl->entries[j].bytesOfClearData = numclear;
             smpl->entries[j].bytesOfEncData = numencrypted;
         }

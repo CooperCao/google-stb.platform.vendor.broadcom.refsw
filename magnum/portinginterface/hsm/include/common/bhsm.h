@@ -100,9 +100,13 @@ extern "C" {
 
 #include "bhsm_datatypes.h"
 
+/* supported features */
+#define BHSM_SUPPORT_INITIALIZE_BYPASS_KEYSLOTS 1   /* BHSM_InitialiseBypassKeyslots exposed on API */
+
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
 #define BHSM_SUPPORT_KEYSLOT_OWNERSHIP 1  /* not all Zeus3 minor versions support keyslot ownership. */
 #endif
+
 
 /***************************************************************************
 Summary:

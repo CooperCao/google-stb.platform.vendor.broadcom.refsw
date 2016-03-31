@@ -277,6 +277,11 @@ static NEXUS_Error NEXUS_Sage_P_SAGELogInit(void)
     NEXUS_SecurityKeySlotSettings keyslotSettings;
     NEXUS_SecurityKeySlotInfo keyslotInfo;
 
+    if (!NEXUS_GetEnv("sage_logging")) {
+        /* SAGE secure logging is disabled by default. export sage_logging=y to enable. */
+        return NEXUS_SUCCESS;
+    }
+
     pSageLogBuffer = NEXUS_Sage_P_Malloc( sizeof(BSAGElib_SageLogBuffer));
     pSageLogBuffer->crrBufferSize = NEXUS_SAGE_LOGBUFFERSIZE;
     pCRRBuffer = NEXUS_Sage_P_MallocRestricted(pSageLogBuffer->crrBufferSize + 16); /*Extra 16bytes for AES enc alignment*/
@@ -1079,6 +1084,18 @@ NEXUS_Sage_P_MonitorBoot(void)
     else {
         BDBG_MSG(("%s - SAGE booted, boot time is unknown", __FUNCTION__));
     }
+
+    /* Initialize bypass keyslot */
+    {
+        BERR_Code magnum_rc;
+
+        magnum_rc = BSAGElib_Boot_Post(g_NEXUS_sageModule.hSAGElib);
+        if (magnum_rc != BERR_SUCCESS) {
+            BDBG_ERR(("%s: BSAGElib_Boot_Post() fails %d.", __FUNCTION__, magnum_rc));
+            goto err;
+        }
+    }
+
     g_NEXUS_sageModule.booted = 1;
 
 err:

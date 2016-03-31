@@ -1,44 +1,45 @@
 /******************************************************************************
-* (c) 2012-2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
-
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
+ * DRM Integration Framework
+ *
+ *****************************************************************************/
 #define LOGE BDBG_ERR
 #define LOGW BDBG_WRN
 #define LOGD BDBG_MSG
@@ -176,13 +177,12 @@ int bmp4_parse_sinf(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
 
         switch(box.type){
             case BMP4_ORIGINALFMT:
-LOGD(("%s: BMP4_ORIGINALFMT",__FUNCTION__));
+                LOGD(("%s: BMP4_ORIGINALFMT", __FUNCTION__));
                 pScheme->originalFormat.codingName =  batom_cursor_uint32_be(cursor);
                 found_fmt= true;
                 break;
             case BMP4_SCHEMETYPE:
-LOGD(("%s: BMP4_SCHEMETYPE",__FUNCTION__));
-
+                LOGD(("%s: BMP4_SCHEMETYPE", __FUNCTION__));
                 if(!bmp4_parse_fullbox(cursor, &fullbox)){
                     rc = -1; goto ErrorExit;
                 }
@@ -210,7 +210,7 @@ LOGD(("%s: BMP4_SCHEMETYPE",__FUNCTION__));
 
                 break;
             case BMP4_SCHEMEINFO:
-LOGD(("%s: BMP4_SCHEMEINFO",__FUNCTION__));
+                LOGD(("%s: BMP4_SCHEMEINFO", __FUNCTION__));
                 box_hdr_size = bmp4_parse_box(cursor, &te_box);
 
                 if(box_hdr_size == 0) {
@@ -218,18 +218,15 @@ LOGD(("%s: BMP4_SCHEMEINFO",__FUNCTION__));
                 }
 
                 if (te_box.type == BMP4_CENC_TE_BOX) {
-LOGD(("%s: te_box.type = BMP4_CENC_TE_BOX", __FUNCTION__));
+                    LOGD(("%s: te_box.type = BMP4_CENC_TE_BOX", __FUNCTION__));
                     found_tenc = true;
                     LOGV(("found 'tenc'"));
                     if (found_piff) {
                         LOGW(("expected 'uuid' box but 'tenc' is found"));
                     }
-                    defaultIsEncrypted = batom_cursor_uint24_be(cursor);
-                    defaultIVSize = batom_cursor_copy(cursor, &defaultIVSize, 1);
-LOGD(("%s: defaultIsEncrypted=%u defaultIVSize=%u", __FUNCTION__, defaultIsEncrypted, defaultIVSize));
                 }
                 else if (te_box.type == BMP4_EXTENDED) {
-LOGD(("%s: te_box.type = BMP4_EXTENDED", __FUNCTION__));
+                    LOGD(("%s: te_box.type = BMP4_EXTENDED", __FUNCTION__));
                     found_extended = true;
                     if (found_cenc) {
                         LOGW(("expected 'tenc' box but 'uuid' is found"));
@@ -265,10 +262,9 @@ LOGD(("%s: te_box.type = BMP4_EXTENDED", __FUNCTION__));
 
                 break;
             case BMP4_IPMPINFO:
-LOGD(("%s: BMP4_IPMPINFO",__FUNCTION__));
+                LOGD(("%s: BMP4_IPMPINFO", __FUNCTION__));
                 /* This box doesn't contain any meaningfull Playready info, Ignore it*/
             default :
-LOGD(("%s: Skip",__FUNCTION__));
                 /* Not the box we are looking for. Skip over it.*/
                 batom_cursor_skip(cursor, box.size - box_hdr_size);
                 break;
@@ -309,37 +305,28 @@ int bmp4_parse_stsd(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
     }
 
     entry_count = batom_cursor_uint32_be(cursor);
-LOGD(("%s: entry_count=%d",__FUNCTION__,entry_count));
+    LOGD(("%s: entry_count=%d", __FUNCTION__, entry_count));
 
     for(i = 0; i < entry_count; i++){
         entry_hdr_size = bmp4_parse_box(cursor, &entry_box);
-LOGD(("%s: entry[%d] hdr_size=%d",__FUNCTION__,i,entry_hdr_size));
+        LOGD(("%s: entry[%d] hdr_size=%d", __FUNCTION__, i, entry_hdr_size));
         if(entry_hdr_size == 0) {
             break;
         }
 
-LOGD(("%s: type=0x%x",__FUNCTION__,entry_box.type));
-#if 1
+        LOGD(("%s: type=0x%x", __FUNCTION__, entry_box.type));
         if((entry_box.type == BMP4_SAMPLE_ENCRYPTED_VIDEO) ||
             (entry_box.type == BMP4_SAMPLE_ENCRYPTED_AUDIO) ||
             (entry_box.type == BMP4_SAMPLE_AVC) ||
             (entry_box.type == BMP4_SAMPLE_MP4A)
         )
-#else
-        if((entry_box.type==BMP4_SAMPLE_ENCRYPTED_VIDEO) ||
-                (entry_box.type==BMP4_SAMPLE_ENCRYPTED_AUDIO) )
-#endif
         {
-#if 1
             uint32_t skip_bytes = ((entry_box.type == BMP4_SAMPLE_ENCRYPTED_VIDEO) || (entry_box.type == BMP4_SAMPLE_AVC) ?
                 BMP4_VISUAL_ENTRY_SIZE:BMP4_AUDIO_ENTRY_SIZE);
-#else
-            uint32_t skip_bytes = (entry_box.type == BMP4_SAMPLE_ENCRYPTED_VIDEO ?
-                BMP4_VISUAL_ENTRY_SIZE:BMP4_AUDIO_ENTRY_SIZE);
-#endif
 
             pTrack->scheme.trackType = entry_box.type;
-LOGD(("%s: scheme=%p trackType=%d",__FUNCTION__,pTrack->scheme,pTrack->scheme.trackType));
+            LOGD(("%s: scheme=%p trackType=%d", __FUNCTION__,
+                pTrack->scheme, pTrack->scheme.trackType));
             batom_cursor_skip(cursor, skip_bytes);
 
             for(j = skip_bytes + entry_hdr_size; j < entry_box.size; j += box.size)
@@ -350,7 +337,7 @@ LOGD(("%s: scheme=%p trackType=%d",__FUNCTION__,pTrack->scheme,pTrack->scheme.tr
                 }
 
                 if(box.type == BMP4_PROTECTIONSCHEMEINFO) {
-LOGD(("%s: BMP4_PROTECTIONSCHEMEINFO",__FUNCTION__));
+                    LOGD(("%s: BMP4_PROTECTIONSCHEMEINFO", __FUNCTION__));
                     rc = bmp4_parse_sinf(cursor, &box, pTrack);
                     if(rc != 0) {
                         goto ErrorExit;
@@ -386,15 +373,15 @@ pTrack->scheme_box_valid = true;
                     BKNI_Memcpy(pTrack->scheme.decConfig.data, &info_aac, sizeof(bmedia_info_aac));
                     pTrack->scheme.decConfig.size = sizeof(bmedia_info_aac);
                     batom_cursor_skip(cursor, box.size - box_hdr_size);
-rc = 0;
-pTrack->scheme_box_valid = true;
+                    rc = 0;
+                    pTrack->scheme_box_valid = true;
                 } else {
-LOGD(("%s - unknown box 0x%x\n", __FUNCTION__, box.type));
+                    LOGD(("%s - unknown box 0x%x\n", __FUNCTION__, box.type));
                     batom_cursor_skip(cursor, box.size - box_hdr_size);
                 }
             }
         } else {
-LOGD(("%s - not A/V\n", __FUNCTION__));
+            LOGD(("%s - not A/V\n", __FUNCTION__));
             batom_cursor_skip(cursor, entry_box.size - entry_hdr_size);
         }
     }
@@ -425,7 +412,7 @@ int bmp4_parse_stbl(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
 
         switch(box.type){
             case BMP4_SAMPLEDESCRIPTION:
-LOGD(("%s: BMP4_SAMPLEDESCRIPTION",__FUNCTION__));
+                LOGD(("%s: BMP4_SAMPLEDESCRIPTION", __FUNCTION__));
                 rc = bmp4_parse_stsd(cursor, &box, pTrack);
                 if(rc != 0) goto ErrorExit;
                 break;
@@ -462,7 +449,7 @@ int bmp4_parse_minf(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
 
         switch(box.type){
             case BMP4_SAMPLETABLE:
-LOGD(("%s: BMP4_SAMPLETABLE",__FUNCTION__));
+                LOGD(("%s: BMP4_SAMPLETABLE", __FUNCTION__));
                 rc = bmp4_parse_stbl(cursor, &box, pTrack);
                 if(rc != 0) goto ErrorExit;
                 break;
@@ -498,7 +485,7 @@ int bmp4_parse_mdia(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
 
         switch(box.type){
             case BMP4_MEDIAINFORMATION:
-LOGD(("%s: BMP4_MEDIAINFORMATION",__FUNCTION__));
+                LOGD(("%s: BMP4_MEDIAINFORMATION", __FUNCTION__));
                 rc = bmp4_parse_minf(cursor, &box, pTrack);
                 if(rc != 0) goto ErrorExit;
                 break;
@@ -535,27 +522,27 @@ int bmp4_parse_trak(bmp4_mp4_headers *header, batom_t atom, batom_cursor *cursor
     {
         box_hdr_size = bmp4_parse_box(cursor, &box);
         if(box_hdr_size == 0) {
-LOGD(("%s: box_hdr_size is 0",__FUNCTION__));
+            LOGD(("%s: box_hdr_size is 0", __FUNCTION__));
             break;
         }
 
         switch(box.type){
             case BMP4_TRACKHEADER:
-LOGD(("%s: BMP4_TRACKHEADER",__FUNCTION__));
+                LOGD(("%s: BMP4_TRACKHEADER", __FUNCTION__));
                 /* Get an atom on the track header. */
                 BATOM_CLONE(&start, cursor);
                 batom_cursor_skip(cursor, box.size - box_hdr_size);
                 tkhd = batom_extract(atom, &start, cursor, NULL, NULL);
 
                 if(!bmp4_parse_trackheader(tkhd, &track_header)){
-LOGD(("%s: bmp4_parse_trackheader returned error", __FUNCTION__));
+                    LOGD(("%s: bmp4_parse_trackheader returned error", __FUNCTION__));
                     rc = -1; goto ErrorExit;
                 }
-LOGD(("%s:trackId=%d", __FUNCTION__, track.scheme.trackId));
+                LOGD(("%s:trackId=%d", __FUNCTION__, track.scheme.trackId));
                 track.scheme.trackId = track_header.track_ID;
                 break;
             case BMP4_MEDIA:
-LOGD(("%s: BMP4_MEDIA",__FUNCTION__));
+                LOGD(("%s: BMP4_MEDIA", __FUNCTION__));
                 rc = bmp4_parse_mdia(cursor, &box, &track);
                 if(rc != 0) {
                     goto ErrorExit;
@@ -568,11 +555,12 @@ LOGD(("%s: BMP4_MEDIA",__FUNCTION__));
         }
     }
 
-LOGD(("%s:scheme_box_valid=%d", __FUNCTION__,track.scheme_box_valid));
+    LOGD(("%s:scheme_box_valid=%d", __FUNCTION__, track.scheme_box_valid));
     if(track.scheme_box_valid){
         pScheme = &header->scheme[track.scheme.trackId];
         BKNI_Memcpy(pScheme, &track.scheme, sizeof(bmp4_protectionSchemeInfo));
-LOGD(("%s:scheme=%p trackId=%d trackType=0x%x", __FUNCTION__,pScheme,track.scheme.trackId,pScheme->trackType));
+        LOGD(("%s:scheme=%p trackId=%d trackType=0x%x", __FUNCTION__,
+            pScheme, track.scheme.trackId, pScheme->trackType));
         header->nbOfSchemes++;
     }
 
@@ -692,28 +680,28 @@ int bmp4_parse_sample_enc_extended_box(bmp4_mp4_frag_headers *frag_header, batom
     bmp4_fullbox fullbox;
 
     if (bmp4_parse_fullbox(cursor, &fullbox)) {
-        frag_header->samples_enc.sample_count = batom_cursor_uint32_be(cursor);
+        frag_header->samples_info.sample_count = batom_cursor_uint32_be(cursor);
 
-        if (frag_header->samples_enc.sample_count != 0) {
-            if (frag_header->samples_enc.sample_count > BMP4_SAMPLES_POOL_SIZE) {
+        if (frag_header->samples_info.sample_count != 0) {
+            if (frag_header->samples_info.sample_count > BMP4_SAMPLES_POOL_SIZE) {
                 LOGE(("Increase pool of %d to handle number of samples: %d\n",
-                    BMP4_SAMPLES_POOL_SIZE, frag_header->samples_enc.sample_count));
+                    BMP4_SAMPLES_POOL_SIZE, frag_header->samples_info.sample_count));
                 return -1;
             }
 
-            frag_header->samples_enc.flags = fullbox.flags;
-            pSample = frag_header->samples_enc.samples;
+            frag_header->samples_info.flags = fullbox.flags;
+            pSample = frag_header->samples_info.samples;
             BKNI_Memset(pSample, 0, sizeof(SampleInfo));
 
-            for(i = 0; i < frag_header->samples_enc.sample_count; i++){
+            for(i = 0; i < frag_header->samples_info.sample_count; i++){
                 uint8_t *pIv;
                 /* pr_decryptor will take care of byte order */
                 batom_cursor_copy(cursor, pSample->iv, 8);
                 BKNI_Memset(&pSample->iv[8], 0, 8);
 
-                pIv = &frag_header->samples_enc.samples[i].iv[0];
+                pIv = &frag_header->samples_info.samples[i].iv[0];
 
-                if (frag_header->samples_enc.flags & 0x000002) {
+                if (frag_header->samples_info.flags & 0x000002) {
                     pSample->nbOfEntries = batom_cursor_uint16_be(cursor);
 
                     if (pSample->nbOfEntries != 0) {
@@ -753,21 +741,22 @@ int bmp4_parse_traf(bmp4_mp4_headers *header, bmp4_mp4_frag_headers *frag_header
     uint32_t trackId;
     uint32_t trackType;
 
-LOGD(("%s: traf.size %u",__FUNCTION__, traf.size));
+    LOGD(("%s: traf.size %u", __FUNCTION__, traf.size));
     for (i = box_size; i < traf.size; i += box.size) {
         box_hdr_size = bmp4_parse_box(cursor, &box);
-LOGD(("%s: i=%d box_hdr_size %u box.size %u",__FUNCTION__, i, box_hdr_size, box.size));
+        LOGD(("%s: i=%d box_hdr_size %u box.size %u", __FUNCTION__, i,
+            box_hdr_size, box.size));
         if (box_hdr_size == 0)
             break;
 
         switch (box.type) {
             case BMP4_TRACK_FRAGMENT_HEADER:
             {
-LOGD(("%s: BMP4_TRACK_FRAGMENT_HEADER",__FUNCTION__));
+                LOGD(("%s: BMP4_TRACK_FRAGMENT_HEADER", __FUNCTION__));
 
                 bmp4_parse_track_fragment_header(cursor, &bmp4_frag_hdr);
                 trackId = bmp4_frag_hdr.track_ID;
-LOGD(("%s: trackId=%d", __FUNCTION__, trackId));
+                LOGD(("%s: trackId=%d", __FUNCTION__, trackId));
                 if (trackId < BMP4_MAX_NB_OF_TRACKS)
                     trackType = header->scheme[trackId].trackType;
                 else {
@@ -799,7 +788,7 @@ LOGD(("%s: trackId=%d", __FUNCTION__, trackId));
             }
             case BMP4_TRACK_FRAGMENT_RUN:
             {
-LOGD(("%s: BMP4_TRACK_FRAGMENT_RUN",__FUNCTION__));
+                LOGD(("%s: BMP4_TRACK_FRAGMENT_RUN", __FUNCTION__));
                 bmp4_parse_track_fragment_run_header(cursor, &bmp4_run_hdr);
 
                 if(bmp4_run_hdr.sample_count > BMP4_MAX_SAMPLES) {
@@ -818,25 +807,26 @@ LOGD(("%s: BMP4_TRACK_FRAGMENT_RUN",__FUNCTION__));
             }
             case BMP4_CENC_SAIZ: /* saiz */
             {
-LOGD(("%s: BMP4_CENC_SAIZ",__FUNCTION__));
+                LOGD(("%s: BMP4_CENC_SAIZ", __FUNCTION__));
                 cenc_parse_auxiliary_info_sizes(cursor, frag_header);
                 break;
             }
             case BMP4_CENC_SAIO: /* saio */
             {
-LOGD(("%s: BMP4_CENC_SAIO",__FUNCTION__));
-                frag_header->saio = true;
+                LOGD(("%s: BMP4_CENC_SAIO", __FUNCTION__));
+                frag_header->encrypted = true;
                 break;
             }
             case BMP4_EXTENDED: /* uuid */
             {
-LOGD(("%s: BMP4_EXTENDED",__FUNCTION__));
+                LOGD(("%s: BMP4_EXTENDED", __FUNCTION__));
                 bmp4_parse_box_extended(cursor, &senc_box);
                 rc = bmp4_parse_sample_enc_extended_box(frag_header, cursor);
+                frag_header->encrypted = true;
                 break;
             }
             default:
-LOGD(("%s: other: 0x%x",__FUNCTION__, box.type));
+                LOGD(("%s: other: 0x%x", __FUNCTION__, box.type));
                 /* Not the box we are looking for. Skip over it.*/
                 batom_cursor_skip(cursor, box.size - box_hdr_size);
                 break;
@@ -918,21 +908,21 @@ int bmp4_parse_moov(bmp4_mp4_headers *header, batom_t atom)
 
                 switch(box.type){
                     case BMP4_EXTENDED:
-LOGD(("calling bmp4_parse_piff_pssh"));
+                        LOGD(("%s: BMP4_EXTENDED", __FUNCTION__));
                         rc = bmp4_parse_piff_pssh(header, &cursor, &box);
                         if(rc != 0) {
                             goto ErrorExit;
                         }
                         break;
                     case BMP4_DASH_PSSH:  /* compatible with PIFF 1.3 */
-LOGD(("calling bmp4_parse_dash_pssh"));
+                        LOGD(("%s: BMP4_DASH_PSSH", __FUNCTION__));
                         rc = bmp4_parse_dash_pssh(header, &cursor, &box);
                         if(rc != 0) {
                             goto ErrorExit;
                         }
                         break;
                     case BMP4_TRACK:
-LOGD(("calling bmp4_parse_track"));
+                        LOGD(("%s: BMP4_TRACK", __FUNCTION__));
                         rc = bmp4_parse_trak(header, atom, &cursor, &box);
                         if(rc != 0){
                             goto ErrorExit;

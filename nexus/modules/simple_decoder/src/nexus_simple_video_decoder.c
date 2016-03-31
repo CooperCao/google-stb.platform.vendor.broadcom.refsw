@@ -391,11 +391,12 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SetServerSettings( NEXUS_SimpleVideoDecoder
 void NEXUS_SimpleVideoDecoder_GetStcStatus_priv(NEXUS_SimpleVideoDecoderHandle handle, NEXUS_SimpleStcChannelDecoderStatus * pStatus)
 {
     NEXUS_OBJECT_ASSERT(NEXUS_SimpleVideoDecoder, handle);
-    pStatus->connected = handle->serverSettings.videoDecoder
-        && handle->serverSettings.enabled;
+    pStatus->connected = (handle->serverSettings.videoDecoder && handle->serverSettings.enabled) ||
+                         handle->hdmiInput.handle || handle->hdDviInput.handle;
     pStatus->started = handle->started;
     pStatus->stcIndex = handle->serverSettings.stcIndex;
-    pStatus->primer = handle->primer.started;
+    pStatus->primer = handle->primer.started && !handle->started;
+    pStatus->hdDviInput = handle->hdmiInput.handle || handle->hdDviInput.handle;
     NEXUS_SimpleEncoder_GetStcStatus_priv(handle->encoder.handle, &pStatus->encoder);
 }
 
@@ -2146,6 +2147,9 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_StartHdmiInput( NEXUS_SimpleVideoDecoderHan
         if (handle->connected) {
             nexus_simplevideodecoder_p_disconnect(handle, false);
         }
+
+        NEXUS_SimpleStcChannel_SetVideo_priv(handle->stcChannel, handle);
+
         rc = nexus_simplevideodecoder_p_start(handle);
         if (rc) {
             NEXUS_SimpleVideoDecoder_StopHdmiInput(handle);

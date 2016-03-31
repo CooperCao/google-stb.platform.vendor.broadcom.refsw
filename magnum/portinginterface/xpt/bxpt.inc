@@ -336,3 +336,8 @@ endif
 # Module Includes
 BXPT_INCLUDES += $(MAGNUM)/portinginterface/xpt/include
 BXPT_INCLUDES += $(MAGNUM)/portinginterface/xpt/src/rave/$(RAVE_IMAGE_DIR)
+
+# Other options
+ifneq ($(BXPT_POWER_MANAGEMENT),n)
+BXPT_DEFINES += BXPT_POWER_MANAGEMENT
+endif

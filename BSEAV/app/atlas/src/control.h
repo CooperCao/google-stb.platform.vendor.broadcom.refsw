@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #ifndef CONTROL2_H__
@@ -116,6 +115,11 @@ public:
     eRet            addChannelToChList(CChannel * pChannel);
     eRet            channelUp(void);
     eRet            channelDown(void);
+#if RF4CE_SUPPORT
+    eRet            displayRf4ceRemotes(void);
+    eRet            addRf4ceRemote(const char *remote_name);
+    eRet            removeRf4ceRemote(int pairingRefNum);
+#endif
     eRet            tenKey(eKey key);
     eRet            playbackStart(const char * fileName, const char * indexName, const char * path, eWindowType windowType = eWindowType_Max);
     eRet            playbackStart(CVideo * pVideo, eWindowType windowType = eWindowType_Max);

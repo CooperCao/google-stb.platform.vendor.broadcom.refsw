@@ -268,7 +268,6 @@ bool mp4_parser_scan_movie_fragment(mp4_parser_handle_t handle, mp4_parse_frag_i
 
     frag_info->moof_size = box_size;
     box_size = buffer_size - frag_info->moof_size;
-LOGD(("%s moof_size=%d box_size=%d",__FUNCTION__,frag_info->moof_size,box_size));
 
     if (!mp4_parser_seek_box(handle, pBuf + frag_info->moof_size, BMP4_MOVIE_DATA, &mp4_container, &box_size)) {
         printf("%s: Unable to find mdat box\n", __func__);
@@ -276,43 +275,43 @@ LOGD(("%s moof_size=%d box_size=%d",__FUNCTION__,frag_info->moof_size,box_size))
     }
 
     frag_info->mdat_size = box_size;
-LOGD(("%s mdat_size %u",__FUNCTION__,frag_info->mdat_size));
     frag_info->trackType = cntxt->mp4_mp4_frag.trackType;
     frag_info->trackId = cntxt->mp4_mp4_frag.trackId;
     frag_info->sample_info = cntxt->mp4_mp4_frag.sample_info;
     frag_info->run_sample_count = cntxt->mp4_mp4_frag.run_sample_count;
-    frag_info->samples_enc = &cntxt->mp4_mp4_frag.samples_enc;
+    frag_info->samples_info = &cntxt->mp4_mp4_frag.samples_info;
 
     /* Obtain cursor and set to payload of movie data */
     batom_cursor_from_atom(&frag_info->cursor, mp4_container);
 
     bmp4_parse_box(&frag_info->cursor, &mdat);
 
-    if(mediaType == media_type_eCenc){
-        if (cntxt->mp4_mp4_frag.saio) {
+    if (mediaType == media_type_eCenc && cntxt->mp4_mp4_frag.encrypted) {
             frag_info->aux_info_size = cntxt->mp4_mp4_frag.aux_info_size;
             cenc_parse_mdat_head(frag_info, &cntxt->mp4_mp4_frag);
-        } else {
-            /* clear: copy to samples_enc */
-            uint32_t i = 0;
-            SampleInfo *pSample;
-            bmp4_track_fragment_run_sample *pRunSample;
-            frag_info->aux_info_size = 0;
-            frag_info->samples_enc->sample_count = frag_info->run_sample_count;
-            for (; i < frag_info->run_sample_count; i++) {
-                pSample = &frag_info->samples_enc->samples[i];
-                pRunSample = &frag_info->sample_info[i];
+    }
+    if (!cntxt->mp4_mp4_frag.encrypted) {
+        /* clear: copy to samples_info */
+        uint32_t i = 0;
+        SampleInfo *pSample;
+        bmp4_track_fragment_run_sample *pRunSample;
+        frag_info->aux_info_size = 0;
+        frag_info->samples_info->sample_count = frag_info->run_sample_count;
+        for (; i < frag_info->run_sample_count; i++) {
+            pSample = &frag_info->samples_info->samples[i];
+            pRunSample = &frag_info->sample_info[i];
 
-                pSample->nbOfEntries = 1;
-                pSample->entries[0].bytesOfClearData = pRunSample->size;
-                pSample->entries[0].bytesOfEncData = 0;
-            }
+            pSample->nbOfEntries = 1;
+            pSample->entries[0].bytesOfClearData = pRunSample->size;
+            pSample->entries[0].bytesOfEncData = 0;
         }
     }
 
-LOGD(("%s mdat_size=%d sample_count=%d",__FUNCTION__,frag_info->mdat_size,frag_info->run_sample_count));
-if (frag_info->samples_enc)
-LOGD(("samples_enc: flags=%x count=%d",frag_info->samples_enc->flags,frag_info->samples_enc->sample_count));
+    LOGD(("%s mdat_size=%d sample_count=%d", __FUNCTION__,
+        frag_info->mdat_size, frag_info->run_sample_count));
+    if (frag_info->samples_info)
+        LOGD(("samples_info: flags=%x count=%d", frag_info->samples_info->flags,
+            frag_info->samples_info->sample_count));
 
     /* Sanity check that cursor is at correct location */
     if (mdat.type != BMP4_MOVIE_DATA)

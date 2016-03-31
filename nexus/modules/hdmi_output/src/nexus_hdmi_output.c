@@ -2884,6 +2884,7 @@ NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiO
 {
     NEXUS_Error rc;
     NEXUS_HdmiOutputState state;
+    BHDM_Status hdmiStatus;
 
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
@@ -2903,6 +2904,12 @@ NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiO
     {
         rc = NEXUS_HdmiOutput_DisableHdcpEncryption(hdmiOutput);
         if (rc) return BERR_TRACE(rc);
+
+        rc = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus);
+        if (rc) return BERR_TRACE(rc);
+        hdmiOutput->pixelClkRatePreFormatChange = hdmiStatus.pixelClockRate;
+
+        BDBG_MSG(("%s pixelClkRate = %d", __FUNCTION__, hdmiOutput->pixelClkRatePreFormatChange));
     }
 
     hdmiOutput->formatChangeMute = true;
@@ -2927,6 +2934,7 @@ static void NEXUS_HdmiOutput_P_PostFormatChangeTimer(void *context)
 {
     NEXUS_HdmiOutputHandle hdmiOutput = context;
     NEXUS_Error rc;
+    BHDM_Status hdmiStatus;
 
     BDBG_MSG(("PostFormatChangeTimer"));
     hdmiOutput->postFormatChangeTimer = NULL;
@@ -2939,9 +2947,20 @@ static void NEXUS_HdmiOutput_P_PostFormatChangeTimer(void *context)
     /* always retry HDCP post format change if it was enabled by the client */
     if (hdmiOutput->hdcpStarted)
     {
+        rc = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus);
+        if (rc) rc = BERR_TRACE(rc);
+
+        BDBG_MSG(("%s pixelClkRate = %d", __FUNCTION__, hdmiStatus.pixelClockRate));
         /* Restart Hdcp Authentication when switching from/to a high clock rate format (297Mhz and up) */
-        BDBG_MSG(("%s: Restart HDCP authentication after format change", __FUNCTION__));
-        rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
+        if (hdmiOutput->pixelClkRatePreFormatChange != hdmiStatus.pixelClockRate)
+        {
+            BDBG_ERR(("%s: Restart HDCP authentication after format change", __FUNCTION__));
+            rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
+        }
+        else {
+            rc = NEXUS_HdmiOutput_EnableHdcpEncryption(hdmiOutput);
+        }
+        if (rc) rc = BERR_TRACE(rc);
     }
 }
 

@@ -1,39 +1,39 @@
 /******************************************************************************
- *    (c)2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * $brcm_Workfile: $
  * $brcm_Revision: $
@@ -66,16 +66,8 @@
 #include "nxclient.h"
 #include "nexus_surface_client.h"
 
-#ifdef ANDROID
-#define LOG_NDEBUG 0
-#define LOG_TAG "playback_dif"
-#include <utils/Log.h>
-#define LOGE(x) ALOGE x
-#define LOGW(x) ALOGW x
-#define LOGD(x) ALOGD x
-#define LOGV(x) ALOGV x
-#else
 BDBG_MODULE(playback_dif);
+#define LOG_TAG "playback_dif"
 #undef LOGE
 #undef LOGW
 #undef LOGD
@@ -84,7 +76,6 @@ BDBG_MODULE(playback_dif);
 #define LOGW BDBG_WRN
 #define LOGD BDBG_MSG
 #define LOGV BDBG_MSG
-#endif
 
 // DRM Integration Framework
 //#include "secure_playback.h"
@@ -351,17 +342,17 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
     uint64_t frag_duration;
     uint32_t bytes_processed = 0;
     uint32_t last_bytes_processed = 0;
-    if (frag_info->samples_enc->sample_count == 0) {
+    if (frag_info->samples_info->sample_count == 0) {
         LOGE(("%s: No samples", __FUNCTION__));
         return -1;
     }
 
-    LOGD(("%s: #samples=%d",__FUNCTION__, frag_info->samples_enc->sample_count));
-    for (unsigned i = 0; i < frag_info->samples_enc->sample_count; i++) {
+    LOGD(("%s: #samples=%d",__FUNCTION__, frag_info->samples_info->sample_count));
+    for (unsigned i = 0; i < frag_info->samples_info->sample_count; i++) {
         uint32_t numOfByteDecrypted = 0;
         size_t sampleSize = 0;
 
-        pSample = &frag_info->samples_enc->samples[i];
+        pSample = &frag_info->samples_info->samples[i];
         numOfByteDecrypted = sampleSize = frag_info->sample_info[i].size;
 
         if (frag_info->trackType == BMP4_SAMPLE_ENCRYPTED_VIDEO ||
@@ -834,6 +825,8 @@ int main(int argc, char* argv[])
     NxClient_ConnectSettings connectSettings;
     NEXUS_SurfaceComposition comp;
     NEXUS_SurfaceClientHandle videoSurfaceClient = NULL;
+    NEXUS_Rect rect = {0, 0, 0, 0};
+    int zorder = ZORDER_TOP;
 
 /*
 #ifdef NEED_TO_BE_TRUSTED_APP
@@ -888,20 +881,34 @@ int main(int argc, char* argv[])
         LOGE(("        -wv          set DRM type as widevine"));
         LOGE(("        -noloop      no decrypt loop for testing"));
         LOGE(("        -secure      Use secure video path"));
+        LOGE(("        -zorder z    set zorder"));
+        LOGE(("        -rect x,y,w,h set video position"));
         exit(EXIT_FAILURE);
     }
 
     for (int i=0; i<argc; i++){
-        if(strcmp(argv[i], "-vc1") == 0)
+        if (strcmp(argv[i], "-vc1") == 0)
             vc1_stream = 1;
-        if(strcmp(argv[i], "-pr") == 0)
+        if (strcmp(argv[i], "-pr") == 0)
             requestedDrmType = drm_type_ePlayready;
-        if(strcmp(argv[i], "-wv") == 0)
+        if (strcmp(argv[i], "-wv") == 0)
             requestedDrmType = drm_type_eWidevine;
-        if(strcmp(argv[i], "-noloop") == 0)
+        if (strcmp(argv[i], "-noloop") == 0)
             shouldExit = true;
-		if(strcmp(argv[i], "-secure") == 0)
-			secure_video = true;
+        if (strcmp(argv[i], "-secure") == 0)
+            secure_video = true;
+        if (!strcmp(argv[i], "-zorder") && argc > i+1) {
+            zorder = atoi(argv[++i]);
+        }
+        if (!strcmp(argv[i], "-rect") && argc > i+1) {
+            unsigned x, y, width, height;
+            if (sscanf(argv[++i], "%u,%u,%u,%u", &x,&y,&width,&height) == 4) {
+                rect.x = x;
+                rect.y = y;
+                rect.width = width;
+                rect.height = height;
+            }
+        }
     }
 
     LOGD(("@@@ Check Point #01"));
@@ -930,19 +937,22 @@ int main(int argc, char* argv[])
         s_app.surfaceClient = NEXUS_SurfaceClient_Acquire(s_app.s_allocResults.surfaceClient[0].id);
         videoSurfaceClient = NEXUS_SurfaceClient_AcquireVideoWindow(s_app.surfaceClient, 0);
 
-        NxClient_GetSurfaceClientComposition(s_app.s_allocResults.surfaceClient[0].id, &comp);
-        comp.zorder = ZORDER_TOP;   /* try to stay on top most */
-        NxClient_SetSurfaceClientComposition(s_app.s_allocResults.surfaceClient[0].id, &comp);
+        NEXUS_SurfaceClientSettings settings;
+        NEXUS_SurfaceClient_GetSettings(videoSurfaceClient, &settings);
+        if (rect.height != 0 && rect.width != 0)
+            settings.composition.position = rect;
+        settings.composition.zorder = zorder;
+        NEXUS_SurfaceClient_SetSettings(videoSurfaceClient, &settings);
     }
     NxClient_GetDefaultConnectSettings(&connectSettings);
     connectSettings.simpleVideoDecoder[0].id = s_app.s_allocResults.simpleVideoDecoder[0].id;
     connectSettings.simpleVideoDecoder[0].surfaceClientId = s_app.s_allocResults.surfaceClient[0].id;
     connectSettings.simpleAudioDecoder.id = s_app.s_allocResults.simpleAudioDecoder.id;
 
-	if (secure_video)
-	{
-		connectSettings.simpleVideoDecoder[0].decoderCapabilities.secureVideo=true;
-	}
+    if (secure_video)
+    {
+        connectSettings.simpleVideoDecoder[0].decoderCapabilities.secureVideo = true;
+    }
 
     rc = NxClient_Connect(&connectSettings, &s_app.s_connectId);
     if (rc)

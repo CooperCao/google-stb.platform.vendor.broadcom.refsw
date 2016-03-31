@@ -1,42 +1,39 @@
 ###############################################################################
-# (c) 2014 Broadcom Corporation
+# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its
-# licensors, and may only be used, duplicated, modified or distributed pursuant
-# to the terms and conditions of a separate, written license agreement executed
-# between you and Broadcom (an "Authorized License").  Except as set forth in
-# an Authorized License, Broadcom grants no license (express or implied), right
-# to use, or waiver of any kind with respect to the Software, and Broadcom
-# expressly reserves all rights in and to the Software and all intellectual
-# property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# This program is the proprietary software of Broadcom and/or its
+# and may only be used, duplicated, modified or distributed pursuant to the terms and
+# conditions of a separate, written license agreement executed between you and Broadcom
+# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+# no license (express or implied), right to use, or waiver of any kind with respect to the
+# Software, and Broadcom expressly reserves all rights in and to the Software and all
+# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 # HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 # NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
 # Except as expressly set forth in the Authorized License,
 #
-# 1. This program, including its structure, sequence and organization,
-#    constitutes the valuable trade secrets of Broadcom, and you shall use all
-#    reasonable efforts to protect the confidentiality thereof, and to use
-#    this information only in connection with your use of Broadcom integrated
-#    circuit products.
+# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+# and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
-# 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-#    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-#    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-#    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-#    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-#    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-#    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-#    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+# USE OR PERFORMANCE OF THE SOFTWARE.
 #
-# 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-#    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-#    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-#    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-#    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-#    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-#    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-#    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+# ANY LIMITED REMEDY.
 ###############################################################################
 
 
@@ -101,6 +98,7 @@ ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/ZbPro/Pr
 ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/NVM/include
 
 ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/projects/SoC_mailboxHostSide/rpc/include
+ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/projects/SoC_mailboxHostSide/common/include
 ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/projects/SoC_mailboxHostSide/rf4ce_registration/include
 ATLAS_INCLUDE_DIRS += -I$(BSEAV)/lib/zigbee/broadbee_mailbox_host/projects/SoC_mailboxHostSide/ha_registration/include
 
@@ -146,6 +144,7 @@ CFLAGS += $(addprefix -I, $(INC_PATHS))
 
 VPATH += $(BSEAV)/lib/zigbee/broadbee_mailbox_host/stack/common/System/src
 VPATH += $(BSEAV)/lib/zigbee/broadbee_mailbox_host/projects/SoC_mailboxHostSide/rpc/src
+VPATH += $(BSEAV)/lib/zigbee/broadbee_mailbox_host/projects/SoC_mailboxHostSide/common/src
 
 LDFLAGS += -std=gnu99 -Xlinker --no-enum-size-warning
 
@@ -153,7 +152,7 @@ APP_OBJECTS += \
     bbMailClientTable.o \
     bbMailServerTable.o \
     zigbee_rpc.o \
-    zigbee_rpc_api.o \
+    zigbee_api.o \
     zigbee_rpc_client.o \
     zigbee_socket_client.o \
     bbSysPayload.o
@@ -171,7 +170,7 @@ $(ATLAS_ODIR)/bbMailServerTable.o:$(BSEAV)/lib/zigbee/broadbee_mailbox_host/stac
 	@sed 's|bbMailServerTable\.c|$(BSEAV)\/lib\/zigbee\/broadbee_mailbox_host\/stack\/common\/Mailbox\/src\/bbMailServerTable\.c|' $(ATLAS_ODIR)/bbMailServerTable.d > $(ATLAS_ODIR)/bbMailServerTable.d.tmp
 	@mv $(ATLAS_ODIR)/bbMailServerTable.d.tmp $(ATLAS_ODIR)/bbMailServerTable.d
 	@rm -rf ./bbMailServerTable.c
-$(ATLAS_ODIR)/zigbee_rpc_api.o:zigbee_rpc_api.c
+$(ATLAS_ODIR)/zigbee_api.o:zigbee_api.c
 	@echo [Compile... $(notdir $<)]
 	$(Q_)$(CC) -c -o $@ $< $(filter-out -pedantic,$(CFLAGS)) $(RF4CE_STACK_C_FLAGS)
 $(ATLAS_ODIR)/zigbee_rpc.o:zigbee_rpc.c

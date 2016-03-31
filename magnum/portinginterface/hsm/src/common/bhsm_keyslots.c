@@ -76,9 +76,6 @@ static bool isKeySlotTypeZzyzx( BCMD_XptSecKeySlot_e keySlotType );
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
 /* Initialise PID Channels */
 static BERR_Code InitialisePidChannels( BHSM_Handle hHsm );
-
-/* Intialise the Bypass keyslots */
-static BERR_Code InitialiseByPassKeyslot( BHSM_Handle hHsm );
 #endif
 
 
@@ -191,24 +188,26 @@ void BHSM_P_StashKeySlotTableRead( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeysl
 #endif /* BHSM_SAGE_INTF_SUPPORT  */
 
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
-/* Initialise one KeySlot as bypass and associate all pid channels to it on initialisation */
-static BERR_Code InitialiseByPassKeyslot( BHSM_Handle hHsm )
+/*
+    Allocate the two bypass keyslots, g2gr + gr2r .
+     -- needs to be called on system initialisation.
+*/
+static BERR_Code AllocateByPassKeyslots( BHSM_Handle hHsm )
 {
     BERR_Code rc = BERR_SUCCESS;
     BHSM_XptKeySlotIO_t keySlotConfig;
-    BHSM_InvalidateKeyIO_t invalidateKeySlot;
 
-    BDBG_ENTER( InitialiseByPassKeyslot );
+    BDBG_ENTER( AllocateByPassKeyslots );
 
-    /* allocate g2gr bypass keyslot */
     BKNI_Memset( &keySlotConfig, 0, sizeof(keySlotConfig) );
     keySlotConfig.client      = BHSM_ClientType_eHost;
     keySlotConfig.keySlotType = BHSM_BYPASS_KEYSLOT_TYPE;
     if( (rc = BHSM_AllocateCAKeySlot ( hHsm, &keySlotConfig ) ) != BERR_SUCCESS )
     {
-        (void)BERR_TRACE( rc ); /* Failed to allocate the g2gr bypass keyslot. */
+        (void)BERR_TRACE( rc );
         goto BHSM_P_DONE_LABEL;
     }
+
     if( keySlotConfig.keySlotNum != BHSM_BYPASS_KEYSLOT_NUMBER_g2gr )
     {
         /* Expect first allocated KeySlot to be equal to BHSM_BYPASS_KEYSLOT_NUMBER_g2gr */
@@ -216,11 +215,9 @@ static BERR_Code InitialiseByPassKeyslot( BHSM_Handle hHsm )
         goto BHSM_P_DONE_LABEL;
     }
 
-    /* allocate gr2r bypass keyslot */
-    keySlotConfig.client = hHsm->currentSettings.clientType;  /* HOST is owner on HOST, SAGE on SAGE! */
     if( (rc = BHSM_AllocateCAKeySlot ( hHsm, &keySlotConfig ) ) != BERR_SUCCESS )
     {
-        (void)BERR_TRACE( rc ); /* Failed to allocate the bypass keyslot. */
+        (void)BERR_TRACE( rc );
         goto BHSM_P_DONE_LABEL;
     }
     if( keySlotConfig.keySlotNum != BHSM_BYPASS_KEYSLOT_NUMBER_gr2r )
@@ -230,7 +227,25 @@ static BERR_Code InitialiseByPassKeyslot( BHSM_Handle hHsm )
         goto BHSM_P_DONE_LABEL;
     }
 
-    /* Configure g2gr bypass keyslot */
+BHSM_P_DONE_LABEL:
+
+    BDBG_LEAVE( AllocateByPassKeyslots );
+
+    return rc;
+}
+
+#endif /* BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1) */
+
+/* Configure both the g2gr and gr2r bypass keyslots. */
+BERR_Code BHSM_InitialiseBypassKeyslots( BHSM_Handle hHsm )
+{
+#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
+    BERR_Code rc = BERR_SUCCESS;
+    BHSM_InvalidateKeyIO_t invalidateKeySlot;
+
+    BDBG_ENTER( BHSM_InitialiseBypassKeyslots );
+
+    /* Configure first bypass keyslot ... g2gr */
     BKNI_Memset( &invalidateKeySlot, 0, sizeof(invalidateKeySlot) );
     invalidateKeySlot.caKeySlotType         = BHSM_BYPASS_KEYSLOT_TYPE;
     invalidateKeySlot.unKeySlotNum          = BHSM_BYPASS_KEYSLOT_NUMBER_g2gr;
@@ -244,95 +259,33 @@ static BERR_Code InitialiseByPassKeyslot( BHSM_Handle hHsm )
         goto BHSM_P_DONE_LABEL;
     }
 
-    /* Configure gr2r bypass keyslot */
+    /* Configure second bypass keyslot. */
     invalidateKeySlot.unKeySlotNum = BHSM_BYPASS_KEYSLOT_NUMBER_gr2r;
-    if( hHsm->currentSettings.clientType == BHSM_ClientType_eSAGE )
+
+    /* If on sage, or on host and sage is enabled. */
+    if(   hHsm->currentSettings.clientType == BHSM_ClientType_eSAGE ||
+        ( hHsm->currentSettings.clientType == BHSM_ClientType_eHost &&  hHsm->currentSettings.sageEnabled == true ) )
     {
         invalidateKeySlot.bypassConfiguraion = BCMD_ByPassKTS_eFromRGToR;
     }
+
     if( ( rc = BHSM_InvalidateKey( hHsm, &invalidateKeySlot ) ) != BERR_SUCCESS )
     {
-        BERR_TRACE( rc ); /* failed to invalidate the gr2r bypass keyslot */
+        BERR_TRACE( rc ); /* failed to invalidate the second bypass keyslot */
         goto BHSM_P_DONE_LABEL;
     }
 
 BHSM_P_DONE_LABEL:
 
-    BDBG_LEAVE( InitialiseByPassKeyslot );
+    BDBG_LEAVE( BHSM_InitialiseBypassKeyslots );
 
     return rc;
+#else
+    BSTD_UNUSED( hHsm ) ;
+    return BERR_SUCCESS;
+#endif
 }
 
-BERR_Code BHSM_P_InitialiseByPassKeyslot_sage( BHSM_Handle hHsm )
-{
-    BERR_Code rc = BERR_SUCCESS;
-    BHSM_InvalidateKeyIO_t  resetKeySlot;
-    BHSM_KeySlotOwnership_t ownership;
-
-    BDBG_ENTER( BHSM_P_InitialiseByPassKeyslot_sage );
-
-    if( hHsm == NULL || hHsm->ulMagicNumber != BHSM_P_HANDLE_MAGIC_NUMBER )
-    {
-        return BERR_TRACE(BHSM_STATUS_FAILED);
-    }
-
-    if( hHsm->currentSettings.clientType != BHSM_ClientType_eSAGE )
-    {
-        return BERR_TRACE( BHSM_STATUS_FAILED ); /* Function can onlly be called from SAGE context. */
-    }
-
-    /* get keyslot ownership. */
-    BKNI_Memset( &ownership, 0, sizeof(ownership) );
-    ownership.keySlotNumber = BHSM_BYPASS_KEYSLOT_NUMBER_gr2r;
-    ownership.keySlotType   = BHSM_BYPASS_KEYSLOT_TYPE;
-    if( ( rc = BHSM_GetKeySlotOwnership( hHsm, &ownership ) ) != BERR_SUCCESS  )
-    {
-        return BERR_TRACE( BHSM_STATUS_FAILED );  /* Failed to determine owner of gr2r bypass keyslot. */
-    }
-
-    if( ownership.owner  == BHSM_KeySlotOwner_eSAGE )
-    {
-        BDBG_WRN(("gr2r already associated with SAGE"));
-        return BERR_SUCCESS;
-    }
-
-    BDBG_MSG(("SAGE init BYPASS KEYSLOT"));
-    /* Invalidate both bypass filters keyslot. */
-    BKNI_Memset( &resetKeySlot, 0, sizeof(resetKeySlot) );
-    resetKeySlot.caKeySlotType      = BHSM_BYPASS_KEYSLOT_TYPE;
-    resetKeySlot.unKeySlotNum       = BHSM_BYPASS_KEYSLOT_NUMBER_g2gr;
-    resetKeySlot.keyDestBlckType    = BCMD_KeyDestBlockType_eCPScrambler;
-    resetKeySlot.invalidKeyType     = BCMD_InvalidateKey_Flag_eDestKeyOnly;
-    resetKeySlot.keyDestEntryType   = BCMD_KeyDestEntryType_eOddKey;
-    resetKeySlot.bInvalidateAllEntries = true;
-    resetKeySlot.virtualKeyLadderID = BCMD_VKL_KeyRam_eMax; /*Not used. Setting to invalid value to avoid collision with VKL in use*/
-    if( ( rc = BHSM_InvalidateKey( hHsm, &resetKeySlot ) ) != BERR_SUCCESS )
-    {
-        BDBG_ERR(("%s BHSM_InvalidateKey for GRG keyslot failed", __FUNCTION__ ));
-        goto BHSM_P_DONE_LABEL;
-    }
-
-    resetKeySlot.unKeySlotNum = BHSM_BYPASS_KEYSLOT_NUMBER_gr2r;
-    if( ( rc = BHSM_InvalidateKey( hHsm, &resetKeySlot ) ) != BERR_SUCCESS )
-    {
-        BDBG_ERR(("%s BHSM_InvalidateKey for RG2R keyslot failed", __FUNCTION__ ));
-        goto BHSM_P_DONE_LABEL;
-    }
-
-    if( ( rc = InitialiseByPassKeyslot( hHsm ) ) != BERR_SUCCESS )
-    {
-        BDBG_ERR(("%s InitialiseByPassKeyslot FAILED for SAGE", __FUNCTION__ ));
-        goto BHSM_P_DONE_LABEL;
-    }
-
-BHSM_P_DONE_LABEL:
-
-    BDBG_LEAVE( BHSM_P_InitialiseByPassKeyslot_sage );
-
-    return rc;
-}
-
-#endif /* BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0) */
 
 /* initialise internal keyslot data structure. */
 BERR_Code BHSM_P_KeySlotsInitialise( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeyslots )
@@ -591,7 +544,14 @@ BERR_Code BHSM_InitKeySlot( BHSM_Handle hHsm, BHSM_InitKeySlotIO_t *pInitKeySlot
     }
 
     #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
-    if( ( errCode = InitialiseByPassKeyslot( hHsm )  ) != BERR_SUCCESS )
+
+    if( ( errCode = AllocateByPassKeyslots( hHsm )  ) != BERR_SUCCESS )
+    {
+        (void)BERR_TRACE( errCode );
+        goto BHSM_P_DONE_LABEL;
+    }
+
+    if( ( errCode = BHSM_InitialiseBypassKeyslots( hHsm ) ) != BERR_SUCCESS )
     {
         (void)BERR_TRACE( errCode );
         goto BHSM_P_DONE_LABEL;

@@ -227,6 +227,7 @@ typedef struct BHSM_Setting
     unsigned long     uSpecialControl;      /* DEPRECATED */
     BMEM_Heap_Handle  hHeap;                /* newly added for IPTV contiguous memeory support inside HSM*/
     BHSM_ClientType_e clientType;           /* specify client type to be Host or Sage */
+    bool              sageEnabled;          /* SAGE is enabled in environment. Currenly only interpreted on HOST side */
 
     struct{
         unsigned size;          /* Size. Needs to be >= BHSM_SECURE_MEMORY_SIZE */

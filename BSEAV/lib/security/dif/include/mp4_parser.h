@@ -72,7 +72,7 @@ typedef struct mp4_parse_frag_info {
     uint32_t trackId;
     bmp4_track_fragment_run_sample *sample_info;
     uint32_t run_sample_count;
-    bmp4_drm_mp4_se *samples_enc;
+    bmp4_drm_mp4_se *samples_info;
     size_t aux_info_size;
 } mp4_parse_frag_info;
 

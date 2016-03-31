@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 
@@ -1430,4 +1431,30 @@ BSAGElib_Boot_GetBinariesVersion(BSAGElib_Handle hSAGElib, char **ppBLVer, char 
 
     BDBG_LEAVE(BSAGElib_Boot_GetBinariesVersion);
     return;
+}
+
+BERR_Code
+BSAGElib_Boot_Post(
+    BSAGElib_Handle hSAGElib)
+{
+    BERR_Code rc;
+
+    BDBG_ENTER(BSAGElib_Boot_Post);
+
+    BDBG_OBJECT_ASSERT(hSAGElib, BSAGElib_P_Instance);
+
+    BSAGElib_iLockHsm();
+    rc = BHSM_InitialiseBypassKeyslots(hSAGElib->core_handles.hHsm);
+    BSAGElib_iUnlockHsm();
+
+    if (rc != BERR_SUCCESS) {
+        BDBG_ERR(("%s - BHSM_InitialiseBypassKeysltos() fails %d", __FUNCTION__, rc));
+        goto end;
+    }
+
+    hSAGElib->bBootPostCalled = true;
+
+end:
+    BDBG_LEAVE(BSAGElib_Boot_Post);
+    return rc;
 }

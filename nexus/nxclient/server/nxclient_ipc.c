@@ -48,6 +48,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <fcntl.h>
+#include <signal.h>
 
 static const bipc_interface_descriptor * const client_interfaces [] = {
     &bipc_nxclient_p_descriptor
@@ -146,6 +147,8 @@ NEXUS_Error NxClient_Join(const NxClient_JoinSettings *pSettings)
 
     timeout = pSettings->timeout;
 
+    signal(SIGPIPE, SIG_IGN);
+
     rc = NxClient_P_Join(nxclient_ipc_thread_regular, pSettings);
     if(rc) {
         printf("*** Unable to join nxclient_ipc_thread_regular\n");
@@ -160,7 +163,7 @@ NEXUS_Error NxClient_Join(const NxClient_JoinSettings *pSettings)
 
     /* nexus driver */
     NEXUS_Platform_GetDefaultClientAuthenticationSettings(&authSettings);
-    authSettings.certificate = nxclient_state.client[nxclient_ipc_thread_restricted].client_info.certificate;
+    authSettings.certificate = nxclient_state.client[nxclient_ipc_thread_regular].client_info.certificate;
 
     while (1) {
         rc = NEXUS_Platform_AuthenticatedJoin(&authSettings);

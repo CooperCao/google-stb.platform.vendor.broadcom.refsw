@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,14 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -664,8 +656,8 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
                 if(realAllocation && allocator) {
                     struct BMMA_RangeAllocator_Status status;
                     BMMA_RangeAllocator_GetStatus(allocator, &status);
-                    if(heap_size<status.largestFree) {
-                        heap_size = status.largestFree;
+                    if(heap_size + 2*heap[heapIndex].alignment<status.largestFree) {
+                        heap_size = status.largestFree - 2*heap[heapIndex].alignment;
                     }
                 }
             }
@@ -678,11 +670,11 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
             state->allocator.heapSettings = &heap[heapIndex];
             rc = BMMA_RangeAllocator_Alloc(allocator, &state->allocator.heaps[heapIndex], heap_size, &blockSettings);
             if(rc!=BERR_SUCCESS) {
-                BDBG_MSG(("MEMC%u Can't place HEAP[%u] %uMBytes(%u Bytes) with alignment %#x", memcIndex, heapIndex, (unsigned)(heap_size/(1024*1024)), (unsigned)heap_size,heap[heapIndex].alignment));
+                BDBG_ERR(("MEMC%u Can't place HEAP[%u] %uMBytes(%u Bytes) with alignment %#x%s", memcIndex, heapIndex, (unsigned)(heap_size/(1024*1024)), (unsigned)heap_size,heap[heapIndex].alignment, heap[heapIndex].placement.sage?" SAGE":""));
                 return BERR_TRACE(rc);
             }
             deviceOffset = BMMA_RangeAllocator_GetAllocationBase(state->allocator.heaps[heapIndex]);
-            BDBG_MSG(("MEMC%u Placed HEAP[%u] %uMBytes(%#zx Bytes) with alignment %#x at " BDBG_UINT64_FMT " (%u MByte)", memcIndex, heapIndex, (unsigned)(heap_size/(1024*1024)),heap_size,heap[heapIndex].alignment, BDBG_UINT64_ARG(deviceOffset), (unsigned)(deviceOffset/(1024*1024))));
+            BDBG_MSG(("MEMC%u Placed HEAP[%u] %uMBytes(%#x Bytes) with alignment %#x%s at " BDBG_UINT64_FMT " (%u MByte)", memcIndex, heapIndex, (unsigned)(heap_size/(1024*1024)),(unsigned)heap_size,heap[heapIndex].alignment, heap[heapIndex].placement.sage?" SAGE":"", BDBG_UINT64_ARG(deviceOffset), (unsigned)(deviceOffset/(1024*1024))));
             header = BMMA_RangeAllocator_GetAllocationHeader(state->allocator.heaps[heapIndex]);
             *header = heapIndex;
         }
@@ -1031,10 +1023,17 @@ static bool NEXUS_Platform_P_TestContain(NEXUS_Addr addr1, size_t size1, NEXUS_A
     return (addr2 >= addr1) && (addr2 + size2 <= addr1 + size1);
 }
 
+static bool NEXUS_Platform_P_RangeTestIntersect(const nexus_p_memory_range *outer, NEXUS_Addr addr, size_t size)
+{
+    return NEXUS_Platform_P_TestIntersect(outer->addr, outer->size, addr, size);
+}
 
-static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Verify(const NEXUS_PlatformSettings *pSettings, const NEXUS_Core_Settings *pCoreSettings, const NEXUS_PlatformMemory *pMemory)
+
+
+static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Verify(const nexus_p_memory_info *info, const NEXUS_PlatformSettings *pSettings, const NEXUS_Core_Settings *pCoreSettings, const NEXUS_PlatformMemory *pMemory)
 {
     unsigned i;
+
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
         const NEXUS_PlatformHeapSettings *heap = &pSettings->heap[i];
         const NEXUS_Core_MemoryRegion *region;
@@ -1069,6 +1068,14 @@ static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Verify(const NEXUS_Platfo
                 return BERR_TRACE(NEXUS_INVALID_PARAMETER);
             }
         }
+        if((heap->memoryType&NEXUS_MEMORY_TYPE_SECURE)==NEXUS_MEMORY_TYPE_SECURE && info ) {
+            for(j=0;j<(unsigned)info->lowmem.count;j++) {
+                if(NEXUS_Platform_P_RangeTestIntersect(&info->lowmem.range[j], region->offset, region->length)) {
+                    BDBG_ERR(("SECURE heap[%u] at " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT " intersects with lowmem %uMBytes(%u) at " BDBG_UINT64_FMT "", i, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length), (unsigned)(info->lowmem.range[j].size/(1024*1024)), (unsigned)info->lowmem.range[j].size, BDBG_UINT64_ARG(info->lowmem.range[j].addr)));
+                    return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                }
+            }
+        }
         for (j=0;j<NEXUS_MAX_HEAPS;j++) {
             const NEXUS_Core_MemoryRegion *testRegion = &pCoreSettings->heapRegion[j];
             if(pSettings->heap[j].size==0) {
@@ -1098,6 +1105,47 @@ static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Verify(const NEXUS_Platfo
         if(j==NEXUS_MAX_HEAPS) {
             BDBG_ERR(("heap[%u] at " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT " allocated outside of known MEMC ranges", i, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length)));
             return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+    }
+    return NEXUS_SUCCESS;
+}
+
+static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Adjust(const NEXUS_PlatformHeapSettings *heapSettings, NEXUS_Core_Settings *pCoreSettings)
+{
+    unsigned heapIndex;
+    for (heapIndex=0;heapIndex<NEXUS_MAX_HEAPS;heapIndex++) {
+        const NEXUS_PlatformHeapSettings *heap = &heapSettings[heapIndex];
+        if(heap->size==0) {
+            continue;
+        }
+        if(pCoreSettings->heapRegion[heapIndex].length==0) {
+            continue;
+        }
+        if( (heap->memoryType & NEXUS_MEMORY_TYPE_SECURE) == NEXUS_MEMORY_TYPE_SECURE) {
+            unsigned j;
+            /* find unsecure heap adjacent to the secure heap */
+            for(j=0;j<NEXUS_MAX_HEAPS;j++) {
+                if(j==heapIndex) {
+                    continue;
+                }
+                if(heapSettings[j].size==0) {
+                    continue;
+                }
+                if(heap->memcIndex != heapSettings[j].memcIndex) {
+                    continue;
+                }
+                if( (heapSettings[j].memoryType & NEXUS_MEMORY_TYPE_SECURE) == NEXUS_MEMORY_TYPE_SECURE) {
+                    continue;
+                }
+                if( (heapSettings[j].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) == NEXUS_HEAP_TYPE_PICTURE_BUFFERS) {
+                    /* can't modify size of the picture buffer heaps */
+                    continue;
+                }
+                if(pCoreSettings->heapRegion[j].offset + pCoreSettings->heapRegion[j].length == pCoreSettings->heapRegion[heapIndex].offset && pCoreSettings->heapRegion[j].length>4096) {
+                    BDBG_MSG(("MEMC%u Adjusting size of unsecure heap:%u adjacent to secure heap:%u", heap->memcIndex, j, heapIndex));
+                    pCoreSettings->heapRegion[j].length -= 4096;
+                }
+            }
         }
     }
     return NEXUS_SUCCESS;

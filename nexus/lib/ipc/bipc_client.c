@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2011 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,19 +35,12 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 #include "bstd.h"
 #include "bipc_impl.h"
+#include <errno.h>
 
 BDBG_MODULE(bipc_client);
 
@@ -140,7 +133,12 @@ int bipc_client_send(bipc_t ipc, unsigned id, unsigned entry, size_t send_size, 
     rc = b_safe_write(ipc->t.client.send_fd, in, in->pkt_size);
     if(rc!=(int)in->pkt_size) { (void)BERR_TRACE(BERR_NOT_SUPPORTED);goto done; }
     rc = b_safe_read(ipc->t.client.recv_fd, &out, sizeof(out));
-    if(rc!=sizeof(out)) { (void)BERR_TRACE(BERR_NOT_SUPPORTED);goto done; }
+    if(rc!=sizeof(out)) {
+        if (rc != -ECONNRESET) {
+            (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+        goto done;
+    }
     if(out.pkt_size != recv_size + sizeof(out)) {
         rc = -1;
         (void)BERR_TRACE(BERR_NOT_SUPPORTED);goto done; 

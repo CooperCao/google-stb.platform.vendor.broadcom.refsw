@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2011-2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #include "nexus_frontend_module.h"
@@ -100,6 +92,7 @@ typedef struct NEXUS_PreviousStatus
 typedef struct NEXUS_7563
 {
     BDBG_OBJECT(NEXUS_7563)
+    uint32_t  familyId;
     uint32_t  chipId;
     BHAB_Handle hab;
     BHAB_Capabilities capabilities;
@@ -778,6 +771,7 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open3461(unsigned index, const N
         BKNI_Memset(pDevice, 0, sizeof(NEXUS_7563));
         BDBG_OBJECT_SET(pDevice, NEXUS_7563);
 
+        pDevice->familyId = info.familyId;
         pDevice->chipId = info.productId;
         pDevice->revId = info.rev;
         pDevice->i2cAddr = pSettings->i2cAddr;
@@ -913,8 +907,8 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3461(const NEXUS_3461Settings *pSettings
     if ( NULL == pDevice->updateGainAppCallback[0] ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err_cbk_create;}
 
     pDevice->frontendHandle = frontendHandle;
-    frontendHandle->chip.familyId = 0x7563;
-    frontendHandle->chip.id = 0x7563;
+    frontendHandle->chip.familyId = pDevice->familyId;
+    frontendHandle->chip.id = pDevice->chipId;
     return frontendHandle;
 
 err_cbk_create:
@@ -1273,8 +1267,9 @@ NEXUS_Error NEXUS_Frontend_Probe3461(const NEXUS_FrontendDevice3461OpenSettings 
     BCHP_GetInfo(g_pCoreHandles->chp, &info);
     pResults->chip.id = info.productId;
     pResults->chip.familyId = info.familyId;
-    if (!(( pResults->chip.familyId == 0x7563 ) || (pResults->chip.familyId == 0x75635)))
+    if ((pResults->chip.familyId != 0x7563) && !((pResults->chip.familyId >= 0x75630) && (pResults->chip.familyId <= 0x75639)))
     {
+        BDBG_ERR(("pResults->chip.familyId = 0x%x", pResults->chip.familyId));
         rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
     }
     chipVer = NEXUS_Frontend_P_Get7563Rev(pSettings);
@@ -1295,7 +1290,7 @@ static void NEXUS_Frontend_P_7563_GetType(void *handle, NEXUS_FrontendType *type
 
     BHAB_GetVersionInfo(pDevice->hab, &versionInfo);
 
-    type->chip.familyId = (uint32_t)pDevice->chipId;
+    type->chip.familyId = (uint32_t)pDevice->familyId;
     type->chip.id = (uint32_t)pDevice->chipId;
     type->chip.version.major = (pDevice->revId >> 8) + 1;
     type->chip.version.minor = pDevice->revId & 0xff;
@@ -2583,4 +2578,3 @@ static NEXUS_Error NEXUS_FrontendDevice_P_7563_GetStatus(void *handle, NEXUS_Fro
 done:
     return rc;
 }
-

@@ -582,6 +582,17 @@ static NEXUS_Error NEXUS_SimpleStcChannel_P_SetSettings(NEXUS_SimpleStcChannelHa
         goto set_settings;
     }
 
+    if (handle->video) {
+        NEXUS_SimpleStcChannelDecoderStatus videoStatus;
+        NEXUS_SimpleVideoDecoder_GetStcStatus_priv(handle->video, &videoStatus);
+        if (videoStatus.hdDviInput) {
+            NEXUS_Timebase_GetSettings(settings.timebase, &timebaseSettings);
+            timebaseSettings.sourceType = NEXUS_TimebaseSourceType_eHdDviIn;
+            manualTimebaseConfig = true;
+            goto set_settings;
+        }
+    }
+
     /* now customize the stcSettings based on the mode */
     switch (pSettings->mode) {
         case NEXUS_StcChannelMode_eAuto:
@@ -889,6 +900,7 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
 
     if (videoStatus.connected || videoStatus.primer || audioStatus.connected)
     {
+        bool autoConfigTimebase = (!videoStatus.primer && !videoStatus.hdDviInput);
         if (handle->stcChannel)
         {
             NEXUS_StcChannel_GetSettings(handle->stcChannel, &settings);
@@ -929,7 +941,7 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
                     settings.stcIndex = resolve_stc_index(&videoStatus, &audioStatus);
                     if (settings.stcIndex != -1)
                     {
-                        settings.autoConfigTimebase = !videoStatus.primer;
+                        settings.autoConfigTimebase = autoConfigTimebase;
                         handle->stcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &settings);
                         if (!handle->stcChannel) { rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); }
                         BDBG_MSG(("%p re-open %p: %d for %p,%p", (void *)handle, (void *)handle->stcChannel, settings.stcIndex, (void *)handle->video, (void *)handle->audio));
@@ -949,7 +961,7 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
                     settings.stcIndex = resolve_stc_index(&videoStatus, &audioStatus);
                     if (settings.stcIndex != -1)
                     {
-                        settings.autoConfigTimebase = !videoStatus.primer;
+                        settings.autoConfigTimebase = autoConfigTimebase;
                         rc = NEXUS_StcChannel_SetSettings(handle->stcChannel, &settings);
                         BDBG_MSG(("%p stc index change %p: %d -> %d for %p,%p", (void *)handle, (void *)handle->stcChannel, oldStcIndex, settings.stcIndex, (void *)handle->video, (void *)handle->audio));
                         if (rc) { rc = BERR_TRACE(rc); }
@@ -963,9 +975,8 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
 #endif
                 }
             }
-            else if (settings.autoConfigTimebase != (!videoStatus.primer)) {
-                /* autoConfigTimebase needs to be opposite of primer */
-                settings.autoConfigTimebase = !videoStatus.primer;
+            else if (settings.autoConfigTimebase != autoConfigTimebase) {
+                settings.autoConfigTimebase = autoConfigTimebase;
                 (void)NEXUS_StcChannel_SetSettings(handle->stcChannel, &settings);
             }
         }
@@ -981,7 +992,7 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
             if (settings.stcIndex != -1)
             {
                 /* open new channel with correct index */
-                settings.autoConfigTimebase = !videoStatus.primer;
+                settings.autoConfigTimebase = autoConfigTimebase;
                 handle->stcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &settings);
                 if (!handle->stcChannel) { rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); }
                 BDBG_MSG(("%p open %p: %d for %p,%p", (void *)handle, (void *)handle->stcChannel, settings.stcIndex, (void *)handle->video, (void *)handle->audio));
@@ -1003,6 +1014,11 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
             NEXUS_StcChannel_Close(handle->stcChannel);
             handle->stcChannel = NULL;
         }
+    }
+
+    if (videoStatus.hdDviInput) {
+        /* need call into NEXUS_SimpleStcChannel_P_SetSettings to set NEXUS_TimebaseSourceType_eHdDviIn */
+        change = true;
     }
 
     if (change && handle->stcChannel)

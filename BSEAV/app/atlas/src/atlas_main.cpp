@@ -37,7 +37,6 @@
  *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
  *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
  *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "atlas_main.h"
@@ -366,7 +365,7 @@ done:
 
 void CAtlas::rf4ceRemoteUninitialize()
 {
-    CRf4ceRemote * pRemote = _model.getUhfRemote();
+    CRf4ceRemote * pRemote = _model.getRf4ceRemote();
 
     if (NULL == pRemote)
     {
@@ -473,7 +472,7 @@ done:
 
 void CAtlas::videoWindowUninitialize(CDisplay * pDisplay, CSimpleVideoDecode * pVideoDecode, CVideoWindow * pVideoWindow)
 {
-    if ((NULL == pDisplay) || (NULL == pVideoDecode) || (NULL != pVideoWindow))
+    if ((NULL == pDisplay) || (NULL == pVideoDecode) || (NULL == pVideoWindow))
     {
         return;
     }
@@ -2118,11 +2117,11 @@ eRet CAtlas::initialize(CConfig * pConfig)
 errorDecodeMain: /* we can continue even if main decode cannot be initialized (headless) */
         if (NULL != pVideoWindowSD)
         {
-            videoWindowUninitialize(pDisplayHD, pVideoDecodeMain, pVideoWindowHD);
+            videoWindowUninitialize(pDisplaySD, pVideoDecodeMain, pVideoWindowSD);
         }
         if (NULL != pVideoWindowHD)
         {
-            videoWindowUninitialize(pDisplaySD, pVideoDecodeMain, pVideoWindowSD);
+            videoWindowUninitialize(pDisplayHD, pVideoDecodeMain, pVideoWindowHD);
         }
         if (NULL != pVideoDecodeMain)
         {
@@ -2161,11 +2160,11 @@ doneDecodeMain:
 errorDecodePip: /* we can continue even if pip decode cannot be initialized (headless) */
         if (NULL != pVideoWindowSD)
         {
-            videoWindowUninitialize(pDisplayHD, pVideoDecodePip, pVideoWindowHD);
+            videoWindowUninitialize(pDisplaySD, pVideoDecodePip, pVideoWindowSD);
         }
         if (NULL != pVideoWindowHD)
         {
-            videoWindowUninitialize(pDisplaySD, pVideoDecodePip, pVideoWindowSD);
+            videoWindowUninitialize(pDisplayHD, pVideoDecodePip, pVideoWindowHD);
         }
         if (NULL != pVideoDecodePip)
         {

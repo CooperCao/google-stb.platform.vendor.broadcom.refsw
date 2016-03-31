@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_transport_module.h"
@@ -583,7 +575,7 @@ static void NEXUS_TransportModule_P_Print(void)
                 break;
             case NEXUS_StcChannelMode_eAuto:
                 {
-                static const char *g_master[] = {"first avail","video","audio","error"};
+                static const char *g_master[NEXUS_StcChannelAutoModeBehavior_eMax] = {"first avail","video","audio"};
                 BDBG_LOG(("stcChannel %p: auto mode, %s master, stc %d, timebase %d, value %#x, %s",
                     (void *)stcChannel, g_master[stcChannel->settings.modeSettings.Auto.behavior], stcChannel->stcIndex, stcChannel->timebase->hwIndex, stc, stcChannel->stcValid?"valid":"invalid"));
                 }
@@ -600,12 +592,14 @@ static void NEXUS_TransportModule_P_Print(void)
     for (i=0;i<BXPT_NUM_PCRS;i++) {
         NEXUS_TimebaseHandle timebase = pTransport->timebase[i];
         if (timebase->acquired) {
-            static const char *g_source[] = {"pcr","freerun","analog","hddvi","ccir656","i2s","spdif","error"};
-            BDBG_LOG(("timebase %d: %s",
-                timebase->hwIndex, g_source[timebase->settings.sourceType]));
+            char str[64];
+            unsigned n;
+            static const char *g_source[NEXUS_TimebaseSourceType_eMax] = {"pcr","freerun","analog","hddvi","ccir656","i2s","spdif"};
+            n = BKNI_Snprintf(str, sizeof(str), "timebase %d: %s", timebase->hwIndex, g_source[timebase->settings.sourceType]);
             if (timebase->settings.sourceType == NEXUS_TimebaseSourceType_ePcr) {
-                BDBG_LOG(("            pidChannel %p", (void *)timebase->settings.sourceSettings.pcr.pidChannel));
+                BKNI_Snprintf(&str[n], sizeof(str)-n, ", pidChannel %p", (void *)timebase->settings.sourceSettings.pcr.pidChannel);
             }
+            BDBG_LOG(("%s", str));
         }
     }
 #endif

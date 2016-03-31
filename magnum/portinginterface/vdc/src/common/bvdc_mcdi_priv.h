@@ -350,7 +350,11 @@ extern "C" {
 
 	/* IT_FIELD_PHASE_CALC_CONTROL_9 */
 #define BVDC_P_MADR_REV32_P0_MAX_SD                        2
+#if (BVDC_P_SUPPORT_MADR_VER < BVDC_P_MADR_VER_10)
 #define BVDC_P_MADR_REV32_P0_MAX_HD                        9
+#else
+#define BVDC_P_MADR_REV32_P0_MAX_HD                        8
+#endif
 #define BVDC_P_MADR_REV32_T1_RATIO                         0xb
 #define BVDC_P_MADR_REV32_T1_MIN_SD                        0x14
 #define BVDC_P_MADR_REV32_T1_MIN_HD                        0x50
@@ -363,7 +367,11 @@ extern "C" {
 
 	/* IT_FIELD_PHASE_CALC_CONTROL_11 */
 #define BVDC_P_MADR_LG_PCC_THRESHOLD_SD                    25
+#if (BVDC_P_SUPPORT_MADR_VER < BVDC_P_MADR_VER_10)
 #define BVDC_P_MADR_LG_PCC_THRESHOLD_HD                    0x64
+#else
+#define BVDC_P_MADR_LG_PCC_THRESHOLD_HD                    0xB0
+#endif
 #define BVDC_P_MADR_TICKER_THRESHOLD_SD                    19
 #define BVDC_P_MADR_TICKER_THRESHOLD_HD                    0x4c
 

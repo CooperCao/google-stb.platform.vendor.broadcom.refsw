@@ -4129,7 +4129,7 @@ static int open_transcode(
 				} else {
 					fclose(indexFile);
 				}
-			} else if(pInputSettings->probe && pInputSettings->bUseStreamAsIndex) {
+			} else {
 				BKNI_Snprintf(srcIndexFileName, 256, "%s", pInputSettings->fname);
 			}
 

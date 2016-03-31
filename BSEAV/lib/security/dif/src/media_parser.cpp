@@ -1,45 +1,46 @@
 /******************************************************************************
- *    (c)2015 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * DRM Integration Framework
  *
  *****************************************************************************/
+
 #undef LOGE
 #undef LOGW
 #undef LOGD
@@ -127,10 +128,19 @@ bool MediaParser::InitParser()
         LOGD(("PIFF(isml) file type is detected"));
     }else if (BMP4_DASH == parser_context->filetype.major_brand){
         m_mediaType = media_type_eCenc;
-        LOGD(("CENC(dash) file type is detected"));
+        LOGD(("CENC(dash) detected in major brand"));
     }else{
-        LOGE(("Unknown file type detected:" B_MP4_TYPE_FORMAT, B_MP4_TYPE_ARG(parser_context->filetype.major_brand)));
-        return false;
+        for (int i = 0; i < parser_context->filetype.ncompatible_brands; i++) {
+            if (BMP4_DASH == parser_context->filetype.compatible_brands[i]) {
+                m_mediaType = media_type_eCenc;
+                LOGD(("CENC(dash) detected in compatible brands"));
+                break;
+            }
+        }
+        if (m_mediaType == media_type_eUnknown) {
+            LOGE(("Unknown file type detected:" B_MP4_TYPE_FORMAT, B_MP4_TYPE_ARG(parser_context->filetype.major_brand)));
+            return false;
+        }
     }
 
     LOGD(("Parse movie information"));
@@ -145,8 +155,7 @@ bool MediaParser::InitParser()
     bmp4_mp4_headers *mp4_header = &parser_context->mp4_mp4;
     m_numOfDrmSchemes = mp4_header->numOfDrmSchemes;
     if(m_numOfDrmSchemes < 1){
-        LOGE(("No pssh found in the stream, can't continue..."));
-        return false;
+        LOGW(("No pssh found in the stream"));
     }
 
     m_psshData = mp4_parser_get_pssh(m_handle, &m_psshLen, 0); /*get first pssh by default*/
@@ -156,26 +165,28 @@ bool MediaParser::InitParser()
     else
         LOGD(("m_psshLen=%d", m_psshLen));
 
-    m_psshDataStr = std::string(m_psshLen, (char)0);
-    BKNI_Memcpy((void*)m_psshDataStr.data(), m_psshData, m_psshLen);
-    LOGD(("pssh in the file: %s", b2a_hex(m_psshDataStr).c_str()));
+    if (m_psshLen) {
+        m_psshDataStr = std::string(m_psshLen, (char)0);
+        BKNI_Memcpy((void*)m_psshDataStr.data(), m_psshData, m_psshLen);
+        LOGD(("pssh in the file: %s", b2a_hex(m_psshDataStr).c_str()));
 
+        LOGD(("Detecting system ID"));
+        std::string system_id;
+        system_id.resize(BMP4_UUID_LENGTH);
+        BKNI_Memcpy((void*)system_id.data(),
+            parser_context->mp4_mp4.psshSystemId[0].systemId.data,
+            BMP4_UUID_LENGTH); /*fetch first systemID by default*/
 
-    LOGD(("Detecting system ID"));
-    std::string system_id;
-    system_id.resize(BMP4_UUID_LENGTH);
-    BKNI_Memcpy((void*)system_id.data(),
-        parser_context->mp4_mp4.psshSystemId[0].systemId.data, BMP4_UUID_LENGTH); /*fetch first systemID by default*/
-
-    if (system_id.compare(a2bs_hex(kWidevineSystemId)) == 0) {
-        m_drmType = drm_type_eWidevine;
+        if (system_id.compare(a2bs_hex(kWidevineSystemId)) == 0) {
+            m_drmType = drm_type_eWidevine;
             LOGD(("Widevine System Id was detected"));
-    }else if(system_id.compare(a2bs_hex(kPlayreadySystemId)) == 0){
-        m_drmType = drm_type_ePlayready;
-        LOGD(("Playready System Id was detected"));
-    }else{
-        LOGE(("Unknown System ID is detected: %s", b2a_hex(system_id).c_str()));
-        return false;
+        }else if(system_id.compare(a2bs_hex(kPlayreadySystemId)) == 0){
+            m_drmType = drm_type_ePlayready;
+            LOGD(("Playready System Id was detected"));
+        }else{
+            LOGE(("Unknown System ID is detected: %s", b2a_hex(system_id).c_str()));
+            return false;
+        }
     }
 
     /* go back to the begining */
@@ -188,6 +199,11 @@ bool MediaParser::InitParser()
 
 uint8_t MediaParser::GetNumOfDrmSchemes(DrmType drmTypes[], uint8_t arySize) const
 {
+    if (m_numOfDrmSchemes == 0) {
+        drmTypes[0] = drm_type_eUnknown;
+        return 0;
+    }
+
     struct mp4_parser_context* parser_context = (struct mp4_parser_context *)m_handle;
     std::string system_id;
     system_id.resize(BMP4_UUID_LENGTH);

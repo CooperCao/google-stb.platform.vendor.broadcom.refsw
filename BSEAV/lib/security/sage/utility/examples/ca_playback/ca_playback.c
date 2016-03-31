@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2013 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -102,7 +102,7 @@ uint8_t ca_procInForKey5[] = {0x6c, 0x8e, 0xfa, 0xa4, 0xe0, 0x7b, 0x89, 0x51, 0x
 
 NEXUS_KeySlotHandle gHandle[2] = {NULL, NULL};
 
-int main(void)
+int main(int argc, char **argv)
 {
     int status = 0;
 
@@ -291,25 +291,52 @@ int main(void)
     /* Start playback */
     NEXUS_Playback_Start(playback, file, NULL);
 
+	NEXUS_VideoDecoderStatus videoStatus;
+	NEXUS_AudioDecoderStatus audioStatus;
+
     /* Playback state machine is driven from inside Nexus. */
-    printf("Press S to show the decoder status, Q to quit\n");
-    do
-    {
-        action = toupper(getchar());
+	if (argc > 1)
+	{
+		if ((strcmp("--odt", argv[1]) != 0))
+		{
+			printf("The only parameter allowed for now is \"--odt\"\n");
+			status = -1;
+			goto handle_error;
+		}
+		else
+		{
+			sleep(15);
+			/* verify video has worked */
+			NEXUS_VideoDecoder_GetStatus(videoDecoder, &videoStatus);
+			printf("'%d' pictures displayed\n", videoStatus.numDecoded);
+			if (videoStatus.numDecoded < 200)		{
+				status = -1;
+			}
+			/* verify audio has worked */
+			NEXUS_AudioDecoder_GetStatus(audioDecoder, &audioStatus);
+			printf("'%d' audio frames decoded\n", audioStatus.framesDecoded);
+			if (audioStatus.framesDecoded < 200)		{
+				status = -1;
+			}
+		}
+	}
+	else
+	{
+		printf("Press S to show the decoder status, Q to quit\n");
+		do
+		{
+			action = toupper(getchar());
 
-        if('S' == action)
-        {
-            NEXUS_VideoDecoderStatus status;
-            NEXUS_AudioDecoderStatus audioStatus;
+			if('S' == action)
+			{
+				NEXUS_VideoDecoder_GetStatus(videoDecoder, &videoStatus);
+				printf("Main - VIDEO - numDecoded = '%u'   numDecodeErrors = '%u'   ptsErrorCount = '%u'\n", videoStatus.numDecoded, videoStatus.numDecodeErrors, videoStatus.ptsErrorCount);
+				NEXUS_AudioDecoder_GetStatus(audioDecoder, &audioStatus);
+				printf("Main - AUDIO - framesDecoded = '%u'   frameErrors = '%u'   dummyFrames = '%u'\n", audioStatus.framesDecoded, audioStatus.frameErrors, audioStatus.dummyFrames);
 
-            NEXUS_VideoDecoder_GetStatus(videoDecoder, &status);
-            printf("Main - VIDEO - numDecoded = '%u'   numDecodeErrors = '%u'   ptsErrorCount = '%u'\n", status.numDecoded, status.numDecodeErrors, status.ptsErrorCount);
-
-            NEXUS_AudioDecoder_GetStatus(audioDecoder, &audioStatus);
-            printf("Main - AUDIO - framesDecoded = '%u'   frameErrors = '%u'   dummyFrames = '%u'\n", audioStatus.framesDecoded, audioStatus.frameErrors, audioStatus.dummyFrames);
-
-        }
-    } while('Q' != action);
+			}
+		} while('Q' != action);
+	}
 
 
 handle_error:
@@ -361,8 +388,7 @@ handle_error:
     KeyLoaderTl_Uninit(hKeyLoader);
 
     NEXUS_Platform_Uninit();
-
-    return status;
+	return status;
 }
 
 static BERR_Code Utility_LoadKey(KeyLoaderTl_Handle hKeyLoader)

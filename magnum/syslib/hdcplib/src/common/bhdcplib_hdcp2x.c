@@ -474,7 +474,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_SendSageCommand(
 		hHDCPlib->sageContainer->blocks[0].data.ptr = hHDCPlib->stBinKey.pBuffer;
 		hHDCPlib->sageContainer->blocks[0].len = hHDCPlib->stBinKey.uiSize;
 
-		if (hHDCPlib->RevokedKsvList.uiNumRevokedKsvs > 0)
+		if ((hHDCPlib->RevokedKsvList.uiNumRevokedKsvs > 0) && (hHDCPlib->RevokedKsvList.Ksvs != NULL))
 		{
 			/* Allocate memory to hold revoked ReceiverId List */
 			revokedReceiverIdList = BSAGElib_Rai_Memory_Allocate(hHDCPlib->stDependencies.hSagelibClientHandle,
@@ -486,16 +486,39 @@ static BERR_Code BHDCPlib_P_Hdcp2x_SendSageCommand(
 				BERR_TRACE(rc);
 				goto done;
 			}
+
+			/* copy revokedReceiverId data */
+			BKNI_Memcpy(revokedReceiverIdList, hHDCPlib->RevokedKsvList.Ksvs,
+									hHDCPlib->RevokedKsvList.uiNumRevokedKsvs * BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+
+			/* load container block */
+			hHDCPlib->sageContainer->blocks[1].data.ptr = revokedReceiverIdList;
+			hHDCPlib->sageContainer->blocks[1].len =
+						(hHDCPlib->RevokedKsvList.uiNumRevokedKsvs*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+		}
+		else {
+			/* populate 1 entry list to maintain consistency with SAGE interface */
+			revokedReceiverIdList = BSAGElib_Rai_Memory_Allocate(hHDCPlib->stDependencies.hSagelibClientHandle,
+					1 * BHDCPLIB_HDCP2X_RECEIVERID_LENGTH, BSAGElib_MemoryType_Global);
+			if (revokedReceiverIdList == NULL)
+			{
+				BDBG_ERR(("Error allocating BSAGElib_InOutContainer"));
+				rc = BERR_OUT_OF_SYSTEM_MEMORY;
+				BERR_TRACE(rc);
+				goto done;
+			}
+
+			revokedReceiverIdList[0] = 0xFF;
+			revokedReceiverIdList[1] = 0xFF;
+			revokedReceiverIdList[2] = 0xFF;
+			revokedReceiverIdList[3] = 0xFF;
+			revokedReceiverIdList[4] = 0xFF;
+
+			/* load container block */
+			hHDCPlib->sageContainer->blocks[1].data.ptr = revokedReceiverIdList;
+			hHDCPlib->sageContainer->blocks[1].len = 1 * BHDCPLIB_HDCP2X_RECEIVERID_LENGTH;
 		}
 
-		/* copy revokedReceiverId data */
-		BKNI_Memcpy(revokedReceiverIdList, hHDCPlib->RevokedKsvList.Ksvs,
-								hHDCPlib->RevokedKsvList.uiNumRevokedKsvs * BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
-
-		/* load container block */
-		hHDCPlib->sageContainer->blocks[1].data.ptr = revokedReceiverIdList;
-		hHDCPlib->sageContainer->blocks[1].len =
-					(hHDCPlib->RevokedKsvList.uiNumRevokedKsvs*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
 
 		/* Send command to SAGE request to start HDCP authentication */
 		rc = BSAGElib_Rai_Module_ProcessCommand(hHDCPlib->hSagelibRpcModuleHandle,
@@ -889,7 +912,16 @@ BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 	{
 	case BHDCPlib_Hdcp2xState_eAuthenticated:
 	case BHDCPlib_Hdcp2xState_eUnauthenticated:
+	case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
 		break;
+
+	case BHDCPlib_Hdcp2xState_eAuthenticating:
+#if 0
+		BDBG_ERR(("Busy authenticating from previous request"));
+		goto done;
+#endif
+		break;
+
 
 	case BHDCPlib_Hdcp2xState_eSagePlatformOpen:
 	case BHDCPlib_Hdcp2xState_eSagePlatformInit:
@@ -939,6 +971,9 @@ BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 		goto done;
 	}
 
+	/* update state */
+	hHDCPlib->currentHdcp2xState = BHDCPlib_Hdcp2xState_eAuthenticating;
+
 done:
 
 	BDBG_LEAVE(BHDCPlib_P_Hdcp2x_StartAuthentication);
@@ -959,6 +994,8 @@ BERR_Code BHDCPlib_P_Hdcp2x_StopAuthentication(const BHDCPlib_Handle hHDCPlib)
 	{
 	case BHDCPlib_Hdcp2xState_eAuthenticated:
 	case BHDCPlib_Hdcp2xState_eUnauthenticated:
+	case BHDCPlib_Hdcp2xState_eAuthenticating:
+	case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
 		break;
 
 	case BHDCPlib_Hdcp2xState_eSagePlatformOpen:
@@ -1114,6 +1151,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 			{
 			/* Authentication process failed or link no longer authenticated */
 			case Hdcp22_AuthenticationStatus_eUnAuthenticated:
+				BDBG_WRN(("Indication Status Received - UNAUTHENTICATED"));
 				nextState = BHDCPlib_Hdcp2xState_eUnauthenticated;
 				hHDCPlib->hdcp2xLinkAuthenticated = false;
 
@@ -1133,13 +1171,21 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 
 			/* Session key loaded, now wait for OK_TO_ENC_EN intterupt before enable HDCP 2.2 encryption */
 			case Hdcp22_AuthenticationStatus_eSessionKeyLoaded:
+				BDBG_WRN(("Indication Status Received - SessionKeyLoaded"));
 				/* Kick-start count down timer to enable Hdcp2.2 encryption */
 				rc = BHDM_HDCP_UpdateHdcp2xAuthenticationStatus(hHDCPlib->stDependencies.hHdm, true);
 				if (rc != BERR_SUCCESS) {
 					BDBG_ERR(("Error updating Hdcp2x Authentication status in HDMI HW"));
 					BERR_TRACE(rc) ;
 				}
+				nextState = BHDCPlib_Hdcp2xState_eSessionKeyLoaded;
 				break;
+
+
+			case Hdcp22_AuthenticationStatus_eAutoI2CTimerUnavailable:
+				BDBG_WRN(("******* Auto I2C HW Timers are unavailable *****"));
+				break;
+
 
 			/* Start HDCP 2.x authentication process. Make sure to disable SERIAL_KEY_RAM */
 			case Hdcp22_AuthenticationStatus_eReadyToDisableKeyRamSerial:
@@ -1149,11 +1195,13 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 					BDBG_ERR(("Error disabling Serial Key Ram in HDMI RX HW"));
 					BERR_TRACE(rc) ;
 				}
- #endif
+#endif
 				break;
+
 
 			/* Authentication process succeed */
 			case Hdcp22_AuthenticationStatus_eAuthenticated:
+				BDBG_WRN(("Indication Status Received - AUTHENTICATED"));
 				/* Request downstream info in connection topology */
 				rc = BHDCPlib_P_Hdcp2x_SendSageCommand(hHDCPlib,
 							Hdcp22_CommandId_Tx_eGetReceiverIdlist);
@@ -1280,6 +1328,9 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 				Now just wait for Indication Callback from sage with update of the authentication status */
 			case BHDCPlib_Hdcp2xState_eUnauthenticated:
 			case BHDCPlib_Hdcp2xState_eAuthenticated:
+			case BHDCPlib_Hdcp2xState_eAuthenticating:
+			case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
+			case BHDCPlib_Hdcp2xState_eSystemCannotInitialize:
 				/* No state change */
 				break;
 
@@ -1383,7 +1434,37 @@ void BHDCPlib_Hdcp2x_EnableEncryption(const BHDCPlib_Handle hHDCPlib, const bool
 	BDBG_ENTER(BHDCPlib_Hdcp2x_EnableEncryption);
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
 
+	/* Make sure system is ready for the request */
+	switch (hHDCPlib->currentHdcp2xState)
+	{
+	case BHDCPlib_Hdcp2xState_eAuthenticated:
+	case BHDCPlib_Hdcp2xState_eUnauthenticated:
+	case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
+	case BHDCPlib_Hdcp2xState_eSagePlatformOpen:
+	case BHDCPlib_Hdcp2xState_eSagePlatformInit:
+	case BHDCPlib_Hdcp2xState_eSageModuleInit:
+	case BHDCPlib_Hdcp2xState_eSystemCannotInitialize:
+		break;
+
+	case BHDCPlib_Hdcp2xState_eAuthenticating:
+#if 0
+		BDBG_ERR(("Still authenticating from previous request - Skip request to %s encryption",
+			enable?"enable":"disable"));
+		goto done;
+#endif
+		break;
+
+	default:
+		BDBG_ERR(("Invalid Hdcp2.x state - %d", hHDCPlib->currentHdcp2xState));
+		rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+		goto done;
+		break;
+	}
+
+
 	rc = BHDM_HDCP_EnableHdcp2xEncryption(hHDCPlib->stDependencies.hHdm, enable);
+
+done:
 
 	BDBG_LEAVE(BHDCPlib_Hdcp2x_EnableEncryption);
 	return;
@@ -1420,10 +1501,11 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 		case BHDCPlib_Hdcp2xState_eSystemCannotInitialize:
 			break;
 
-
 		case BHDCPlib_Hdcp2xState_eSageModuleInit:
 		case BHDCPlib_Hdcp2xState_eUnauthenticated:
 		case BHDCPlib_Hdcp2xState_eAuthenticated:
+		case BHDCPlib_Hdcp2xState_eAuthenticating:
+		case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
 
 			if (hHDCPlib->sageContainer->basicOut[0] != HDCP22_ERR_SUCCESS)
 			{
@@ -1559,6 +1641,8 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 
 			case BHDCPlib_Hdcp2xState_eUnauthenticated:
 			case BHDCPlib_Hdcp2xState_eAuthenticated:
+			case BHDCPlib_Hdcp2xState_eAuthenticating:
+			case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
 			case BHDCPlib_Hdcp2xState_eSystemCannotInitialize:
 				BDBG_ERR(("Previous request to SAGE did not finished successfully - error [%x] '%s'",
 					sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error)));
@@ -1718,6 +1802,8 @@ BERR_Code BHDCPlib_Hdcp2x_SetBinKeys(
 		{
 		case BHDCPlib_Hdcp2xState_eAuthenticated:
 		case BHDCPlib_Hdcp2xState_eUnauthenticated:
+		case BHDCPlib_Hdcp2xState_eAuthenticating:
+		case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
 			break;
 
 		case BHDCPlib_Hdcp2xState_eSagePlatformOpen:
@@ -1798,12 +1884,9 @@ BERR_Code BHDCPlib_Hdcp2x_Tx_GetReceiverIdList(
 	switch (hHDCPlib->currentHdcp2xState)
 	{
 	case BHDCPlib_Hdcp2xState_eAuthenticated:
-		break;
-
 	case BHDCPlib_Hdcp2xState_eUnauthenticated:
-		BDBG_ERR(("Current HDCP2.x status: Unauthenticated. Invalid request"));
-		rc = BERR_INVALID_PARAMETER;
-		BERR_TRACE(rc);
+	case BHDCPlib_Hdcp2xState_eAuthenticating:
+	case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
 		break;
 
 	case BHDCPlib_Hdcp2xState_eSagePlatformOpen:
@@ -1873,6 +1956,11 @@ BERR_Code BHDCPlib_Hdcp2x_Rx_UploadReceiverIdList(
 		BDBG_ERR(("%s not applicable for HDCP 2.2 Transmitter", __FUNCTION__));
 		rc = BERR_INVALID_PARAMETER;
 		BERR_TRACE(rc);
+		goto done;
+	}
+
+	if (hHDCPlib->currentHdcp2xState != BHDCPlib_Hdcp2xState_eAuthenticated) {
+		BDBG_WRN(("HDMI Rx Authenticated Link has not been establish. Drop request"));
 		goto done;
 	}
 

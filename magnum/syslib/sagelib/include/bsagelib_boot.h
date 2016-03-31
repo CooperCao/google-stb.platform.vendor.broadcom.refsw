@@ -132,6 +132,10 @@ BSAGElib_Boot_GetBinariesVersion(
     char **ppBLVer,
     char **ppOSVer);
 
+BERR_Code
+BSAGElib_Boot_Post(
+    BSAGElib_Handle hSAGElib);
+
 #ifdef __cplusplus
 }
 #endif

@@ -50,6 +50,8 @@ typedef enum BHDCPlib_Hdcp2xState
 	BHDCPlib_Hdcp2xState_eSagePlatformInit,
 	BHDCPlib_Hdcp2xState_eSageModuleInit,
 	BHDCPlib_Hdcp2xState_eUnauthenticated,
+	BHDCPlib_Hdcp2xState_eAuthenticating,
+	BHDCPlib_Hdcp2xState_eSessionKeyLoaded,
 	BHDCPlib_Hdcp2xState_eAuthenticated,
 	BHDCPlib_Hdcp2xState_eSystemCannotInitialize
 } BHDCPlib_Hdcp2xState;

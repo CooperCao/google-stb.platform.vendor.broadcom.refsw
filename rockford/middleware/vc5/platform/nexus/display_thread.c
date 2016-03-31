@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2015 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2015 Broadcom.
 All rights reserved.
 =============================================================================*/
 
@@ -216,6 +216,7 @@ static void TerminateDisplay(NXPL_NativeWindow_priv *priv)
    }
 #endif /* NXPL_PLATFORM_EXCLUSIVE */
 
+#if 0 /* temp hack for SWVC5-543.  Works around an application bug in webkit integration.  Will remove in 16.2. */
 #ifdef NXPL_PLATFORM_NSC
    if (priv->surfaceClient != NULL)
    {
@@ -227,6 +228,7 @@ static void TerminateDisplay(NXPL_NativeWindow_priv *priv)
       if (err != NEXUS_SUCCESS)
          FATAL_ERROR("NEXUS_SurfaceClient_SetSettings failed");
    }
+#endif
 #endif
 
    if (priv->vsyncAvailable)

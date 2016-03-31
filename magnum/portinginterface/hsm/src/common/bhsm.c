@@ -234,7 +234,6 @@ BERR_Code BHSM_Open( BHSM_Handle            *hpHsm,
         goto BHSM_P_DONE_LABEL;
     }
 
-
 #if BHSM_SAGE_BSP_PI_SUPPORT
     BREG_Write32( hHsm->regHandle, BCHP_BSP_GLB_CONTROL_GLB_OLOAD1, 0);
     BREG_Write32( hHsm->regHandle, BCHP_BSP_GLB_CONTROL_GLB_ILOAD1, 0);
@@ -344,15 +343,6 @@ BERR_Code BHSM_Open( BHSM_Handle            *hpHsm,
             (void)BERR_TRACE( errCode );
             goto BHSM_P_DONE_LABEL;
         }
-
-        #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
-        /* SAGE side initialisation of ByPass KeySlot */
-        if( ( errCode = BHSM_P_InitialiseByPassKeyslot_sage( hHsm ) ) != BERR_SUCCESS )
-        {
-            BERR_TRACE(errCode);  /* Failed to initialise bypass keyslot. */
-            goto BHSM_P_DONE_LABEL;
-        }
-        #endif
     }
 
     hHsm->hsmPiRunningFullRom = isSecurityInRom( hHsm );
@@ -468,10 +458,6 @@ BERR_Code BHSM_Close( BHSM_Handle hHsm )
     BDBG_LEAVE( BHSM_Close );
     return errCode;
 }
-
-
-
-
 
 
 

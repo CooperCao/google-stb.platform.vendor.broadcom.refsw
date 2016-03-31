@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Platform
 *    Specific APIs to initialze the a board.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -168,7 +160,7 @@ int main(int argc, char **argv)
     NEXUS_HdmiInputHandle hdmiInput;
     NEXUS_HdmiInputSettings hdmiInputSettings;
     NEXUS_HdmiInputHdcpStatus hdcpStatus ;
-
+    NEXUS_TimebaseSettings timebaseSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_PlatformSettings platformSettings ;
     NEXUS_Error errCode  ;
@@ -186,7 +178,12 @@ int main(int argc, char **argv)
 
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
+    NEXUS_Timebase_GetSettings(NEXUS_Timebase_e0, &timebaseSettings);
+    timebaseSettings.sourceType = NEXUS_TimebaseSourceType_eHdDviIn;
+    NEXUS_Timebase_SetSettings(NEXUS_Timebase_e0, &timebaseSettings);
+
     NEXUS_HdmiInput_GetDefaultSettings(&hdmiInputSettings);
+        hdmiInputSettings.timebase = NEXUS_Timebase_e0;
 
         /* set hpdDisconnected to true if a HDMI switch is in front of the Broadcom HDMI Rx.
              -- The NEXUS_HdmiInput_ConfigureAfterHotPlug should be called to inform the hw of
@@ -202,9 +199,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "Can't get hdmi input\n");
         return -1;
     }
-
-    NEXUS_HdmiInput_GetSettings(hdmiInput, &hdmiInputSettings) ;
-    NEXUS_HdmiInput_SetSettings(hdmiInput, &hdmiInputSettings) ;
 
     {
         NEXUS_HdmiInputHdcpKeyset hdmiInputKeyset ;

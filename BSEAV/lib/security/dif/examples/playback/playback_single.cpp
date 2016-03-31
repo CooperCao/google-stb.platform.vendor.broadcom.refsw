@@ -337,17 +337,17 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
     uint64_t frag_duration;
     uint32_t bytes_processed = 0;
     uint32_t last_bytes_processed = 0;
-    if (frag_info->samples_enc->sample_count == 0) {
+    if (frag_info->samples_info->sample_count == 0) {
         LOGE(("%s: No samples", __FUNCTION__));
         return -1;
     }
 
-    LOGD(("%s: #samples=%d",__FUNCTION__, frag_info->samples_enc->sample_count));
-    for (unsigned i = 0; i < frag_info->samples_enc->sample_count; i++) {
+    LOGD(("%s: #samples=%d",__FUNCTION__, frag_info->samples_info->sample_count));
+    for (unsigned i = 0; i < frag_info->samples_info->sample_count; i++) {
         uint32_t numOfByteDecrypted = 0;
         size_t sampleSize = 0;
 
-        pSample = &frag_info->samples_enc->samples[i];
+        pSample = &frag_info->samples_info->samples[i];
         numOfByteDecrypted = sampleSize = frag_info->sample_info[i].size;
 
         if (frag_info->trackType == BMP4_SAMPLE_ENCRYPTED_VIDEO ||

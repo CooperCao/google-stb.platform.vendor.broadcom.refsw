@@ -312,37 +312,37 @@ void NEXUS_SecurityModule_GetDefaultSettings(NEXUS_SecurityModuleSettings *pSett
     pSettings->common.enabledDuringActiveStandby = true;
 
     /* defaults number of keyslots per type. */
-    pSettings->numKeySlotsForType[0] = 15;
-    pSettings->numKeySlotsForType[1] = 7;
-    pSettings->numKeySlotsForType[2] = 11;
-    pSettings->numKeySlotsForType[3] = 5;
-    pSettings->numKeySlotsForType[4] = 6;
+    pSettings->numKeySlotsForType[0] = 20;
+    pSettings->numKeySlotsForType[1] = 10;
+    pSettings->numKeySlotsForType[2] = 15;
+    pSettings->numKeySlotsForType[3] = 25;
+    pSettings->numKeySlotsForType[4] = 7;
     pSettings->numKeySlotsForType[5] = 2;
     pSettings->numKeySlotsForType[6] = 8;
-#if HAS_TYPE7_KEYSLOTS
+    #if HAS_TYPE7_KEYSLOTS
     pSettings->numKeySlotsForType[7] = 4;
-#endif
+    #endif
 
     /*exceptions*/
 #if HSM_IS_ASKM_40NM
-#if (BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(3,0))
+    #if (BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(3,0))
     pSettings->numKeySlotsForType[3] = 0;
-#endif
+    #endif
 
-#if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0))
+    #if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0))
     pSettings->numKeySlotsForType[5] = 0;
-#endif
+    #endif
 
-#if (BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(1,0))
+    #if (BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(1,0))
     pSettings->numKeySlotsForType[1] = 0;
     pSettings->numKeySlotsForType[4] = 0;
     pSettings->numKeySlotsForType[5] = 0;
     pSettings->numKeySlotsForType[6] = 0;
-#endif
+    #endif
 
-#if NEXUS_HAS_NSK2HDI
+  #if NEXUS_HAS_NSK2HDI
     BKNI_Memset(pSettings->numKeySlotsForType, 0, sizeof(pSettings->numKeySlotsForType));
-#if (BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(1,0))
+    #if (BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(1,0))
     /* Zeus 1 layout */
     pSettings->numKeySlotsForType[0]= 0;
     pSettings->numKeySlotsForType[1]= 57;
@@ -350,7 +350,7 @@ void NEXUS_SecurityModule_GetDefaultSettings(NEXUS_SecurityModuleSettings *pSett
     pSettings->numKeySlotsForType[3]= 0;
     pSettings->numKeySlotsForType[4]= 1;
     pSettings->numKeySlotsForType[5]= 0;
-#elif (BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(4,0))
+    #elif (BHSM_ZEUS_VERSION < BHSM_ZEUS_VERSION_CALC(4,0))
     /* Zeus 2/Zeus 3 layout */
     pSettings->numKeySlotsForType[0]= 0;
     pSettings->numKeySlotsForType[1]= 116;
@@ -358,7 +358,7 @@ void NEXUS_SecurityModule_GetDefaultSettings(NEXUS_SecurityModuleSettings *pSett
     pSettings->numKeySlotsForType[3]= 0;
     pSettings->numKeySlotsForType[4]= 1;
     pSettings->numKeySlotsForType[5]= 0;
-#else
+    #else
     /* Zeus 4 layout */
     pSettings->numKeySlotsForType[0]= 0;
     pSettings->numKeySlotsForType[1]= 32;
@@ -366,8 +366,8 @@ void NEXUS_SecurityModule_GetDefaultSettings(NEXUS_SecurityModuleSettings *pSett
     pSettings->numKeySlotsForType[3]= 52;
     pSettings->numKeySlotsForType[4]= 1;
     pSettings->numKeySlotsForType[5]= 51;
-#endif
-#endif /* NEXUS_HAS_NSK2HDI */
+    #endif
+  #endif /* NEXUS_HAS_NSK2HDI */
 
 #endif /* HSM_IS_ASKM_40NM */
     return;
@@ -554,6 +554,11 @@ static BERR_Code NEXUS_Security_P_InitHsm(const NEXUS_SecurityModuleSettings * p
 #if HSM_IS_ASKM_40NM
     hsmSettings.hHeap = g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem;
 #endif
+
+    #if NEXUS_HAS_SAGE
+    hsmSettings.sageEnabled = true;
+    #endif
+
     rc = BHSM_Open(&g_security.hsm, g_pCoreHandles->reg, g_pCoreHandles->chp, g_pCoreHandles->bint, &hsmSettings);
     if (rc) { return BERR_TRACE(MAKE_HSM_ERR(rc)); }
 

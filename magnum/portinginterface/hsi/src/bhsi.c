@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2011 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ******************************************************************************/
 
 
@@ -206,9 +198,10 @@ BERR_Code BHSI_GetDefaultSettings(
     BHSI_Settings *pSettings
 )
 {
-/* timeout is arbitrary.
- * TODO benchmark and define a proper value */
-#define BHSI_DEFAULT_TIMEOUT_MS 300
+/* Timeout is benchmarked to be large enough
+ * to allow for potential URR toggling to complete.
+ */
+#define BHSI_DEFAULT_TIMEOUT_MS 1500
     BERR_Code errCode = BERR_SUCCESS;
 
     BDBG_ENTER(BHSI_GetDefaultSettings);
@@ -298,7 +291,7 @@ BHSI_P_DONE_LABEL:
 }
 
 BERR_Code BHSI_Reset_isr(BHSI_Handle hHsi)
-{   
+{
     BERR_Code rc = BERR_SUCCESS;
     uint32_t regVal;
 
