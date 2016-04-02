@@ -2919,10 +2919,11 @@ NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiO
 
         BDBG_MSG(("(%d) HDCP Restart Counter: %d", __LINE__, hdmiOutput->hdcpRestartCounter)) ;
 
-        rc = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus);
-        if (rc) return BERR_TRACE(rc);
-        hdmiOutput->pixelClkRatePreFormatChange = hdmiStatus.pixelClockRate;
-
+        if (!hdmiOutput->postFormatChangeTimer) {
+            rc = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus);
+            if (rc) return BERR_TRACE(rc);
+            hdmiOutput->pixelClkRatePreFormatChange = hdmiStatus.pixelClockRate;
+        }
         BDBG_MSG(("%s pixelClkRate = %d", __FUNCTION__, hdmiOutput->pixelClkRatePreFormatChange));
     }
 
@@ -2967,7 +2968,9 @@ static void NEXUS_HdmiOutput_P_PostFormatChangeTimer(void *context)
 
         BDBG_MSG(("%s pixelClkRate = %d", __FUNCTION__, hdmiStatus.pixelClockRate));
         /* Restart Hdcp Authentication when switching from/to a high clock rate format (297Mhz and up) */
-        if (hdmiOutput->pixelClkRatePreFormatChange != hdmiStatus.pixelClockRate)
+        if ((hdmiOutput->pixelClkRatePreFormatChange != hdmiStatus.pixelClockRate)
+        || (hdmiOutput->pixelClkRatePreFormatChange >= NEXUS_HDMI_OUTPUT_4K_PIXEL_CLOCK_RATE)
+        || (hdmiStatus.pixelClockRate >= NEXUS_HDMI_OUTPUT_4K_PIXEL_CLOCK_RATE))
         {
             BDBG_ERR(("%s: Restart HDCP authentication after format change", __FUNCTION__));
             rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
@@ -2989,6 +2992,7 @@ NEXUS_Error NEXUS_HdmiOutput_P_PostFormatChange_priv(NEXUS_HdmiOutputHandle hdmi
     if (hdmiOutput->postFormatChangeTimer) {
         NEXUS_CancelTimer(hdmiOutput->postFormatChangeTimer);
         hdmiOutput->postFormatChangeTimer = NULL;
+        hdmiOutput->pixelClkRatePreFormatChange = 0;
     }
 
     hdmiOutput->postFormatChangeTimer = NEXUS_ScheduleTimer(
