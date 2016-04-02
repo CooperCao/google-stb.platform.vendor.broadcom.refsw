@@ -1679,8 +1679,7 @@ static void nxserver_check_hdcp(struct b_session *session)
             NEXUS_HdmiOutputHdcpStatus hdcpStatus;
 
             rc = NEXUS_HdmiOutput_GetHdcpStatus(session->hdmiOutput, &hdcpStatus);
-            if (rc) { BERR_TRACE(rc); /* fall through */ }
-            if (nxserver_p_hdcp_authenticated(&hdcpStatus)) {
+            if (!rc && nxserver_p_hdcp_authenticated(&hdcpStatus)) {
                 if (session->hdcp.pending) {
                     BDBG_MSG(("HDCP authenticated, line %d ", __LINE__));
                     session->hdcp.pending = nxserver_hdcp_not_pending;
