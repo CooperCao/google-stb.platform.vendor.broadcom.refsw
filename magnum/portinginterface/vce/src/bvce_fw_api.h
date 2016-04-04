@@ -1,7 +1,7 @@
 /***************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -67,7 +67,7 @@ extern "C"
  * API Version  MM.mm.pp.bb
  */
 
-#define VICE_API_VERSION                  0x050C0000
+#define VICE_API_VERSION                  0x050D0000
 
 /*
  * Size of the command buffer between host (PI) and FW in bytes
@@ -243,6 +243,7 @@ extern "C"
 #define VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_3_CH_MODE    (19)
 #define VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_2_CH_MODE    (20)
 #define VICE_ERROR_RESOLUTION_IS_TOO_HIGH_FOR_THIS_LEVEL           (21)
+#define VICE_ERROR_FW_INCREASED_BITRATE_TO_MINIMUM_SUPPORTED       (22)
 /* Events (MSBs) */
 #define VICE_EVENT_EOS_SENT_BIT                                    (30)
 #define VICE_EVENT_BVN_METADATA_CHANGE_BIT                         (31)
@@ -378,8 +379,21 @@ typedef enum
     VICE_WDOG_TRACE_MB_WAIT_MBARC_TO_IMD_DINO                   = 0x3C0,
     VICE_WDOG_TRACE_MB_WAIT_MBARC_TO_IMD_DINO_AFTER             = 0x3C1,
     VICE_WDOG_TRACE_MB_WAIT_REWIND_SG_DINO                      = 0x3D0,
-    VICE_WDOG_TRACE_MB_WAIT_REWIND_SG_DINO_AFTER                = 0x3D1
-
+    VICE_WDOG_TRACE_MB_WAIT_REWIND_SG_DINO_AFTER                = 0x3D1,
+    VICE_WDOG_TRACE_MB_CHECK_FOR_CABAC_DATA                     = 0x3E0,
+    VICE_WDOG_TRACE_MB_CHECK_FOR_CABAC_DATA_AFTER               = 0x3E1,
+    VICE_WDOG_TRACE_ENCODE_WAIT_DBLK_BUSY                       = 0x3F0,
+    VICE_WDOG_TRACE_ENCODE_WAIT_DBLK_BUSY_AFTER                 = 0x3F1,
+    VICE_WDOG_TRACE_ENCODE_WAIT_SG_BUSY                         = 0x400,
+    VICE_WDOG_TRACE_ENCODE_WAIT_SG_BUSY_AFTER                   = 0x401,
+    VICE_WDOG_TRACE_ENCODE_WAIT_XQ_BUSY                         = 0x410,
+    VICE_WDOG_TRACE_ENCODE_WAIT_XQ_BUSY_AFTER                   = 0x411,
+    VICE_WDOG_TRACE_ENCODE_WAIT_SG_DONE                         = 0x420,
+    VICE_WDOG_TRACE_ENCODE_WAIT_SG_DONE_AFTER                   = 0x421,
+    VICE_WDOG_TRACE_INITHOSTCMD_WAIT_DMA1                       = 0x430,
+    VICE_WDOG_TRACE_INITHOSTCMD_WAIT_DMA1_AFTER                 = 0x431,
+    VICE_WDOG_MBARC_WAIT_4_PICARC_DINO                          = 0x440,
+    VICE_WDOG_MBARC_WAIT_4_PICARC_DINO_AFTER                    = 0x441
 
 } WdogTraceCode_e;
 
