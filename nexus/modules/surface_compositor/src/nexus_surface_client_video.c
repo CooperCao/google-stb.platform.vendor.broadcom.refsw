@@ -464,10 +464,10 @@ void nexus_surface_compositor_p_update_video(NEXUS_SurfaceCompositorHandle serve
         BDBG_ASSERT(!client->set_video_pending.windowMoved);
         for (child = BLST_S_FIRST(&client->children); child; child = BLST_S_NEXT(child, child_link)) {
             if (child->set_video_pending.set) {
-                if (nexus_surfaceclient_p_setvideo(child)) {
-                    client->set_video_pending.windowMoved = true; /* callback handled from top-level client, not video window child */
-                    server->set_video_pending.windowMoved = 1;
-                }
+                nexus_surfaceclient_p_setvideo(child);
+                /* must fire windowMoved, even if nexus_surfaceclient_p_setvideo did not move it. app may be waiting. */
+                client->set_video_pending.windowMoved = true; /* callback handled from top-level client, not video window child */
+                server->set_video_pending.windowMoved = 1;    /* callback handled from top-level client, not video window child */
                 child->set_video_pending.set = false;
             }
         }
