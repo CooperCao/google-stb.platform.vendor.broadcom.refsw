@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,19 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *                      HdmiOutput: Specific interfaces for an HDMI/DVI output.
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+ ******************************************************************************/
 
 #include "nexus_hdmi_output_module.h"
 #include "priv/nexus_hdmi_output_priv.h"
@@ -67,7 +55,7 @@ BDBG_MODULE(nexus_hdmi_output);
 
 #if NEXUS_NUM_HDMI_OUTPUTS
 
-#define NEXUS_HDMI_OUTPUT_4K_PIXEL_CLOCK_RATE 296703	/* 4K p30/25 */
+#define NEXUS_HDMI_OUTPUT_4K_PIXEL_CLOCK_RATE 296703    /* 4K p30/25 */
 
 static NEXUS_HdmiOutput g_hdmiOutputs[NEXUS_NUM_HDMI_OUTPUTS];
 
@@ -508,8 +496,8 @@ NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_Open( unsigned index, const NEXUS_HdmiOu
 
 
 #ifdef NEXUS_P_MHL_SUPPORT
-	errCode = NEXUS_HdmiOutput_P_OpenMhl(pOutput);
-	 if (errCode)
+    errCode = NEXUS_HdmiOutput_P_OpenMhl(pOutput);
+     if (errCode)
         goto err_event;
 #endif
 
@@ -696,7 +684,7 @@ static void NEXUS_HdmiOutput_P_Finalizer( NEXUS_HdmiOutputHandle hdmiOutput )
     }
 
 #ifdef NEXUS_P_MHL_SUPPORT
-	NEXUS_HdmiOutput_P_CloseMhl(hdmiOutput);
+    NEXUS_HdmiOutput_P_CloseMhl(hdmiOutput);
 #endif
 
     BHDM_Close(hdmiOutput->hdmHandle);
@@ -1059,7 +1047,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetSettings( NEXUS_HdmiOutputHandle output, const N
     if ( output->rxState != NEXUS_HdmiOutputState_ePoweredOn )
     {
         BDBG_MSG(("Tx/Rx is not powered (%d)... new settings will be applied when powered",
-			output->rxState)) ;
+            output->rxState)) ;
         errCode = NEXUS_SUCCESS ;
         goto done ;
 
@@ -1184,8 +1172,8 @@ NEXUS_Error NEXUS_HdmiOutput_GetStatus( NEXUS_HdmiOutputHandle output, NEXUS_Hdm
     errCode = BHDM_EDID_GetColorimetryDB(output->hdmHandle, &colorimetryDB) ;
     if (!errCode ) /* save supported colorimetries if successfully retrieved from the EDID */
     {
-	    BKNI_Memcpy(&pStatus->monitorColorimetry, &colorimetryDB,
-	        sizeof(NEXUS_HdmiOutputMonitorColorimetry)) ;
+        BKNI_Memcpy(&pStatus->monitorColorimetry, &colorimetryDB,
+            sizeof(NEXUS_HdmiOutputMonitorColorimetry)) ;
     }
 
 
@@ -1675,9 +1663,9 @@ void NEXUS_HdmiOutput_GetDefaultVideoSettings(
     NEXUS_HdmiOutputVideoSettings *pSettings
 )
 {
-	pSettings->videoFormat = NEXUS_VideoFormat_e720p ;
-	pSettings->colorDepth = 8 ;
-	pSettings->colorSpace = NEXUS_ColorSpace_eYCbCr444 ;
+    pSettings->videoFormat = NEXUS_VideoFormat_e720p ;
+    pSettings->colorDepth = 8 ;
+    pSettings->colorSpace = NEXUS_ColorSpace_eYCbCr444 ;
 }
 
 
@@ -2061,7 +2049,7 @@ static void NEXUS_HdmiOutput_P_ScrambleCallback(void *pContext)
 
 
         BDBG_WRN(("Attempting to reset HDMI scrambling configuration; retry scramble conifg %d of %d...",
-			hdmiOutput->retryScrambleCount, HDMI_MAX_SCRAMBLE_RETRY)) ;
+            hdmiOutput->retryScrambleCount, HDMI_MAX_SCRAMBLE_RETRY)) ;
         NEXUS_HdmiOutput_ResetScrambling(hdmiOutput) ;
 
         return ;
@@ -2088,7 +2076,7 @@ static void NEXUS_HdmiOutput_P_AvRateChangeCallback(void *pContext)
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
 
     BHDM_GetHdmiSettings(hdmiOutput->hdmHandle, &hdmiSettings) ;
-	hdmiSettings.bForceEnableDisplay = true ;
+    hdmiSettings.bForceEnableDisplay = true ;
     BHDM_EnableDisplay(hdmiOutput->hdmHandle, &hdmiSettings) ;
 }
 
@@ -2234,7 +2222,7 @@ static void NEXUS_HdmiOutput_P_HotPlug_isr(void *context, int param, void *data)
     BKNI_SetEvent_isr(hdmiOutput->notifyHotplugEvent) ;
 
     BDBG_MSG(("HotPlug isr state: '%s'",
-		deviceAttached ? "RxSense Check" : "Disconnected")) ;
+        deviceAttached ? "RxSense Check" : "Disconnected")) ;
 }
 
 
@@ -2917,7 +2905,7 @@ NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiO
 
         hdmiOutput->hdcpRestartCounter++ ;
 
-        BDBG_MSG(("(%d) HDCP Restart Counter: %d", __LINE__, hdmiOutput->hdcpRestartCounter)) ;
+        BDBG_MSG(("PreFormatchange HDCP Restart Counter: %d", hdmiOutput->hdcpRestartCounter)) ;
 
         if (!hdmiOutput->postFormatChangeTimer) {
             rc = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus);
@@ -2960,19 +2948,20 @@ static void NEXUS_HdmiOutput_P_PostFormatChangeTimer(void *context)
     /* restart HDCP authentication */
     if (hdmiOutput->hdcpRestartCounter)
     {
-        BDBG_MSG(("(%d) HDCP Restart Counter: %d", __LINE__, hdmiOutput->hdcpRestartCounter)) ;
         hdmiOutput->hdcpRestartCounter-- ;
+        BDBG_MSG(("PostFormatChange HDCP Restart Counter: %d", hdmiOutput->hdcpRestartCounter)) ;
 
         rc = BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus);
         if (rc) rc = BERR_TRACE(rc);
 
         BDBG_MSG(("%s pixelClkRate = %d", __FUNCTION__, hdmiStatus.pixelClockRate));
         /* Restart Hdcp Authentication when switching from/to a high clock rate format (297Mhz and up) */
+
         if ((hdmiOutput->pixelClkRatePreFormatChange != hdmiStatus.pixelClockRate)
         || (hdmiOutput->pixelClkRatePreFormatChange >= NEXUS_HDMI_OUTPUT_4K_PIXEL_CLOCK_RATE)
         || (hdmiStatus.pixelClockRate >= NEXUS_HDMI_OUTPUT_4K_PIXEL_CLOCK_RATE))
         {
-            BDBG_ERR(("%s: Restart HDCP authentication after format change", __FUNCTION__));
+            BDBG_WRN(("%s: Restart HDCP authentication after format change", __FUNCTION__));
             rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
         }
         else {
@@ -2989,10 +2978,21 @@ NEXUS_Error NEXUS_HdmiOutput_P_PostFormatChange_priv(NEXUS_HdmiOutputHandle hdmi
     BDBG_MSG(("PostFormatChange"));
 
     /* Give receiver time to finish processing format change before unmuting */
+
+    /* if post Format Change timer has not completed yet */
+    /* cancel current timer and reschedule */
+    /* also decrement the hdcpRestartCounter */
     if (hdmiOutput->postFormatChangeTimer) {
         NEXUS_CancelTimer(hdmiOutput->postFormatChangeTimer);
         hdmiOutput->postFormatChangeTimer = NULL;
         hdmiOutput->pixelClkRatePreFormatChange = 0;
+
+        if (hdmiOutput->hdcpRestartCounter)
+        {
+        hdmiOutput->hdcpRestartCounter-- ;
+        BDBG_MSG(("Previous PostFormatChangeTimer canceled; HDCP Restart Counter: %d",
+            hdmiOutput->hdcpRestartCounter)) ;
+        }
     }
 
     hdmiOutput->postFormatChangeTimer = NEXUS_ScheduleTimer(
@@ -3036,10 +3036,10 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplaySettings_priv(
 
     BDBG_MSG(("SetDisplaySettings ")) ;
     BDBG_MSG(("  Color> Space: %d  Range: %d Override (%s) Depth: %d Colorimetry: %d Override (%s)",
-		pstDisplaySettings->colorSpace,
-		pstDisplaySettings->colorRange, pstDisplaySettings->overrideColorRange ? "Yes" : "No",
-		pstDisplaySettings->colorDepth,
-		pstDisplaySettings->eColorimetry, pstDisplaySettings->overrideMatrixCoefficients ? "Yes" : "No")) ;
+        pstDisplaySettings->colorSpace,
+        pstDisplaySettings->colorRange, pstDisplaySettings->overrideColorRange ? "Yes" : "No",
+        pstDisplaySettings->colorDepth,
+        pstDisplaySettings->eColorimetry, pstDisplaySettings->overrideMatrixCoefficients ? "Yes" : "No")) ;
 
     handle->settings.colorSpace = pstDisplaySettings->colorSpace ;
 

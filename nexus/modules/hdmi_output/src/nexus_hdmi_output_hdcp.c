@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *                      HdmiOutput: Specific interfaces for an HDMI/DVI output.
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_hdmi_output_module.h"
@@ -209,7 +201,7 @@ static NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp2x(NEXUS_HdmiOutputHandle output)
     hdcpDependencies.sageResponseReceivedEvent = g_NEXUS_hdmiOutputSageData.eventResponseRecv;
 
     rc = BHDCPlib_Open(&output->hdcpHandle, &hdcpDependencies);
-	BDBG_MSG(("BHDCPlib_Open (for HDCP2.2) <<< TX(%x)", output->hdcpHandle));
+    BDBG_MSG(("BHDCPlib_Open (for HDCP2.2) <<< TX(%x)", output->hdcpHandle));
     if (rc != BERR_SUCCESS)
     {
         errCode = BERR_TRACE(rc);
@@ -314,7 +306,7 @@ err_hdcp:
 
 
 }
-#endif	/* NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT) */
+#endif  /* NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT) */
 
 
 static NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp1x(NEXUS_HdmiOutputHandle output)
@@ -364,7 +356,7 @@ static NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp1x(NEXUS_HdmiOutputHandle output)
     if (errCode != BERR_SUCCESS)
     {
         BDBG_ERR(("Error retrieving HDCP key set"));
-		errCode = BERR_TRACE(errCode);
+        errCode = BERR_TRACE(errCode);
         goto err_hdcp;
     }
 
@@ -491,7 +483,7 @@ NEXUS_Error NEXUS_HdmiOutput_P_UninitHdcp(NEXUS_HdmiOutputHandle output)
     BHDCPlib_Close(output->hdcpHandle);
     UNLOCK_SECURITY();
 
-	/* Close sagelibClientHandle */
+    /* Close sagelibClientHandle */
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
 
     if (g_NEXUS_hdmiOutputSageData.eventResponseRecv) {
@@ -872,35 +864,35 @@ done:
 
 
 NEXUS_Error NEXUS_HdmiOutput_GetHdcp2xReceiverIdListData(
-	NEXUS_HdmiOutputHandle handle,
-	NEXUS_Hdcp2xReceiverIdListData *pReceiverIdListData
+    NEXUS_HdmiOutputHandle handle,
+    NEXUS_Hdcp2xReceiverIdListData *pReceiverIdListData
 )
 {
     BERR_Code errCode = NEXUS_SUCCESS ;
-	BHDCPlib_ReceiverIdListData hdcp2xReceiverIdListData;
+    BHDCPlib_ReceiverIdListData hdcp2xReceiverIdListData;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
     RESOLVE_ALIAS(handle);
 
-	errCode = BHDCPlib_Hdcp2x_Tx_GetReceiverIdList(handle->hdcpHandle, &hdcp2xReceiverIdListData);
-	if (errCode != BERR_SUCCESS)
-	{
-		errCode = BERR_TRACE(errCode);
-		goto done;
-	}
+    errCode = BHDCPlib_Hdcp2x_Tx_GetReceiverIdList(handle->hdcpHandle, &hdcp2xReceiverIdListData);
+    if (errCode != BERR_SUCCESS)
+    {
+        errCode = BERR_TRACE(errCode);
+        goto done;
+    }
 
-	pReceiverIdListData->deviceCount = (unsigned) hdcp2xReceiverIdListData.deviceCount;
-	pReceiverIdListData->depth = (unsigned) hdcp2xReceiverIdListData.depth;
-	pReceiverIdListData->maxDevsExceeded = (bool) hdcp2xReceiverIdListData.maxDevsExceeded;
-	pReceiverIdListData->maxCascadeExceeded = (bool) hdcp2xReceiverIdListData.maxCascadeExceeded;
-	pReceiverIdListData->hdcp2xLegacyDeviceDownstream = (bool) hdcp2xReceiverIdListData.hdcp2LegacyDeviceDownstream;
-	pReceiverIdListData->hdcp1DeviceDownstream = (bool) hdcp2xReceiverIdListData.hdcp1DeviceDownstream;
+    pReceiverIdListData->deviceCount = (unsigned) hdcp2xReceiverIdListData.deviceCount;
+    pReceiverIdListData->depth = (unsigned) hdcp2xReceiverIdListData.depth;
+    pReceiverIdListData->maxDevsExceeded = (bool) hdcp2xReceiverIdListData.maxDevsExceeded;
+    pReceiverIdListData->maxCascadeExceeded = (bool) hdcp2xReceiverIdListData.maxCascadeExceeded;
+    pReceiverIdListData->hdcp2xLegacyDeviceDownstream = (bool) hdcp2xReceiverIdListData.hdcp2LegacyDeviceDownstream;
+    pReceiverIdListData->hdcp1DeviceDownstream = (bool) hdcp2xReceiverIdListData.hdcp1DeviceDownstream;
 
-	BKNI_Memcpy(pReceiverIdListData->rxIdList, &hdcp2xReceiverIdListData.rxIdList,
-				hdcp2xReceiverIdListData.deviceCount*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+    BKNI_Memcpy(pReceiverIdListData->rxIdList, &hdcp2xReceiverIdListData.rxIdList,
+                hdcp2xReceiverIdListData.deviceCount*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
 
 done:
-	return errCode;
+    return errCode;
 }
 #endif  /* NEXUS_HAS_SAGE */
 
@@ -1135,10 +1127,10 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
         errCode = BERR_TRACE(errCode);
     }
 
-    /******************/
-    /**** HDCP 2.x ****/
-    /******************/
     if (handle->eHdcpVersion == BHDM_HDCP_Version_e2_2) {
+        /******************/
+        /**** HDCP 2.x ****/
+        /******************/
         if (linkAuthenticated)
         {
             errCode = NEXUS_HdmiOutput_DisableHdcpEncryption(handle);
@@ -1157,6 +1149,9 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
     /**** HDCP 1.x ****/
     /******************/
     else {
+        /******************/
+        /**** HDCP 1.x ****/
+        /******************/
         /* Clean up any pending state */
         errCode = NEXUS_HdmiOutput_DisableHdcpAuthentication(handle) ;
         if (errCode)
@@ -1608,7 +1603,7 @@ done:
     return errCode;
 }
 
-#else	/* NEXUS_HAS_SECURITY */
+#else   /* NEXUS_HAS_SECURITY */
 /* No security - use stubs for HDCP */
 NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp(NEXUS_HdmiOutputHandle output)
 {
@@ -1753,7 +1748,7 @@ NEXUS_Error NEXUS_HdmiOutput_HdcpGetDownstreamKsvs(
     return NEXUS_SUCCESS ;
 }
 
-#endif		/* NEXUS_HAS_SECURITY */
+#endif      /* NEXUS_HAS_SECURITY */
 
 
 #if !NEXUS_HAS_SECURITY || !NEXUS_HAS_SAGE || !defined(NEXUS_HAS_HDCP_2X_SUPPORT)
