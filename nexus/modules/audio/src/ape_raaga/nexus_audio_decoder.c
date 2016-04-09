@@ -2086,11 +2086,13 @@ NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
             if (stcSettings.mode == NEXUS_StcChannelMode_eAuto && stcSettings.modeSettings.Auto.behavior == NEXUS_StcChannelAutoModeBehavior_eAudioMaster)
             {
                 tsmSettings.thresholds.syncLimit = 5000;
+                handle->stc.master = true;
             }
         }
         else
         {
             tsmSettings.thresholds.syncLimit = 0;
+            handle->stc.master = false;
         }
     }
 
@@ -2692,11 +2694,8 @@ static void NEXUS_AudioDecoder_P_FirstPts_isr(void *pParam1, int param2, const B
 static void NEXUS_AudioDecoder_P_AudioTsmFail_isr(void *pParam1, int param2, const BAPE_DecoderTsmStatus *pTsmStatus)
 {
     NEXUS_AudioDecoder *pDecoder = (NEXUS_AudioDecoder *)pParam1;
-#if NEXUS_HAS_ASTM
     BAPE_DecoderTsmStatus tsmStatus;
-#endif
     NEXUS_Error errCode;
-
     uint32_t stc;
 
     BSTD_UNUSED(param2);
@@ -2719,14 +2718,16 @@ static void NEXUS_AudioDecoder_P_AudioTsmFail_isr(void *pParam1, int param2, con
 
     BDBG_MSG_TRACE(("pts2stcphase: %d", pTsmStatus->ptsStcDifference));
 
+    if (pDecoder->stc.master
 #if NEXUS_HAS_ASTM
-    if (pDecoder->astm.settings.enableAstm && pDecoder->astm.settings.syncLimit > 0)
+        || (pDecoder->astm.settings.enableAstm && pDecoder->astm.settings.syncLimit > 0)
+#endif /* NEXUS_HAS_ASTM */
+    )
     {
         tsmStatus = *pTsmStatus;
         tsmStatus.ptsInfo.ui32CurrentPTS = (uint32_t)((int32_t)stc - tsmStatus.ptsStcDifference);
         pTsmStatus = &tsmStatus;
     }
-#endif /* NEXUS_HAS_ASTM */
 
     /* PR:52308 ignore PTS errors for non-XPT inputs - we can't do anything about them from stcchannel/pcrlib anyway */
     if (!pDecoder->programSettings.input)
