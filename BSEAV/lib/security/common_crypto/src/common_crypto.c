@@ -1,42 +1,39 @@
 /******************************************************************************
- * (c) 2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bstd.h"
@@ -163,7 +160,7 @@ void CommonCrypto_GetDefaultKeySettings(
     pSettings->alg.keySlotType = nexusAlgSettings.keyDestEntryType;
 
     if(keySrc != CommonCrypto_eClearKey){
-    	CommonCrypto_GetDefaultKeyLadderSettings((CommonCryptoKeyLadderSettings*)&pSettings->src);
+        CommonCrypto_GetDefaultKeyLadderSettings((CommonCryptoKeyLadderSettings*)&pSettings->src);
     }
 }
 
@@ -238,28 +235,28 @@ with default settings used during the key3 and key4 generation.
 
 ***************************************************************************/
 void CommonCrypto_GetDefaultKeyLadderSettings(
-		CommonCryptoKeyLadderSettings *pSettings)
+        CommonCryptoKeyLadderSettings *pSettings)
 {
-	BDBG_MSG(("%s - Entered function", __FUNCTION__));
-	pSettings->overwriteKeyLadderOperation = false;
-	pSettings->overwriteVKLSettings = false;
-	pSettings->KeyLadderOpStruct.SessionKeyOperation = NEXUS_SecurityOperation_eDecrypt;
-	pSettings->KeyLadderOpStruct.SessionKeyOperationKey2 = NEXUS_SecurityOperation_eEncrypt;
-	pSettings->KeyLadderOpStruct.ControlWordKeyOperation = NEXUS_SecurityOperation_eDecrypt;
-	pSettings->VirtualKeyLadderSettings.CustSubMode = NEXUS_SecurityCustomerSubMode_eGeneric_CP_128_4;
-	pSettings->VirtualKeyLadderSettings.VklValue = NEXUS_SecurityVirtualKeyladderID_eVKL4;
+    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    pSettings->overwriteKeyLadderOperation = false;
+    pSettings->overwriteVKLSettings = false;
+    pSettings->KeyLadderOpStruct.SessionKeyOperation = NEXUS_SecurityOperation_eDecrypt;
+    pSettings->KeyLadderOpStruct.SessionKeyOperationKey2 = NEXUS_SecurityOperation_eEncrypt;
+    pSettings->KeyLadderOpStruct.ControlWordKeyOperation = NEXUS_SecurityOperation_eDecrypt;
+    pSettings->VirtualKeyLadderSettings.CustSubMode = NEXUS_SecurityCustomerSubMode_eGeneric_CP_128_4;
+    pSettings->VirtualKeyLadderSettings.VklValue = NEXUS_SecurityVirtualKeyladderID_eVKL4;
 
-	/* SWSECURITY-195 */
-	pSettings->keyladderID = NEXUS_SecurityKeyladderID_eA;
-	pSettings->keyladderType = NEXUS_SecurityKeyladderType_e3Des;
-	pSettings->swizzleType = NEXUS_SecuritySwizzleType_eSwizzle0;
-	pSettings->askmSupport = false;
-	pSettings->aesKeySwap = false;
-	pSettings->key4Size = COMMON_CRYPTO_PROC_SIZE;
-	pSettings->key3Size = COMMON_CRYPTO_PROC_SIZE;
+    /* SWSECURITY-195 */
+    pSettings->keyladderID = NEXUS_SecurityKeyladderID_eA;
+    pSettings->keyladderType = NEXUS_SecurityKeyladderType_e3Des;
+    pSettings->swizzleType = NEXUS_SecuritySwizzleType_eSwizzle0;
+    pSettings->askmSupport = false;
+    pSettings->aesKeySwap = false;
+    pSettings->key4Size = COMMON_CRYPTO_PROC_SIZE;
+    pSettings->key3Size = COMMON_CRYPTO_PROC_SIZE;
 
-	BDBG_MSG(("%s - Exiting function", __FUNCTION__));
-	return;
+    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    return;
 }
 
 
@@ -315,7 +312,7 @@ NEXUS_Error CommonCrypto_DmaXfer(
     )
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    
+
     NEXUS_DmaJobSettings jobSettings;
     NEXUS_DmaJobHandle dmaJob = NULL;
     NEXUS_DmaJobStatus jobStatus;
@@ -376,7 +373,7 @@ NEXUS_Error CommonCrypto_DmaXfer(
                 BDBG_ERR(("%s - Failure to flush cache for source buffer.\n", __FUNCTION__));
                 goto errorExit;
             }
- 
+
             if(pLocalBlkSettings[ii].pDestAddr != pLocalBlkSettings[ii].pSrcAddr)
             {
                 /* Flush cache for the destination buffer. */
@@ -392,7 +389,7 @@ NEXUS_Error CommonCrypto_DmaXfer(
             pLocalBlkSettings[ii].cached = false;
         }
     }
-    
+
 
     /* We can save one context switch by calling NEXUS_DmaJob_ProcessBlocks_priv instead of NEXUS_DmaJob_ProcessBlocks. */
     rc = NEXUS_DmaJob_ProcessBlocks(dmaJob, (NEXUS_DmaJobBlockSettings *)pLocalBlkSettings, nBlocks);
@@ -456,10 +453,10 @@ NEXUS_Error CommonCrypto_P_LoadKeyConfig(
         nexusConfig.keyDestEntryType    = pSettings->keySlotType;
         nexusConfig.terminationMode     = pSettings->termMode;
         nexusConfig.enableExtKey        = pSettings->enableExtKey;
-        nexusConfig.enableExtIv         = pSettings->enableExtIv; 
+        nexusConfig.enableExtIv         = pSettings->enableExtIv;
         nexusConfig.aesCounterSize      = pSettings->aesCounterSize;
         nexusConfig.aesCounterMode      = pSettings->aesCounterMode;
-        nexusConfig.solitarySelect		= pSettings->solitaryMode;
+        nexusConfig.solitarySelect      = pSettings->solitaryMode;
 
 #if (NEXUS_SECURITY_HAS_ASKM == 1)
         nexusConfig.key2Select          = pSettings->key2Select;
@@ -477,7 +474,7 @@ NEXUS_Error CommonCrypto_P_LoadKeyConfig(
         }
 
     }
-    else 
+    else
     {
         rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
@@ -510,17 +507,17 @@ NEXUS_Error CommonCrypto_P_LoadClearKeyIv(
     )
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    
+
     if(pKeyIvStruct->keySize > 0 )
     {
         rc = CommonCrypto_LoadClearKey_priv(keySlot,
                                 pKeyIvStruct->key,
-                                pKeyIvStruct->keySize, 
-                                keySlotType, 
+                                pKeyIvStruct->keySize,
+                                keySlotType,
                                 NEXUS_SecurityKeyIVType_eNoIV);
         if(rc != NEXUS_SUCCESS){
             return BERR_TRACE(rc);
-        } 
+        }
     }
 
     if(handle->settings.dmaSettings.coreType != NEXUS_DmaCoreType_eSharf){
@@ -528,7 +525,7 @@ NEXUS_Error CommonCrypto_P_LoadClearKeyIv(
         {
             rc = CommonCrypto_LoadClearKey_priv(keySlot,
                                     pKeyIvStruct->iv,
-                                    pKeyIvStruct->ivSize, 
+                                    pKeyIvStruct->ivSize,
 #ifdef COMMON_CRYPTO_65NM_CHIP
                                     NEXUS_SecurityKeyType_eIv,
 #else /* 40nm and later */
@@ -537,7 +534,7 @@ NEXUS_Error CommonCrypto_P_LoadClearKeyIv(
                                     NEXUS_SecurityKeyIVType_eIV);
             if(rc != NEXUS_SUCCESS){
                 return BERR_TRACE(rc);
-            } 
+            }
         }
     }
     else {
@@ -582,11 +579,11 @@ static NEXUS_Error CommonCrypto_P_LoadCipheredKey(
             rootKeySrc = NEXUS_SecurityRootKeySrc_eOtpKeyA;
             break;
         case CommonCrypto_eOtpKeyB:
-			rootKeySrc = NEXUS_SecurityRootKeySrc_eOtpKeyB;
-			break;
+            rootKeySrc = NEXUS_SecurityRootKeySrc_eOtpKeyB;
+            break;
         case CommonCrypto_eOtpKeyC:
-			rootKeySrc = NEXUS_SecurityRootKeySrc_eOtpKeyC;
-			break;
+            rootKeySrc = NEXUS_SecurityRootKeySrc_eOtpKeyC;
+            break;
         default:
             return BERR_TRACE(NEXUS_INVALID_PARAMETER);
             break;
@@ -594,7 +591,7 @@ static NEXUS_Error CommonCrypto_P_LoadCipheredKey(
 
     rc = CommonCrypto_LoadCipheredKey_priv(keySlot, rootKeySrc, keySlotType, pKeyLadderInfo);
 
-    return rc; 
+    return rc;
 }
 
 NEXUS_Error CommonCrypto_LoadCipheredKey(
@@ -626,7 +623,7 @@ NEXUS_Error CommonCrypto_SetupKey(
     BDBG_MSG(("%s - Entered function", __FUNCTION__));
 
     rc = CommonCrypto_P_LoadKeyConfig(handle,
-                            pSettings->keySlot, 
+                            pSettings->keySlot,
                             &pSettings->alg);
     if(rc != NEXUS_SUCCESS) {
         return BERR_TRACE(rc);
@@ -659,8 +656,8 @@ NEXUS_Error CommonCrypto_SetupKey(
 
 static NEXUS_Error CommonCrypto_LoadClearKey_priv(
     NEXUS_KeySlotHandle keySlot,
-    const uint8_t *pKey, 
-    uint32_t keySize, 
+    const uint8_t *pKey,
+    uint32_t keySize,
     NEXUS_SecurityKeyType keySlotType,
     NEXUS_SecurityKeyIVType keyIvType
     )
@@ -706,20 +703,21 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
     )
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-       
-#if (COMMON_CRYPTO_ZEUS_VERSION >= 30)
+/*SWSECDRM-1165 : use dynamic vkl allocation for all Zeus version*/
+
     NEXUS_SecurityVKLSettings    vklSettings;
     NEXUS_VirtualKeyLadderHandle vkl = NULL;
     NEXUS_VirtualKeyLadderInfo   vklInfo;
-#endif
+
 
     NEXUS_SecurityEncryptedSessionKey encryptedSessionkey;
     NEXUS_SecurityEncryptedControlWord encrytedCW;
-    
+
     BDBG_ASSERT(pKeyLadderInfo != NULL);
     BDBG_ASSERT(keySlot != NULL);
 
-#if (COMMON_CRYPTO_ZEUS_VERSION >= 30)
+    /*SWSECDRM-1165 : use dynamic vkl allocation for all Zeus version*/
+
     /* Allocate a VKL */
     NEXUS_Security_GetDefaultVKLSettings(&vklSettings);
     vklSettings.custSubMode = pKeyLadderInfo->VirtualKeyLadderSettings.CustSubMode;
@@ -734,7 +732,7 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
 
     /* Retrieve VKL info */
     NEXUS_Security_GetVKLInfo(vkl, &vklInfo);
-#endif
+
 
 #ifdef COMMON_CRYPTO_65NM_CHIP
     BDBG_WRN(("Using memset to initialize NEXUS_SecurityEncryptedSessionKey structure because NEXUS_Security_GetDefaultSessionKeySettings is not available on this chip."));
@@ -746,8 +744,8 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
 #endif
 
     encryptedSessionkey.keyladderID     = pKeyLadderInfo->keyladderID;
-    encryptedSessionkey.keyladderType	= pKeyLadderInfo->keyladderType;
-    encryptedSessionkey.swizzleType		= pKeyLadderInfo->swizzleType;
+    encryptedSessionkey.keyladderType   = pKeyLadderInfo->keyladderType;
+    encryptedSessionkey.swizzleType     = pKeyLadderInfo->swizzleType;
 
     encryptedSessionkey.rootKeySrc      = keySrc;
     encryptedSessionkey.bRouteKey       = false;
@@ -774,19 +772,11 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
     encryptedSessionkey.bSwapAESKey = pKeyLadderInfo->aesKeySwap;
     encryptedSessionkey.keyDestIVType = NEXUS_SecurityKeyIVType_eNoIV;
 #endif
-
-#if (COMMON_CRYPTO_ZEUS_VERSION >= 30)
+    /*SWSECDRM-1165 : use dynamic vkl allocation for all Zeus version*/
     /* Use dynamically allocated VKL. */
     BDBG_MSG(("%s - Session key (Zeus 3.0 and after) *****************", __FUNCTION__));
     encryptedSessionkey.custSubMode        = vklInfo.custSubMode;
     encryptedSessionkey.virtualKeyLadderID = vklInfo.vkl;
-#else
-    /* Use VKL specified in the settings. */
-    BDBG_MSG(("%s - Session key (pre-Zeus 3.0) *****************", __FUNCTION__));
-    encryptedSessionkey.custSubMode = pKeyLadderInfo->VirtualKeyLadderSettings.CustSubMode;
-    encryptedSessionkey.virtualKeyLadderID =  pKeyLadderInfo->VirtualKeyLadderSettings.VklValue;
-#endif
-
 #endif /*NEXUS_SECURITY_HAS_ASKM*/
     encryptedSessionkey.keyMode = NEXUS_SecurityKeyMode_eRegular;
 
@@ -794,9 +784,9 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
     rc = NEXUS_Security_GenerateSessionKey(keySlot, &encryptedSessionkey);
     if(rc == NEXUS_SUCCESS){
         /* Load CW */
-    	encrytedCW.keyladderID = pKeyLadderInfo->keyladderID;
-    	encrytedCW.keyladderType = pKeyLadderInfo->keyladderType;
-    	encrytedCW.swizzleType = pKeyLadderInfo->swizzleType;
+        encrytedCW.keyladderID = pKeyLadderInfo->keyladderID;
+        encrytedCW.keyladderType = pKeyLadderInfo->keyladderType;
+        encrytedCW.swizzleType = pKeyLadderInfo->swizzleType;
         encrytedCW.keySize = pKeyLadderInfo->key4Size;
         encrytedCW.keyEntryType = keySlotType;
         encrytedCW.operation = pKeyLadderInfo->KeyLadderOpStruct.ControlWordKeyOperation;/* Default: NEXUS_SecurityOperation_eDecrypt;*/
@@ -812,18 +802,12 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
         encrytedCW.keyGenCmdID = NEXUS_SecurityKeyGenCmdID_eKeyGen;
         encrytedCW.bSwapAESKey = pKeyLadderInfo->aesKeySwap;
 #endif
-
-#if (COMMON_CRYPTO_ZEUS_VERSION >= 30)
+        /*SWSECDRM-1165 : use dynamic vkl allocation for all Zeus version*/
         /* Use dynamically allocated VKL. */
         BDBG_MSG(("%s - Control Word (Zeus 3.0 and after) *****************", __FUNCTION__));
         encrytedCW.custSubMode        = vklInfo.custSubMode;
         encrytedCW.virtualKeyLadderID = vklInfo.vkl;
-#else
-        /* Use VKL specified in the settings. */
-        BDBG_MSG(("%s - Control Word (pre-Zeus 3.0) *****************", __FUNCTION__));
-        encrytedCW.custSubMode = pKeyLadderInfo->VirtualKeyLadderSettings.CustSubMode;
-        encrytedCW.virtualKeyLadderID = pKeyLadderInfo->VirtualKeyLadderSettings.VklValue;
-#endif
+
 #endif /*NEXUS_SECURITY_HAS_ASKM*/
 
         encrytedCW.keyMode = NEXUS_SecurityKeyMode_eRegular;
@@ -837,15 +821,15 @@ static NEXUS_Error CommonCrypto_LoadCipheredKey_priv(
     {
         BDBG_ERR(("%s - Error generating Session key (key3)", __FUNCTION__));
     }
+    /*SWSECDRM-1165 : use dynamic vkl allocation for all Zeus version, hence free vkl*/
 
-#if (COMMON_CRYPTO_ZEUS_VERSION >= 30)
 handle_error:
     if(vkl != NULL)
     {
         NEXUS_Security_FreeVKL(vkl);
         vkl = NULL;
     }
-#endif
+
 
     BDBG_MSG(("%s - Exiting function", __FUNCTION__));
     return rc;
@@ -878,7 +862,7 @@ static bool CommonCrypto_P_IsInVideoSecureHeap(CommonCryptoHandle handle, uint32
 {
     /* When there is no video secure heap, the heap offset and size will */
     /* be zero. Therefore, this function will always return false.       */
-    return ((offset >= handle->videoSecureHeapInfo.offset) && 
+    return ((offset >= handle->videoSecureHeapInfo.offset) &&
             ((offset + size) <= (handle->videoSecureHeapInfo.offset + handle->videoSecureHeapInfo.size)));
 }
 
@@ -896,7 +880,7 @@ static NEXUS_Error CommonCrypto_P_FlushCache(CommonCryptoHandle handle, const ui
     {
         BDBG_ERR(("%s - Invalid parameter.\n", __FUNCTION__));
         rc = NEXUS_INVALID_PARAMETER;
-        goto errorExit;     
+        goto errorExit;
     }
 
     /* Get the offset */
@@ -905,7 +889,7 @@ static NEXUS_Error CommonCrypto_P_FlushCache(CommonCryptoHandle handle, const ui
     {
         BDBG_ERR(("%s - Cannot retrieve offset from address %p.\n", __FUNCTION__, address));
         rc = NEXUS_INVALID_PARAMETER;
-        goto errorExit;                
+        goto errorExit;
     }
 
     /* Offsets in the video secure heap are not CPU accessible. Therefore, they shall not be flushed. */
