@@ -2151,6 +2151,8 @@ static NEXUS_Error NEXUS_Frontend_P_3128_TuneQam(void *handle, const NEXUS_Front
         if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eB][NEXUS_FrontendQamMode_e64]) scanParam.B64 = true;
         if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eB][NEXUS_FrontendQamMode_e256]) scanParam.B256 = true;
         if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eB][NEXUS_FrontendQamMode_e1024]) scanParam.B1024 = true;
+        if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eC][NEXUS_FrontendQamMode_e64]) scanParam.A64 = true;
+        if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eC][NEXUS_FrontendQamMode_e256]) scanParam.A256 = true;
         if(pSettings->scan.frequencyOffset){
             scanParam.CO = true;
             scanParam.carrierSearch = pSettings->scan.frequencyOffset/256;
