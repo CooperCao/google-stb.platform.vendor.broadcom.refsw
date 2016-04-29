@@ -429,9 +429,27 @@ BERR_Code  BHSM_SetVichRegPar (
     inoutp_setVichIO->unStatus    =  commandData.unOutputParamsBuf[unParamLen/4];
     unParamLen +=  4;
 
+    switch( inoutp_setVichIO->unStatus )
+    {
+        case 0:
+        {
+            break; /* success */
+        }
+        case 0x22:
+        {
+            BDBG_WRN(("%s: VICH#%d Already Configured.", __FUNCTION__, inoutp_setVichIO->VDECId));
+            /* Pass on success to the client. */
+            inoutp_setVichIO->unStatus = 0;
+            break; /* success */
+        }
+        default:
+        {
+            errCode = BHSM_STATUS_BSP_ERROR;
+            BDBG_ERR(("%s BSP status error. [0x%02X]", __FUNCTION__, inoutp_setVichIO->unStatus));
+            break;
+        }
+     }
 
-     BHSM_P_CHECK_ERR_CODE_CONDITION( errCode, BHSM_STATUS_FAILED,
-        (inoutp_setVichIO->unStatus != 0) );
 BHSM_P_DONE_LABEL:
 
     BDBG_LEAVE(BHSM_SetVichRegPar);
