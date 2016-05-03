@@ -77,7 +77,7 @@
 #define DEFAULT_DRM_BIN_FILESIZE (64*1024)
 #define DRM_COMMON_OVERWRITE_BIN_FILE (1)
 #define SRAI_PlatformId_eCommonDrm (0)
-#define MAX_DMA_BLOCKS 5
+#define MAX_DMA_BLOCKS DRM_COMMON_TL_MAX_DMA_BLOCKS
 
 static int DrmCommon_TL_Counter = 0;
 static BKNI_MutexHandle drmCommonTLMutex = 0;
@@ -578,6 +578,7 @@ DrmRC DRM_Common_TL_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct,
     /* The mutex is still protecting the DRM Common Handle (resp CommonCrypto handle) table */
     BDBG_MSG(("%s - Entered function", __FUNCTION__));
 
+    BDBG_ASSERT(pDrmCommonOpStruct->num_dma_block <= MAX_DMA_BLOCKS);
     BDBG_ASSERT(drmCommonTLMutex != NULL);
     BKNI_AcquireMutex(drmCommonTLMutex);
 

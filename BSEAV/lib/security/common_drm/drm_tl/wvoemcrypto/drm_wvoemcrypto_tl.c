@@ -113,7 +113,7 @@ static uint8_t *gPadding = NULL;
 
 /* Scatter/gather definitions */
 static DmaBlockInfo_t *gWvDmaBlockInfoList[MAX_NUMBER_SESSIONS];
-#define MAX_SG_DMA_BLOCKS 32
+#define MAX_SG_DMA_BLOCKS DRM_COMMON_TL_MAX_DMA_BLOCKS
 #define WV_OEMCRYPTO_FIRST_SUBSAMPLE 1
 #define WV_OEMCRYPTO_LAST_SUBSAMPLE 2
 

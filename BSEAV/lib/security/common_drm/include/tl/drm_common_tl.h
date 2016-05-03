@@ -111,7 +111,8 @@ do {                                                                            
      ((uint32_t)(((uint8_t*)(pBuf))[2]) << 8)  | \
      ((uint8_t *)(pBuf))[3])
 
-
+/* Number of DMA blocks supported */
+#define DRM_COMMON_TL_MAX_DMA_BLOCKS 32
 
 /******************************************************************************
 ** FUNCTION
