@@ -125,14 +125,25 @@ NEXUS_Error NEXUS_HMACSHA_PerformOp(
     }
 
     /* Make sure address is from a NEXUS_Memory_Allocate(), for this to work in both kernel and user mode Nexus */
-    if( ( pOpSettings->dataAddress == NULL ) || !NEXUS_P_CpuAccessibleAddress( pOpSettings->dataAddress ) )
+    if( pOpSettings->dataAddress == NULL )
     {
-        return BERR_TRACE( NEXUS_INVALID_PARAMETER );
+        if(pOpSettings->keyIncMode  == NEXUS_HMACSHA_KeyInclusion_Op_eNo)
+        {
+            /* No key is included */
+            return BERR_TRACE( NEXUS_INVALID_PARAMETER );
+        }
     }
-
-    if( NEXUS_GetAddrType( pOpSettings->dataAddress ) == NEXUS_AddrType_eUnknown )
+    else if ( NEXUS_P_CpuAccessibleAddress( pOpSettings->dataAddress ) )
     {
-        hsmConf.systemMemory = true; /*Its not BMEM ... it must be system memory */
+        if( NEXUS_GetAddrType( pOpSettings->dataAddress ) == NEXUS_AddrType_eUnknown )
+        {
+            hsmConf.systemMemory = true; /*Its not BMEM ... it must be system memory */
+        }
+    }
+    else
+    {
+        /* Not CPU accessible address */
+        return BERR_TRACE( NEXUS_INVALID_PARAMETER );
     }
 
     /* Submit the command now */

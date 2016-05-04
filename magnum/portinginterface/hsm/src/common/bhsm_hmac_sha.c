@@ -79,7 +79,8 @@ static BERR_Code BHSM_P_UserHmacSha_impl ( BHSM_Handle hHsm, BHSM_UserHmacShaIO_
         return BERR_TRACE( BHSM_STATUS_FAILED );
     }
 
-    if( (pIo == NULL) || (pIo->unInputDataLen == 0 ) || ( pIo->pucInputData == NULL ) ) {
+    if( pIo == NULL )
+    {
         return  BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
     }
 
