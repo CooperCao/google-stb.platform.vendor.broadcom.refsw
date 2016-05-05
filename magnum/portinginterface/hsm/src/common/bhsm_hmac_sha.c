@@ -110,7 +110,7 @@ static BERR_Code BHSM_P_UserHmacSha_impl ( BHSM_Handle hHsm, BHSM_UserHmacShaIO_
     header.continualMode = pIo->contMode;
     BHSM_BspMsg_Header( hMsg, BCMD_cmdType_eUSER_SHA1, &header );
 
-    if( pIo->oprMode == BPI_HmacSha1_Op_eHmac && pIo->keySource == BHSM_HMACSHA_KeySource_eKeyLadder )
+    if( pIo->keySource == BHSM_HMACSHA_KeySource_eKeyLadder )
     {
         BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eVKL, BHSM_RemapVklId(pIo->VirtualKeyLadderID) );
         BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eKeyLayer, pIo->keyLayer );

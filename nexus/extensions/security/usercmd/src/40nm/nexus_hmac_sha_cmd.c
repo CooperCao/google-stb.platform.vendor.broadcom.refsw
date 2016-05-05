@@ -103,8 +103,7 @@ NEXUS_Error NEXUS_HMACSHA_PerformOp(
         default: return BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* including SAGE context which will not use NEXUS. */
     }
 
-    if( pOpSettings->opMode    == NEXUS_HMACSHA_Op_eHMAC &&
-        pOpSettings->keySource == NEXUS_HMACSHA_KeySource_eKeyLadder )
+    if( pOpSettings->keySource == NEXUS_HMACSHA_KeySource_eKeyLadder )
     {
         hsmConf.VirtualKeyLadderID = pOpSettings->VKL;
         hsmConf.keyLayer = pOpSettings->keyLayer;
