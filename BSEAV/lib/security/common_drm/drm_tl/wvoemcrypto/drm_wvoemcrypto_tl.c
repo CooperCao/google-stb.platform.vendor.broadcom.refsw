@@ -3751,16 +3751,16 @@ DrmRC drm_WVOemCrypto_Generic_Encrypt(uint32_t session,
     container->blocks[1].len =  WVCDM_KEY_IV_SIZE ;
 
     /*out buffer*/
-    container->blocks[2].data.ptr = SRAI_Memory_Allocate( 2*buffer_length, SRAI_MemoryType_Shared);
+    container->blocks[2].data.ptr = SRAI_Memory_Allocate(buffer_length, SRAI_MemoryType_Shared);
     if(container->blocks[2].data.ptr == NULL)
     {
-        BDBG_ERR(("%s - Error allocating memory for large buffer (%u bytes)", __FUNCTION__, 2*buffer_length));
+        BDBG_ERR(("%s - Error allocating memory for large buffer (%u bytes)", __FUNCTION__, buffer_length));
         *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
         rc = Drm_Err;
         goto ErrorExit;
     }
-    container->blocks[2].len =2*buffer_length;
-    BKNI_Memcpy(container->blocks[2].data.ptr, out_buffer,  2*buffer_length);
+    container->blocks[2].len = buffer_length;
+    BKNI_Memcpy(container->blocks[2].data.ptr, out_buffer,  buffer_length);
 
     /* map to parameters into srai_inout_container */
     container->basicIn[0] = session;
@@ -3803,7 +3803,7 @@ DrmRC drm_WVOemCrypto_Generic_Encrypt(uint32_t session,
         goto ErrorExit;
     }
     /*extract the outBuffer*/
-    BKNI_Memcpy(out_buffer, container->blocks[2].data.ptr,  2*buffer_length);
+    BKNI_Memcpy(out_buffer, container->blocks[2].data.ptr, buffer_length);
 
 ErrorExit:
 
@@ -3947,9 +3947,9 @@ DrmRC drm_WVOemCrypto_Generic_Decrypt(uint32_t session,
 
     /*out buffer*/
 
-    container->blocks[2].data.ptr = SRAI_Memory_Allocate( 2*buffer_length, SRAI_MemoryType_Shared);
-    container->blocks[2].len =2*buffer_length;
-    BKNI_Memcpy(container->blocks[2].data.ptr,out_buffer,  2*buffer_length);
+    container->blocks[2].data.ptr = SRAI_Memory_Allocate(buffer_length, SRAI_MemoryType_Shared);
+    container->blocks[2].len = buffer_length;
+    BKNI_Memcpy(container->blocks[2].data.ptr,out_buffer, buffer_length);
 
     /* map to parameters into srai_inout_container */
     container->basicIn[0] = session;
@@ -3986,7 +3986,7 @@ DrmRC drm_WVOemCrypto_Generic_Decrypt(uint32_t session,
     }
     BDBG_MSG(("%s:extract outbuffer from container",__FUNCTION__));
     /*extract the outBuffer*/
-    BKNI_Memcpy(out_buffer, container->blocks[2].data.ptr,  buffer_length);
+    BKNI_Memcpy(out_buffer, container->blocks[2].data.ptr, buffer_length);
 
 ErrorExit:
     BDBG_MSG(("%s:free container blks",__FUNCTION__));
