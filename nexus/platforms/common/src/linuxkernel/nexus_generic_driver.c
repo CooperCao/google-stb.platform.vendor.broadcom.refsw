@@ -471,11 +471,9 @@ nexus_generic_driver_ioctl(unsigned module, void *context_, unsigned int cmd, un
 
     /* Standby is handled as a special case because it needs to be syncronized with driver_close */
     if (lock_standby) LOCK();
-
     rc = g_nexus_driver_ioctl_handlers[module].ioctl(context, cmd, arg, NEXUS_IOCTL_TYPE(cmd), unlocked);
-    if (rc) {return BERR_TRACE(rc);}
-
     if (lock_standby) UNLOCK();
+    if (rc) {return BERR_TRACE(rc);}
 
 done:
     BDBG_MSG_TRACE(("<<nexus_driver_ioctl %u %#x %#x -> %d", module, cmd, arg, rc));
