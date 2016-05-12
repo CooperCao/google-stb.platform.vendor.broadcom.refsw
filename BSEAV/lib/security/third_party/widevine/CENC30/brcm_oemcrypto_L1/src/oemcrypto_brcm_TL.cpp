@@ -729,7 +729,7 @@ OEMCryptoResult OEMCrypto_GetHDCPCapability(OEMCrypto_HDCP_Capability *current,
     if (maximum == NULL)
         return OEMCrypto_ERROR_UNKNOWN_FAILURE;
 
-    if (drm_WVOemCrypto_GetHDCPCapability((uint8_t*)current, (uint8_t*)maximum, (int*)&wvRc) != Drm_Success)
+    if (drm_WVOemCrypto_GetHDCPCapability((uint32_t*)current, (uint32_t*)maximum, (int*)&wvRc) != Drm_Success)
     {
         return  wvRc;
     }

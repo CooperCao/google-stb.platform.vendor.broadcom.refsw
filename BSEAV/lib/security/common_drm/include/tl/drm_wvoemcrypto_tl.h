@@ -317,7 +317,7 @@ DrmRC drm_WVOemCrypto_DeriveKeysFromSessionKey(
                                     int *wvRc);
 
 
-DrmRC drm_WVOemCrypto_GetHDCPCapability(uint8_t *current, uint8_t *maximum, int *wvRc);
+DrmRC drm_WVOemCrypto_GetHDCPCapability(uint32_t *current, uint32_t *maximum, int *wvRc);
 
 DrmRC drm_WVOemCrypto_Generic_Encrypt(uint32_t session,
                                           const uint8_t* in_buffer,

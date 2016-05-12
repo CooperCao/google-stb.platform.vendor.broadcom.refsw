@@ -3583,7 +3583,7 @@ ErrorExit:
 
 
 
-DrmRC drm_WVOemCrypto_GetHDCPCapability(uint8_t *current, uint8_t *maximum, int *wvRc)
+DrmRC drm_WVOemCrypto_GetHDCPCapability(uint32_t *current, uint32_t *maximum, int *wvRc)
 {
     DrmRC rc = Drm_Success;
     BERR_Code sage_rc = BERR_SUCCESS;
@@ -3629,8 +3629,8 @@ DrmRC drm_WVOemCrypto_GetHDCPCapability(uint8_t *current, uint8_t *maximum, int 
         goto ErrorExit;
     }
 
-    *current = (uint8_t)(container->basicOut[1] & 0xFF);
-    *maximum = (uint8_t)(container->basicOut[3] & 0xFF);
+    *current = (uint32_t)container->basicOut[1];
+    *maximum = (uint32_t)container->basicOut[3];
 
     BDBG_MSG(("%s - current: %d, max: %d.", __FUNCTION__, *current, *maximum));
 

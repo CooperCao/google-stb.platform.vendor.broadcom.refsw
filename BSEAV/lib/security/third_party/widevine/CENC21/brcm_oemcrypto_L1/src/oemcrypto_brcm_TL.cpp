@@ -682,7 +682,8 @@ const char* OEMCrypto_SecurityLevel()
 OEMCryptoResult OEMCrypto_GetHDCPCapability(OEMCrypto_HDCP_Capability *current,
     OEMCrypto_HDCP_Capability *maximum)
 {
-    OEMCryptoResult wvRc = OEMCrypto_SUCCESS;;
+    OEMCryptoResult wvRc = OEMCrypto_SUCCESS;
+    uint32_t curr = 0, max = 0;
 
     LOGD(("%s entered", __FUNCTION__));
 
@@ -691,10 +692,12 @@ OEMCryptoResult OEMCrypto_GetHDCPCapability(OEMCrypto_HDCP_Capability *current,
     if (maximum == NULL)
         return OEMCrypto_ERROR_UNKNOWN_FAILURE;
 
-    if (drm_WVOemCrypto_GetHDCPCapability(current, maximum, (int*)&wvRc) != Drm_Success)
+    if (drm_WVOemCrypto_GetHDCPCapability(&curr, &max, (int*)&wvRc) != Drm_Success)
     {
         return  wvRc;
     }
+    *current = (OEMCrypto_HDCP_Capability)curr;
+    *maximum = (OEMCrypto_HDCP_Capability)max;
 
     LOGD(("OEMCrypto_GetHDCPCapability: current=%u max=%u", *current, *maximum));
     return OEMCrypto_SUCCESS;
