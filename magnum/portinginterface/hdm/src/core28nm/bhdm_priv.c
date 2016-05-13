@@ -1361,9 +1361,7 @@ void BHDM_P_RxDeviceAttached_isr(
 	return ;
 }
 
-
 #if BHDM_CONFIG_HAS_HDCP22
-
 void BHDM_P_ResetHDCPI2C_isr(const BHDM_Handle hHDMI)
 {
 	BREG_Handle hRegister ;

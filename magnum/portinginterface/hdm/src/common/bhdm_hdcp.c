@@ -3020,19 +3020,19 @@ BERR_Code BHDM_HDCP_GetHdcpVersion(const BHDM_Handle hHDMI, BHDM_HDCP_Version *e
 	/**************************/
 
 	/* access to register space is allowed here */
-    { /* check up to 5 times */
-        uint8_t cnt;
+	{ /* check up to 5 times */
+		uint8_t cnt;
 
-        uiHdcp2Version = 0;
-        for(cnt = 0; cnt < 5; cnt++)
-        {
-            uint8_t tmp;
+		uiHdcp2Version = 0;
+		for(cnt = 0; cnt < 5; cnt++)
+		{
+			uint8_t tmp;
 
-            rc = BHDM_P_BREG_I2C_Read(hHDMI,
-            BHDM_HDCP_RX_I2C_ADDR,  BHDM_HDCP_RX_HDCP2VERSION, &tmp, 1) ;
-            uiHdcp2Version |= tmp;
-        }
-    }
+			rc = BHDM_P_BREG_I2C_Read(hHDMI,
+			BHDM_HDCP_RX_I2C_ADDR,	BHDM_HDCP_RX_HDCP2VERSION, &tmp, 1) ;
+			uiHdcp2Version |= tmp;
+		}
+	}
 
 	if (rc == BERR_SUCCESS)
 	{
@@ -3177,12 +3177,12 @@ BERR_Code BHDM_HDCP_UpdateHdcp2xAuthenticationStatus(const BHDM_Handle hHDMI, co
     hRegister = hHDMI->hRegister;
     ulOffset = hHDMI->ulOffset;
 
-    BKNI_EnterCriticalSection();
-	Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
-		Register &= ~BCHP_MASK(HDMI_HDCP2TX_AUTH_CTL, HDCP2_AUTHENTICATED);
-		Register |=	BCHP_FIELD_DATA(HDMI_HDCP2TX_AUTH_CTL, HDCP2_AUTHENTICATED, authenticated);
-	BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset, Register) ;
-    BKNI_LeaveCriticalSection();
+	BKNI_EnterCriticalSection();
+		Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
+			Register &= ~BCHP_MASK(HDMI_HDCP2TX_AUTH_CTL, HDCP2_AUTHENTICATED);
+			Register |=	BCHP_FIELD_DATA(HDMI_HDCP2TX_AUTH_CTL, HDCP2_AUTHENTICATED, authenticated);
+		BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset, Register) ;
+	BKNI_LeaveCriticalSection();
 
     BDBG_LEAVE(BHDM_HDCP_UpdateHdcp2xAuthenticationStatus);
     return BERR_SUCCESS;
@@ -3191,11 +3191,11 @@ BERR_Code BHDM_HDCP_UpdateHdcp2xAuthenticationStatus(const BHDM_Handle hHDMI, co
 
 BERR_Code BHDM_HDCP_EnableHdcp2xEncryption(const BHDM_Handle hHDMI, const bool enable)
 {
-    BERR_Code rc = BERR_SUCCESS;
-    uint32_t Register, ulOffset;
-    bool uiAuthenticatedOk = false;
-    bool uiHdcp2Authenticated = false;
-    BREG_Handle hRegister;
+	BERR_Code rc = BERR_SUCCESS;
+	uint32_t Register, ulOffset;
+	bool uiAuthenticatedOk = false;
+	bool uiHdcp2Authenticated = false;
+	BREG_Handle hRegister;
 
     BDBG_ENTER(BHDM_HDCP_EnableHdcp2xEncryption);
     BDBG_OBJECT_ASSERT(hHDMI, HDMI);
@@ -3203,60 +3203,60 @@ BERR_Code BHDM_HDCP_EnableHdcp2xEncryption(const BHDM_Handle hHDMI, const bool e
     hRegister = hHDMI->hRegister;
     ulOffset = hHDMI->ulOffset;
 
-    BDBG_MSG(("%s: bReAuthRequestPending = %d, enable =%d", __FUNCTION__, hHDMI->bReAuthRequestPending, enable));
-    if (enable)
-    {
-        if (hHDMI->bReAuthRequestPending)
-        {
-            BDBG_WRN(("Pending REAUTH_REQ. Skip enabling HDCP 2.x encryption"));
-            rc = BERR_NOT_SUPPORTED;
-            goto done;
-        }
+	BDBG_MSG(("%s: bReAuthRequestPending = %d, enable =%d", __FUNCTION__, hHDMI->bReAuthRequestPending, enable));
+	if (enable)
+	{
+		if (hHDMI->bReAuthRequestPending)
+		{
+			BDBG_WRN(("Pending REAUTH_REQ. Skip enabling HDCP 2.x encryption"));
+			rc = BERR_NOT_SUPPORTED;
+			goto done;
+		}
 
-        Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_STATUS + ulOffset);
-        uiAuthenticatedOk = (bool) BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_STATUS, AUTHENTICATED_OK) ;
+		Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_STATUS + ulOffset);
+		uiAuthenticatedOk = (bool) BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_STATUS, AUTHENTICATED_OK) ;
 
-        Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
-        uiHdcp2Authenticated = (bool) BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_AUTH_CTL, HDCP2_AUTHENTICATED) ;
+		Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
+		uiHdcp2Authenticated = (bool) BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_AUTH_CTL, HDCP2_AUTHENTICATED) ;
 
-        if  (!uiAuthenticatedOk || !uiHdcp2Authenticated)
-        {
-            BDBG_WRN(("HDCP2.x Authentication not yet completed. Cannot enable HDCP2.x encryption, uiAuthenticatedOk=%d, uiHdcp2Authenticated=%d",
-                uiAuthenticatedOk, uiHdcp2Authenticated));
-            rc = BERR_NOT_SUPPORTED;
-            goto done;
-        }
-    }
+		if  (!uiAuthenticatedOk || !uiHdcp2Authenticated)
+		{
+			BDBG_WRN(("HDCP2.x Authentication not yet completed. Cannot enable HDCP2.x encryption, uiAuthenticatedOk=%d, uiHdcp2Authenticated=%d",
+				uiAuthenticatedOk, uiHdcp2Authenticated));
+			rc = BERR_NOT_SUPPORTED;
+			goto done;
+		}
+	}
 
-    BKNI_EnterCriticalSection();
-        Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
-            Register &= ~BCHP_MASK(HDMI_HDCP2TX_AUTH_CTL, ENABLE_HDCP2_ENCRYPTION);
-            Register |= BCHP_FIELD_DATA(HDMI_HDCP2TX_AUTH_CTL, ENABLE_HDCP2_ENCRYPTION, enable);
-        BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset, Register) ;
-    BKNI_LeaveCriticalSection();
+	BKNI_EnterCriticalSection();
+		Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
+			Register &= ~BCHP_MASK(HDMI_HDCP2TX_AUTH_CTL, ENABLE_HDCP2_ENCRYPTION);
+			Register |=	BCHP_FIELD_DATA(HDMI_HDCP2TX_AUTH_CTL, ENABLE_HDCP2_ENCRYPTION, enable);
+		BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset, Register) ;
+	BKNI_LeaveCriticalSection();
 
 done:
-    BDBG_LEAVE(BHDM_HDCP_EnableHdcp2xEncryption);
-    return rc;
+	BDBG_LEAVE(BHDM_HDCP_EnableHdcp2xEncryption);
+	return rc;
 }
 
 
 BERR_Code BHDM_HDCP_GetHdcp2xEncryptionStatus(const BHDM_Handle hHDMI, bool *bEncrypted)
 {
-    uint32_t Register, ulOffset;
-    BREG_Handle hRegister;
+	uint32_t Register, ulOffset;
+	BREG_Handle hRegister;
 
-    BDBG_ENTER(BHDM_HDCP_GetHdcp2xEncryptionStatus);
-    BDBG_OBJECT_ASSERT(hHDMI, HDMI);
+	BDBG_ENTER(BHDM_HDCP_GetHdcp2xEncryptionStatus);
+	BDBG_OBJECT_ASSERT(hHDMI, HDMI);
 
-    hRegister = hHDMI->hRegister;
-    ulOffset = hHDMI->ulOffset;
+	hRegister = hHDMI->hRegister;
+	ulOffset = hHDMI->ulOffset;
 
-    Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
-    *bEncrypted = (bool) BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_AUTH_CTL, ENABLE_HDCP2_ENCRYPTION) ;
+	Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
+	*bEncrypted = (bool) BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_AUTH_CTL, ENABLE_HDCP2_ENCRYPTION) ;
 
-    BDBG_LEAVE(BHDM_HDCP_GetHdcp2xEncryptionStatus);
-    return BERR_SUCCESS;
+	BDBG_LEAVE(BHDM_HDCP_GetHdcp2xEncryptionStatus);
+	return BERR_SUCCESS;
 }
 
 
@@ -3301,21 +3301,19 @@ BERR_Code BHDM_HDCP_KickStartHdcp2xCipher(const BHDM_Handle hHDMI)
 		Register |= BCHP_FIELD_DATA(HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT, 0x1);
 	BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_CFG0	+ ulOffset, Register) ;
 
-    BKNI_EnterCriticalSection();
-        Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
-            Register &= ~BCHP_MASK(HDMI_HDCP2TX_AUTH_CTL, AKE_INIT);
-            Register |= BCHP_FIELD_DATA(HDMI_HDCP2TX_AUTH_CTL, AKE_INIT, 0x1);
-        BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset, Register) ;
+	BKNI_EnterCriticalSection();
+		Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);
+			Register &= ~BCHP_MASK(HDMI_HDCP2TX_AUTH_CTL, AKE_INIT);
+			Register |=	BCHP_FIELD_DATA(HDMI_HDCP2TX_AUTH_CTL, AKE_INIT, 0x1);
+		BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset, Register) ;
 
-        /* Clear ReAuthRequestPending flag */
-        hHDMI->bReAuthRequestPending = false;
-    BKNI_LeaveCriticalSection();
-
+		/* Clear ReAuthRequestPending flag */
+		hHDMI->bReAuthRequestPending = false;
+	BKNI_LeaveCriticalSection();
 
     BDBG_LEAVE(BHDM_HDCP_KickStartHdcp2xCipher);
     return BERR_SUCCESS;
 }
-
 
 BERR_Code BHDM_HDCP_IsReauthRequestPending(const BHDM_Handle hHDMI, bool *bReauthReqPending)
 {

@@ -672,6 +672,8 @@ void BHDM_P_RxDeviceAttached_isr(
 	uint8_t *bDeviceAttached	/* [out] Device Attached Status  */
 ) ;
 
+
+
 void BHDM_P_EnableInterrupts(const BHDM_Handle hHDMI) ;
 void BHDM_P_DisableInterrupts(const BHDM_Handle hHDMI) ;
 void BHDM_P_DisableDisplay_isr(const BHDM_Handle hHDMI  /* [in] HDMI handle */) ;
@@ -716,6 +718,8 @@ void BHDM_SCDC_P_ConfigureScramblingTx_isr(BHDM_Handle hHDMI, BHDM_ScrambleConfi
 void BHDM_SCDC_DisableScrambleTx(BHDM_Handle hHDMI) ;
 void BHDM_SCDC_P_ConfigureScramblingTx(
 	BHDM_Handle hHDMI, BHDM_ScrambleConfig *pstScrambleConfig) ;
+
+void BHDM_P_ResetHDCPI2C_isr(const BHDM_Handle hHDMI);
 
 void BHDM_P_ResetHDCPI2C_isr(const BHDM_Handle hHDMI);
 
