@@ -529,6 +529,11 @@ DrmRC drm_WVOemCrypto_CloseSession(uint32_t session,int *wvRc)
         }
     }
 
+    if (scatterGatherEnabled && (gWvDmaBlockInfoList[session] != NULL)) {
+        SRAI_Memory_Free((uint8_t*)gWvDmaBlockInfoList[session]);
+        gWvDmaBlockInfoList[session] = NULL;
+    }
+
 ErrorExit:
     if(container != NULL)
     {
@@ -1230,11 +1235,6 @@ DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
         BDBG_ERR(("%s - Load Key command failed due to SAGE issue (basicOut[0] = 0x%08x)", __FUNCTION__, container->basicOut[0]));
         rc = Drm_Err;
         goto ErrorExit;
-    }
-
-    if (scatterGatherEnabled && (gWvDmaBlockInfoList[session] != NULL)) {
-        SRAI_Memory_Free((uint8_t*)gWvDmaBlockInfoList[session]);
-        gWvDmaBlockInfoList[session] = NULL;
     }
 
 ErrorExit:
