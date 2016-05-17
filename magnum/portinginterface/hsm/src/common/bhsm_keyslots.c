@@ -2388,20 +2388,32 @@ BERR_Code BHSM_ConfigAlgorithm (
 
     if( pConfig->cryptoAlg.bUseExtKey || pConfig->cryptoAlg.bUseExtIV )
     {
-        /* allocate an external keyslot */
-        for( x = 0; x < BHSM_EXTERNAL_KEYSLOTS_MAX; x++ )
+
+        if( pKeyslotAlg->externalKeySlot.valid == false )
         {
-            if( hHsm->externalKeySlotTable[x].allocated == false )
+           /* allocate an external keyslot */
+           for( x = 0; x < BHSM_EXTERNAL_KEYSLOTS_MAX; x++ )
+           {
+               if( hHsm->externalKeySlotTable[x].allocated == false )
+               {
+                    hHsm->externalKeySlotTable[x].allocated = true;  /* reserve the ext. key slot.  */
+                    pKeyslotAlg->externalKeySlot.slotNum = x;    /* record the ext. key slot location */
+                    pKeyslotAlg->externalKeySlot.valid = true;
+                   break;
+               }
+           }
+        }
+        if( pKeyslotAlg->externalKeySlot.valid )
+        {
+            unsigned slotNum = pKeyslotAlg->externalKeySlot.slotNum;
+
+            if( pKeyslotAlg->externalKeySlot.slotNum >= BHSM_EXTERNAL_KEYSLOTS_MAX )
             {
-                hHsm->externalKeySlotTable[x].allocated = true;  /* reserve the ext. key slot.  */
-                hHsm->externalKeySlotTable[x].key.valid = pConfig->cryptoAlg.bUseExtKey;
-                hHsm->externalKeySlotTable[x].iv.valid  = pConfig->cryptoAlg.bUseExtIV;
-
-                pKeyslotAlg->externalKeySlot.slotNum = x;    /* record the ext. key slot location */
-                pKeyslotAlg->externalKeySlot.valid = true;
-
-                break;
+                errCode = BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
+                goto BHSM_P_DONE_LABEL;
             }
+            hHsm->externalKeySlotTable[slotNum].key.valid = pConfig->cryptoAlg.bUseExtKey;
+            hHsm->externalKeySlotTable[slotNum].iv.valid  = pConfig->cryptoAlg.bUseExtIV;
         }
 
         BDBG_MSG(("ExternalKey SET ksNum[%d] ksType[%d] blkType[%d] polType[%d] x[%d]" , pConfig->unKeySlotNum

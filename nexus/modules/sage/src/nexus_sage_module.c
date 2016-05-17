@@ -590,6 +590,7 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
     NEXUS_ModuleSettings moduleSettings;
     unsigned heapIndex;
     unsigned clientHeapIndex = 0;
+    int booted = 0;
 
     BDBG_ASSERT(!g_NEXUS_sageModule.moduleHandle);
     BDBG_ASSERT(pSettings);
@@ -709,6 +710,9 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
 
     rc = NEXUS_SageModule_P_Start();
     if (rc != NEXUS_SUCCESS) { goto err; }
+
+    booted = NEXUS_Sage_P_CheckSageBooted();
+    if (!booted) { rc = NEXUS_INVALID_PARAMETER; goto err; }
 
     /* success */
 err:

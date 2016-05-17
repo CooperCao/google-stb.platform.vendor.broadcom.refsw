@@ -1,7 +1,7 @@
 /***************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,10 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: drm_netflix.c $
- * $brcm_Revision: 5 $
- * $brcm_Date: 11/21/12 3:40p $
  *
  * Module Description:
  *
@@ -473,12 +469,12 @@ DrmRC DRM_Common_TL_Finalize(void)
         * release the mutex.  The counter will increment again preventing an infinite loop. */
         BKNI_ReleaseMutex(drmCommonTLMutex);
 
-  BDBG_MSG(("%s - Start URR toggle", __FUNCTION__));
+    BDBG_MSG(("%s - Start URR toggle", __FUNCTION__));
         rc = DRM_Common_TL_URR_Toggle();
         if (rc != Drm_Success) {
             BDBG_ERR(("%s - Error performing URR toggle", __FUNCTION__));
         }
-  BDBG_MSG(("%s - URR toggle completed", __FUNCTION__));
+    BDBG_MSG(("%s - URR toggle completed", __FUNCTION__));
 
         BKNI_AcquireMutex(drmCommonTLMutex);
         BDBG_MSG(("%s - Cleaning up Common DRM TL only parameters ***************************", __FUNCTION__));
@@ -568,22 +564,33 @@ ErrorExit:
     return rc;
 }
 
-DrmRC DRM_Common_TL_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct, bool bSkipCacheFlush)
+DrmRC DRM_Common_TL_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct, bool bSkipCacheFlush, bool bExternalIV )
 {
     NEXUS_DmaJobBlockSettings jobBlkSettings[MAX_DMA_BLOCKS];
 
     CommonCryptoJobSettings jobSettings;
     unsigned int i = 0;
+    unsigned int j = 0;
+    DrmRC drmRc = Drm_Success;
 
     /* The mutex is still protecting the DRM Common Handle (resp CommonCrypto handle) table */
     BDBG_MSG(("%s - Entered function", __FUNCTION__));
 
-    BDBG_ASSERT(pDrmCommonOpStruct->num_dma_block <= MAX_DMA_BLOCKS);
+    /* Sanity check */
+    if ( (pDrmCommonOpStruct == NULL) || (pDrmCommonOpStruct->pDmaBlock == NULL) ||
+         (pDrmCommonOpStruct->num_dma_block > MAX_DMA_BLOCKS) ||
+         ( bExternalIV && pDrmCommonOpStruct->num_dma_block < 1 ))
+    {
+        BDBG_ERR(("%s - invalid paramters for M2M operation", __FUNCTION__));
+        drmRc = Drm_CryptoDmaErr;
+        goto ErrorExit;
+    }
+
     BDBG_ASSERT(drmCommonTLMutex != NULL);
     BKNI_AcquireMutex(drmCommonTLMutex);
 
     DRM_Common_Handle drmHnd;
-    DrmRC drmRc = DRM_Common_GetHandle(&drmHnd);;
+    drmRc = DRM_Common_GetHandle(&drmHnd);;
 
     if (drmRc == Drm_Success)
     {
@@ -595,8 +602,28 @@ DrmRC DRM_Common_TL_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct,
         jobSettings.keySlot = pDrmCommonOpStruct->keyConfigSettings.keySlot;
 
         DmaBlockInfo_t* pDmaBlock = pDrmCommonOpStruct->pDmaBlock;
-        for ( i = 0; i < pDrmCommonOpStruct->num_dma_block; i++)
+
+        if ( bExternalIV )
         {
+            BDBG_MSG(("%s - btp 0x%08x size=%d", __FUNCTION__, pDmaBlock->pSrcData, pDmaBlock->uiDataSize));
+
+            /* External IV BTP data in first dma block */
+            NEXUS_DmaJob_GetDefaultBlockSettings(&jobBlkSettings[0]);
+            jobBlkSettings[0].pSrcAddr                   = pDmaBlock->pSrcData;
+            jobBlkSettings[0].pDestAddr                  = pDmaBlock->pDstData;
+            jobBlkSettings[0].blockSize                  = pDmaBlock->uiDataSize;
+            jobBlkSettings[0].resetCrypto                = true;
+            jobBlkSettings[0].scatterGatherCryptoStart   = true;
+            jobBlkSettings[0].scatterGatherCryptoEnd     = true;
+            jobBlkSettings[0].securityBtp                = true;
+            jobBlkSettings[0].cached                     = false;
+            pDmaBlock++;
+            j=1;
+        }
+
+        for ( i = j; i < pDrmCommonOpStruct->num_dma_block; i++)
+        {
+            BDBG_MSG(("%s - blkidx=%d, src=0x%08x, des=0x%08x, size=%d, start=%d,end=%d", __FUNCTION__, i, pDmaBlock->pSrcData, pDmaBlock->pDstData, pDmaBlock->uiDataSize, pDmaBlock->sg_start,pDmaBlock->sg_end ));
             NEXUS_DmaJob_GetDefaultBlockSettings (&jobBlkSettings[i]);
             jobBlkSettings[i].pSrcAddr = pDmaBlock->pSrcData;
             jobBlkSettings[i].pDestAddr = pDmaBlock->pDstData;
@@ -613,8 +640,9 @@ DrmRC DRM_Common_TL_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct,
             pDmaBlock++;
         }
 
-        jobBlkSettings[0].resetCrypto = true;
+        jobBlkSettings[j].resetCrypto = true;
 
+        BDBG_MSG(("%s - dmaXfer [%d] blocks", __FUNCTION__, pDrmCommonOpStruct->num_dma_block ));
         if (CommonCrypto_DmaXfer(drmHnd->cryptHnd,
                                  &jobSettings,
                                  jobBlkSettings,
@@ -626,7 +654,7 @@ DrmRC DRM_Common_TL_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct,
         }
 
         if (!bSkipCacheFlush) {
-            for (i = 0; i < pDrmCommonOpStruct->num_dma_block; i++)
+            for (i = j; i < pDrmCommonOpStruct->num_dma_block; i++)
             {
                 NEXUS_FlushCache(jobBlkSettings[i].pDestAddr, jobBlkSettings[i].blockSize);
             }

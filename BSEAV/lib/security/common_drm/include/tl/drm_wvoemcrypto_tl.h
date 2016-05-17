@@ -138,11 +138,15 @@ typedef struct Drm_WVoemCryptoKeySlot_t
 
 typedef struct Drm_WVOemCryptoHostSessionCtx_t
 {
-        uint32_t session_id;
-        uint8_t key_id[16];
-        size_t key_id_length;
-        Drm_WVoemCryptoKeySlot_t keySlot;
-        DrmCommonOperationStruct_t drmCommonOpStruct;
+    uint32_t session_id;
+    uint8_t key_id[16];
+    size_t key_id_length;
+    Drm_WVoemCryptoKeySlot_t keySlot;
+    DrmCommonOperationStruct_t drmCommonOpStruct;
+    struct {
+        uint32_t btp_sage_size;
+        uint8_t *btp_sage_buffer;
+    } btp_info;
 }Drm_WVOemCryptoHostSessionCtx_t;
 
 #define SAGE_WVKBOX_DEVID_LEN 32
