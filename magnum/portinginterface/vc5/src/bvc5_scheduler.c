@@ -889,8 +889,6 @@ void BVC5_Scheduler(
 
       BVC5_P_PumpAllClients(hVC5);
 
-      BKNI_ReleaseMutex(hVC5->hModuleMutex);
-
       /* When enough events have happened try to reduce the bin memory footprint */
       hVC5->uiPurgeCounter++;
       if (hVC5->uiPurgeCounter >= BVC5_PURGE_LIMIT)
@@ -898,6 +896,8 @@ void BVC5_Scheduler(
          hVC5->uiPurgeCounter = 0;
          BVC5_P_BinPoolPurge(hVC5->hBinPool);
       }
+
+      BKNI_ReleaseMutex(hVC5->hModuleMutex);
    }
 
    BKNI_DestroyEvent(hVC5->hSchedulerWakeEvent);
