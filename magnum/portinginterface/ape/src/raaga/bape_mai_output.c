@@ -1218,6 +1218,8 @@ static BERR_Code BAPE_MaiOutput_P_OpenHw_IopOut(BAPE_MaiOutputHandle handle)
     BAPE_Reg_P_UpdateField(handle->deviceHandle, BAPE_MAI_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CTRL, handle->index), AUD_FMM_IOP_OUT_MAI_0_SPDIF_CTRL, WAIT_PCM_TO_COMP, 2);
 #endif
 
+    BAPE_Reg_P_UpdateEnum(handle->deviceHandle, BAPE_MAI_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CTRL, handle->index), AUD_FMM_IOP_OUT_MAI_0_SPDIF_CTRL, INSERT_ON_UFLOW , Insert);
+
     #if defined BCHP_AUD_FMM_IOP_OUT_MAI_0_LOW_LATENCY_PASSTHROUGH_CFG
     if ( handle->lowLatencyMode )
     {
