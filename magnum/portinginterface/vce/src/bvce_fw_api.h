@@ -67,7 +67,7 @@ extern "C"
  * API Version  MM.mm.pp.bb
  */
 
-#define VICE_API_VERSION                  0x050D0000
+#define VICE_API_VERSION                  0x050E0000
 
 /*
  * Size of the command buffer between host (PI) and FW in bytes
@@ -221,32 +221,33 @@ extern "C"
  * Channel-specific Event codes returned by the ViCE through the Status and Event interface
  */
 /* Errors (LSBs) */
-#define VICE_ERROR_INVALID_INPUT_DIMENSION_BIT                     (0)
-#define VICE_ERROR_USER_DATA_LATE_BIT                              (1)
-#define VICE_ERROR_USER_DATA_DUPLICATE_BIT                         (2)
-#define VICE_ERROR_FW_ADJUSTS_WRONG_FRAME_RATE                     (3)
-#define VICE_ERROR_UNSUPPORTED_BVN_FRAME_RATE                      (4)
-#define VICE_ERROR_UNSUPPORTED_RESOLUTION                          (5)
-#define VICE_ERROR_BVN_FRAMERATE_IS_SMALLER_THAN_THE_MINIMUM_ALLOWED        (6)
-#define VICE_ERROR_MISMATCH_BVN_PIC_RESOLUTION                     (7)
-#define VICE_ERROR_FW_INCREASED_BITRATE_ABOVE_MAX                  (8)
-#define VICE_ERROR_BIN_BUFFER_IS_FULL                              (9)
-#define VICE_ERROR_CDB_IS_FULL                                     (10)
-#define VICE_ERROR_PICARC_TO_CABAC_DINO_BUFFER_IS_FULL             (11)
-#define VICE_ERROR_EBM_IS_FULL                                     (12)
-#define VICE_ERROR_NUM_SLICES_ADJUSTED_TO_MAX_ALLOWED              (13)
-#define VICE_ERROR_NUM_ENTRIES_INTRACODED_ADJUSTED_TO_MAX_ALLOWED  (14)
-#define VICE_ERROR_IBBP_NOT_SUPPORTED_FOR_THIS_RESOLUTION          (15)
-#define VICE_ERROR_MBARC_BOOT_FAILURE                              (16)
-#define VICE_ERROR_MEASURED_ENCODER_DELAY_LONGER_THAN_ESTIMATED    (17)
-#define VICE_ERROR_CRITICAL                                        (18)
-#define VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_3_CH_MODE    (19)
-#define VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_2_CH_MODE    (20)
-#define VICE_ERROR_RESOLUTION_IS_TOO_HIGH_FOR_THIS_LEVEL           (21)
-#define VICE_ERROR_FW_INCREASED_BITRATE_TO_MINIMUM_SUPPORTED       (22)
+#define VICE_ERROR_INVALID_INPUT_DIMENSION_BIT                                        (0)
+#define VICE_ERROR_USER_DATA_LATE_BIT                                                 (1)
+#define VICE_ERROR_USER_DATA_DUPLICATE_BIT                                            (2)
+#define VICE_ERROR_FW_ADJUSTS_WRONG_FRAME_RATE                                        (3)
+#define VICE_ERROR_UNSUPPORTED_BVN_FRAME_RATE                                         (4)
+#define VICE_ERROR_UNSUPPORTED_RESOLUTION                                             (5)
+#define VICE_ERROR_BVN_FRAMERATE_IS_SMALLER_THAN_THE_MINIMUM_ALLOWED                  (6)
+#define VICE_ERROR_MISMATCH_BVN_PIC_RESOLUTION                                        (7)
+#define VICE_ERROR_FW_INCREASED_BITRATE_ABOVE_MAX                                     (8)
+#define VICE_ERROR_BIN_BUFFER_IS_FULL                                                 (9)
+#define VICE_ERROR_CDB_IS_FULL                                                        (10)
+#define VICE_ERROR_PICARC_TO_CABAC_DINO_BUFFER_IS_FULL                                (11)
+#define VICE_ERROR_EBM_IS_FULL                                                        (12)
+#define VICE_ERROR_NUM_SLICES_ADJUSTED_TO_MAX_ALLOWED                                 (13)
+#define VICE_ERROR_NUM_ENTRIES_INTRACODED_ADJUSTED_TO_MAX_ALLOWED                     (14)
+#define VICE_ERROR_IBBP_NOT_SUPPORTED_FOR_THIS_RESOLUTION                             (15)
+#define VICE_ERROR_MBARC_BOOT_FAILURE                                                 (16)
+#define VICE_ERROR_MEASURED_ENCODER_DELAY_LONGER_THAN_ESTIMATED                       (17)
+#define VICE_ERROR_CRITICAL                                                           (18)
+#define VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_3_CH_MODE                       (19)
+#define VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_2_CH_MODE                       (20)
+#define VICE_ERROR_RESOLUTION_IS_TOO_HIGH_FOR_THIS_LEVEL                              (21)
+#define VICE_ERROR_FW_INCREASED_BITRATE_TO_MINIMUM_SUPPORTED                          (22)
+#define VICE_ERROR_UNSUPPORTED_FRAME_RATE_FOR_THIS_RESOLUTION_AND_GOP_STRUCTURE       (23)
 /* Events (MSBs) */
-#define VICE_EVENT_EOS_SENT_BIT                                    (30)
-#define VICE_EVENT_BVN_METADATA_CHANGE_BIT                         (31)
+#define VICE_EVENT_EOS_SENT_BIT                                                       (30)
+#define VICE_EVENT_BVN_METADATA_CHANGE_BIT                                            (31)
 
 
 /*
@@ -393,7 +394,19 @@ typedef enum
     VICE_WDOG_TRACE_INITHOSTCMD_WAIT_DMA1                       = 0x430,
     VICE_WDOG_TRACE_INITHOSTCMD_WAIT_DMA1_AFTER                 = 0x431,
     VICE_WDOG_MBARC_WAIT_4_PICARC_DINO                          = 0x440,
-    VICE_WDOG_MBARC_WAIT_4_PICARC_DINO_AFTER                    = 0x441
+    VICE_WDOG_MBARC_WAIT_4_PICARC_DINO_AFTER                    = 0x441,
+    VICE_WDOG_WAIT_PICARC_TO_MBARC_ADI_RECEIVED                 = 0x450,
+    VICE_WDOG_WAIT_PICARC_TO_MBARC_ADI_RECEIVED_AFTER           = 0x451,
+    VICE_WDOG_TRACE_WAIT_PICARC_FROM_MBARC_DINO                 = 0x460,
+    VICE_WDOG_TRACE_WAIT_PICARC_FROM_MBARC_DINO_AFTER           = 0x461,
+    VICE_WDOG_MBARC_WAIT_MBARC_TO_PICARC_ADI_RECEIVED           = 0x470,
+    VICE_WDOG_MBARC_WAIT_MBARC_TO_PICARC_ADI_RECEIVED_AFTER     = 0x471,
+    VICE_WDOG_MBARC_WAIT_PICARC_TO_MBARC_ADI_SENT               = 0x480,
+    VICE_WDOG_MBARC_WAIT_PICARC_TO_MBARC_ADI_SENT_AFTER         = 0x481,
+    VICE_WDOG_MBARC_WAIT_MBARC_TO_PICARC_ADI_SENT               = 0x490,
+    VICE_WDOG_MBARC_WAIT_MBARC_TO_PICARC_ADI_SENT_AFTER         = 0x491,
+    VICE_WDOG_TRACE_MB_WAIT_MBARC_FROM_PICARC_DINO              = 0x4A0,
+    VICE_WDOG_TRACE_MB_WAIT_MBARC_FROM_PICARC_DINO_AFTER        = 0x4A1
 
 } WdogTraceCode_e;
 
@@ -747,6 +760,13 @@ typedef enum
 
 typedef enum
 {
+    ENCODING_FRAME_RATE_0749 =  749,
+    ENCODING_FRAME_RATE_0750 =  750,
+    ENCODING_FRAME_RATE_0999 =  999,
+    ENCODING_FRAME_RATE_1000 = 1000,
+    ENCODING_FRAME_RATE_1198 = 1198,
+    ENCODING_FRAME_RATE_1200 = 1200,
+    ENCODING_FRAME_RATE_1250 = 1250,
     ENCODING_FRAME_RATE_1498 = 1498,
     ENCODING_FRAME_RATE_1500 = 1500,
     ENCODING_FRAME_RATE_1998 = 1998,
@@ -774,11 +794,16 @@ typedef enum
        ENCODING_FRAME_RATE_CODE_5994,
        ENCODING_FRAME_RATE_CODE_6000,
        ENCODING_FRAME_RATE_CODE_1498,
-       ENCODING_FRAME_RATE_CODE_0749,       /* Not supported */
-       ENCODING_FRAME_RATE_CODE_1000,       /* Not supported */
+       ENCODING_FRAME_RATE_CODE_0749,
+       ENCODING_FRAME_RATE_CODE_1000,
        ENCODING_FRAME_RATE_CODE_1500,
        ENCODING_FRAME_RATE_CODE_2000,
-       ENCODING_FRAME_RATE_CODE_1998
+       ENCODING_FRAME_RATE_CODE_1998,
+       ENCODING_FRAME_RATE_CODE_1250,
+       ENCODING_FRAME_RATE_CODE_0750,
+       ENCODING_FRAME_RATE_CODE_1200,
+       ENCODING_FRAME_RATE_CODE_1198,
+       ENCODING_FRAME_RATE_CODE_0999
 } FrameRateCode_e;
 
 
@@ -900,11 +925,11 @@ typedef struct ViceCmdConfigChannel_t
 #define ALLOW_OPEN_GOP_STRUCTURE_SHIFT                      31                  /* Allows the FW to use an open GOP - shift   */
 
 /* Minimum output frame rate in the current session */
-#define CONFIG_FRAME_RATE_CODE_LIMIT_MAX_MASK                    0x000F0000
+#define CONFIG_FRAME_RATE_CODE_LIMIT_MAX_MASK                    0x00FF0000
 #define CONFIG_FRAME_RATE_CODE_LIMIT_MAX_SHIFT                   16
 
 /* Minimum output frame rate in the current session */
-#define CONFIG_FRAME_RATE_CODE_LIMIT_MIN_MASK                    0x0000000F
+#define CONFIG_FRAME_RATE_CODE_LIMIT_MIN_MASK                    0x000000FF
 #define CONFIG_FRAME_RATE_CODE_LIMIT_MIN_SHIFT                   0
 
 /* Maximum picture height during the current session */
