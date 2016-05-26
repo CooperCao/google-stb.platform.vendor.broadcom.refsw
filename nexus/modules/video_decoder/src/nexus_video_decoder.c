@@ -5157,6 +5157,11 @@ NEXUS_Error NEXUS_VideoDecoder_ReturnDecodedFrames_Avd(
         {
             videoDecoder->externalTsm.numIFramesDisplayed++;
         }
+
+        if (pSettings != NULL)
+        {
+            ++pSettings;
+        }
     }
 
     BKNI_LeaveCriticalSection();
