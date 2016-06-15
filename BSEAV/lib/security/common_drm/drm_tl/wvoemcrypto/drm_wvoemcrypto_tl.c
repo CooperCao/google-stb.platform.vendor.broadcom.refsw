@@ -61,6 +61,9 @@
 #define OVERWRITE_USAGE_TABLE_ON_ROOTFS  (1)
 
 #define MAX_NUMBER_SESSIONS  (8)
+
+#define INVALID_KEYSLOT_ID   (-1)
+
 static Drm_WVOemCryptoHostSessionCtx_t gHostSessionCtx[MAX_NUMBER_SESSIONS];
 
 /* #define DEBUG 1 */
@@ -1706,6 +1709,9 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
     container->basicIn[1] = key_id_length;
     container->basicIn[2] = DRM_WVOEMCRYPTO_NUM_KEY_SLOT;
 
+    /* Set to an invalid value to see if key slot was selected */
+    container->basicOut[3] = INVALID_KEYSLOT_ID;
+
     sage_rc = SRAI_Module_ProcessCommand(gmoduleHandle, DrmWVOEMCrypto_CommandId_eSelectKey, container);
     if (sage_rc != BERR_SUCCESS)
     {
@@ -1727,6 +1733,14 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
         goto ErrorExit;
     }
 
+    if (container->basicOut[3] == INVALID_KEYSLOT_ID)
+    {
+        /* If key slot was not selected but a successful operation, an AES decryption key was not selected.
+         * Key slot is expected to not be selected in this scenario.
+         */
+        goto IgnoreKeySlot;
+    }
+
     keySlotSelected = container->basicOut[3];
 
     for(i = 0; i < DRM_WVOEMCRYPTO_NUM_KEY_SLOT; i++)
@@ -1745,7 +1759,7 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
     }
     BDBG_MSG(("%s - Selected by Sage: keyslotID[%d] Keyslot number = '%u'", __FUNCTION__, i, keyslotInfo.keySlotNumber));
 
-
+IgnoreKeySlot:
   ErrorExit:
 
     BDBG_MSG(("%s: free container block 0:",__FUNCTION__));
@@ -2176,22 +2190,19 @@ DrmRC drm_WVOemCrypto_DecryptCTR(uint32_t session,
         container->basicIn[1] =  WVCDM_KEY_IV_SIZE;
         container->basicIn[2]= buffer_type;
 
-        if ( true )
+        container->basicIn[3]= BTP_SIZE;
+        container->blocks[1].data.ptr = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_SagePrivate);
+        if(container->blocks[1].data.ptr == NULL)
         {
-            container->basicIn[3]= BTP_SIZE;
-            container->blocks[1].data.ptr = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_SagePrivate);
-            if(container->blocks[1].data.ptr == NULL)
-            {
-                BDBG_ERR(("%s: Out of memory for BTP (%u bytes)", __FUNCTION__, BTP_SIZE));
-                *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
-                rc = Drm_Err;
-                goto ErrorExit;
-            }
-                container->blocks[1].len = BTP_SIZE;
-                gHostSessionCtx[session].btp_info.btp_sage_size = BTP_SIZE;
-                gHostSessionCtx[session].btp_info.btp_sage_buffer = container->blocks[1].data.ptr;
-                BDBG_MSG(("%s: Allocated btp_sage_buffer 0x%08x", __FUNCTION__, gHostSessionCtx[session].btp_info.btp_sage_buffer ));
+            BDBG_ERR(("%s: Out of memory for BTP (%u bytes)", __FUNCTION__, BTP_SIZE));
+            *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+            rc = Drm_Err;
+            goto ErrorExit;
         }
+        container->blocks[1].len = BTP_SIZE;
+        gHostSessionCtx[session].btp_info.btp_sage_size = BTP_SIZE;
+        gHostSessionCtx[session].btp_info.btp_sage_buffer = container->blocks[1].data.ptr;
+        BDBG_MSG(("%s: Allocated btp_sage_buffer 0x%08x", __FUNCTION__, gHostSessionCtx[session].btp_info.btp_sage_buffer ));
 
         BDBG_MSG(("%s:send sage command",__FUNCTION__));
 
