@@ -60,7 +60,7 @@
 #define MAX_USAGE_TABLE_SIZE         (6544)
 #define OVERWRITE_USAGE_TABLE_ON_ROOTFS  (1)
 
-#define MAX_NUMBER_SESSIONS  (8)
+#define MAX_NUMBER_SESSIONS  (12)
 
 #define INVALID_KEYSLOT_ID   (-1)
 
