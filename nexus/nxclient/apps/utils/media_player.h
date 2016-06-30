@@ -126,6 +126,7 @@ typedef struct media_player_start_settings
 
     bool quiet; /* don't print status */
     NxClient_HdcpLevel hdcp;
+    NxClient_HdcpVersion hdcp_version;
     enum media_player_audio_primers audio_primers;
     NEXUS_SimpleStcChannelSyncMode sync; /* sync mode for simple stc channel */
     const char  *additional_headers;/* Additional HTTP headers that app wants to include in the outgoing Get Request. Terminate each header with "\0xd\0xa". */

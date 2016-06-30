@@ -49,7 +49,8 @@
 
 
 #include "bhdm.h"
-#include "bhdm_priv.h"
+#include "../common/bhdm_priv.h"
+#include "bchp_dvp_ht.h"
 
 #if BCHP_PWR_SUPPORT
 #include "bchp_pwr.h"
@@ -217,12 +218,20 @@ static BERR_Code BHDM_P_ConfigurePixelEncoding(const BHDM_Handle hHDMI, const BH
 
 	if (NewHdmiSettings->stVideoSettings.eColorSpace == BAVC_Colorspace_eYCbCr422)
 	{
-		pixelSelect = 1 ;
-		pixelMap = 0 ;
-	}
-	else if (NewHdmiSettings->stVideoSettings.eColorSpace == BAVC_Colorspace_eYCbCr420)
-	{
-		pixelSelect = 0 ;
+#ifdef BCHP_DVP_HT_VEC_INTERFACE_CFG_SEL_422_FORMAT_422_Legacy
+        pixelSelect = BCHP_DVP_HT_VEC_INTERFACE_CFG_SEL_422_FORMAT_422_Legacy ;
+#else
+        pixelSelect = 1 ;
+#endif
+        pixelMap = 0 ;
+    }
+    else if (NewHdmiSettings->stVideoSettings.eColorSpace == BAVC_Colorspace_eYCbCr420)
+    {
+#ifdef BCHP_DVP_HT_VEC_INTERFACE_CFG_SEL_422_FORMAT_420
+        pixelSelect = BCHP_DVP_HT_VEC_INTERFACE_CFG_SEL_422_FORMAT_420 ;
+#else
+        pixelSelect = 0 ;
+#endif
 		pixelMap = 1 ;
 	}
 	else /* keep default */
@@ -689,10 +698,7 @@ void BHDM_P_ConfigureInputAudioFmt(
 		| BCHP_FIELD_DATA(HDMI_AUDIO_PACKET_CONFIG, AUDIO_CEA_MASK, ChannelMask) ;
 	BREG_Write32(hRegister, BCHP_HDMI_AUDIO_PACKET_CONFIG + ulOffset, Register) ;
 
-
-#if BHDM_CONFIG_DEBUG_AUDIO_INFOFRAME
-	BDBG_MSG(("Tx%d: Channel Mask: %#x", hHDMI->eCoreId, ChannelMask)) ;
-#endif
+    BDBG_MSG(("Tx%d: Channel Mask: %#x", hHDMI->eCoreId, ChannelMask)) ;
 }
 
 
@@ -1134,7 +1140,7 @@ void BHDM_P_PowerOnPhy (const BHDM_Handle hHDMI)
 		BHDM_ScrambleConfig ScrambleSettings ;
 
 		BKNI_Memset(&ScrambleSettings, 0,  sizeof(BHDM_ScrambleConfig)) ;
-		BHDM_SCDC_P_ConfigureScramblingTx_isrsafe(hHDMI, &ScrambleSettings) ;
+        BHDM_SCDC_P_ConfigureScramblingTx(hHDMI, &ScrambleSettings) ;
 	}
 #endif
 
@@ -1355,3 +1361,173 @@ void BHDM_P_RxDeviceAttached_isr(
 	return ;
 }
 
+
+#if BHDM_CONFIG_HAS_HDCP22
+
+void BHDM_P_ResetHDCPI2C_isr(const BHDM_Handle hHDMI)
+{
+	BREG_Handle hRegister ;
+	uint32_t Register, ulOffset ;
+	uint8_t i=0;
+	uint32_t regAddress = BCHP_HDMI_REG_START;
+
+	hRegister = hHDMI->hRegister ;
+	ulOffset = hHDMI->ulOffset ;
+
+	/***********************************
+	** Save register values before resetting **
+	***********************************/
+	{
+		/* clear buffer before starting */
+		BKNI_Memset(hHDMI->hdmiRegBuff, 0, hdmiRegBuffSize);
+		i=0;
+        /* To pass HDCP 1.4 1B-01 on Simplay tester (FW 2.0.1), we need to skip registers from HDMI_BKSV0..HDMI_HDCP_KEY_2*/
+		regAddress = BCHP_HDMI_HDCP_CTL;
+		while (regAddress <=  BCHP_HDMI_HDCP2TX_CTRL0)
+		{
+			Register = BREG_Read32(hRegister, regAddress + ulOffset);
+			hHDMI->hdmiRegBuff[i++] = Register;
+			regAddress+=4;
+		}
+
+		/* clear buffer before starting */
+		BKNI_Memset(hHDMI->autoI2cRegBuff, 0, autoI2cRegBuffSize);
+		i=0;
+		regAddress = BCHP_HDMI_TX_AUTO_I2C_CH0_CFG;
+		while (regAddress <= BCHP_HDMI_TX_AUTO_I2C_CH0_STAT)
+		{
+			Register = BREG_Read32(hRegister, regAddress + ulOffset);
+			hHDMI->autoI2cRegBuff[i++] = Register;
+			regAddress+=4;
+		}
+
+		regAddress = BCHP_HDMI_TX_AUTO_I2C_CH1_CFG;
+		while (regAddress <= BCHP_HDMI_TX_AUTO_I2C_CH1_STAT)
+		{
+			Register = BREG_Read32(hRegister, regAddress + ulOffset);
+			hHDMI->autoI2cRegBuff[i++] = Register;
+			regAddress+=4;
+		}
+
+		regAddress = BCHP_HDMI_TX_AUTO_I2C_CH2_CFG;
+		while (regAddress <= BCHP_HDMI_TX_AUTO_I2C_CH2_STAT)
+		{
+			Register = BREG_Read32(hRegister, regAddress + ulOffset);
+			hHDMI->autoI2cRegBuff[i++] = Register;
+			regAddress+=4;
+		}
+
+		regAddress = BCHP_HDMI_TX_AUTO_I2C_CH3_CFG;
+		while (regAddress <= BCHP_HDMI_TX_AUTO_I2C_CH3_REG3_CFG)
+		{
+			Register = BREG_Read32(hRegister, regAddress + ulOffset);
+			hHDMI->autoI2cRegBuff[i++] = Register;
+			regAddress+=4;
+		}
+
+		regAddress = BCHP_HDMI_TX_AUTO_I2C_CH3_REG3_WD;
+		while (regAddress <= BCHP_HDMI_TX_AUTO_I2C_CH3_RD_1)
+		{
+			Register = BREG_Read32(hRegister, regAddress + ulOffset);
+			hHDMI->autoI2cRegBuff[i++] = Register;
+			regAddress+=4;
+		}
+
+		Register = BREG_Read32(hRegister, BCHP_HDMI_TX_AUTO_I2C_CH3_STAT + ulOffset);
+		hHDMI->autoI2cRegBuff[i++] = Register;
+
+		Register = BREG_Read32(hRegister, BCHP_HDMI_TX_AUTO_I2C_START + ulOffset);
+		hHDMI->autoI2cRegBuff[i++] = Register;
+
+		regAddress = BCHP_HDMI_TX_AUTO_I2C_TRANSACTION_DONE_STAT_CLEAR 	;
+		while (regAddress <= BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_FSM_DEBUG)
+		{
+			Register = BREG_Read32(hRegister, regAddress + ulOffset);
+			hHDMI->autoI2cRegBuff[i++] = Register;
+			regAddress+=4;
+		}
+	}
+
+
+	/******************************
+	** All the register values are saved.
+	** Now reset the cores
+	******************************/
+	Register = BREG_Read32(hRegister, BCHP_DVP_HT_SW_INIT + ulOffset);
+	Register |= 0x000000C0;	/* write 1 to HDCP2_I2C - a private field */
+	BREG_Write32(hRegister, BCHP_DVP_HT_SW_INIT + ulOffset, Register);
+
+	Register &= 0x0000013F;	/* write 0 to HDCP2_I2C - a private field */
+	BREG_Write32(hRegister, BCHP_DVP_HT_SW_INIT + ulOffset, Register) ;
+
+
+	/********************************
+	** Reload register values after reset  **
+	*********************************/
+	{
+		i=0;
+		regAddress = BCHP_HDMI_HDCP_CTL;
+		while (regAddress <=  BCHP_HDMI_HDCP2TX_CTRL0)
+		{
+			Register = hHDMI->hdmiRegBuff[i++];
+			BREG_Write32(hRegister, regAddress + ulOffset, Register) ;
+			regAddress+=4;
+		}
+
+		i=0;
+		regAddress = BCHP_HDMI_TX_AUTO_I2C_CH0_CFG;
+		while (regAddress <= BCHP_HDMI_TX_AUTO_I2C_CH0_STAT)
+		{
+			Register = hHDMI->autoI2cRegBuff[i++];
+			BREG_Write32(hRegister, regAddress + ulOffset, Register) ;
+			regAddress+=4;
+		}
+
+		regAddress = BCHP_HDMI_TX_AUTO_I2C_CH1_CFG;
+		while (regAddress <= BCHP_HDMI_TX_AUTO_I2C_CH1_STAT)
+		{
+			Register = hHDMI->autoI2cRegBuff[i++];
+			BREG_Write32(hRegister, regAddress + ulOffset, Register) ;
+			regAddress+=4;
+		}
+
+		regAddress = BCHP_HDMI_TX_AUTO_I2C_CH2_CFG;
+		while (regAddress <= BCHP_HDMI_TX_AUTO_I2C_CH2_STAT)
+		{
+			Register = hHDMI->autoI2cRegBuff[i++];
+			BREG_Write32(hRegister, regAddress + ulOffset, Register) ;
+			regAddress+=4;
+		}
+
+		regAddress = BCHP_HDMI_TX_AUTO_I2C_CH3_CFG;
+		while (regAddress <= BCHP_HDMI_TX_AUTO_I2C_CH3_REG3_CFG)
+		{
+			Register = hHDMI->autoI2cRegBuff[i++];
+			BREG_Write32(hRegister, regAddress + ulOffset, Register) ;
+			regAddress+=4;
+		}
+
+		regAddress = BCHP_HDMI_TX_AUTO_I2C_CH3_REG3_WD;
+		while (regAddress <= BCHP_HDMI_TX_AUTO_I2C_CH3_RD_1)
+		{
+			Register = hHDMI->autoI2cRegBuff[i++];
+			BREG_Write32(hRegister, regAddress + ulOffset, Register) ;
+			regAddress+=4;
+		}
+
+		Register = hHDMI->autoI2cRegBuff[i++];
+		BREG_Write32(hRegister, BCHP_HDMI_TX_AUTO_I2C_CH3_STAT + ulOffset, Register) ;
+
+		Register = hHDMI->autoI2cRegBuff[i++];
+		BREG_Write32(hRegister, BCHP_HDMI_TX_AUTO_I2C_START + ulOffset, Register);
+
+		regAddress = BCHP_HDMI_TX_AUTO_I2C_TRANSACTION_DONE_STAT_CLEAR 	;
+		while (regAddress <= BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_FSM_DEBUG)
+		{
+			Register = hHDMI->autoI2cRegBuff[i++];
+			BREG_Write32(hRegister, regAddress + ulOffset, Register) ;
+			regAddress+=4;
+		}
+	}
+}
+#endif

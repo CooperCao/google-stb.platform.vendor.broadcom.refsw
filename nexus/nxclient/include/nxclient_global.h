@@ -231,6 +231,18 @@ typedef enum NxClient_HdcpLevel
     NxClient_HdcpLevel_eMax
 } NxClient_HdcpLevel;
 
+typedef enum NxClient_HdcpVersion
+{
+    NxClient_HdcpVersion_eAuto,    /* Always authenticate using the highest version supported by HDMI receiver */
+    NxClient_HdcpVersion_eFollow,  /* If HDMI receiver is a Repeater, the HDCP_version depends on the Repeater downstream topology */
+                                   /* If Repeater downstream topology contains one or more HDCP 1.x device, then authenticate with Repeater using the HDCP 1.x */
+                                   /* If Repeater downstream topology contains only HDCP 2.2 devices, then authenticate with Repeater using HDCP 2.2 */
+                                   /* If HDMI Receiver is not a Repeater, then default to 'auto' selection */
+    NxClient_HdcpVersion_eHdcp1x,  /* Always authenticate using HDCP 1.x mode (regardless of HDMI Receiver capabilities) */
+    NxClient_HdcpVersion_eHdcp22,  /* Always authenticate using HDCP 2.2 mode (regardless of HDMI Receiver capabilities) */
+    NxClient_HdcpVersion_eMax
+} NxClient_HdcpVersion;
+
 /* subset of NEXUS_GraphicsSettings for NxClient */
 typedef struct NxClient_GraphicsSettings
 {
@@ -279,6 +291,7 @@ typedef struct NxClient_DisplaySettings
         bool preventUnsupportedFormat;
         NxClient_HdcpLevel hdcp; /* Client sets its desired level. Server aggregates requests from all clients and drives
                       HDCP authentication. Check NxClient_DisplayStatus.hdmi.hdcp for status and hdmiOutputHdcpChanged for callback. */
+        NxClient_HdcpVersion version;
         NEXUS_ColorSpace colorSpace;
         unsigned colorDepth;
         NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame;

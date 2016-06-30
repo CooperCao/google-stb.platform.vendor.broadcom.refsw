@@ -47,16 +47,13 @@
  *
  ***************************************************************************/
 
+
 #include "bstd.h"
 #include "bhdm.h"
 #include "bhdm_priv.h"
 #include "bavc_hdmi.h"
 
 BDBG_MODULE(BHDM_PACKET_DRM) ;
-
-static const uint16_t BHDM_Packet_DRMFrameType	= 0x87 ;
-static const uint8_t  BHDM_Packet_DRMFrameVersion = 0x01 ;
-static const uint8_t  BHDM_Packet_DRMFrameLength	= 27 ;
 
 
 /******************************************************************************
@@ -97,9 +94,16 @@ BERR_Code BHDM_SetDRMInfoFramePacket(
 		goto done ;
 	}
 
-	PacketType	  = BHDM_Packet_DRMFrameType ;
-	PacketVersion = BHDM_Packet_DRMFrameVersion ;
-	PacketLength  = BHDM_Packet_DRMFrameLength ;
+	if (pstDRMInfoFrame->eEOTF == BAVC_HDMI_DRM_EOTF_eMax)
+	{
+		BDBG_WRN(("User requested to disable DRM packet transmission; no DRM packet sent")) ;
+		BHDM_DisablePacketTransmission(hHDMI, BHDM_PACKET_eDRM_ID) ;
+		goto done ;
+	}
+
+	PacketType    = BAVC_HDMI_PacketType_eDrmInfoFrame ;
+	PacketVersion = BAVC_HDMI_PacketType_DrmInfoFrameVersion ;
+	PacketLength  = 0 ;
 
 	hHDMI->PacketBytes[1] = pstDRMInfoFrame->eEOTF ;
 	hHDMI->PacketBytes[2] = pstDRMInfoFrame->eDescriptorId ;
@@ -168,7 +172,7 @@ BERR_Code BHDM_SetDRMInfoFramePacket(
 		hHDMI->PacketBytes[26] =
 			(uint8_t) ((pstDRMInfoFrame->Type1.MaxFrameAverageLightLevel & 0xFF00) >> 8) ;
 
-
+		PacketLength  = 26 ;
 	}
 
 
@@ -195,7 +199,7 @@ BERR_Code BHDM_SetDRMInfoFramePacket(
 	{
 		uint8_t i ;
 
-		for (i = 1 ; i < PacketLength ; i++)
+		for (i = 1 ; i <= PacketLength ; i++)
 		{
 			BDBG_MSG(("Tx%d: Data Byte %02d = %#02x h", hHDMI->eCoreId,
 				i, hHDMI->PacketBytes[i])) ;

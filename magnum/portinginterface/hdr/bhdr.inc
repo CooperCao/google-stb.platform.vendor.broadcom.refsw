@@ -45,14 +45,11 @@ BHDR_SOURCES = \
 	$(MAGNUM)/portinginterface/hdr/src/common/bhdr_packet_priv.c \
 	$(MAGNUM)/portinginterface/hdr/src/common/bhdr_debug.c
 
+BHDR_EDID_RAM_SUPPORT ?= y
+BHDR_HDCP_REPEATER_SUPPORT ?= y
 
-ifeq ($(filter $(BCHP_CHIP), 7422 7425 7429 74295 7435 7640 7445 7145 7439 74371 7251 7250 7271 7268), $(BCHP_CHIP))
-BHDR_EDID_RAM_SUPPORT=y
-BHDR_HDCP_REPEATER_SUPPORT=y
 BHDR_SOURCES += \
 	$(MAGNUM)/portinginterface/hdr/src/common/bhdr_pwr.c
-endif
-
 
 ifeq ($(BHDR_EDID_RAM_SUPPORT),y)
 BHDR_SOURCES += $(MAGNUM)/portinginterface/hdr/src/common/bhdr_edid_ram.c
@@ -73,20 +70,10 @@ endif
 #Chip specific Sources
 #################
 
-
-
-##################
-### 65nm platforms ####
-##################
-ifeq ($(filter $(BCHP_CHIP), 3548 3556), $(BCHP_CHIP))
-	BHDR_SOURCES += \
-		$(MAGNUM)/portinginterface/hdr/src/core65nm/bhdr_hdcp_priv.c
-
-
 ##################
 ### 40nm platforms ####
 ##################
-else ifeq ($(filter $(BCHP_CHIP), 7422 7425 7435 7429 74295), $(BCHP_CHIP))
+ifeq ($(filter $(BCHP_CHIP), 7422 7425 7435 7429 74295), $(BCHP_CHIP))
 	BHDR_INCLUDES += \
 		$(MAGNUM)/portinginterface/hdr/src/core40nm
 
@@ -101,7 +88,6 @@ else ifeq ($(filter $(BCHP_CHIP), 7422 7425 7435 7429 74295), $(BCHP_CHIP))
 ##     New Chips          ##
 ##  28nm platforms      ##
 ##################
-#######else ifeq ($(filter $(BCHP_CHIP), 7445 7145 7439 74371 7251), $(BCHP_CHIP))
 else
 	BHDR_INCLUDES += \
 		$(MAGNUM)/portinginterface/hdr/src/core28nm

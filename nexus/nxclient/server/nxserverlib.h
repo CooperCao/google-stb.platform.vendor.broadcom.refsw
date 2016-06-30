@@ -184,6 +184,7 @@ struct nxserver_settings
         char *hdcp2xBinFile;
         char *hdcp1xBinFile;
         NxClient_HdcpLevel alwaysLevel;
+        NxClient_HdcpVersion versionSelect;
     } hdcp;
     struct {
         bool drm;

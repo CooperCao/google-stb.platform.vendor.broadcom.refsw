@@ -579,6 +579,7 @@ int main(int argc, char * argv[])
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_PlatformSettings platformSettings;
+    NEXUS_MemoryConfigurationSettings memConfigSettings;
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
     NEXUS_VideoDecoderSettings videoSettings;
@@ -602,7 +603,11 @@ int main(int argc, char * argv[])
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
-    NEXUS_Platform_Init(&platformSettings);
+    NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
+    memConfigSettings.videoDecoder[0].used = true; /* single decode */
+    memConfigSettings.videoDecoder[0].maxFormat = NEXUS_VideoFormat_e3840x2160p60hz;
+    rc = NEXUS_Platform_MemConfigInit(&platformSettings, &memConfigSettings);
+    BDBG_ASSERT(!rc);
 
     app = BKNI_Malloc(sizeof(App));
     BDBG_ASSERT(app);
@@ -633,7 +638,7 @@ int main(int argc, char * argv[])
     rc = NEXUS_Playback_SetSettings(app->playback, &playbackSettings);
     BDBG_ASSERT(!rc);
 
-    app->input = NEXUS_FilePlay_OpenPosix(app->args.inputFilename, app->args.inputFilename);
+    app->input = NEXUS_FilePlay_OpenPosix(app->args.inputFilename, app->args.transportType == NEXUS_TransportType_eTs ? NULL : app->args.inputFilename);
     BDBG_ASSERT(app->input);
 
     app->videoDecoder = NEXUS_VideoDecoder_Open(0, NULL);
@@ -662,7 +667,7 @@ int main(int argc, char * argv[])
     NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
     playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
     playbackPidSettings.pidTypeSettings.video.codec = NEXUS_VideoCodec_eH265; /* must be told codec for correct handling */
-    playbackPidSettings.pidTypeSettings.video.index = true;
+    playbackPidSettings.pidTypeSettings.video.index = false;
     playbackPidSettings.pidTypeSettings.video.decoder = app->videoDecoder;
     app->videoStartSettings.pidChannel = NEXUS_Playback_OpenPidChannel(app->playback, app->args.videoPid, &playbackPidSettings);
     app->videoStartSettings.frameRate = NEXUS_VideoFrameRate_e30;

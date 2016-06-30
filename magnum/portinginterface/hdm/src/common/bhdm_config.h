@@ -23,6 +23,7 @@
 #ifndef BHDM_CONFIG_H__
 #define BHDM_CONFIG_H__
 
+#include "bhdm.h"
 #include "bchp_common.h"
 #include "bchp_hdmi.h"
 
@@ -61,10 +62,6 @@
 /* available debug options; enables BDBG_MSGs etc.  */
 #define BHDM_CONFIG_DEBUG_HDMI_PACKETS 0
 #define BHDM_CONFIG_DEBUG_GCP_PACKET_USAGE 0
-#define BHDM_CONFIG_DEBUG_AVI_INFOFRAME 0
-#define BHDM_CONFIG_DEBUG_AUDIO_INFOFRAME 0
-#define BHDM_CONFIG_DEBUG_VENDOR_SPECIFIC_INFOFRAME 0
-#define BHDM_CONFIG_DEBUG_SPD_INFOFRAME 0
 #define BHDM_CONFIG_DEBUG_FIFO 0
 #define BHDM_CONFIG_DEBUG_HDCP_BCAPS 0
 #define BHDM_CONFIG_DEBUG_EDID_3DSTRUCT 0
@@ -72,7 +69,6 @@
 
 #define BHDM_CONFIG_DEBUG_MAI_CHANNEL_MAP 0
 
-#define BHDM_CONFIG_REPEATER_SIMULATION_TEST 0
 #define BHDM_CONFIG_LINK_INTEGRITY_FAILURE_SIMULATION 0
 
 #define BHDM_CONFIG_DEBUG_PJ_CHECKING 0
@@ -146,12 +142,8 @@ can be disabled to allow for successful compilation
 /* chip revision specific configuration - DO NOT MODIFY ANY BELOW */
 /******************************************************************/
 
-
 #if BCHP_HDMI_TX_AUTO_I2C_REG_START
 #define BHDM_CONFIG_HAS_HDCP22 1
-/* disable BHDM_HAS_HDMI_20_SUPPORT for those chips without AUTO_I2C block */
-#elif BHDM_HAS_HDMI_20_SUPPORT
-#undef BHDM_HAS_HDMI_20_SUPPORT
 #endif
 
 
@@ -175,9 +167,7 @@ can be disabled to allow for successful compilation
 #define BHDM_CONFIG_65NM_SUPPORT 1
 #endif
 
-
-
-/* *NEW* */
+/* 40nm platforms */
 #if ((BCHP_CHIP == 7422)  || (BCHP_CHIP == 7425)  || (BCHP_CHIP == 7231)  \
 ||   (BCHP_CHIP == 7358)  || (BCHP_CHIP == 7344)  || (BCHP_CHIP == 7346)  \
 ||   (BCHP_CHIP == 7552)  || (BCHP_CHIP == 7640)  || (BCHP_CHIP == 7429)  \
@@ -197,22 +187,17 @@ can be disabled to allow for successful compilation
 #endif
 
 /* 28nm platforms */
-#if (BCHP_CHIP == 7445) || (BCHP_CHIP == 7145) || (BCHP_CHIP == 7366) \
-|| (BCHP_CHIP == 7439) || (BCHP_CHIP == 7364) || (BCHP_CHIP == 7250) || BCHP_CHIP==74371 \
-|| BHDM_HAS_HDMI_20_SUPPORT
+#if BHDM_HAS_HDMI_20_SUPPORT || (BCHP_CHIP==74371)
 #define BHDM_CONFIG_28NM_SUPPORT 1
 #define BHDM_CONFIG_SCHEDULER_REV_2 1
 #define BHDM_CONFIG_HDCP_ADVANCED_HW_AUTO_RI_PJ_SUPPORT 1
 #endif
 
-#define BHDM_CONFIG_HDMI_2_0_MAX_RATE 594
-#define BHDM_CONFIG_HDMI_1_4_MAX_RATE 297
-
 #if BHDM_HAS_HDMI_20_SUPPORT
-#define BHDM_CONFIG_MAX_TMDS_RATE BHDM_CONFIG_HDMI_2_0_MAX_RATE
+#define BHDM_CONFIG_MAX_TMDS_RATE BHDM_HDMI_2_0_MAX_RATE
 #define BHDM_CONFIG_4Kx2K_60HZ_SUPPORT 1
 #else
-#define BHDM_CONFIG_MAX_TMDS_RATE BHDM_CONFIG_HDMI_1_4_MAX_RATE
+#define BHDM_CONFIG_MAX_TMDS_RATE BHDM_HDMI_1_4_MAX_RATE
 #endif
 
 

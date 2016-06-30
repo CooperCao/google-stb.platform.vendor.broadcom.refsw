@@ -448,8 +448,7 @@ typedef enum BAVC_FrameRateCode
 	BAVC_FrameRateCode_e119_88,
 	BAVC_FrameRateCode_e120,
 	BAVC_FrameRateCode_e19_98,
-	BAVC_FrameRateCode_eMax          /* Max Enum Value */
-
+    BAVC_FrameRateCode_eMax          /* Max Enum Value */
 } BAVC_FrameRateCode;
 
 /* TODO: to be removed shortly after xvd/synclib/etc adapt to new naming changes. */
@@ -935,7 +934,7 @@ See Also:
 typedef struct BAVC_USERDATA_info
 {
 	void            *pUserDataBuffer;   /* Pointer to the pre-allocated buffer */
-	size_t          ui32UserDataBufSize;    /* Total buffer size */
+    uint32_t        ui32UserDataBufSize;    /* Total buffer size */
 	BAVC_USERDATA_Type eUserDataType ;  /* Type of the User Data */
 	bool            bTopFieldFirst ;    /* MPEG Syntax flag TopFieldFirst */
 	bool            bRepeatFirstField ; /* MPEG Syntax flag RepeatFirstField */

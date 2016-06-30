@@ -382,6 +382,10 @@ typedef struct BHDR_P_Handle
 	void *pvPacketErrorParm1 ;
 	int iPacketErrorParm2 ;
 
+	BHDR_CallbackFunc pfHdcpDisconnectNotifyCallback_isr ;
+	void *pvHdcpDisconnectNotifyParm1 ;
+	int iHdcpDisconnectNotifyParm2 ;
+
 
 	bool bPacketErrors ;
 	uint8_t ErrorFreePacketFrames ;

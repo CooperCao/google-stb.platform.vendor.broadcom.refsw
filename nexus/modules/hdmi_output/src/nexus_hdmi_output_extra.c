@@ -468,7 +468,7 @@ NEXUS_Error NEXUS_HdmiOutput_ResetScrambling(NEXUS_HdmiOutputHandle hdmiOutput)
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
     RESOLVE_ALIAS(hdmiOutput);
 
-#if BHDM_CONFIG_HAS_HDCP22
+#if BHDM_HAS_HDMI_20_SUPPORT
     BDBG_WRN(("Reset the HDMI scrambling configuration")) ;
     rc = BHDM_SCDC_ConfigureScrambling(hdmiOutput->hdmHandle) ;
 #endif

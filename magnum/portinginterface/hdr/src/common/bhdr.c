@@ -188,6 +188,7 @@ static void BHDR_P_EnableAudio_isr(BHDR_Handle hHDR, bool enable) ;
 #endif
 
 static void BHDR_P_ClearHdmiMode_isr(BHDR_Handle hHDR) ;
+static void BHDR_P_ClearScdcStatus_isr(BHDR_Handle hHDR) ;
 
 
 static BERR_Code BHDR_P_CreateTimer(
@@ -392,7 +393,6 @@ BERR_Code BHDR_GetDefaultSettings(
 }
 
 
-
 /******************************************************************************
 BERR_Code BHDR_Open
 Summary: Open/Initialize the HDMI device
@@ -504,7 +504,9 @@ BERR_Code BHDR_Open(
 #if BHDR_CONFIG_AVMUTE_AUDIO_IMMEDIATELY
 	/* Initialize HDMI Rx Audio to OFF; */
 	/* Avoids noise,pops, etc until valid SR is received */
-	BHDR_P_EnableAudio_isr(hHDR, false) ;
+	BKNI_EnterCriticalSection() ;
+		BHDR_P_EnableAudio_isr(hHDR, false) ;
+	BKNI_LeaveCriticalSection() ;
 #endif
 
 	/* settings for recalculation of SR up to BHDR_CONFIG_CONSECUTIVE_SR_CALCS times */
@@ -601,18 +603,10 @@ BERR_Code BHDR_Open(
 
 	BHDR_DEBUG_P_ResetAllEventCounters_isr(hHDR) ;
 
-	/* HDMI_TODO for BringUp always enable HDCP need API to enable/disable when system start up complete*/
 	Register = BREG_Read32(hRegister, BCHP_HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2 + ulOffset) ;
 		Register &= ~ BCHP_MASK(HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2, I2C_ENABLE) ;
 		Register |=   BCHP_FIELD_DATA(HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2, I2C_ENABLE, 1) ;
 	BREG_Write32(hRegister, BCHP_HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2 + ulOffset,  Register) ;
-
-#if BHDR_HAS_HDMI_20_SUPPORT
-	Register = BREG_Read32(hRegister, BCHP_HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2 + ulOffset) ;
-		Register &= ~ BCHP_MASK(HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2, I2C_SCDC_ENABLE) ;
-		Register |= BCHP_FIELD_DATA(HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2, I2C_SCDC_ENABLE, 1) ;
-	BREG_Write32(hRegister, BCHP_HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2 + ulOffset,  Register) ;
-#endif
 
 	BHDR_InitializePacketRAM(hHDR) ;
 
@@ -645,7 +639,9 @@ BERR_Code BHDR_Open(
 	/* always start configuration in DVI mode */
 	BKNI_EnterCriticalSection() ;
 		BHDR_P_ClearHdmiMode_isr(hHDR) ;
+		BHDR_P_ClearScdcStatus_isr(hHDR) ;
 	BKNI_LeaveCriticalSection() ;
+
 
 
 	/* set the threshold for packet errors */
@@ -1359,7 +1355,8 @@ static void BHDR_P_ProcessVerticalBlankEnd_isr(BHDR_Handle hHDR)
 		hHDR->ErrorFreePacketFrames --;
 	else if (hHDR->bPacketErrors)  /* report packet errors stopped once */
 	{
-		BDBG_WRN(("EXCESSIVE Packet errors have stopped...\n\n\n")) ;
+		BDBG_WRN(("EXCESSIVE Packet errors have stopped...")) ;
+		BDBG_WRN((" ")) ;
 		hHDR->bPacketErrors = false ;
 
 #if 0
@@ -1471,6 +1468,59 @@ void BHDR_P_ResetHdcp_isr(BHDR_Handle hHDR)
 
 	BDBG_LEAVE(BHDR_P_ResetHdcp_isr) ;
 }
+
+
+#if BHDR_HAS_HDMI_20_SUPPORT
+static void BHDR_P_ClearScdcStatus_isr(BHDR_Handle hHDR)
+{
+	BREG_Handle hRegister ;
+	uint32_t Register ;
+	uint32_t ulOffset   ;
+
+
+	BDBG_ENTER(BHDR_P_ClearScdcStatus_isr) ;
+	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle);
+
+	hRegister = hHDR->hRegister ;
+	ulOffset = hHDR->ulOffset ;
+
+	/* Clear any SCDC Status set by the Source */
+	Register = BREG_Read32(hRegister, BCHP_DVP_HR_HDMI_RX_0_SW_INIT) ;
+		Register &= ~ BCHP_MASK(DVP_HR_HDMI_RX_0_SW_INIT, I2C) ;
+		Register |= BCHP_FIELD_DATA(DVP_HR_HDMI_RX_0_SW_INIT, I2C, 1) ;
+	BREG_Write32(hRegister, BCHP_DVP_HR_HDMI_RX_0_SW_INIT, Register) ;
+		Register &= ~ BCHP_MASK(DVP_HR_HDMI_RX_0_SW_INIT, I2C) ;
+		Register |= BCHP_FIELD_DATA(DVP_HR_HDMI_RX_0_SW_INIT, I2C, 0) ;
+	BREG_Write32(hRegister, BCHP_DVP_HR_HDMI_RX_0_SW_INIT, Register) ;
+
+	/* enable SCDC and RDB writes */
+	Register = BREG_Read32(hRegister, BCHP_HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2 + ulOffset) ;
+		Register &= ~ BCHP_MASK(HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2,  ENABLE_SCDC_REGISTER_WRITES) ;
+		Register &= ~ BCHP_MASK(HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2, I2C_SCDC_ENABLE) ;
+		Register |= BCHP_FIELD_DATA(HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2, I2C_SCDC_ENABLE, 1) ;
+		Register |= BCHP_FIELD_DATA(HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2, ENABLE_SCDC_REGISTER_WRITES, 1) ;
+	BREG_Write32(hRegister, BCHP_HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2 + ulOffset,  Register) ;
+
+	/* indicate our SCDC Sink version */
+	Register = BREG_Read32(hRegister, BCHP_HDMI_RX_0_SCDC_CFG_1 + ulOffset) ;
+		Register &= ~ BCHP_MASK(HDMI_RX_0_SCDC_CFG_1, SINK_VERSION) ;
+		Register |= BCHP_FIELD_DATA(HDMI_RX_0_SCDC_CFG_1, SINK_VERSION, 1) ;
+	BREG_Write32(hRegister, BCHP_HDMI_RX_0_SCDC_CFG_1 + ulOffset, Register) ;
+
+	/* disable SCDC RDB writes */
+	Register = BREG_Read32(hRegister, BCHP_HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2 + ulOffset) ;
+		Register &= ~ BCHP_MASK(HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2,  ENABLE_SCDC_REGISTER_WRITES) ;
+	BREG_Write32(hRegister, BCHP_HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2 + ulOffset,  Register) ;
+
+	BDBG_LEAVE(BHDR_P_ClearScdcStatus_isr) ;
+}
+#else
+static void BHDR_P_ClearScdcStatus_isr(BHDR_Handle hHDR)
+{
+	BSTD_UNUSED(hHDR) ;
+}
+#endif
+
 
 
 static void BHDR_P_ClearHdmiMode_isr(BHDR_Handle hHDR)
@@ -1616,24 +1666,33 @@ void BHDR_P_HandleInterrupt_isr(
 		break ;
 
 #if BHDR_CONFIG_HDCP_REPEATER
-	case MAKE_INTR_ENUM(REQUEST_KSVS):
-		/* for HDCP Repeater Applications */
-		BDBG_WRN(("CH%d HDCP Authentication with upstream transmitter SUCCEEDED; Repeater Setting %d",
-			hHDR->eCoreId, hHDR->stHdcpSettings.bRepeater)) ;
- 		if (hHDR->stHdcpSettings.bRepeater)
- 		{
-			hHDR->stHdcpStatus.eAuthState = BHDR_HDCP_AuthState_eWaitForDownstreamKsvs ;
-			if (hHDR->pfHdcpStatusChangeCallback)
+		case MAKE_INTR_ENUM(REQUEST_KSVS):
+		{
+#if BHDR_HAS_HDMI_20_SUPPORT
+			/* for HDCP Repeater Applications */
+			Register = BREG_Read32(hRegister, BCHP_HDCP2_RX_0_STATUS_0 + ulOffset);
+			/* Fire callback only if in HDCP 1.x */
+			if (BCHP_GET_FIELD_DATA(Register, HDCP2_RX_0_STATUS_0, HDCP_VERSION) == 0)
+#endif
 			{
-				hHDR->pfHdcpStatusChangeCallback(hHDR->pvHdcpStatusChangeParm1, 0, NULL) ;
+				BDBG_WRN(("CH%d HDCP Authentication with upstream transmitter SUCCEEDED; Repeater Setting %d",
+					hHDR->eCoreId, hHDR->stHdcpSettings.bRepeater)) ;
+				if (hHDR->stHdcpSettings.bRepeater)
+				{
+					hHDR->stHdcpStatus.eAuthState = BHDR_HDCP_AuthState_eWaitForDownstreamKsvs ;
+					if (hHDR->pfHdcpStatusChangeCallback)
+					{
+						hHDR->pfHdcpStatusChangeCallback(hHDR->pvHdcpStatusChangeParm1, 0, NULL) ;
+					}
+				}
 			}
- 		}
+		}
 		break ;
 #endif
 
 #if BHDR_CONFIG_DEBUG_I2C
 	case MAKE_INTR_ENUM(I2C_TRANSACTION_COMPLETE) :
-		Register = BREG_Read32(hRegister, BCHP_HDMI_RX_0_HDCP_I2C_PEEK_POKE) ;
+		Register = BREG_Read32(hRegister, BCHP_HDMI_RX_0_HDCP_I2C_PEEK_POKE + ulOffset) ;
 		Register = BCHP_GET_FIELD_DATA(Register, HDMI_RX_0_HDCP_I2C_PEEK_POKE, I2C_OFFSET ) ;
 		BDBG_WRN(("CH%d I2C Transaction Complete at Offset: %d",
 			hHDR->eCoreId, Register)) ;
@@ -2791,7 +2850,7 @@ void BHDR_P_HotPlugRemove_isr(BHDR_Handle hHDR)
 	BHDR_P_ClearPacketMemory_isr(hHDR) ;
 
 	BHDR_P_ClearHdmiMode_isr(hHDR) ;
-
+	BHDR_P_ClearScdcStatus_isr(hHDR) ;
 
 }
 
@@ -3045,7 +3104,6 @@ BERR_Code BHDR_P_ConfigureAudioMaiBus_isr(BHDR_Handle hHDR)
 #endif
 	}
 
- #if HDMI_RX_GEN == 7422
  	/* update channel mapping */
 	Register = BREG_Read32(hRegister, BCHP_HDMI_RX_0_AUDIO_CHANNEL_MAP + ulOffset) ;
 		Register &= ~(
@@ -3097,7 +3155,6 @@ BERR_Code BHDR_P_ConfigureAudioMaiBus_isr(BHDR_Handle hHDR)
 		BCHP_GET_FIELD_DATA(Register, HDMI_RX_0_AUDIO_CHANNEL_MAP, MAP_CHANNEL_2),
 		BCHP_GET_FIELD_DATA(Register, HDMI_RX_0_AUDIO_CHANNEL_MAP, MAP_CHANNEL_1),
 		BCHP_GET_FIELD_DATA(Register, HDMI_RX_0_AUDIO_CHANNEL_MAP, MAP_CHANNEL_0))) ;
-#endif
 #endif
 
 	/* configure the MAI bus */
@@ -3230,7 +3287,7 @@ static void BHDR_P_TimerExpiration_isr (BHDR_Handle hHDR, int parm2)
 		break ;
 
 	default :
-		BDBG_ERR(("hHDR %p Timer %d not handled", hHDR, parm2)) ;
+		BDBG_ERR(("hHDR %p Timer %d not handled", (void *)hHDR, parm2)) ;
 	}
 }
 

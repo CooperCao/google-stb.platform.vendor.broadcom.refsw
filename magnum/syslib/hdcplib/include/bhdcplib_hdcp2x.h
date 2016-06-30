@@ -55,6 +55,8 @@ extern "C" {
 #define BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT	31
 #define BHDCPLIB_HDCP2X_MAX_DEPTH			4
 
+#define BHDCPLIB_HDCP22_RXCAPS_VERSION 0x02
+#define BHDCPLIB_HDCP22_RXCAPS_RECEIVER_CAPABILITY_MASK 0x0000
 
 /******************************************************************************
 Summary:
@@ -90,6 +92,9 @@ typedef struct BHDCPlib_Hdcp2x_AuthenticationStatus
 {
 	bool linkAuthenticated;
 	bool hdcp1DeviceDownstream;
+	bool downstreamIsRepeater;
+	BHDCPlib_HdcpError eAuthenticationError;
+	BHDCPlib_State eHdcpState;
 
 	/* ContentStreamType received through RASM from upstream Transmitter. Applicable for Rx only */
 	BHDCPlib_Hdcp2xContentStreamType eContentStreamTypeFromUpstream;
@@ -192,6 +197,7 @@ typedef struct BHDCPlib_ReceiverIdListData
 	uint8_t maxCascadeExceeded;
 	uint8_t hdcp2LegacyDeviceDownstream;
 	uint8_t hdcp1DeviceDownstream;
+	uint8_t downstreamIsRepeater;
 	uint8_t rxIdList[155];
 } BHDCPlib_ReceiverIdListData;
 

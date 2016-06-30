@@ -48,7 +48,7 @@
  ***************************************************************************/
 
 #include "bhdm.h"
-#include "bhdm_priv.h"
+#include "../common/bhdm_priv.h"
 #if BCHP_PWR_SUPPORT
 #include "bchp_pwr.h"
 #endif
@@ -599,10 +599,7 @@ void BHDM_P_ConfigureInputAudioFmt(
 		| BCHP_FIELD_DATA(HDMI_AUDIO_PACKET_CONFIG, AUDIO_CEA_MASK, ChannelMask) ;
 	BREG_Write32(hHDMI->hRegister, BCHP_HDMI_AUDIO_PACKET_CONFIG, Register) ;
 
-
-#if BHDM_CONFIG_DEBUG_AUDIO_INFOFRAME
 	BDBG_MSG(("Channel Mask: %#x", ChannelMask)) ;
-#endif
 }
 
 

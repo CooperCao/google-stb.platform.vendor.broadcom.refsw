@@ -19,8 +19,7 @@
  * $brcm_Log: $
  *
  ***************************************************************************/
-
-#include "bhdm_priv.h"
+#include "../common/bhdm_priv.h"
 
 
 #define BHDM_AUTO_I2C_P_POLL_SCDC_UPDATE 250  /* ms */
@@ -356,7 +355,7 @@ BERR_Code  BHDM_AUTO_I2C_P_FreeResources(const BHDM_Handle hHDMI)
 }
 
 
-void  BHDM_AUTO_I2C_P_SetTriggerConfiguration_isrsafe(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_P_CHANNEL eChannel,
+void  BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_P_CHANNEL eChannel,
 	const BHDM_AUTO_I2C_P_TriggerConfiguration *pstTriggerConfig
 )
 {
@@ -618,7 +617,7 @@ BERR_Code BHDM_AUTO_I2C_P_ConfigureReadChannel_isr(const BHDM_Handle hHDMI,
 		/* DO NOT enable; Use BHDM_AUTO_I2C_EnableReadChannel */
 		stTriggerConfig.enable = BHDM_AUTO_I2C_READ_DISABLE ;
 		stTriggerConfig.activePolling = false ;
-	BHDM_AUTO_I2C_P_SetTriggerConfiguration_isrsafe(hHDMI, eChannel, &stTriggerConfig) ;
+	BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(hHDMI, eChannel, &stTriggerConfig) ;
 
 done:
 	return rc ;
@@ -802,7 +801,7 @@ BERR_Code BHDM_AUTO_I2C_P_ConfigureWriteChannel_isr(const BHDM_Handle hHDMI,
 		stTriggerConfig.eMode = BHDM_AUTO_I2C_MODE_eWrite ;
 		stTriggerConfig.triggerSource = BHDM_AUTO_I2C_P_TRIGGER_BY_SW ;
 		stTriggerConfig.enable = 0 ;  /* dont care for Write Channel */
-	BHDM_AUTO_I2C_P_SetTriggerConfiguration_isrsafe(hHDMI, eChannel, &stTriggerConfig) ;
+	BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(hHDMI, eChannel, &stTriggerConfig) ;
 
 done:
 	return rc ;

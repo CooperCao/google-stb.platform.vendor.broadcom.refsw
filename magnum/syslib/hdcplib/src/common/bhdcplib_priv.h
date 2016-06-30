@@ -38,17 +38,16 @@ BDBG_OBJECT_ID_DECLARE(HDCPLIB);
 #define BHDCPLIB_HDCP22_TXCAPS_VERSION 0x02
 #define BHDCPLIB_HDCP22_TXCAPS_TRANSMITTER_CAPABILITY_MASK 0x0000
 
-#define BHDCPLIB_HDCP22_RXCAPS_VERSION 0x02
-#define BHDCPLIB_HDCP22_RXCAPS_RECEIVER_CAPABILITY_MASK 0x0000
-
 #define BHDCPLIB_HDCP2X_SAGERESPONSE_TIMEOUT 5000 /* in ms */
-
+#define BHDCPLIB_HDCP2X_HWAUTOI2CTIMER_VERIFICATION_TIMER 100 /* in ms */
+#define BHDCPLIB_HDCP2X_AUTHENTICATION_PROCESS_TIMEOUT 5000 /* in ms */
 
 typedef enum BHDCPlib_Hdcp2xState
 {
 	BHDCPlib_Hdcp2xState_eSagePlatformOpen = 100,
 	BHDCPlib_Hdcp2xState_eSagePlatformInit,
 	BHDCPlib_Hdcp2xState_eSageModuleInit,
+	BHDCPlib_Hdcp2xState_eUnauthenticating,
 	BHDCPlib_Hdcp2xState_eUnauthenticated,
 	BHDCPlib_Hdcp2xState_eAuthenticating,
 	BHDCPlib_Hdcp2xState_eSessionKeyLoaded,
@@ -73,7 +72,15 @@ typedef struct BHDCPlib_Hdcp2xKeyBin
 	uint8_t *pBuffer; 					/* pointer to bin file */
 	uint32_t uiSize; 					/* size of buffer */
 } BHDCPlib_Hdcp2xKeyBin;
+
+
+typedef enum
+{
+	BHDCPlib_P_Timer_eAutoI2c,  /* AutoI2C HW Stuck  */
+	BHDCPlib_P_Timer_eAuthentication   /* timer for authentication result */
+} BHDCPlib_P_Timer ;
 #endif
+
 
 typedef struct BHDCPlib_P_Handle
 {
@@ -99,6 +106,7 @@ typedef struct BHDCPlib_P_Handle
 	BHDCPlib_Hdcp2xKeyBin stBinKey;
 	bool hdcp2xLinkAuthenticated;
 	BKNI_EventHandle hdcp2xIndicationEvent;
+	BTMR_TimerHandle hAuthenticationTimer;
 
 	BSAGElib_RpcRemoteHandle hSagelibRpcPlatformHandle;
 	BSAGElib_RpcRemoteHandle hSagelibRpcModuleHandle;
@@ -108,8 +116,8 @@ typedef struct BHDCPlib_P_Handle
 	uint32_t uiGetReceiverIdListId;
 	BHDCPlib_ReceiverIdListData stReceiverIdListData;
 	BHDCPlib_Hdcp2xState currentHdcp2xState;
+	BHDCPlib_HdcpError lastAuthenticationError;
 	BHDCPlib_SageIndicationData stIndicationData;
-	bool bHdcp2xAuthenticationRequested;
 	uint8_t uiInitRetryCounter;
 	BHDCPlib_Hdcp2xContentStreamType eContentStreamTypeReceived;
 #endif

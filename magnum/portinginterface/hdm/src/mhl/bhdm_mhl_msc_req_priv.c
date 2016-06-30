@@ -616,7 +616,7 @@ BERR_Code BHDM_P_Mhl_MscReq_WriteBurst
 	uint32_t i;
 	BERR_Code ret = BHDM_P_MHL_CBUS_SUCCESS;
 	BHDM_P_Mhl_CbusCmd stMscReqCmd;
-	BHDM_P_Mhl_CbusPkt *pPackets = stMscReqCmd.cbusPackets.astShortCmd;
+	BHDM_P_Mhl_CbusPkt *pPackets = stMscReqCmd.cbusPackets.astLongCmd;
 
 	BDBG_MSG(("BHDM_P_Mhl_MscReq_WriteBurst"));
 
@@ -721,11 +721,11 @@ BERR_Code BHDM_P_Mhl_MscReq_ReadDcap_isr
 
 	/* Prepare and add commnad to MSC REQ Q */
 	stMscReqCmd.eCmdType = BHDM_P_Mhl_CbusCmdType_eDcap;
-	stMscReqCmd.ucDelay = (eDcapOffset == BHDM_P_Mhl_DevCapOffset_eDevStateAddr) ? ucDelay1 : ucDelay2;
+	stMscReqCmd.ucDelay = ucDelay1;
 	stMscReqCmd.eState = BHDM_P_Mhl_CbusCmdState_ePending;
 	stMscReqCmd.ulNumPacketsCfg = BHDM_P_MHL_NUM_PKTS_READ_DEVCAP_CMD;
 	stMscReqCmd.ulNumPacketsDone = 0;
-	stMscReqCmd.bLastCmd = (eDcapOffset == BHDM_P_Mhl_DevCapOffset_eIntStatSizeAddr) ? true : false;
+	stMscReqCmd.bLastCmd = false;
 	stMscReqCmd.pucReplyBuf = pucCap;
 	stMscReqCmd.ucReplyBufSize = 1;
 	stMscReqCmd.ucReplyBufValidSize = 0;

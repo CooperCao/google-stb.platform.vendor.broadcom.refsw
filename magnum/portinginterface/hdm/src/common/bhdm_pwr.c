@@ -297,7 +297,11 @@ BERR_Code BHDM_Resume(
 
 	BHDM_P_EnableInterrupts(hHDMI) ;
 #if BHDM_CONFIG_HAS_HDCP22
-    BHDM_AUTO_I2C_P_EnableInterrupts(hHDMI);
+	BKNI_EnterCriticalSection() ;
+		BHDM_P_ResetHDCPI2C_isr(hHDMI);
+	BKNI_LeaveCriticalSection() ;
+
+	BHDM_AUTO_I2C_P_EnableInterrupts(hHDMI);
 #endif
 
 	BDBG_LEAVE(BHDM_Resume) ;

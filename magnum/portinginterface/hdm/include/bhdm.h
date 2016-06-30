@@ -165,7 +165,15 @@ HDMI Context Handle
 *******************************************************************************/
 typedef struct BHDM_P_Handle *BHDM_Handle ;
 
-#include "bhdm_config.h"
+#include "bchp_common.h"
+#if BCHP_HDMI_TX_AUTO_I2C_REG_START
+#define BHDM_HAS_HDMI_20_SUPPORT 1
+#endif
+
+#define BHDM_HDMI_2_0_MAX_RATE 594
+#define BHDM_HDMI_1_4_MAX_RATE 297
+
+
 #include "bhdm_1_3_features.h"
 
 
@@ -228,9 +236,7 @@ typedef enum
 	BHDM_EventAvRateChange,
 	BHDM_EventHDCP22EncryptionEnable,
 	BHDM_EventHDCP22ReAuthRequest,
-#if BHDM_CONFIG_MHL_SUPPORT
 	BHDM_EventMhlStandby,
-#endif
 	BHDM_EventInvalid
 } BHDM_EventType ;
 

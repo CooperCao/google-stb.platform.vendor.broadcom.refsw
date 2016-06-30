@@ -417,7 +417,6 @@ void BHDR_FE_P_OpenChannel(
 		  | BCHP_MASK(HDMI_RX_FE_0_PLL_CTRL_0, VCO_CONT_EN)
 		  | BCHP_MASK(HDMI_RX_FE_0_PLL_CTRL_0, VCO_POST_DIV2)
 		  | BCHP_MASK(HDMI_RX_FE_0_PLL_CTRL_0, VCO_FB_DIV2)
-		  | BCHP_MASK(HDMI_RX_FE_0_PLL_CTRL_0, PLL_CTRL_0_RESERVED)
 		  | BCHP_MASK(HDMI_RX_FE_0_PLL_CTRL_0, VC_HIGH)
 		  | BCHP_MASK(HDMI_RX_FE_0_PLL_CTRL_0, VC_LOW)
 		  | BCHP_MASK(HDMI_RX_FE_0_PLL_CTRL_0, VC_RANGE_EN)
@@ -433,7 +432,6 @@ void BHDR_FE_P_OpenChannel(
 		  | BCHP_FIELD_DATA(HDMI_RX_FE_0_PLL_CTRL_0, VCO_CONT_EN, 0)
 		  | BCHP_FIELD_DATA(HDMI_RX_FE_0_PLL_CTRL_0, VCO_POST_DIV2, 0)
 		  | BCHP_FIELD_DATA(HDMI_RX_FE_0_PLL_CTRL_0, VCO_FB_DIV2, 1)
-		  | BCHP_FIELD_DATA(HDMI_RX_FE_0_PLL_CTRL_0, PLL_CTRL_0_RESERVED, 0 )
 		  | BCHP_FIELD_DATA(HDMI_RX_FE_0_PLL_CTRL_0, VC_HIGH, 0)
 		  | BCHP_FIELD_DATA(HDMI_RX_FE_0_PLL_CTRL_0, VC_LOW, 0)
 		  | BCHP_FIELD_DATA(HDMI_RX_FE_0_PLL_CTRL_0, VC_RANGE_EN, 0)
@@ -622,11 +620,9 @@ Summary:  Fire Hot Plug isr callback
 *******************************************************************************/
 static void BHDR_FE_P_FireHotPlugCb_isr(BHDR_FE_ChannelHandle hFeChannel)
 {
-#if BHDR_CONFIG_DEBUG_FRONT_END
-	BDBG_WRN(("FE_%d RX HOT PLUG update (HPD) : %s ",
+	BDBG_LOG(("FE_%d RX HOT PLUG update (HPD) : %s ",
 		hFeChannel->eChannel,
 		hFeChannel->bTxDeviceAttached ? "HIGH" : "LOW")) ;
-#endif
 
 	/* inform higher level of Connect/Disconnect interrupt */
 	if (hFeChannel->pfHotPlugCallback_isr)

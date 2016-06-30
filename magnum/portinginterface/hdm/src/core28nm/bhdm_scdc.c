@@ -19,9 +19,8 @@
 * $brcm_Log: $
 *
 ***************************************************************************/
-
 #include "bhdm.h"
-#include "bhdm_priv.h"
+#include "../common/bhdm_priv.h"
 #include "bhdm_scdc.h"
 
 BDBG_MODULE(BHDM_SCDC) ;
@@ -199,6 +198,7 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 	BERR_Code rc = BERR_SUCCESS ;
 	BREG_I2C_Handle i2cHandle ;
 	BHDM_SCDC_StatusControlData statusControlData ;
+	uint8_t checksum ;
 	uint8_t i, items, temp ;
 
 #define SCDC_DATA_OFFSET(structure, field) \
@@ -268,19 +268,30 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 
 
 	/* get derived values */
+	checksum = 0 ;
 	for (i = 0 ; i < 3 ; i++)
 	{
 		statusControlData.ch[i].valid =
 			statusControlData.ch[i].Err_H & BHDM_SCDC_ERR_DET_0_H_MASK_VALID ;
 		statusControlData.ch[i].errorCount =
 			(uint16_t) ((statusControlData.ch[i].Err_H & 0x7F) << 8)  | (uint16_t) (statusControlData.ch[i].Err_L) ;
+		checksum = checksum + (statusControlData.ch[i].Err_H & 0x7F) ;
+		checksum = checksum + (statusControlData.ch[i].Err_L) ;
 
 		BDBG_MSG(("CH%d: Valid =  %d  Error Count %u", i,
 			statusControlData.ch[i].valid, statusControlData.ch[i].errorCount)) ;
 	}
 
-	/* report any detected errors */
-	if ((statusControlData.ch[0].valid && statusControlData.ch[0].errorCount)
+	checksum = checksum + statusControlData.ErrorDetectionChecksum ;
+	checksum = checksum % 256 ;
+
+	/* report any detected errors if valid status/checksum read */
+	if (checksum)
+	{
+		BDBG_MSG(("Invalid CED checksum: Read: %02X Calc: %02X ",
+			statusControlData.ErrorDetectionChecksum, checksum)) ;
+	}
+	else if ((statusControlData.ch[0].valid && statusControlData.ch[0].errorCount)
 	|| (statusControlData.ch[1].valid && statusControlData.ch[1].errorCount)
 	|| (statusControlData.ch[2].valid && statusControlData.ch[2].errorCount))
 	{
@@ -366,9 +377,8 @@ void BHDM_SCDC_DisableScrambleTx(BHDM_Handle hHDMI)
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
 	BKNI_Memset(&scrambleSettings, 0, sizeof(BHDM_ScrambleConfig)) ;
-	BHDM_SCDC_P_ConfigureScramblingTx_isrsafe(hHDMI, &scrambleSettings) ;
+	BHDM_SCDC_P_ConfigureScramblingTx(hHDMI, &scrambleSettings) ;
 
-	/* enable Auto I2c only if Scrambling is being turned on */
 	BHDM_AUTO_I2C_EnableReadChannel(hHDMI,
 		BHDM_AUTO_I2C_P_CHANNEL_ePollScdcUpdate0, 0) ;
 }
@@ -632,7 +642,7 @@ done:
 }
 
 
-void BHDM_SCDC_P_ConfigureScramblingTx_isrsafe(
+void BHDM_SCDC_P_ConfigureScramblingTx_isr(
 	BHDM_Handle hHDMI, BHDM_ScrambleConfig *pstScrambleConfig)
 {
 	BREG_Handle hRegister ;
@@ -679,9 +689,18 @@ void BHDM_SCDC_P_ConfigureScramblingTx_isrsafe(
 			BHDM_AUTO_I2C_P_CHANNEL_ePollScdcUpdate0)) ;
 
 		/* enable Auto I2c only if Scrambling is being turned on */
-		BHDM_AUTO_I2C_EnableReadChannel(hHDMI,
+		BHDM_AUTO_I2C_EnableReadChannel_isr(hHDMI,
 			BHDM_AUTO_I2C_P_CHANNEL_ePollScdcUpdate0, pstScrambleConfig->txScrambleEnable) ;
 	}
+}
+
+
+void BHDM_SCDC_P_ConfigureScramblingTx(
+	BHDM_Handle hHDMI, BHDM_ScrambleConfig *pstScrambleConfig)
+{
+	BKNI_EnterCriticalSection() ;
+	BHDM_SCDC_P_ConfigureScramblingTx_isr(hHDMI, pstScrambleConfig) ;
+	BKNI_LeaveCriticalSection() ;
 }
 
 

@@ -857,9 +857,11 @@ typedef enum
         BAVC_HDMI_PacketType_eGamutMetadataPacket   = 0xA,
 #endif
 
-        BAVC_HDMI_PacketType_eVendorSpecificInfoframe         = 0x81,
+        BAVC_HDMI_PacketType_eVendorSpecificInfoFrame         = 0x81,
         /* backwards compatibility */
-        BAVC_HDMI_PacketType_eVendorSpecific = BAVC_HDMI_PacketType_eVendorSpecificInfoframe,
+        BAVC_HDMI_PacketType_eVendorSpecificInfoframe         = BAVC_HDMI_PacketType_eVendorSpecificInfoFrame,
+        BAVC_HDMI_PacketType_eVendorSpecific = BAVC_HDMI_PacketType_eVendorSpecificInfoFrame,
+
         BAVC_HDMI_PacketType_eAviInfoFrame           = 0x82, /* AVI - Auxillary Video Information */
         BAVC_HDMI_PacketType_eSpdInfoFrame           = 0x83, /* SPD - Source Product Description */
         BAVC_HDMI_PacketType_eAudioInfoFrame         = 0x84,
@@ -868,6 +870,24 @@ typedef enum
 
         BAVC_HDMI_PacketType_eUnused                 = 0xA0
 } BAVC_HDMI_PacketType ;
+
+
+/******************************************************************************
+Summary:
+Version number of each InfoFrame Packet Type
+
+Description:
+The values are used to indicate the supported version of each HDMI RAM packet
+
+
+See Also:
+        o BAVC_HDMI_PacketType
+*******************************************************************************/
+#define BAVC_HDMI_PacketType_VendorSpecificInfoFrameVersion  0x01
+#define BAVC_HDMI_PacketType_AviInfoFrameVersion    0x02
+#define BAVC_HDMI_PacketType_SpdInfoFrameVersion    0x01
+#define BAVC_HDMI_PacketType_AudioInfoFrameVersion 0x01
+#define BAVC_HDMI_PacketType_DrmInfoFrameVersion   0x01
 
 
 typedef enum

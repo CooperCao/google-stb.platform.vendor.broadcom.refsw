@@ -113,9 +113,14 @@ Called by Hdmi_Output
 **/
 NEXUS_Error NEXUS_HdmiInput_LoadHdcp2xReceiverIdList_priv(
 	NEXUS_HdmiInputHandle hdmiInput,
-	NEXUS_Hdcp2xReceiverIdListData *pData
+	NEXUS_Hdcp2xReceiverIdListData *pData,
+	bool downstreamIsRepeater
 	);
 
+NEXUS_Error NEXUS_HdmiInput_UpdateHdcp2xRxCaps_priv(
+	NEXUS_HdmiInputHandle hdmiInput,
+	bool downstreamDeviceAttached
+	);
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_HdmiInput);
 

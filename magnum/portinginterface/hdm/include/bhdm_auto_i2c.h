@@ -163,8 +163,49 @@ Returns:
 
 See Also:
 *******************************************************************************/
-void BHDM_AUTO_I2C_SetChannels_isrsafe(const BHDM_Handle hHDMI,
+void BHDM_AUTO_I2C_SetChannels_isr(const BHDM_Handle hHDMI,
 	uint8_t enable) ;
+
+
+
+/******************************************************************************
+Summary: Check status of the Auto I2C HDCP HW Timers.
+
+Input:
+	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
+
+Output:
+	availble - bool indicated whether the Auto I2C HW is current available
+
+Returns:
+	None.
+
+See Also:
+*******************************************************************************/
+BERR_Code BHDM_AUTO_I2C_IsHdcp2xHWTimersAvailable_isrsafe(
+	const BHDM_Handle hHDMI,		   /* [in] HDMI handle */
+	bool *available
+);
+
+
+/******************************************************************************
+Summary: Reset Auto I2C block. This should only be called if the Auto I2C HDCP HW Timers are
+		stuck.
+
+Input:
+	hHDMI - HDMI control handle that was previously opened by BHDM_Open.
+
+Output:
+
+
+Returns:
+	None.
+
+See Also:
+*******************************************************************************/
+BERR_Code BHDM_AUTO_I2C_Reset_isr(
+	const BHDM_Handle hHDMI		   /* [in] HDMI handle */
+);
 
 
 #ifdef __cplusplus

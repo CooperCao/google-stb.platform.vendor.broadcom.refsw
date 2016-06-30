@@ -59,6 +59,8 @@
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #include "nexus_hdmi_output_hdcp.h"
+#else
+typedef void *NEXUS_HdmiOutputHdcpVersion;
 #endif
 #if NEXUS_HAS_SIMPLE_DECODER
 #include "nexus_simple_video_decoder_server.h"
@@ -282,7 +284,20 @@ struct b_session {
 #endif
     struct {
         NxClient_HdcpLevel level;
-        enum {nxserver_hdcp_not_pending, nxserver_hdcp_pending, nxserver_hdcp_pending_with_failure} pending;
+        NxClient_HdcpVersion prevSelect;
+        NxClient_HdcpVersion currSelect;
+        enum nxserver_hdcp_state {
+            nxserver_hdcp_not_pending,                   /* no hdcp authentication in progress */
+            nxserver_hdcp_begin,                         /* start hdcp auth disable */
+            nxserver_hdcp_pending_status_disable,        /* wait for hdcp auth disable success */
+            nxserver_hdcp_pending_status_start,          /* wait for hdcp auth start success, to read authentication status */
+            nxserver_hdcp_pending_disable,               /* wait for hdcp auth disable success */
+            nxserver_hdcp_pending_start_retry,           /* wait for hdcp auth disable success, retrying */
+            nxserver_hdcp_pending_start,                 /* wait for hdcp auth disable success */
+            nxserver_hdcp_success,                       /* hdcp authentication completed */
+            nxserver_hdcp_max
+        } version_state;
+        NEXUS_HdmiOutputHdcpVersion downstream_version;
         bool mute;
     } hdcp;
     struct {

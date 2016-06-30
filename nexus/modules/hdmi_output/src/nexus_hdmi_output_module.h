@@ -62,10 +62,10 @@
 #include "priv/nexus_core_audio.h"
 #include "priv/nexus_hdmi_output_priv.h"
 
-#if NEXUS_HAS_SAGE
+#if NEXUS_HAS_SAGE && NEXUS_HAS_HDCP_2X_SUPPORT
 #include "bchp_common.h"
-#ifdef BCHP_HDCP2_TX_HAE_INTR2_0_REG_START
-#define NEXUS_HAS_HDCP_2X_SUPPORT 1
+#ifndef BCHP_HDCP2_TX_HAE_INTR2_0_REG_START
+#undef NEXUS_HAS_HDCP_2X_SUPPORT
 #endif
 #endif
 
@@ -149,7 +149,8 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_EventCallbackHandle scrambleEventCallback;
     NEXUS_EventCallbackHandle avRateChangeEventCallback;
     NEXUS_TimerHandle powerTimer;
-    unsigned hdcpRestartCounter;
+
+    bool hdcpRequiredPostFormatChange;
     bool formatChangeMute;
     bool avMuteSetting;
     bool hdcpStarted;
@@ -161,7 +162,6 @@ typedef struct NEXUS_HdmiOutput
     uint8_t checkRxSenseCount ;
     uint8_t lastReceiverSense ;
 
-    NEXUS_TimerHandle postFormatChangeTimer;
     bool aspectRatioChangeOnly;
 
     BAVC_AudioSamplingRate sampleRate;
@@ -184,6 +184,7 @@ typedef struct NEXUS_HdmiOutput
     BKNI_EventHandle notifyHotplugEvent ;
 
     BHDM_HDCP_Version eHdcpVersion;
+    NEXUS_HdmiOutputHdcpVersion hdcpVersionSelect;
 #if NEXUS_HAS_SECURITY
     BHDCPlib_Handle hdcpHandle;
     NEXUS_EventCallbackHandle hdcpHotplugCallback;
@@ -193,8 +194,8 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_HdmiOutputHdcpSettings hdcpSettings;
     NEXUS_HdmiOutputHdcpKsv *pRevokedKsvs;
     uint16_t numRevokedKsvs;
-    BHDCPlib_State hdcpState;
-    BHDCPlib_HdcpError hdcpError;
+    BHDCPlib_State hdcp1xState;
+    BHDCPlib_HdcpError hdcp1xError;
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
     NEXUS_HdmiInputHandle hdmiInput;
     NEXUS_EventCallbackHandle hdcp2xEncryptionEnableCallback;
@@ -204,6 +205,8 @@ typedef struct NEXUS_HdmiOutput
 #endif
     bool resumeFromS3;
     BHDM_Settings hdmSettings;
+    bool invalidEdid ;
+    bool invalidEdidReported ;
     bool edidHdmiDevice ;
     BHDM_EDID_RxVendorSpecificDB edidVendorSpecificDB ;
 
@@ -257,6 +260,7 @@ void NEXUS_HdmiOutput_P_HdcpNotifyHotplug(NEXUS_HdmiOutputHandle output);
 
 void NEXUS_HdmiOutputModule_Print(void);
 
+void NEXUS_HdmiOutput_P_CheckHdcpVersion(NEXUS_HdmiOutputHandle output);
 
 /* Proxy conversion */
 #define NEXUS_P_HDMI_OUTPUT_HDCP_KSV_SIZE(num) ((num)*sizeof(NEXUS_HdmiOutputHdcpKsv))

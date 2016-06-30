@@ -56,11 +56,6 @@
 ######################
 NEXUS_MODULES += HDMI_OUTPUT
 
-##################
-# Module Options #
-##################
-NEXUS_HDMI_OUTPUT_OPTIONS := NEXUS_HDCP_SUPPORT
-
 ###################
 # Module Includes #
 ###################
@@ -88,18 +83,30 @@ NEXUS_HDMI_OUTPUT_SOURCES += $(NEXUS_SYNCTHUNK_DIR)/nexus_hdmi_output_thunks.c
 #######################
 # Module Dependencies #
 #######################
-NEXUS_HDMI_OUTPUT_DEPENDENCIES := SECURITY I2C HDMI_INPUT
-
-ifeq ($(findstring SAGE, $(NEXUS_MODULES)),SAGE)
-NEXUS_HDMI_OUTPUT_DEPENDENCIES += SAGE
-endif
-
+NEXUS_HDMI_OUTPUT_DEPENDENCIES := SECURITY I2C HDMI_INPUT SAGE
 
 ##################
 # Magnum Modules #
 ##################
 NEXUS_HDMI_OUTPUT_MAGNUM_MODULES =  \
     $(MAGNUM)/portinginterface/hdm/bhdm.inc
+
+#
+# HDCP (same logic exists in hdmi_input.inc)
+#
+# <default>             ==> enable 1.x and 2.x if HW supports and SAGE available, except for 65nm which requires protected HSM source
+# NEXUS_HDCP_SUPPORT=y  ==> enable 1.x and 2.x if HW supports and SAGE available
+# NEXUS_HDCP_SUPPORT=1x ==> enable 1.x only
+# NEXUS_HDCP_SUPPORT=n  ==> no HDCP
+#
+ifeq ($(filter y 1x n,$(NEXUS_HDCP_SUPPORT)),)
+# CHIP_GEOMETRY is defined in security.inc
+ifeq ($(CHIP_GEOMETRY),65nm)
+NEXUS_HDCP_SUPPORT := n
+else
+NEXUS_HDCP_SUPPORT := y
+endif
+endif
 
 ifeq ($(findstring SECURITY, $(NEXUS_MODULES)),SECURITY)
 	NEXUS_HDMI_OUTPUT_MAGNUM_MODULES += \
@@ -110,51 +117,25 @@ ifeq ($(findstring SECURITY, $(NEXUS_MODULES)),SECURITY)
 		    $(MAGNUM)/syslib/sagelib/bsagelib.inc
 
 		##########################################################
-		##### 65nm and 40nm PLATFORMS WITHOUT HDCP2.x SUPPORT ####
+		##### SAGE PLATFORMS WITHOUT HDCP2.x SUPPORT ####
 		##########################################################
-		ifeq ($(filter $(BCHP_CHIP), 7325 7335 7400 7405 7125 7340 7342 7408 7420 7468 7550 7422 7425 7429 7435 7231 7358 7344 7346 7360 7362 73625 7552 7640 7584 75845 7563 7543 7228), $(BCHP_CHIP))
+		ifeq ($(filter $(BCHP_CHIP), 7435), $(BCHP_CHIP))
 			### No DEFINES ####
 
-		#####################################################
-		##### old 28nm PLATFORMS WITHOUT HDCP2.x SUPPORT ####
-		#####################################################
-		else ifeq ($(findstring $(BCHP_CHIP), 7445), $(BCHP_CHIP))
-			ifeq ($(findstring $(BCHP_VER), c0 C0 ), $(BCHP_VER))
-				### No DEFINES ####
-			else
-				ifeq ($(NEXUS_HDCP_SUPPORT),y)
-				NEXUS_HDMI_OUTPUT_DEFINES += NEXUS_HAS_HDCP_2X_SUPPORT
-				endif
-			endif
-
-		#####################################################
-		##### old 28nm PLATFORMS WITHOUT HDCP2.x SUPPORT ####
-		#####################################################
-		else ifeq ($(findstring $(BCHP_CHIP), 7366 7145 7439), $(BCHP_CHIP))
-			ifeq ($(findstring $(BCHP_VER), a0 A0 ), $(BCHP_VER))
-				### No DEFINES ####
-			else
-				ifeq ($(NEXUS_HDCP_SUPPORT),y)
-				NEXUS_HDMI_OUTPUT_DEFINES += NEXUS_HAS_HDCP_2X_SUPPORT
-				endif
-			endif
-
 		##################################################
-		##### new 28nm PLATFORMS WITH HDCP2.x SUPPORT ####
+		##### else, SAGE PLATFORMS SUPPORT HDCP2.x    ####
 		##################################################
 		else
 			ifeq ($(NEXUS_HDCP_SUPPORT),y)
 			NEXUS_HDMI_OUTPUT_DEFINES += NEXUS_HAS_HDCP_2X_SUPPORT
+			BHDCPLIB_HDCP_SUPPORT=y
 			endif
 		endif
 	endif
 
-	ifeq ($(NEXUS_HDCP_SUPPORT),y)
+	# HDCP 1.x
+	ifeq ($(filter y 1x,$(NEXUS_HDCP_SUPPORT)),$(NEXUS_HDCP_SUPPORT))
 	BHSM_KEYLADDER=ON
 	BHDCPLIB_HDCP_SUPPORT=y
 	endif
-endif
-
-ifneq ($(NEXUS_HDMI_INPUT_SUPPORT),n)
-BHDCPLIB_HDR_SUPPORT=y
 endif

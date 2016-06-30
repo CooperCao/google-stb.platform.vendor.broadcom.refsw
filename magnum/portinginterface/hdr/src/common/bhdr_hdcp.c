@@ -312,4 +312,82 @@ BERR_Code BHDR_HDCP_EnableSerialKeyRam(
 	return BERR_SUCCESS;
 
 }
+
+
+BERR_Code BHDR_HDCP_GetHdcp2xEncryptionStatus(
+	const BHDR_Handle hHDR,
+	bool *bEncrypted
+)
+{
+	uint32_t Register, ulOffset;
+	BREG_Handle hRegister;
+
+	BDBG_ENTER(BHDR_HDCP_GetHdcp2xEncryptionStatus);
+	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle);
+
+	hRegister = hHDR->hRegister;
+	ulOffset = hHDR->ulOffset;
+
+	Register = BREG_Read32(hRegister, BCHP_HDCP2_RX_0_STATUS_0 + ulOffset);
+	*bEncrypted = (bool) BCHP_GET_FIELD_DATA(Register, HDCP2_RX_0_STATUS_0, ENCRYPTION_ENABLED) ;
+
+	BDBG_LEAVE(BHDR_HDCP_GetHdcp2xEncryptionStatus);
+	return BERR_SUCCESS;
+}
+
+
+BERR_Code BHDR_HDCP_InstallDisconnectNotifyCallback(
+	const BHDR_Handle hHDR,
+	const BHDR_CallbackFunc pfCallback_isr, /* [in] cb for notification */
+	void *pvParm1,  /* [in] the first argument (void *) passed to the callback function */
+	int iParm2      /* [in] the second argument(int) passed to the callback function */
+)
+{
+	BERR_Code rc = BERR_SUCCESS ;
+	BDBG_ENTER(BHDR_HDCP_InstallDisconnectNotifyCallback);
+	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle);
+
+	if (hHDR->pfHdcpDisconnectNotifyCallback_isr)
+	{
+		BDBG_ERR(("Callback handler already installed for DisconnectNotify...overriding")) ;
+	}
+
+	BKNI_EnterCriticalSection() ;
+		hHDR->pfHdcpDisconnectNotifyCallback_isr = pfCallback_isr ;
+		hHDR->pvHdcpDisconnectNotifyParm1 = pvParm1 ;
+		hHDR->iHdcpDisconnectNotifyParm2 = iParm2 ;
+	BKNI_LeaveCriticalSection() ;
+
+	BDBG_LEAVE(BHDR_HDCP_InstallDisconnectNotifyCallback) ;
+	return rc ;
+}
+
+
+BERR_Code BHDR_HDCP_UnInstallDisconnectNotifyCallback(
+	const BHDR_Handle hHDR,
+	const BHDR_CallbackFunc pfCallback_isr /* [in] cb for notification  */
+)
+{
+	BERR_Code rc = BERR_SUCCESS ;
+	BDBG_ENTER(BHDR_HDCP_UnInstallDisconnectNotifyCallback);
+	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle);
+
+	BSTD_UNUSED(pfCallback_isr) ;
+
+	if (hHDR->pfHdcpDisconnectNotifyCallback_isr == (BHDR_CallbackFunc) NULL)
+	{
+		BDBG_WRN(("No callback handler to uninstall for DisconnectNotify callback")) ;
+		goto done ;
+	}
+
+	BKNI_EnterCriticalSection() ;
+		hHDR->pfHdcpDisconnectNotifyCallback_isr = (BHDR_CallbackFunc) NULL ;
+		hHDR->pvHdcpDisconnectNotifyParm1 = (void *) NULL  ;
+		hHDR->iHdcpDisconnectNotifyParm2 = 0  ;
+	BKNI_LeaveCriticalSection() ;
+
+done :
+	BDBG_LEAVE(BHDR_HDCP_UnInstallDisconnectNotifyCallback) ;
+	return rc ;
+}
 #endif

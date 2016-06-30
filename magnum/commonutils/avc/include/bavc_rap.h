@@ -86,6 +86,7 @@ typedef enum BAVC_AudioCompressionStd
     BAVC_AudioCompressionStd_eIsac,             /* iSac speech codec */
     BAVC_AudioCompressionStd_eOpus,             /* Opus speech codec */
     BAVC_AudioCompressionStd_eAls,              /* MPEG-4 Audio Lossless Codec */
+    BAVC_AudioCompressionStd_eAc4,              /* Dolby AC-4 Audio Codec */
 	BAVC_AudioCompressionStd_eMax               /* Max value */
 } BAVC_AudioCompressionStd;
 #endif

@@ -176,6 +176,11 @@ static const NEXUS_HdmiOutputHdcpKsv RevokedKsvs[NUM_REVOKED_KSVS] =
     {{0x65, 0x65, 0x1e, 0xd5, 0x64}}
 } ;
 
+typedef struct hotplugCallbackParameters
+{
+    NEXUS_HdmiOutputHandle hdmiOutput  ;
+    NEXUS_DisplayHandle display ;
+} hotplugCallbackParameters ;
 
 static void disconnect_hdmi_audio(NEXUS_HdmiOutputHandle hdmi)
 {
@@ -234,10 +239,15 @@ static void connect_hdmi_audio(NEXUS_HdmiOutputHandle hdmi)
 static void hotplug_callback(void *pParam, int iParam)
 {
     NEXUS_HdmiOutputStatus status;
-    NEXUS_HdmiOutputHandle hdmi = pParam;
-    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
+    NEXUS_HdmiOutputHandle hdmi ;
+    NEXUS_DisplayHandle display ;
     NEXUS_DisplaySettings displaySettings;
-    NEXUS_HdmiOutputSettings hdmiSettings    ;
+    NEXUS_HdmiOutputSettings hdmiSettings;
+    hotplugCallbackParameters *hotPlugCbParams ;
+
+    hotPlugCbParams = (hotplugCallbackParameters *) pParam ;
+    hdmi = hotPlugCbParams->hdmiOutput ;
+    display = hotPlugCbParams->display ;
 
     NEXUS_HdmiOutput_GetStatus(hdmi, &status);
     /* the app can choose to switch to the preferred format, but it's not required. */
@@ -250,7 +260,7 @@ static void hotplug_callback(void *pParam, int iParam)
     NEXUS_Display_GetSettings(display, &displaySettings);
     if ( !status.videoFormatSupported[displaySettings.format] )
     {
-        BDBG_ERR(("Current format not supported by attached monitor. Switching to preferred format %d", 
+        BDBG_ERR(("Current format not supported by attached monitor. Switching to preferred format %d",
             status.preferredVideoFormat)) ;
         displaySettings.format = status.preferredVideoFormat;
     }
@@ -258,7 +268,7 @@ static void hotplug_callback(void *pParam, int iParam)
 
     /* force HDMI updates after a hotplug */
     NEXUS_HdmiOutput_GetSettings(hdmi, &hdmiSettings) ;
-    NEXUS_HdmiOutput_SetSettings(hdmi, &hdmiSettings) ;		
+    NEXUS_HdmiOutput_SetSettings(hdmi, &hdmiSettings) ;
 
     /* restart HDCP if it was previously enabled */
     if (hdmiHdcpEnabled)
@@ -270,8 +280,8 @@ static void hotplug_callback(void *pParam, int iParam)
 
 static void hdmiOutputHdcpStateChanged(void *pContext, int param)
 {
-	
-    bool success = false ; 
+
+    bool success = false ;
     NEXUS_HdmiOutputHandle handle = pContext;
     NEXUS_HdmiOutputHdcpStatus hdcpStatus;
 
@@ -281,9 +291,12 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
     switch (hdcpStatus.hdcpError)
     {
     case NEXUS_HdmiOutputHdcpError_eSuccess :
-        BDBG_WRN(("HDCP Authentication Successful\n"));
+        if (!hdmiHdcpEnabled)
+        {
+	        BDBG_LOG(("HDCP Authentication Successful"));
+	        hdmiHdcpEnabled = true ;
+        }
         success = true ;
-        hdmiHdcpEnabled = true ;
         break ;
 
     case NEXUS_HdmiOutputHdcpError_eRxBksvError :
@@ -298,7 +311,7 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
     case NEXUS_HdmiOutputHdcpError_eTxAksvI2cWriteError :
         BDBG_ERR(("HDCP I2C Read Error")) ;
         break ;
-		
+
     case NEXUS_HdmiOutputHdcpError_eTxAksvError :
         BDBG_ERR(("HDCP Tx Aksv Error")) ;
         break ;
@@ -308,7 +321,7 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
         break ;
 
     case NEXUS_HdmiOutputHdcpError_eRepeaterAuthenticationError :
-    case NEXUS_HdmiOutputHdcpError_eRepeaterLinkFailure :    /* Repeater Error; unused */    
+    case NEXUS_HdmiOutputHdcpError_eRepeaterLinkFailure :    /* Repeater Error; unused */
         BDBG_ERR(("HDCP Repeater Authentication Failure")) ;
         break ;
 
@@ -339,34 +352,34 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
     case NEXUS_HdmiOutputHdcpError_eFifoOverflow :
         BDBG_ERR(("Video configuration issue")) ;
         break ;
-		
+
     case NEXUS_HdmiOutputHdcpError_eMultipleAnRequest : /* Should not reach here; but flag if occurs */
-        BDBG_WRN(("Multiple Authentication Request... ")) ;  
-		
+        BDBG_WRN(("Multiple Authentication Request... ")) ;
+
     default :
         BDBG_WRN(("Unknown HDCP Authentication Error %d", hdcpStatus.hdcpError)) ;
     }
-    
+
     if (!success)
     {
         fprintf(stderr, "\nHDCP Authentication Failed.  Current State %d\n", hdcpStatus.hdcpState);
 
-        /* always retry */        
-        NEXUS_HdmiOutput_StartHdcpAuthentication(platformConfig.outputs.hdmi[0]);        
+        /* always retry */
+        NEXUS_HdmiOutput_StartHdcpAuthentication(platformConfig.outputs.hdmi[0]);
     }
 }
 
 
-static void initializeHdmiOutputHdcpSettings(void) 
+static void initializeHdmiOutputHdcpSettings(void)
 {
     NEXUS_HdmiOutputHdcpSettings hdmiOutputHdcpSettings;
 
     NEXUS_HdmiOutput_GetHdcpSettings(platformConfig.outputs.hdmi[0], &hdmiOutputHdcpSettings);
 
         /* copy the encrypted key set and its Aksv here  */
-        BKNI_Memcpy(hdmiOutputHdcpSettings.encryptedKeySet, encryptedTxKeySet, 
+        BKNI_Memcpy(hdmiOutputHdcpSettings.encryptedKeySet, encryptedTxKeySet,
             NEXUS_HDMI_OUTPUT_HDCP_NUM_KEYS * sizeof(NEXUS_HdmiOutputHdcpKey)) ;
-        BKNI_Memcpy(&hdmiOutputHdcpSettings.aksv, &hdcpTxAksv, 
+        BKNI_Memcpy(&hdmiOutputHdcpSettings.aksv, &hdcpTxAksv,
             NEXUS_HDMI_OUTPUT_HDCP_KSV_LENGTH) ;
 
         /* install HDCP success  callback */
@@ -380,9 +393,9 @@ static void initializeHdmiOutputHdcpSettings(void)
     NEXUS_HdmiOutput_SetHdcpSettings(platformConfig.outputs.hdmi[0], &hdmiOutputHdcpSettings);
 
     /* install list of revoked KSVs from SRMs (System Renewability Message) if available */
-    NEXUS_HdmiOutput_SetHdcpRevokedKsvs(platformConfig.outputs.hdmi[0], 
+    NEXUS_HdmiOutput_SetHdcpRevokedKsvs(platformConfig.outputs.hdmi[0],
         RevokedKsvs, NumRevokedKsvs) ;
-     
+
  }
 
 
@@ -393,10 +406,10 @@ void toggle_menu(void)
     while (!done)
     {
         int tmp;
-        
+
         /* Display Menu */
         printf("Toggle Menu\n");
-        printf(" 1) Toggle PCM/Compressed audio (currently %s)\n", 
+        printf(" 1) Toggle PCM/Compressed audio (currently %s)\n",
             hdmiCompressedAudio ? "Compressed" : "PCM");
         printf(" 2) Toggle AvMute (currently %s)\n",
 		hdmiAvMute ? "Set_AvMute" : "Clear_AvMute");
@@ -409,7 +422,7 @@ void toggle_menu(void)
         case 0:
 	     done = true ;
             break;
-			
+
         case 1:
             disconnect_hdmi_audio(platformConfig.outputs.hdmi[0]);
             hdmiCompressedAudio = !hdmiCompressedAudio;
@@ -452,10 +465,11 @@ int main(void)
     NEXUS_DisplaySettings displaySettings;
     NEXUS_HdmiOutputSettings hdmiSettings;
     NEXUS_HdmiOutputStatus hdmiStatus;
+    hotplugCallbackParameters hotPlugCbParams ;
     bool done = false;
     NEXUS_Error rc;
     unsigned i, menuIndex ;
-    
+
     typedef struct {
         int menuEntry;
         NEXUS_VideoFormat format;
@@ -475,7 +489,7 @@ int main(void)
         { 0, NEXUS_VideoFormat_e1080p60hz, "1080p 60Hz" },
         { 0, NEXUS_VideoFormat_ePal, "576i (PAL)" },
         { 0, NEXUS_VideoFormat_e576p, "576p" },
-        
+
         /* END of ARRAY */
         { 0, 0, "" }
     };
@@ -528,22 +542,24 @@ int main(void)
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     display = NEXUS_Display_Open(0, &displaySettings);
     window = NEXUS_VideoWindow_Open(display, 0);
-    
+
 #if NEXUS_NUM_COMPONENT_OUTPUTS
     if(platformConfig.outputs.component[0]){
         NEXUS_Display_AddOutput(display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
     }
-#endif 
+#endif
 #if NEXUS_NUM_COMPOSITE_OUTPUTS
     NEXUS_Display_AddOutput(display, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
-#endif    
+#endif
     NEXUS_Display_AddOutput(display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
 
     /* Install hotplug callback -- video only for now */
     NEXUS_HdmiOutput_GetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
-    hdmiSettings.hotplugCallback.callback = hotplug_callback;
-    hdmiSettings.hotplugCallback.context = platformConfig.outputs.hdmi[0];
-    hdmiSettings.hotplugCallback.param = (int)display;
+        hdmiSettings.hotplugCallback.callback = hotplug_callback;
+
+        hotPlugCbParams.hdmiOutput = platformConfig.outputs.hdmi[0] ;
+        hotPlugCbParams.display = display ;
+        hdmiSettings.hotplugCallback.context = &hotPlugCbParams ;
     NEXUS_HdmiOutput_SetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
 
     /* initalize HDCP settings, keys, etc. */
@@ -554,19 +570,19 @@ int main(void)
     NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(vdecode));
 
     /* Force a hotplug to switch to preferred format */
-    hotplug_callback(platformConfig.outputs.hdmi[0], (int)display);
+    hotplug_callback(&hotPlugCbParams, 0);
 
     /* Start Decoders */
     NEXUS_VideoDecoder_Start(vdecode, &videoProgram);
     NEXUS_AudioDecoder_Start(pcmDecoder, &audioProgram);
     audioStarted = true;
 
-    
+
     NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
     NEXUS_Display_GetSettings(display, &displaySettings);
     displaySettings.format = hdmiStatus.preferredVideoFormat;
     NEXUS_Display_SetSettings(display, &displaySettings);
-    
+
     while (!done)
     {
         int tmp;

@@ -350,9 +350,10 @@ void hdmi_source_changed(void *context, int param)
     NEXUS_HdmiInputHandle hdmiInput;
     NEXUS_HdmiInputStatus hdmiInputStatus;
     NEXUS_DisplaySettings displaySettings;
-    app_configuration *config = (app_configuration *)param;
 
-    hdmiInput = (NEXUS_HdmiInputHandle)context;
+    app_configuration *config = (app_configuration *)context;
+    hdmiInput = config->hdmiInput;
+
     NEXUS_HdmiInput_GetStatus(hdmiInput, &hdmiInputStatus);
     fprintf(stderr, "HDMI input status (callback):\n");
     fprintf(stderr, "attached %d,  audio valid %d,  Type %d,  wordlength %d,  freq %d\n",
@@ -375,9 +376,9 @@ void avmute_changed(void *context, int param)
 {
     NEXUS_HdmiInputHandle hdmiInput;
     NEXUS_HdmiInputStatus hdmiInputStatus;
-    app_configuration *config = (app_configuration *)param;
+    app_configuration *config = (app_configuration *)context;
 
-    hdmiInput = (NEXUS_HdmiInputHandle)context;
+    hdmiInput = config->hdmiInput;
     NEXUS_HdmiInput_GetStatus(hdmiInput, &hdmiInputStatus);
 
     if (!hdmiInputStatus.validHdmiStatus)
@@ -533,11 +534,15 @@ static void mute_audio(NEXUS_HdmiOutputHandle hdmiOutput)
 }
 
 
-static void hotplug_callback(void *pParam, int iParam)
+static void hotplug_callback(void *pContext, int iParam)
 {
     NEXUS_HdmiOutputStatus status;
-    NEXUS_HdmiOutputHandle hdmiOutput = pParam;
-    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
+    NEXUS_HdmiOutputHandle hdmiOutput ;
+    NEXUS_DisplayHandle display ;
+
+    app_configuration *config = (app_configuration *)pContext;
+    hdmiOutput = config->hdmiOutput ;
+    display = config->display ;
 
     NEXUS_HdmiOutput_GetStatus(hdmiOutput, &status);
     BDBG_LOG(("hotplug_callback: %s\n", status.connected ? "DEVICE CONNECTED" : "DEVICE REMOVED")) ;
@@ -974,11 +979,14 @@ static app_configuration *config_init(int argc, char **argv)
     config->display = NEXUS_Display_Open(0, &displaySettings);
 
     NEXUS_HdmiInput_GetSettings(config->hdmiInput, &hdmiInputSettings);
+
     hdmiInputSettings.avMuteChanged.callback = avmute_changed;
-    hdmiInputSettings.avMuteChanged.context  = config->hdmiInput;
+    hdmiInputSettings.avMuteChanged.context  = config;
+    hdmiInputSettings.avMuteChanged.param    = 0;
+
     hdmiInputSettings.sourceChanged.callback = hdmi_source_changed;
-    hdmiInputSettings.sourceChanged.context  = config->hdmiInput;
-    hdmiInputSettings.sourceChanged.param    = (int)config;
+    hdmiInputSettings.sourceChanged.context  = config ;
+    hdmiInputSettings.sourceChanged.param = 0 ;
     NEXUS_HdmiInput_SetSettings(config->hdmiInput, &hdmiInputSettings);
 
     if (config->dumpfilename)
@@ -1078,9 +1086,8 @@ static app_configuration *config_init(int argc, char **argv)
 
     /* Install hotplug callback -- video only for now */
     NEXUS_HdmiOutput_GetSettings(config->hdmiOutput, &hdmiOutputSettings);
-    hdmiOutputSettings.hotplugCallback.callback = hotplug_callback;
-    hdmiOutputSettings.hotplugCallback.context  = config->hdmiOutput;
-    hdmiOutputSettings.hotplugCallback.param    = (int)config->display;
+        hdmiOutputSettings.hotplugCallback.callback = hotplug_callback;
+        hdmiOutputSettings.hotplugCallback.context = config ;
     NEXUS_HdmiOutput_SetSettings(config->hdmiOutput, &hdmiOutputSettings);
 
 #if 1

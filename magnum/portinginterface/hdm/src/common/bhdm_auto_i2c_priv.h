@@ -182,6 +182,9 @@ BERR_Code  BHDM_AUTO_I2C_P_FreeResources(BHDM_Handle hHDMI) ;
 BERR_Code BHDM_AUTO_I2C_P_EnableInterrupts(BHDM_Handle hHDMI);
 BERR_Code BHDM_AUTO_I2C_P_DisableInterrupts(BHDM_Handle hHDMI);
 
+void BHDM_AUTO_I2C_EnableReadChannel_isr(const BHDM_Handle hHDMI,
+	BHDM_AUTO_I2C_P_CHANNEL eChannel, uint8_t enable
+) ;
 BERR_Code BHDM_AUTO_I2C_P_ConfigureReadChannel_isr(const BHDM_Handle hHDMI,
 	BHDM_AUTO_I2C_MODE eAutoI2cMode,
 	uint8_t slaveAddress, uint8_t slaveOffset, uint8_t length) ;
@@ -190,7 +193,7 @@ BERR_Code BHDM_AUTO_I2C_P_ConfigureWriteChannel_isr(const BHDM_Handle hHDMI,
 	BHDM_AUTO_I2C_P_CHANNEL eChannel,
 	uint8_t slaveAddress, uint8_t slaveOffset, uint8_t *pBuffer, uint8_t length) ;
 
-void  BHDM_AUTO_I2C_P_SetTriggerConfiguration_isrsafe(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_P_CHANNEL eChannel,
+void  BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_P_CHANNEL eChannel,
 	const BHDM_AUTO_I2C_P_TriggerConfiguration *pstTriggerConfig) ;
 
 void BHDM_AUTO_I2C_P_GetTriggerConfiguration_isrsafe(const BHDM_Handle hHDMI, BHDM_AUTO_I2C_P_CHANNEL eChannel,

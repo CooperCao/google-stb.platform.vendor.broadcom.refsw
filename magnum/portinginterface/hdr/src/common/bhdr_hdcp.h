@@ -234,6 +234,23 @@ void BHDR_HDCP_LoadRepeaterKsvFifo(
 
 
 #if BHDR_CONFIG_HDCP2X_SUPPORT
+/**************************************************************************
+Summary:
+	Update Hdcp2.x RxCaps
+
+Description:
+	This function will update the HDCP2.x RxCaps in the HW
+
+Input:
+	hHDR - HDMI Rx Handle
+	version - hdcp version per the HDCP spec
+	rxCapsMask - RxCaps_MASK define in HDCP spec
+	repeater - identify as Repeater or Receiver
+
+Returns:
+	none
+
+**************************************************************************/
 BERR_Code BHDR_HDCP_SetHdcp2xRxCaps(
        const BHDR_Handle hHDR,
        const uint8_t version,
@@ -241,10 +258,97 @@ BERR_Code BHDR_HDCP_SetHdcp2xRxCaps(
        const uint8_t repeater
 );
 
+
+/**************************************************************************
+Summary:
+	Enable/Disable Serial Key RAM
+
+Description:
+	This function will enable/disable Serial Key RAM which is needed based on the current
+	HDCP version being authenticated
+
+Input:
+	hHDR - HDMI Rx Handle
+	enable - true to enable Serial Key RAM. Otherwise, disable
+
+Returns:
+	none
+
+**************************************************************************/
 BERR_Code BHDR_HDCP_EnableSerialKeyRam(
 	const BHDR_Handle hHDR,
 	const bool enable
 );
+
+
+/**************************************************************************
+Summary:
+	Get HDCP2.x authentication status
+
+Description:
+	This function will retrieve the current HDCP2.x authentication status
+
+Input:
+	hHDR - HDMI Rx Handle
+	bEncrypted - true if HDCP2.x is currently authenticated and encryption is anbled
+
+Returns:
+	none
+
+**************************************************************************/
+BERR_Code BHDR_HDCP_GetHdcp2xEncryptionStatus(
+	const BHDR_Handle hHDR,
+	bool *bEncrypted
+);
+
+
+/**************************************************************************
+Summary:
+	Install HPD disconnect event callback
+
+Description:
+	This function allows the application to install a callback to be notify when the HPD
+	signal is pull/held LOW
+
+Input:
+	hHDR - HDMI Rx Handle
+	pfCallback_isr - callback function for notification
+	pvParm1 - the first argument (void *) passed to the callback function
+	iParm2 - the second argument(int) passed to the callback function
+
+Returns:
+	none
+
+**************************************************************************/
+BERR_Code BHDR_HDCP_InstallDisconnectNotifyCallback(
+	const BHDR_Handle hHDR,
+	const BHDR_CallbackFunc pfCallback_isr, /* [in] cb for notification */
+	void *pvParm1,  /* [in] the first argument (void *) passed to the callback function */
+	int iParm2      /* [in] the second argument(int) passed to the callback function */
+);
+
+
+/**************************************************************************
+Summary:
+	UnInstall HPD disconnect event callback
+
+Description:
+	This function uninstall the HDCP disconnect event callback registered/installed by
+	the application using BHDR_HDCP_InstallDisconnectNotifyCallback
+
+Input:
+	hHDR - HDMI Rx Handle
+	pfCallback_isr - callback function need to uninstall
+
+Returns:
+	none
+
+**************************************************************************/
+BERR_Code BHDR_HDCP_UnInstallDisconnectNotifyCallback(
+	const BHDR_Handle hHDR,
+	const BHDR_CallbackFunc pfCallback_isr /* [in] cb for notification  */
+);
+
 
 #endif
 

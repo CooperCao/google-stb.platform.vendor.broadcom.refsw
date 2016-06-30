@@ -494,7 +494,7 @@ NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     }
 
     if (( localRequested.colorDepth > NEXUS_HdmiColorDepth_e8bit)
-    &&  (edid.hdmiForumVsdb.maxTMDSCharacterRate <= BHDM_CONFIG_HDMI_1_4_MAX_RATE))
+    &&  (edid.hdmiForumVsdb.maxTMDSCharacterRate <= BHDM_HDMI_1_4_MAX_RATE))
     {
         BDBG_WRN(("Attached Rx cannot support Color Depth %d; default to 8",
             requested->colorDepth)) ;
@@ -693,13 +693,6 @@ NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
     &&  (requested->colorDepth > 8) && (!requestedColorDepthSupported))
     {
         BDBG_WRN(("Attached Rx cannot support Color Depth %d; default to 8", requested->colorDepth)) ;
-        preferred->colorDepth = 8 ;
-    }
-    /* current platform must support clock rates and bit depths > 8 */
-    else if (platformHdmiOutputSupport.MaxTmdsRateMHz == BHDM_CONFIG_HDMI_1_4_MAX_RATE)
-    {
-        BDBG_MSG(("Platform Supports Clock Rates below %d only",
-            BHDM_CONFIG_HDMI_1_4_MAX_RATE)) ;
         preferred->colorDepth = 8 ;
     }
     else

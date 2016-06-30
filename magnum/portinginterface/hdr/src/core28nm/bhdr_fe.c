@@ -423,6 +423,13 @@ BERR_Code BHDR_SetHotPlug(BHDR_Handle hHDR, BHDR_HotPlugSignal eHotPlugSignal)
 		{
 			BDBG_MSG(("Force Hot Plug Low (Detach Device)... ")) ;
 			BHDR_P_HotPlugRemove_isr(hHDR) ;
+
+			if (hHDR->pfHdcpDisconnectNotifyCallback_isr)
+			{
+				/* Fire callback to notify of disconnect event */
+				hHDR->pfHdcpDisconnectNotifyCallback_isr(hHDR->pvHdcpDisconnectNotifyParm1,
+					hHDR->iHdcpDisconnectNotifyParm2, 0) ;
+			}
 		}
 	BKNI_LeaveCriticalSection() ;
 

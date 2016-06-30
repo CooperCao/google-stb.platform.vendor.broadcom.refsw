@@ -56,8 +56,11 @@ static void print_usage(void)
         "OPTIONS:\n"
         "  --help or -h for help\n"
         "  -o           HDCP authentication is optional (video not muted). Default is mandatory (video will be muted on HDCP failure).\n"
+        "  -version {auto|follow|hdcp1x|hdcp22}\n"
+        "               Force new version select policy\n"
         "  -hdcp2x_keys BINFILE \tload Hdcp2.x bin file\n"
         "  -hdcp1x_keys BINFILE \tload Hdcp1.x bin file\n"
+        "  -timeout     SECONDS \tbefore exiting (otherwise, wait for ctrl-C)\n"
         );
 }
 
@@ -68,6 +71,7 @@ int main(int argc, char **argv)  {
     int rc;
     const char *hdcp_keys_binfile[NxClient_HdcpType_eMax] = {NULL,NULL};
     bool load_keys = false;
+    int timeout = -1;
     unsigned i;
 
     NxClient_GetDefaultJoinSettings(&joinSettings);
@@ -87,6 +91,13 @@ int main(int argc, char **argv)  {
         else if (!strcmp(argv[curarg], "-o")) {
             displaySettings.hdmiPreferences.hdcp = NxClient_HdcpLevel_eOptional;
         }
+        else if (!strcmp(argv[curarg], "-version") && argc>curarg+1) {
+            curarg++;
+            if (!strcmp(argv[curarg], "auto"))   displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eAuto;
+            if (!strcmp(argv[curarg], "follow")) displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eFollow;
+            if (!strcmp(argv[curarg], "hdcp1x")) displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eHdcp1x;
+            if (!strcmp(argv[curarg], "hdcp22")) displaySettings.hdmiPreferences.version = NxClient_HdcpVersion_eHdcp22;
+        }
         else if (!strcmp(argv[curarg], "-hdcp1x_keys") && curarg+1<argc) {
             hdcp_keys_binfile[NxClient_HdcpType_1x] = argv[++curarg];
             load_keys = true;
@@ -94,6 +105,9 @@ int main(int argc, char **argv)  {
         else if (!strcmp(argv[curarg], "-hdcp2x_keys") && curarg+1<argc) {
             hdcp_keys_binfile[NxClient_HdcpType_2x] = argv[++curarg];
             load_keys = true;
+        }
+        else if (!strcmp(argv[curarg], "-timeout") && argc>curarg+1) {
+            timeout = strtoul(argv[++curarg], NULL, 0);
         }
         else {
             print_usage();
@@ -103,7 +117,7 @@ int main(int argc, char **argv)  {
     }
 
     if (load_keys) {
-        int size = 16*1024;
+        int size = 32*1024;
         void *ptr;
         NEXUS_MemoryBlockHandle block;
 
@@ -137,9 +151,16 @@ int main(int argc, char **argv)  {
         rc = NxClient_SetDisplaySettings(&displaySettings);
         if (rc) BERR_TRACE(rc);
 
-        BDBG_WRN(("Press Ctrl-C to exit sethdcp and clear HDCP %s state",
-            displaySettings.hdmiPreferences.hdcp == NxClient_HdcpLevel_eMandatory?"mandatory":"optional"));
-        while (1) sleep(1);
+        if (timeout < 0) {
+            BDBG_WRN(("Press Ctrl-C to exit sethdcp and clear HDCP %s state",
+                displaySettings.hdmiPreferences.hdcp == NxClient_HdcpLevel_eMandatory?"mandatory":"optional"));
+            while (1) sleep(1);
+        }
+        else {
+            sleep(timeout);
+            BDBG_WRN(("exiting sethdcp and clear HDCP %s state",
+                displaySettings.hdmiPreferences.hdcp == NxClient_HdcpLevel_eMandatory?"mandatory":"optional"));
+        }
     }
 
     return 0;

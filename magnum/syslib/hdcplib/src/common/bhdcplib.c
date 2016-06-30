@@ -299,7 +299,7 @@ BERR_Code BHDCPlib_Open(BHDCPlib_Handle *hHDCPlib, const BHDCPlib_Dependencies *
 	if (hHandle == NULL)
 	{
 		rc = BERR_OUT_OF_SYSTEM_MEMORY;
-		BDBG_ERR(("BHDCPlib_Open: BKNI_malloc() failed\n"));
+		BDBG_ERR(("BHDCPlib_Open: BKNI_malloc() failed"));
 		goto done;
 	}
 	BKNI_Memset(hHandle, 0, sizeof(BHDCPlib_P_Handle));

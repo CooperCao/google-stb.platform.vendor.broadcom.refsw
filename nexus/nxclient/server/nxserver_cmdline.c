@@ -120,7 +120,20 @@ static void print_usage(void)
     "  -hdcp2x_keys BINFILE \tspecify location of Hdcp2.x bin file\n"
     "  -hdcp1x_keys BINFILE \tspecify location of Hdcp1.x bin file\n"
     "  -hdcp {m|o}    \talways run [m]andatory or [o]ptional HDCP for system test\n"
-    "  -hdmi_drm      \tenable dynamic range and mastering info transmission from source to display\n"
+    );
+    printf(
+    "  -hdcp_version {auto|follow|hdcp1x} - if hdcp is optional or mandatory, then\n"
+    "          \tauto   - (default) Always authenticate using the highest version supported by HDMI receiver\n"
+    "          \tfollow - If HDMI receiver is a Repeater, the HDCP_version depends on the Repeater downstream topology\n"
+    );
+    printf(
+    "          \t         If Repeater downstream topology contains one or more HDCP 1.x device, then authenticate with Repeater using the HDCP 1.x.\n"
+    "          \t         If Repeater downstream topology contains only HDCP 2.2 devices, then authenticate with Repeater using HDCP 2.2\n"
+    "          \t         If HDMI Receiver is not a Repeater, then default to 'auto' selection\n"
+    );
+    printf(
+    "          \thdcp1x - Always authenticate using HDCP 1.x mode (regardless of HDMI Receiver capabilities)\n"
+    "          \thdcp22 - Always authenticate using HDCP 2.2 mode (regardless of HDMI Receiver capabilities)\n"
     "  -spd VENDOR,DESCRIPTION \tSPD vendorName and description to transmit in HDMI SpdInfoFrame.\n"
     );
 #endif
@@ -812,8 +825,16 @@ int nxserver_parse_cmdline(int argc, char **argv, struct nxserver_settings *sett
             default: print_usage(); return -1;
             }
         }
-        else if (!strcmp(argv[curarg], "-hdmi_drm")) {
-            settings->hdmi.drm = true;
+        else if (!strcmp(argv[curarg], "-hdcp_version") && argc>curarg+1) {
+            curarg++;
+            if      (!strcmp(argv[curarg],"auto"  ))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eAuto;
+            else if (!strcmp(argv[curarg],"follow"))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eFollow;
+            else if (!strcmp(argv[curarg],"hdcp1x"))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eHdcp1x;
+            else if (!strcmp(argv[curarg],"hdcp22"))  settings->hdcp.versionSelect = NxClient_HdcpVersion_eHdcp22;
+            else {
+                print_usage();
+                return -1;
+            }
         }
         else if (!strcmp(argv[curarg], "-spd") && curarg+1<argc) {
             const char *comma = strchr(argv[++curarg], ',');

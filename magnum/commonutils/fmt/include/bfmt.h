@@ -297,6 +297,98 @@ access any memory or registers.
 	((BFMT_VideoFmt_e3840x2160p_24Hz <= (fmt)) && \
 	 ((fmt) <= BFMT_VideoFmt_e4096x2160p_60Hz))
 
+/* Video format runs @ 27Mhz */
+#define BFMT_IS_27Mhz(pxl_freq_bit_mask) \
+    (BFMT_PXL_27MHz & (pxl_freq_bit_mask))
+
+/* PAL family
+ */
+
+#define BFMT_IS_PAL_BB1D1G(fmt) \
+    ((BFMT_VideoFmt_ePAL_B == (fmt)) || (BFMT_VideoFmt_ePAL_B1 == (fmt)) || \
+    (BFMT_VideoFmt_ePAL_D1 == (fmt)) || (BFMT_VideoFmt_ePAL_G == (fmt)))
+
+#define BFMT_IS_PAL(fmt) \
+    (BFMT_IS_PAL_BB1D1G(fmt) || (BFMT_VideoFmt_ePAL_H == (fmt)) || \
+     (BFMT_VideoFmt_ePAL_I == (fmt)) || (BFMT_VideoFmt_ePAL_D == (fmt)) || \
+     (BFMT_VideoFmt_ePAL_K == (fmt)) || (BFMT_VideoFmt_ePAL_M == (fmt)) || \
+     (BFMT_VideoFmt_ePAL_N == (fmt)) || (BFMT_VideoFmt_ePAL_NC == (fmt)) || \
+     (BFMT_VideoFmt_ePAL_60 == (fmt)))
+
+#define BFMT_IS_PAL_443(fmt) \
+    (BFMT_IS_PAL_BB1D1G(fmt) || (BFMT_VideoFmt_ePAL_H == (fmt)) || \
+     (BFMT_VideoFmt_ePAL_I == (fmt)) || (BFMT_VideoFmt_ePAL_D == (fmt)) || \
+     (BFMT_VideoFmt_ePAL_K == (fmt)) ||  (BFMT_VideoFmt_ePAL_N == (fmt)))
+
+/* NTSC-J for Japan */
+#define BFMT_IS_NTSC_J(fmt) \
+    ((BFMT_VideoFmt_eNTSC_J == (fmt)) || (BFMT_VideoFmt_e720x482_NTSC_J == (fmt)))
+
+/* NTSC-M for North America */
+#define BFMT_IS_NTSC_M(fmt) \
+    ((BFMT_VideoFmt_eNTSC == (fmt)) || (BFMT_VideoFmt_e720x482_NTSC == (fmt)) || \
+     (BFMT_VideoFmt_eNTSC_443 == (fmt)))
+
+/* NTSC */
+#define BFMT_IS_NTSC(fmt) \
+    (BFMT_IS_NTSC_J(fmt) || BFMT_IS_NTSC_M(fmt))
+
+/* 480p */
+#define BFMT_IS_480P(fmt) \
+    ((BFMT_VideoFmt_e480p == (fmt)) || (BFMT_VideoFmt_e720x483p == (fmt)))
+
+/* SECAM */
+#define BFMT_IS_SECAM(fmt) \
+    ((BFMT_VideoFmt_eSECAM_B == (fmt)) || (BFMT_VideoFmt_eSECAM_D == (fmt)) || \
+     (BFMT_VideoFmt_eSECAM_G == (fmt)) || (BFMT_VideoFmt_eSECAM_H == (fmt)) || \
+     (BFMT_VideoFmt_eSECAM_K == (fmt)) || (BFMT_VideoFmt_eSECAM_L == (fmt)))
+
+/* 525-lines video format */
+#define BFMT_IS_525_LINES(fmt) \
+    (BFMT_IS_NTSC(fmt) || \
+     (BFMT_VideoFmt_ePAL_M == (fmt)) || (BFMT_VideoFmt_ePAL_60 == (fmt)))
+
+/* 625-lines video format */
+#define BFMT_IS_625_LINES(fmt) \
+    (BFMT_IS_PAL_BB1D1G(fmt)|| (BFMT_VideoFmt_ePAL_H == (fmt)) || \
+     (BFMT_VideoFmt_ePAL_I == (fmt)) || (BFMT_VideoFmt_ePAL_D == (fmt)) || \
+     (BFMT_VideoFmt_ePAL_K == (fmt)) || (BFMT_VideoFmt_ePAL_N == (fmt)) || \
+     (BFMT_VideoFmt_ePAL_NC == (fmt)) || BFMT_IS_SECAM(fmt))
+
+#if BFMT_LEGACY_3DTV_SUPPORT
+/* 3D 1080p video formats */
+#define BFMT_IS_CUSTOM_1080P3D(fmt) \
+    ((BFMT_VideoFmt_eCUSTOM1920x2160i_48Hz == (fmt)) || \
+     (BFMT_VideoFmt_eCUSTOM1920x2160i_60Hz == (fmt)))
+
+/* 3D 1080p video formats that too large and require legacy BVN to take
+ * TOP in Over/Under 3d format. */
+#define BFMT_IS_1080P_3DOU_AS(fmt) \
+    ((BFMT_VideoFmt_e1080p_24Hz_3DOU_AS == (fmt)) || \
+     (BFMT_VideoFmt_e1080p_30Hz_3DOU_AS == (fmt)))
+#endif /* #if BFMT_LEGACY_3DTV_SUPPORT */
+
+/* 4K formats 50/*/
+#define BFMT_IS_4kx2k(fmt) \
+    (BFMT_IS_4kx2k_50_60HZ(fmt) || \
+     BFMT_IS_4kx2k_24_25_30HZ(fmt))
+
+#define BFMT_IS_4kx2k_50_60HZ(fmt) \
+    ((BFMT_VideoFmt_e3840x2160p_50Hz == (fmt)) || \
+     (BFMT_VideoFmt_e3840x2160p_60Hz == (fmt)) || \
+     (BFMT_VideoFmt_e4096x2160p_50Hz == (fmt)) || \
+     (BFMT_VideoFmt_e4096x2160p_60Hz == (fmt)))
+
+#define BFMT_IS_4kx2k_24_25_30HZ(fmt) \
+    ((BFMT_VideoFmt_e3840x2160p_24Hz == (fmt)) || \
+     (BFMT_VideoFmt_e3840x2160p_25Hz == (fmt)) || \
+     (BFMT_VideoFmt_e3840x2160p_30Hz == (fmt)) || \
+     (BFMT_VideoFmt_e1080p_100Hz == (fmt)) || \
+     (BFMT_VideoFmt_e1080p_120Hz == (fmt)) || \
+     (BFMT_VideoFmt_e4096x2160p_24Hz == (fmt)) || \
+     (BFMT_VideoFmt_e4096x2160p_25Hz == (fmt)) || \
+     (BFMT_VideoFmt_e4096x2160p_30Hz == (fmt)))
+
 /***************************************************************************
 Summary:
 	This macro are commonly used to described a format.

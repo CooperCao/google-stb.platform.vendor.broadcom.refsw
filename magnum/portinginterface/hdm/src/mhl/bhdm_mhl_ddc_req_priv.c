@@ -194,7 +194,6 @@ BERR_Code BHDM_P_Mhl_DdcReq_Read_isr
 	uint8_t ucDevAddrR = ucDevAddr | 0x1; /* Read address */
 	uint8_t *pucReplyBuf = pucData;
 	uint32_t ulReplyBufSize = 0;
-	bool bFirstCmd = true;
 	BERR_Code ret = BHDM_P_MHL_CBUS_SUCCESS;
 
 	BDBG_MSG(("BHDM_P_Mhl_DdcReq_Read_isr"));
@@ -323,7 +322,7 @@ BERR_Code BHDM_P_Mhl_DdcReq_Read_isr
 
 		/* Prepare and add commnad to DDC Q */
 		stDdcCmd.eCmdType = eCmdType;
-		stDdcCmd.ucDelay = bFirstCmd ? ucDelay : 0;
+		stDdcCmd.ucDelay = ucDelay;
 		stDdcCmd.eState = BHDM_P_Mhl_CbusCmdState_ePending;
 		stDdcCmd.ulNumPacketsCfg = ulNumPackets;
 		stDdcCmd.ulNumPacketsDone = 0;
@@ -593,7 +592,6 @@ BERR_Code BHDM_P_Mhl_DdcReq_Write_isr
 	bool bFitAll;
 	BHDM_P_Mhl_CbusCmd stDdcCmd;
 	BHDM_P_Mhl_CbusPkt *pPackets = stDdcCmd.cbusPackets.astLongCmd;
-	bool bFirstCmd = true;
 
 	/* Part 1: Launch request
 	   >>SOF
@@ -679,7 +677,7 @@ BERR_Code BHDM_P_Mhl_DdcReq_Write_isr
 
 		/* Prepare and add commnad to DDC Q */
 		stDdcCmd.eCmdType = eCmdType;
-		stDdcCmd.ucDelay = bFirstCmd ? ucDelay : 0;
+		stDdcCmd.ucDelay = ucDelay;
 		stDdcCmd.eState = BHDM_P_Mhl_CbusCmdState_ePending;
 		stDdcCmd.ulNumPacketsCfg = ulNumPackets;
 		stDdcCmd.ulNumPacketsDone = 0;

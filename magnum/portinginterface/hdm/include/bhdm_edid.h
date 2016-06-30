@@ -1591,6 +1591,32 @@ BERR_Code BHDM_EDID_GetSupportedColorimetry(
 	BFMT_VideoFmt eVideoFmt, BAVC_MatrixCoefficients *eColorimetry) ;
 
 
+/******************************************************************************
+Summary:
+Get the Video Capabilities Data Block based on the EDID information of the
+attached monitor.
+
+Description:
+This function will return the Video Capabiliites of the attached HDMI monitor
+
+This function must be used after the BHDM_EDID_Initialize function
+
+Input:
+	hHDMI - The HDMI device handle that the application created earlier
+
+Output:
+	pVideoCapabilityDataBlock - pointer to structure to add the Video Capabilities
+
+Returns:
+
+See Also:
+	o BHDM_Handle
+	o BHDM_EDID_VideoCapabilityDataBlock
+*******************************************************************************/
+BERR_Code BHDM_EDID_GetVideoCapabilityDB(
+	BHDM_Handle hHDMI,
+	BHDM_EDID_VideoCapabilityDataBlock *pVideoCapabilityDataBlock) ;
+
 
 /******************************************************************************
 Summary:

@@ -51,7 +51,7 @@
 #define NEXUS_HDMI_OUTPUT_HDCP_H__
 
 #include "nexus_hdmi_output.h"
-#if NEXUS_HAS_HDMI_INPUT
+#ifdef NEXUS_HAS_HDMI_INPUT
 #include "nexus_hdmi_input.h"
 #else
 typedef void *NEXUS_HdmiInputHandle;
@@ -108,6 +108,20 @@ typedef struct NEXUS_HdmiOutputHdcpKey
     uint32_t hdcpKeyHi;
 } NEXUS_HdmiOutputHdcpKey;
 
+/**
+Summary:
+Enumeration for HDCP authentication selection
+
+Description:
+Users requiring a specific authentication level can request a specific version (or best available)
+**/
+typedef enum NEXUS_HdmiOutputHdcpVersion
+{
+    NEXUS_HdmiOutputHdcpVersion_eAuto,  /* Highest available on the attached HDMI Receiver, default */
+    NEXUS_HdmiOutputHdcpVersion_e2_2,   /* Always use HDCP 2.2 */
+    NEXUS_HdmiOutputHdcpVersion_e1_x,   /* Always use HDCP 1.x */
+    NEXUS_HdmiOutputHdcpVersion_eMax
+} NEXUS_HdmiOutputHdcpVersion;
 
 /**
 Summary:
@@ -138,11 +152,12 @@ typedef struct NEXUS_HdmiOutputHdcpSettings
     unsigned waitForRxR0Margin;                 /* Additional wait time to read receiver R0' (in addition to the required 100ms). units in milliseconds. */
     unsigned waitForKsvFifoMargin;              /* Additional wait time for KSV List ready (in addition to the required 5secs). units in milliseconds. */
 
-    unsigned maxDeviceCountSupported;            /* Max downstream device count supported */
-    unsigned maxDepthSupported;                  /* Max depth supported */
+    unsigned maxDeviceCountSupported;           /* Max downstream device count supported */
+    unsigned maxDepthSupported;                 /* Max depth supported */
 
     NEXUS_Hdcp2xContentStream hdcp2xContentStreamControl;
 
+    NEXUS_HdmiOutputHdcpVersion hdcp_version;   /* Select hdcp_version mode to use for authentication */
 } NEXUS_HdmiOutputHdcpSettings;
 
 /**
@@ -183,7 +198,6 @@ NEXUS_Error NEXUS_HdmiOutput_SetHdcp2xBinKeys(
     const uint8_t *pBinFileBuffer,  /* attr{nelem=length} pointer to encrypted key buffer */
     uint32_t length                 /* size of data in pBinFileBuffer in bytes */
 );
-
 
 /**
 Summary:

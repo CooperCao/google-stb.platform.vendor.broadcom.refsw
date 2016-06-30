@@ -1083,6 +1083,24 @@ BERR_Code BHDM_HDCP_EnableHdcp2xEncryption(const BHDM_Handle hHDMI, const bool e
 
 /******************************************************************************
 Summary:
+	Determine current encryption status of HDCP 2.x engine
+
+Input:
+	hHDMI - The HDMI device handle that the application created earlier
+	during the system initialization sequence.
+
+Output:
+	bEncrypted - true if HDCP2.x encryption is currently enabled. False otherwise.
+
+See Also:
+	o BHDM_Handle
+
+*******************************************************************************/
+BERR_Code BHDM_HDCP_GetHdcp2xEncryptionStatus(const BHDM_Handle hHDMI, bool *bEncrypted);
+
+
+/******************************************************************************
+Summary:
 	Set HDCP 2.x Tx Capability in the HW.
 
 Input:
@@ -1112,6 +1130,27 @@ See Also:
 
 *******************************************************************************/
 BERR_Code BHDM_HDCP_KickStartHdcp2xCipher(const BHDM_Handle hHDMI);
+
+
+/******************************************************************************
+Summary:
+	Determine whether the source receive a REAUTH_REQ
+
+Input:
+	hHDMI - The HDMI device handle that the application created earlier
+	during the system initialization sequence.
+
+Output:
+	bReauthReqPending - true if received a REAUTH_REQ from the receiver but hasn't yet react to it.
+						False otherwise
+
+See Also:
+	o BHDM_Handle
+
+*******************************************************************************/
+BERR_Code BHDM_HDCP_IsReauthRequestPending(const BHDM_Handle hHDMI, bool *bReauthReqPending);
+
+
 
 #ifdef __cplusplus
 }

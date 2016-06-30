@@ -113,17 +113,23 @@ NEXUS_Error NEXUS_HdmiOutput_SetPreEmphasisConfiguration(
 
     BHDM_TMDS_GetPreEmphasisRegisters(handle->hdmHandle, TmdsPreEmphasisRegisters);
 
-    for (index = 0 ; index < BHDM_TMDS_RANGES ; index++)
-    {
-        TmdsPreEmphasisRegisters[index].HDMI_TX_PHY_CTL_0 =
-            pstPreEmphasis->tmdsRange[index].HDMI_TX_PHY_CTL_0 ;
+        for (index = 0 ; index < BHDM_TMDS_RANGES ; index++)
+        {
+            TmdsPreEmphasisRegisters[index].MinTmdsRate =
+                pstPreEmphasis->tmdsRange[index].minTmdsRate;
 
-         TmdsPreEmphasisRegisters[index].HDMI_TX_PHY_CTL_1 =
-            pstPreEmphasis->tmdsRange[index].HDMI_TX_PHY_CTL_1 ;
+            TmdsPreEmphasisRegisters[index].MaxTmdsRate =
+                pstPreEmphasis->tmdsRange[index].maxTmdsRate;
 
-        TmdsPreEmphasisRegisters[index].HDMI_TX_PHY_CTL_2 =
-            pstPreEmphasis->tmdsRange[index].HDMI_TX_PHY_CTL_2 ;
-    }
+            TmdsPreEmphasisRegisters[index].HDMI_TX_PHY_CTL_0 =
+                pstPreEmphasis->tmdsRange[index].HDMI_TX_PHY_CTL_0 ;
+
+             TmdsPreEmphasisRegisters[index].HDMI_TX_PHY_CTL_1 =
+                pstPreEmphasis->tmdsRange[index].HDMI_TX_PHY_CTL_1 ;
+
+            TmdsPreEmphasisRegisters[index].HDMI_TX_PHY_CTL_2 =
+                pstPreEmphasis->tmdsRange[index].HDMI_TX_PHY_CTL_2 ;
+        }
 
     BHDM_TMDS_SetPreEmphasisRegisters(handle->hdmHandle, TmdsPreEmphasisRegisters) ;
 

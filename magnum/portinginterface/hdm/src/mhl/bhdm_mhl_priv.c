@@ -19,7 +19,7 @@
 *
 ***************************************************************************/
 #include "bhdm_mhl_priv.h"
-#include "bhdm_priv.h"
+#include "../common/bhdm_priv.h"
 
 BDBG_MODULE(BHDM_MHL);
 
@@ -2366,43 +2366,45 @@ BERR_Code BHDM_MHL_P_ConfigPreemphasis
 {
 	BERR_Code rc = BERR_SUCCESS;
 
-	BDBG_MSG(("Configuring pre-emphasis filters for MHL"));
+    if (hHdm->bMhlMode)
+    {
+        BDBG_MSG(("Configuring pre-emphasis filters for MHL"));
 
-	/* Additional setup of  HDMI/MHL Tx combo PHY */
-	switch (pstNewHdmiSettings->eInputVideoFmt)
-	{
-	case BFMT_VideoFmt_e720p:
-	case BFMT_VideoFmt_e1080p_24Hz:
-	case BFMT_VideoFmt_e1080i:
-	case BFMT_VideoFmt_e1080i_50Hz:
-	case BFMT_VideoFmt_e1080p:
-	case BFMT_VideoFmt_e1080p_50Hz:
-		if (hHdm->bMhlMode)
-		{
-			pstNewPreEmphasisConfig->uiPreEmphasis_Ch0 = 0xa ;
-			pstNewPreEmphasisConfig->uiPreEmphasis_Ch1 = 0xa ;
-			pstNewPreEmphasisConfig->uiPreEmphasis_Ch2 = 0x2f ;
-			pstNewPreEmphasisConfig->uiPreEmphasis_CK = 0xa ;
+        /* Additional setup of  HDMI/MHL Tx combo PHY */
+        switch (pstNewHdmiSettings->eInputVideoFmt)
+        {
+        case BFMT_VideoFmt_e720p:
+        case BFMT_VideoFmt_e1080p_24Hz:
+        case BFMT_VideoFmt_e1080i:
+        case BFMT_VideoFmt_e1080i_50Hz:
+        case BFMT_VideoFmt_e1080p:
+        case BFMT_VideoFmt_e1080p_50Hz:
+            if (hHdm->bMhlMode)
+            {
+                pstNewPreEmphasisConfig->uiPreEmphasis_Ch0 = 0xa ;
+                pstNewPreEmphasisConfig->uiPreEmphasis_Ch1 = 0xa ;
+                pstNewPreEmphasisConfig->uiPreEmphasis_Ch2 = 0x2f ;
+                pstNewPreEmphasisConfig->uiPreEmphasis_CK = 0xa ;
 
-			pstNewPreEmphasisConfig->uiTermResSelData2 = 0x1 ;
-		}
-		break;
+                pstNewPreEmphasisConfig->uiTermResSelData2 = 0x1 ;
+            }
+            break;
 
 #if BHDM_HAS_HDMI_20_SUPPORT
-	case BFMT_VideoFmt_e3840x2160p_50Hz :
-	case BFMT_VideoFmt_e3840x2160p_60Hz :
-		pstNewPreEmphasisConfig->uiPreEmphasis_Ch0 = 0x7d ;
-		pstNewPreEmphasisConfig->uiPreEmphasis_Ch1 = 0x7d ;
-		pstNewPreEmphasisConfig->uiPreEmphasis_Ch2 = 0x7d ;
-		break;
+        case BFMT_VideoFmt_e3840x2160p_50Hz :
+        case BFMT_VideoFmt_e3840x2160p_60Hz :
+            pstNewPreEmphasisConfig->uiPreEmphasis_Ch0 = 0x7d ;
+            pstNewPreEmphasisConfig->uiPreEmphasis_Ch1 = 0x7d ;
+            pstNewPreEmphasisConfig->uiPreEmphasis_Ch2 = 0x7d ;
+            break;
 #endif
 
-	default:
-		break;
-	}
+        default:
+            break;
+        }
+    }
 
-
-	return rc;
+    return rc;
 }
 
 void BHDM_MHL_P_EnableTmdsData_isr

@@ -26,7 +26,7 @@
 
 #include "blst_queue.h"
 
-#include "bhdm_config.h"
+#include "../src/common/bhdm_config.h"
 
 #include "bhdm_hdcp.h"
 #include "bhdm_edid.h"
@@ -312,6 +312,11 @@ typedef enum BHDM_P_TmdsMode
 
 void BHDM_P_Hotplug_isr(BHDM_Handle hHDMI) ;
 
+#if BHDM_CONFIG_HAS_HDCP22
+#define hdmiRegBuffSize (BCHP_HDMI_HDCP2TX_CTRL0 - BCHP_HDMI_REG_START)/4 + 1
+#define autoI2cRegBuffSize (BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_FSM_DEBUG - BCHP_HDMI_TX_AUTO_I2C_REG_START)/4 + 1
+#endif
+
 /*******************************************************************************
 Private HDMI Handle Declaration
 *******************************************************************************/
@@ -403,6 +408,7 @@ typedef struct BHDM_P_Handle
 
 	BHDM_HDCP_OPTIONS HdcpOptions  ;
 	bool bHdcpAnRequest ;
+	bool bHdcpValidBksv ;
 	bool bAutoRiPjCheckingEnabled  ;
 	uint8_t AbortHdcpAuthRequest ;
 
@@ -505,6 +511,13 @@ typedef struct BHDM_P_Handle
 	BHDM_AUTO_I2C_P_TriggerConfiguration AutoI2CChannel_TriggerConfig[BHDM_AUTO_I2C_P_CHANNEL_eMax] ;
 
 	BHDM_SCDC_StatusControlData stStatusControlData ;
+
+	/* buffer to temporary hold the whole HDMI register block */
+	uint32_t hdmiRegBuff[hdmiRegBuffSize];
+
+	/* buffer to temporary hold the full HDMI_TX_AUTO_I2C register block */
+	uint32_t autoI2cRegBuff[autoI2cRegBuffSize];
+
 #endif
 #endif
 
@@ -699,8 +712,12 @@ void BHDM_SCDC_P_ProcessUpdate_isr(const BHDM_Handle hHDMI) ;
 void BHDM_SCDC_P_ClearStatusUpdates_isr(BHDM_Handle hHDMI) ;
 
 void BHDM_SCDC_P_GetScrambleParams_isrsafe(const BHDM_Handle hHDMI, BHDM_ScrambleConfig *ScrambleSettings) ;
-void BHDM_SCDC_P_ConfigureScramblingTx_isrsafe(BHDM_Handle hHDMI, BHDM_ScrambleConfig *pstSettings) ;
+void BHDM_SCDC_P_ConfigureScramblingTx_isr(BHDM_Handle hHDMI, BHDM_ScrambleConfig *pstSettings) ;
 void BHDM_SCDC_DisableScrambleTx(BHDM_Handle hHDMI) ;
+void BHDM_SCDC_P_ConfigureScramblingTx(
+	BHDM_Handle hHDMI, BHDM_ScrambleConfig *pstScrambleConfig) ;
+
+void BHDM_P_ResetHDCPI2C_isr(const BHDM_Handle hHDMI);
 
 #endif
 

@@ -42,6 +42,10 @@
 #include "bavc.h"
 #include "bfmt.h"
 
+#if NEXUS_HAS_SECURITY
+#include "bhdcplib.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -102,7 +106,6 @@ bool NEXUS_HdmiOutput_GetColorimetry_priv(
     BAVC_MatrixCoefficients *pColorimetry
     );
 
-/* Ron please update this func to any format that makes sense to you */
 bool NEXUS_HdmiOutput_GetEotf_priv(
     NEXUS_HdmiOutputHandle hdmiOutput,
     NEXUS_VideoEotf *pEotf
@@ -203,6 +206,12 @@ NEXUS_Error NEXUS_HdmiOutput_P_SetTmdsSignalClock(
     NEXUS_HdmiOutputHandle handle, bool tmdsClockEnable);
 
 
+
+
+#if NEXUS_HAS_SECURITY
+BHDCPlib_State NEXUS_HdmiOutput_P_GetCurrentHdcplibState(
+	NEXUS_HdmiOutputHandle hdmiOutput);
+#endif
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_HdmiOutput);
 

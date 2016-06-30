@@ -246,7 +246,7 @@ BERR_Code BHDM_TMDS_P_VideoFormatSettingsToTmdsRate(
 		eTmdsClock, BHDM_P_TmdsClockToValue_isrsafe(eTmdsClock))) ;
 
 	BDBG_MSG(("   BitRate: %d ; BitsPerColor: %d    Divider %d", BitRate, BitsPerColor, divider)) ;
-	BDBG_MSG(("   Pixel Frequency:  %d MHz (TMDS Character Rate %d Mcsc)\n\n",
+	BDBG_MSG(("   Pixel Frequency:  %d MHz (TMDS Character Rate %d Mcsc)",
 		pVideoInfo->ulPxlFreq / BFMT_FREQ_FACTOR, *tmdsRate)) ;
 
 done :

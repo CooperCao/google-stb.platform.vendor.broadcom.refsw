@@ -98,8 +98,6 @@ NEXUS_Error NEXUS_HdmiInput_SetSettings(NEXUS_HdmiInputHandle hdmiInput, const N
     NEXUS_IsrCallback_Set(hdmiInput->audioContentProtectionChanged, &pSettings->audioContentProtectionChanged);
     NEXUS_IsrCallback_Set(hdmiInput->hotPlugCallback, &pSettings->frontend.hotPlugCallback) ;
 
-    NEXUS_IsrCallback_Set(hdmiInput->hotPlugCallback, &pSettings->frontend.hotPlugCallback) ;
-
     manualColorSpace = NEXUS_P_ColorSpace_ToMagnum_isrsafe(pSettings->colorSpace);
 
     BKNI_EnterCriticalSection();

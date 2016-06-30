@@ -21,9 +21,8 @@
  ***************************************************************************/
 #include "bstd.h"
 
-#include "bhdm_config.h"
 #include "bhdm.h"
-#include "bhdm_priv.h"
+#include "../common/bhdm_priv.h"
 
 
 BDBG_MODULE(BHDM_AUTO_I2C) ;
@@ -112,7 +111,7 @@ BERR_Code BHDM_AUTO_I2C_GetHdcp22RxStatusData(const BHDM_Handle hHDMI,
 	return rc ;
 }
 
-void BHDM_AUTO_I2C_EnableReadChannel(const BHDM_Handle hHDMI,
+void BHDM_AUTO_I2C_EnableReadChannel_isr(const BHDM_Handle hHDMI,
 	BHDM_AUTO_I2C_P_CHANNEL eChannel, uint8_t enable
 )
 {
@@ -127,11 +126,21 @@ void BHDM_AUTO_I2C_EnableReadChannel(const BHDM_Handle hHDMI,
 	BHDM_AUTO_I2C_P_GetTriggerConfiguration_isrsafe(hHDMI, eChannel, &stTriggerConfiguration) ;
 		stTriggerConfiguration.enable = enable ;
 		stTriggerConfiguration.activePolling = enable ;
-	BHDM_AUTO_I2C_P_SetTriggerConfiguration_isrsafe(hHDMI, eChannel, &stTriggerConfiguration) ;
+	BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(hHDMI, eChannel, &stTriggerConfiguration) ;
+}
+
+void BHDM_AUTO_I2C_EnableReadChannel(const BHDM_Handle hHDMI,
+	BHDM_AUTO_I2C_P_CHANNEL eChannel, uint8_t enable
+)
+{
+	BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_EnableReadChannel_isr(hHDMI, eChannel, enable) ;
+	BKNI_LeaveCriticalSection() ;
 }
 
 
-void BHDM_AUTO_I2C_SetChannels_isrsafe(const BHDM_Handle hHDMI,
+
+void BHDM_AUTO_I2C_SetChannels_isr(const BHDM_Handle hHDMI,
 	uint8_t enable
 )
 {
@@ -155,7 +164,64 @@ void BHDM_AUTO_I2C_SetChannels_isrsafe(const BHDM_Handle hHDMI,
 		/* enable/disable Auto I2c channel */
 		BHDM_AUTO_I2C_P_GetTriggerConfiguration_isrsafe(hHDMI, eChannel, &stTriggerConfiguration) ;
 			stTriggerConfiguration.enable = enable ;
-		BHDM_AUTO_I2C_P_SetTriggerConfiguration_isrsafe(hHDMI, eChannel, &stTriggerConfiguration) ;
+		BHDM_AUTO_I2C_P_SetTriggerConfiguration_isr(hHDMI, eChannel, &stTriggerConfiguration) ;
 	}
+}
+
+
+BERR_Code BHDM_AUTO_I2C_IsHdcp2xHWTimersAvailable_isrsafe(
+	const BHDM_Handle hHDMI,		   /* [in] HDMI handle */
+	bool *available
+)
+{
+	uint32_t Register, ulOffset;
+	BREG_Handle hRegister;
+
+	BDBG_ENTER(BHDM_AUTO_I2C_IsHdcp2xHWTimersAvailable_isrsafe);
+	BDBG_OBJECT_ASSERT(hHDMI, HDMI);
+
+	hRegister = hHDMI->hRegister;
+	ulOffset = hHDMI->ulOffset;
+
+	/* Check Timer availability */
+	Register = BREG_Read32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_STATUS0 + ulOffset);
+	if (BCHP_GET_FIELD_DATA(Register, HDMI_TX_AUTO_I2C_HDCP2TX_STATUS0, TIMER_0_ACTIVE)
+		+ BCHP_GET_FIELD_DATA(Register, HDMI_TX_AUTO_I2C_HDCP2TX_STATUS0, TIMER_1_ACTIVE)
+		+ BCHP_GET_FIELD_DATA(Register, HDMI_TX_AUTO_I2C_HDCP2TX_STATUS0, TIMER_2_ACTIVE))
+	{
+		*available = false;
+	}
+	else {
+		*available = true;
+	}
+
+	BDBG_LEAVE(BHDM_AUTO_I2C_IsHdcp2xHWTimersAvailable_isrsafe);
+	return BERR_SUCCESS;
+}
+
+
+BERR_Code BHDM_AUTO_I2C_Reset_isr(
+	const BHDM_Handle hHDMI		   /* [in] HDMI handle */
+)
+{
+	uint32_t Register, ulOffset;
+	BREG_Handle hRegister;
+
+	BDBG_ENTER(BHDM_AUTO_I2C_Reset_isr);
+	BDBG_OBJECT_ASSERT(hHDMI, HDMI);
+
+	hRegister = hHDMI->hRegister;
+	ulOffset = hHDMI->ulOffset;
+
+	/* Check Timer availability */
+	Register = BREG_Read32(hRegister, BCHP_DVP_HT_SW_INIT + ulOffset);
+	Register |= 0x00000080;	/* write 1 to HDCP2_I2C - a private field */
+	BREG_Write32(hRegister, BCHP_DVP_HT_SW_INIT + ulOffset, Register);
+
+	Register &= 0x0000017F;		/* write 0 to HDCP2_I2C - a private field */
+	BREG_Write32(hRegister, BCHP_DVP_HT_SW_INIT + ulOffset, Register) ;
+
+	BDBG_LEAVE(BHDM_AUTO_I2C_Reset_isr);
+	return BERR_SUCCESS;
 }
 #endif

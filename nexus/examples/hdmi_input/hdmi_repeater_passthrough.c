@@ -85,6 +85,7 @@ static NEXUS_AudioInputCaptureStartSettings inputCaptureStartSettings;
 
 static bool hdmiCompressedAudio = false ;
 static bool hdmiOutputHdcpEnabled = false ;
+static bool uploadDownstreamKsvs = false ;
 
 static    NEXUS_PlatformConfiguration platformConfig;
 
@@ -215,6 +216,13 @@ static uint8_t *hdmiRxPortEdid ;
 static uint16_t hdmiRxPortEdidSize ;
 
 
+typedef struct hotplugCallbackParameters
+{
+    NEXUS_HdmiOutputHandle hdmiOutput  ;
+    NEXUS_DisplayHandle display ;
+} hotplugCallbackParameters ;
+
+
 void source_changed(void *context, int param)
 {
     NEXUS_Error errCode ;
@@ -291,9 +299,8 @@ void avmute_changed(void *context, int param)
         return ;
     }
 
-    BDBG_WRN(("avmute_changed callback: %s\n",
+    BDBG_WRN(("avmute_changed callback: %s",
     hdmiInputStatus.avMute ? "Set_AvMute" : "Clear_AvMute")) ;
-
 }
 
 
@@ -342,6 +349,7 @@ void hdmiInputHdcpStateChanged(void *context, int param)
 
         case NEXUS_HdmiInputHdcpAuthState_eWaitForDownstreamKsvs :
 		BDBG_WRN(("Downstream FIFO Request; Start hdmiOutput Authentication...")) ;
+		uploadDownstreamKsvs = true ;
 
 		NEXUS_HdmiOutput_GetHdcpStatus(platformConfig.outputs.hdmi[0], &outputHdcpStatus);
 		if ((outputHdcpStatus.hdcpState != NEXUS_HdmiOutputHdcpState_eWaitForRepeaterReady)
@@ -378,54 +386,78 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
         BDBG_WRN(("\nHDCP Authentication Failed.  Current State %d, last error =%d\n",
             hdmiOutputHdcpStatus.hdcpState, hdmiOutputHdcpStatus.hdcpError)) ;
 
-		switch (hdmiOutputHdcpStatus.hdcpError)
-		{
+        switch (hdmiOutputHdcpStatus.hdcpError)
+        {
+        case NEXUS_HdmiOutputHdcpError_eRxDevicesExceeded:
+        case NEXUS_HdmiOutputHdcpError_eRepeaterDepthExceeded:
+            BDBG_ERR(("Downstream Devices or Depth Exceeded")) ;
+            break;
 
-		case NEXUS_HdmiOutputHdcpError_eRxDevicesExceeded:
-		case NEXUS_HdmiOutputHdcpError_eRepeaterDepthExceeded:
-			goto uploadDownstreamInfo;
-			break;
+        default:
+            break;
+        }
 
-		default:
-			break;
-		}
-
-    	goto retryAuthentication;
+        goto done ;
     }
 
-
-    BDBG_WRN(("HDCP Tx Authentication Successful")) ;
-    hdmiOutputHdcpEnabled = true ;
-
-/* Load Rx KSV FIFO for upstream device */
-uploadDownstreamInfo:
-
-    NEXUS_HdmiOutput_HdcpGetDownstreamInfo(handle, &downStream) ;
-
-    /* allocate space to hold ksvs for the downstream devices */
-    pKsvs =
-	 BKNI_Malloc((downStream.devices) * NEXUS_HDMI_HDCP_KSV_LENGTH) ;
-
-    NEXUS_HdmiOutput_HdcpGetDownstreamKsvs(handle,
-        pKsvs, downStream.devices, &returnedDevices) ;
-
-    BDBG_WRN(("hdmiOutput Downstream Levels:  %d  Devices: %d",
-        downStream.depth, downStream.devices)) ;
-
-    /* display the downstream device KSVs */
-	for (i = 0 ; i <= downStream.devices; i++)
-   {
-        BDBG_MSG(("Device %02d BKsv: %02X %02X %02X %02X %02X",
-            i + 1,
-            *(pKsvs->data + i + 4), *(pKsvs->data + i + 3),
-            *(pKsvs->data + i + 2), *(pKsvs->data + i + 1),
-            *(pKsvs->data + i ))) ;
+    /* report success one time only */
+    if (!hdmiOutputHdcpEnabled)
+    {
+            BDBG_WRN(("HDCP Tx Authentication Successful  State: %d  Error: %d",
+                hdmiOutputHdcpStatus.hdcpState, hdmiOutputHdcpStatus.hdcpError)) ;
+            hdmiOutputHdcpEnabled = true ;
     }
 
-    NEXUS_HdmiInput_HdcpLoadKsvFifo(hdmiInput,
-		&downStream, pKsvs, downStream.devices) ;
+    /* SUCCESSFUL Downtream Authentication */
+    if (uploadDownstreamKsvs)
+    {
+        /* Load Rx KSV FIFO for upstream device */
 
-    BKNI_Free(pKsvs) ;
+        rc = NEXUS_HdmiOutput_HdcpGetDownstreamInfo(handle, &downStream) ;
+        if (rc)
+        {
+            BDBG_WRN(("Error getting downstream info...")) ;
+            goto retryAuthentication ;
+        }
+
+
+        /* allocate space to hold ksvs for the downstream devices */
+        pKsvs = BKNI_Malloc((downStream.devices) * NEXUS_HDMI_HDCP_KSV_LENGTH) ;
+
+        rc = NEXUS_HdmiOutput_HdcpGetDownstreamKsvs(handle,
+            pKsvs, downStream.devices, &returnedDevices) ;
+        if (rc)
+        {
+            BDBG_ERR(("Error getting downstream KSVs..")) ;
+            goto retryAuthentication ;
+        }
+
+        BDBG_LOG(("hdmiOutput Downstream Levels:  %d  Devices: %d",
+             downStream.depth, downStream.devices)) ;
+
+        /* display the downstream device KSVs */
+        for (i = 0 ; i <= downStream.devices; i++)
+        {
+            BDBG_MSG(("Device %02d BKsv: %02X %02X %02X %02X %02X",
+                i + 1,
+                *(pKsvs->data + i + 4), *(pKsvs->data + i + 3),
+                *(pKsvs->data + i + 2), *(pKsvs->data + i + 1),
+                *(pKsvs->data + i ))) ;
+        }
+
+        BDBG_LOG(("Load KSV FIFO for use by attached source")) ;
+        rc = NEXUS_HdmiInput_HdcpLoadKsvFifo(hdmiInput,
+            &downStream, pKsvs, downStream.devices) ;
+        if (rc)
+        {
+            BDBG_ERR(("Error writing KSV FIFO ...")) ;
+            goto retryAuthentication ;
+        }
+
+        BKNI_Free(pKsvs) ;
+        uploadDownstreamKsvs = false ;
+        goto done ;
+    }
 
 
 retryAuthentication:
@@ -436,6 +468,7 @@ retryAuthentication:
 	    if (rc) BERR_TRACE(rc) ;
 	}
 
+done:
 	return ;
 
 }
@@ -463,8 +496,9 @@ static void enable_audio(NEXUS_HdmiOutputHandle hdmiOutput)
 static void hotplug_callback(void *pParam, int iParam)
 {
     NEXUS_HdmiOutputStatus status;
-    NEXUS_HdmiOutputHandle hdmiOutput = pParam;
-    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
+    NEXUS_HdmiOutputHandle hdmiOutput ;
+    NEXUS_DisplayHandle display ;
+    hotplugCallbackParameters *hotPlugCbParams ;
     NEXUS_HdmiOutputBasicEdidData hdmiOutputBasicEdidData;
     NEXUS_HdmiOutputEdidBlock edidBlock;
     uint8_t *attachedRxEdid = NULL ;
@@ -472,6 +506,10 @@ static void hotplug_callback(void *pParam, int iParam)
     uint8_t i, j;
 
     NEXUS_Error rc = NEXUS_SUCCESS;
+
+    BDBG_LOG(("Tx Hot Plug Callback...")) ;
+    hdmiOutput = hotPlugCbParams->hdmiOutput ;
+    display = hotPlugCbParams->display ;
 
     NEXUS_HdmiOutput_GetStatus(hdmiOutput, &status);
     BDBG_LOG(("hotplug_callback: %s\n", status.connected ?
@@ -651,6 +689,7 @@ int main(int argc, char **argv)
     NEXUS_HdmiInputSettings hdmiInputSettings;
     NEXUS_HdmiOutputSettings hdmiOutputSettings;
     NEXUS_HdmiOutputStatus hdmiOutputStatus;
+    hotplugCallbackParameters hotPlugCbParams ;
 
     NEXUS_TimebaseSettings timebaseSettings;
     NEXUS_PlatformSettings platformSettings ;
@@ -830,9 +869,10 @@ open_with_edid:
 
     /* Install hotplug callback -- video only for now */
     NEXUS_HdmiOutput_GetSettings(hdmiOutput, &hdmiOutputSettings);
-    hdmiOutputSettings.hotplugCallback.callback = hotplug_callback;
-    hdmiOutputSettings.hotplugCallback.context = hdmiOutput;
-    hdmiOutputSettings.hotplugCallback.param = (int)display;
+        hdmiOutputSettings.hotplugCallback.callback = hotplug_callback;
+            hotPlugCbParams.hdmiOutput = hdmiOutput ;
+            hotPlugCbParams.display = display ;
+        hdmiOutputSettings.hotplugCallback.context = &hotPlugCbParams ;
     NEXUS_HdmiOutput_SetSettings(hdmiOutput, &hdmiOutputSettings);
 
 
@@ -896,7 +936,7 @@ open_with_edid:
             BDBG_SetModuleLevel("repeater_passthrough",  BDBG_eMsg) ;
 
                 BDBG_MSG(("Current format is %d", tmp)) ;
-                BDBG_MSG(("Enter new format (0=1080p 1=1080i 2=720p 3=480p 4=NTSC): ", tmp)) ;
+                BDBG_MSG(("Enter new format (0=1080p 1=1080i 2=720p 3=480p 4=NTSC): ")) ;
 
             BDBG_SetModuleLevel("repeater_passthrough", debugLevel) ;
 
@@ -975,8 +1015,6 @@ exit_menu:
 int main(int argc, char **argv)
 {
     BSTD_UNUSED(argc);
-	printf("%d Platform has %d HDMI Inputs and %d HDMI Outputs; App requires one of each.\n",NEXUS_PLATFORM,
-           NEXUS_NUM_HDMI_INPUTS, NEXUS_NUM_HDMI_OUTPUTS);
 
     printf("%s not supported on the %d platform.\n", argv[0], BCHP_CHIP) ;
     return 0 ;

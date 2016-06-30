@@ -106,6 +106,7 @@ typedef enum NEXUS_AudioCodec
     NEXUS_AudioCodec_eIsac,           /* Internet Speech Audio Codec */
     NEXUS_AudioCodec_eOpus,           /* Opus Audio Codec */
     NEXUS_AudioCodec_eAls,            /* MPEG-4 Audio Lossless Codec */
+    NEXUS_AudioCodec_eAc4,            /* AC-4 Audio Codec */
     NEXUS_AudioCodec_eMax
 } NEXUS_AudioCodec;
 
@@ -251,7 +252,32 @@ typedef struct NEXUS_AudioRawChannelStatus
 
 /**
 Summary:
-NEXUS_AudioInput is an abstract connector token for routing audio from a source. 
+Audio channel status used in HDMI and SPDIF outputs
+**/
+typedef struct NEXUS_AudioChannelStatusInfo
+{
+    bool           professionalMode;    /* [0:0] The professional mode flag.
+                                            TRUE: Professional mode. Other user
+                                            options will not be considered.
+                                            FALSE: Consumer mode.*/
+    bool           swCopyRight;         /* [2:2] Software CopyRight assert.
+                                            TRUE: CopyRight is asserted
+                                            FALSE: CopyRight is not asserted */
+    uint16_t       categoryCode;        /* [8:15] Category Code */
+    uint16_t       clockAccuracy;       /* [28:29] Clock Accuracy */
+    bool           separateLRChanNum;   /* TRUE:  Left channel num = 0000
+                                                  Right Channel Num = 0000
+                                           FALSE: Left channel num = 1000
+                                                  Right Channel Num = 0100 */
+    uint8_t        cgmsA;               /* CGMS-A copy bits.  Only supported for SPDIF.
+                                           Typical values are
+                                           0=Copy Freely 1=Copy Once
+                                           2=Reserved 3=Copy Never */
+} NEXUS_AudioChannelStatusInfo;
+
+/**
+Summary:
+NEXUS_AudioInput is an abstract connector token for routing audio from a source.
 
 Description:
 See Also:

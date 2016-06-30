@@ -70,7 +70,12 @@
 #include "priv/nexus_core_audio.h"
 #endif
 
-#if NEXUS_HAS_SAGE
+/* HDCP 2.x defaults on where available. 3 things determine it:
+1) HW capability - checked via bchp_common.h RDB test
+2) SAGE support - can be turned off with SAGE_SUPPORT=n. tested with #if NEXUS_HAS_SAGE.
+3) user flag - can be turned off with NEXUS_HDCP_SUPPORT=n. tested with #if NEXUS_HAS_HDCP_2X_SUPPORT.
+*/
+#if NEXUS_HAS_SAGE && NEXUS_HAS_HDCP_2X_SUPPORT
 #include "bchp_common.h"
 #ifdef BCHP_HDCP2_RX_HAE_INTR2_0_REG_START
 #define NEXUS_HAS_HDCP_2X_RX_SUPPORT 1

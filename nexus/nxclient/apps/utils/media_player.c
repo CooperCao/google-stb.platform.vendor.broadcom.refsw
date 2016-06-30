@@ -522,8 +522,10 @@ int media_player_start( media_player_t player, const media_player_start_settings
     NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&player->audioProgram);
 
     NxClient_GetDisplaySettings(&displaySettings);
-    if (displaySettings.hdmiPreferences.hdcp != psettings->hdcp) {
+    if (displaySettings.hdmiPreferences.hdcp != psettings->hdcp ||
+        displaySettings.hdmiPreferences.version != psettings->hdcp_version) {
         displaySettings.hdmiPreferences.hdcp = psettings->hdcp;
+        displaySettings.hdmiPreferences.version = psettings->hdcp_version;
         NxClient_SetDisplaySettings(&displaySettings);
     }
 

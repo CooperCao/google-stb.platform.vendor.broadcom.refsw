@@ -308,6 +308,8 @@ int main(int argc, const char **argv)  {
     struct nxapps_cmdline cmdline;
     int n;
     struct binput_settings input_settings;
+    bool hdcp_flag = false;
+    bool hdcp_version_flag = false;
 
     memset(&pig_inc, 0, sizeof(pig_inc));
     memset(client, 0, sizeof(*client));
@@ -401,11 +403,32 @@ int main(int argc, const char **argv)  {
         }
         else if (!strcmp(argv[curarg], "-hdcp") && curarg+1 < argc) {
             curarg++;
+            hdcp_flag = true;
             if (argv[curarg][0] == 'm') {
                 start_settings.hdcp = NxClient_HdcpLevel_eMandatory;
             }
             else if (argv[curarg][0] == 'o') {
                 start_settings.hdcp = NxClient_HdcpLevel_eOptional;
+            }
+            else {
+                print_usage(&cmdline);
+                return -1;
+            }
+        }
+        else if (!strcmp(argv[curarg], "-hdcp_version") && curarg+1 < argc) {
+            curarg++;
+            hdcp_version_flag = true;
+            if (!strcmp(argv[curarg],"auto")) {
+                start_settings.hdcp_version = NxClient_HdcpVersion_eAuto;
+            }
+            else if (!strcmp(argv[curarg],"follow")) {
+                start_settings.hdcp_version = NxClient_HdcpVersion_eFollow;
+            }
+            else if (!strcmp(argv[curarg],"hdcp1x")) {
+                start_settings.hdcp_version = NxClient_HdcpVersion_eHdcp1x;
+            }
+            else if (!strcmp(argv[curarg],"hdcp22")) {
+                start_settings.hdcp_version = NxClient_HdcpVersion_eHdcp22;
             }
             else {
                 print_usage(&cmdline);
@@ -563,6 +586,17 @@ int main(int argc, const char **argv)  {
         }
         if (pig_inc.x) {
             b_pig_init(video_sc);
+        }
+    }
+
+    if (!hdcp_flag || !hdcp_version_flag) {
+        NxClient_DisplaySettings displaySettings;
+        NxClient_GetDisplaySettings(&displaySettings);
+        if (hdcp_flag == false) {
+            start_settings.hdcp = displaySettings.hdmiPreferences.hdcp;
+        }
+        if (hdcp_version_flag == false) {
+            start_settings.hdcp_version = displaySettings.hdmiPreferences.version;
         }
     }
 

@@ -144,22 +144,7 @@ typedef struct NEXUS_HdmiOutputSettings
     NEXUS_CallbackDesc hdmiRxStatusChanged;     /* Callback will be called when the attached HDMI Rx reports a change in status (HDMI 2.x only) */
 
 
-    struct
-    {
-        bool           professionalMode;    /* [0:0] The professional mode flag.
-                                                TRUE: Professional mode. Other user
-                                                options will not be considered.
-                                                FALSE: Consumer mode.*/
-        bool           swCopyRight;         /* [2:2] Software CopyRight assert.
-                                                TRUE: CopyRight is asserted
-                                                FALSE: CopyRight is not asserted */
-        uint16_t       categoryCode;        /* [8:15] Category Code */
-        uint16_t       clockAccuracy;       /* [28:29] Clock Accuracy */
-        bool           separateLRChanNum;   /* TRUE:  Left channel num = 0000
-                                                      Right Channel Num = 0000
-                                               FALSE: Left channel num = 1000
-                                                      Right Channel Num = 0100 */
-    } audioChannelStatusInfo;
+    NEXUS_AudioChannelStatusInfo audioChannelStatusInfo;
 
     bool audioDitherEnabled;    /* If true, a dither signal will be sent out when
                                    there is no audio data on this output in PCM mode. */
@@ -292,7 +277,26 @@ typedef struct NEXUS_HdmiOutputMonitorRange
 
 /****
 Summary:
-Data structure containing Monitor Colorimetry Data Block  in a receiver's EDID ROM
+Data structure containing Monitor Video Capabiliy Data Block (VCDB) from a receiver's EDID
+See CEA-861 for description of VCDB
+******/
+
+typedef struct NEXUS_HdmiOutputEdidRxVideoCapabilitydb
+{
+    bool valid; /* Video Capability Data Block was found */
+    bool selectableRgb; /* RGB Color Range is selectable.
+                           If true TV supports NEXUS_ColorRange_eFull and eLimited for NEXUS_ColorSpace_eRgb.
+                           If false TV only supports NEXUS_ColorRange_eLimited for NEXUS_ColorSpace_eRgb on CEA-861 display formats
+                           and NEXUS_ColorRange_eFull for NEXUS_ColorSpace_eRgb on PC display formats. */
+    bool selectableYcc; /* YCC Color Range is selectable.
+                           If true TV supports NEXUS_ColorRange_eFull and eLimited for NEXUS_ColorSpace_eYCrCbXXX.
+                           If false TV only supports NEXUS_ColorRange_eLimited for NEXUS_ColorSpace_eYCrCbXXX on CEA861 display formats and
+                           NEXUS_ColorRange_eFull for NEXUS_ColorSpace_eYCrCbXXX on PC display formats. */
+} NEXUS_HdmiOutputEdidRxVideoCapabilitydb;
+
+/****
+Summary:
+Data structure containing Monitor Colorimetry Data Block from a receiver's EDID
 ******/
 
 typedef  struct NEXUS_HdmiOutputMonitorColorimetry
@@ -552,6 +556,10 @@ typedef struct NEXUS_HdmiOutputEdidData
     /*    EDID BLOCK 1    */
     /**********************/
 
+    /* Video Capability data block - optional */
+    /* See CEA-861 for Video Capability data block details */
+    NEXUS_HdmiOutputEdidRxVideoCapabilitydb videoCapabilitydb;
+
     /* VSDB (Vendor Specific data block)  - required for HDMI */
      NEXUS_HdmiOutputEdidRxHdmiVsdb hdmiVsdb;
 
@@ -699,7 +707,7 @@ Get current Vendor Specific Info Frame
 **/
 void NEXUS_HdmiOutput_GetVendorSpecificInfoFrame(
     NEXUS_HdmiOutputHandle handle,
-    NEXUS_HdmiOutputVendorSpecificInfoFrame *pVendorSpecificInfoFrame /* [out] */
+    NEXUS_HdmiVendorSpecificInfoFrame *pVendorSpecificInfoFrame /* [out] */
     );
 
 /**
@@ -711,7 +719,7 @@ Used to send Vendor Specific Information
 **/
 NEXUS_Error NEXUS_HdmiOutput_SetVendorSpecificInfoFrame(
     NEXUS_HdmiOutputHandle handle,
-    const NEXUS_HdmiOutputVendorSpecificInfoFrame *pVendorSpecificInfoFrame
+    const NEXUS_HdmiVendorSpecificInfoFrame *pVendorSpecificInfoFrame
     );
 
 

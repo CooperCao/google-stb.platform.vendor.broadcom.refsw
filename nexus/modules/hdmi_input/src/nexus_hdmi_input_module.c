@@ -537,6 +537,14 @@ static void NEXUS_HdmiInput_P_Finalizer(NEXUS_HdmiInputHandle hdmiInput)
     }
 #endif
 
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
+    /* Do not uninit Hdcp22 during the hdmiInput module initialization process */
+    if (!g_NEXUS_hdmiInput.initInProgress) {
+        NEXUS_HdmiInput_P_UninitHdcp2x(hdmiInput);
+    }
+#endif
+
+
     /* now uninstall the HDMI Rx Frontend call backs */
     if (hdmiInput->frontend) {
         BHDR_FE_UnInstallHotPlugCallback(hdmiInput->frontend, NEXUS_HdmiInput_P_HotPlug_isr);
@@ -631,13 +639,6 @@ static void NEXUS_HdmiInput_P_Finalizer(NEXUS_HdmiInputHandle hdmiInput)
 
     NEXUS_HdmiInput_UnloadEdidData(hdmiInput) ;
 
-#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
-    /* Do not uninit Hdcp22 during the hdmiInput module initialization process */
-    if (!g_NEXUS_hdmiInput.initInProgress) {
-        NEXUS_HdmiInput_P_UninitHdcp2x(hdmiInput);
-    }
-#endif
-
     g_NEXUS_hdmiInput.handle[hdmiInput->index] = NULL;
 
     BDBG_OBJECT_DESTROY(hdmiInput, NEXUS_HdmiInput);
@@ -656,7 +657,5 @@ NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_HdmiInput, NEXUS_HdmiInput_Close);
 void  Nexus_HdmiInput_P_SetHdmiVideoFormat_isr(
 	    NEXUS_HdmiVendorSpecificInfoFrame_HDMIVideoFormat hdmiVideoFormat)
 {
-    g_NEXUS_hdmiInput.hdmiVideoFormat = hdmiVideoFormat ;
+    g_NEXUS_hdmiInput.hdmiVideoFormat = hdmiVideoFormat;
 }
-
-

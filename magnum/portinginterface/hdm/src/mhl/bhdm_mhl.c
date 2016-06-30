@@ -26,7 +26,7 @@
 
 #include "berr_ids.h"   /* Error codes */
 #include "bdbg.h"       /* Debug Support */
-#include "bhdm_priv.h"
+#include "../common/bhdm_priv.h"
 #include "bhdm_mhl.h"
 
 

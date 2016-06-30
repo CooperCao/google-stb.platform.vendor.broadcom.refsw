@@ -248,6 +248,9 @@ typedef struct BAVC_MFD_Picture
 	/* color primaries */
 	BAVC_ColorPrimaries      eColorPrimaries;
 
+    /* preferred transfer characteristics when TV does support */
+    BAVC_TransferCharacteristics ePreferredTransferCharacteristics;
+
 	/* transfer characteristics */
 	BAVC_TransferCharacteristics eTransferCharacteristics;
 

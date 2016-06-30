@@ -51,7 +51,6 @@
 #include "priv/nexus_core.h"
 #include "nexus_hdmi_output_init.h"
 
-
 BDBG_MODULE(nexus_hdmi_output);
 
 /* global module handle & data */
@@ -128,3 +127,41 @@ void NEXUS_HdmiOutputModule_Uninit(void)
     return;
 }
 
+/* Update Rx supported hdcp version - use hdcp 2.2 if support */
+void NEXUS_HdmiOutput_P_CheckHdcpVersion(NEXUS_HdmiOutputHandle output)
+{
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+    BHDM_HDCP_Version eHdcpVersion = output->eHdcpVersion;
+    BERR_Code rc = BERR_SUCCESS;
+
+    if ( output->rxState != NEXUS_HdmiOutputState_ePoweredOn ) {
+        return;
+    }
+
+    if (output->hdcpVersionSelect == NEXUS_HdmiOutputHdcpVersion_e1_x) {
+        eHdcpVersion = BHDM_HDCP_Version_e1_1;
+    }
+    else {
+        rc = BHDM_HDCP_GetHdcpVersion(output->hdmHandle, &eHdcpVersion);
+        /* default to HDCP 1.x if cannot read HDCP Version */
+        if (rc != BERR_SUCCESS) {
+            eHdcpVersion = BHDM_HDCP_Version_e1_1;
+        }
+    }
+
+    /* close/re-open hdcplib handle for diff hdcp version if needed */
+    if (output->eHdcpVersion != eHdcpVersion)
+    {
+        NEXUS_HdmiOutput_P_UninitHdcp(output);
+
+        output->eHdcpVersion = eHdcpVersion;
+        rc = NEXUS_HdmiOutput_P_InitHdcp(output);
+        if (rc)
+        {
+            rc = BERR_TRACE(rc);
+        };
+    }
+#else
+    BSTD_UNUSED(output);
+#endif
+}

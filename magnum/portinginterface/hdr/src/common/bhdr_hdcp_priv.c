@@ -74,7 +74,6 @@ BERR_Code BHDR_HDCP_P_EnableKeyLoading(BHDR_Handle hHDR)
 	if ((!BKNI_Memcmp(HdcpSpecRx1Bksv, hHDR->stHdcpSettings.rxBksv, BAVC_HDMI_HDCP_KSV_LENGTH))
 	|| (!BKNI_Memcmp(HdcpSpecRx2Bksv, hHDR->stHdcpSettings.rxBksv, BAVC_HDMI_HDCP_KSV_LENGTH)))
 	{
-		BDBG_WRN(("\n\n\n")) ;
 		BDBG_WRN(("******************************")) ;
 		BDBG_WRN(("RxBksv = %02x %02x %02x %02x %02x",
 			HdcpSpecRx1Bksv[4], HdcpSpecRx1Bksv[3],
@@ -305,17 +304,19 @@ BERR_Code BHDR_HDCP_P_GetStatus(BHDR_Handle hHDR, BHDR_HDCP_Status *pStatus)
 	bKeySetLoaded =
 		BCHP_GET_FIELD_DATA(Register, DVP_HR_KEY_RAM_STATUS_2, KEY_RAM_INIT_DONE) ;
 
-	if (bValidKsvLoaded && bKeySetLoaded)
+	if (hHDR->stHdcpStatus.eVersion == BHDR_HDCP_Version_e1x)
 	{
-		BDBG_LOG(("HDCP keyset/BKSV stored in SECURE RAM")) ;
+		if (bValidKsvLoaded && bKeySetLoaded)
+		{
+			BDBG_LOG(("HDCP keyset/BKSV stored in SECURE RAM")) ;
+		}
+		else
+		{
+			BDBG_WRN(("HDCP Key Set invalid/not loaded to RAM ")) ;
+			BDBG_WRN(("HDCP BKsv Valid: %x", bValidKsvLoaded)) ;
+			BDBG_WRN(("HDCP Keys loaded to RAM: %x", bKeySetLoaded)) ;
+		}
 	}
-	else
-	{
-		BDBG_WRN(("HDCP Key Set invalid/not loaded to RAM ")) ;
-		BDBG_WRN(("HDCP BKsv Valid: %x", bValidKsvLoaded)) ;
-		BDBG_WRN(("HDCP Keys loaded to RAM: %x", bKeySetLoaded)) ;
-	}
-
 
 	hHDR->stHdcpStatus.eOtpState = bKeySetLoaded
 		? BHDR_HDCP_OtpState_eCrcMatch : BHDR_HDCP_OtpState_eHwError ;
