@@ -3679,6 +3679,14 @@ void NEXUS_VideoDecoder_P_Flush_Avd(NEXUS_VideoDecoderHandle videoDecoder)
     if (!videoDecoder->started) return;
     BDBG_ASSERT(videoDecoder->dec);
 
+    if ( videoDecoder->startSettings.appDisplayManagement )
+    {
+        /* Synchronize with isr */
+        BKNI_EnterCriticalSection();
+        videoDecoder->externalTsm.stopped = true;
+        BKNI_LeaveCriticalSection();
+    }
+
     BDBG_MSG(("flush"));
     rc = BXVD_DisableForFlush(videoDecoder->dec);
     if (rc) {rc=BERR_TRACE(rc);} /* fall through */
@@ -3724,6 +3732,11 @@ void NEXUS_VideoDecoder_P_Flush_Avd(NEXUS_VideoDecoderHandle videoDecoder)
     videoDecoder->maxFrameRepeat.pictureDisplayCount = 0;
     BKNI_Memset(&videoDecoder->status, 0, sizeof(videoDecoder->status));
     NEXUS_VideoDecoder_P_FlushFifoEmpty(videoDecoder);
+
+    if ( videoDecoder->startSettings.appDisplayManagement )
+    {
+        videoDecoder->externalTsm.stopped = false;
+    }
 }
 
 NEXUS_Error NEXUS_VideoDecoder_P_GetStreamInformation_Avd(NEXUS_VideoDecoderHandle videoDecoder, NEXUS_VideoDecoderStreamInformation *pStreamInformation)
