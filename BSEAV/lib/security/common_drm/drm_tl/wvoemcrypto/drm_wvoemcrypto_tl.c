@@ -4507,8 +4507,6 @@ DrmRC DRM_WVOemCrypto_UpdateUsageTable(int *wvRc)
         goto ErrorExit;
     }
 
-    *wvRc = container->basicOut[2];
-
     /* if success, extract status from container */
     if (container->basicOut[0] != BERR_SUCCESS)
     {
@@ -4516,8 +4514,6 @@ DrmRC DRM_WVOemCrypto_UpdateUsageTable(int *wvRc)
         rc = Drm_Err;
         goto ErrorExit;
     }
-
-
 
     /* Possible encrypted Usage Table returned from SAGE */
     if(container->basicOut[2] == OVERWRITE_USAGE_TABLE_ON_ROOTFS)
@@ -4529,6 +4525,8 @@ DrmRC DRM_WVOemCrypto_UpdateUsageTable(int *wvRc)
             goto ErrorExit;
         }
     }
+
+    *wvRc = SAGE_OEMCrypto_SUCCESS;
 
 ErrorExit:
     if(container != NULL)
@@ -5374,7 +5372,7 @@ static DrmRC DRM_WvOemCrypto_P_OverwriteUsageTable(uint8_t *pEncryptedUsageTable
     uint8_t digest[SHA256_DIGEST_SIZE] = {0x00};
     char *pActiveUsageTableFilePath = NULL;
     uint32_t ii =0;
-
+    int fd;
 
     /* DRM_MSG_PRINT_BUF("pEncryptedUsageTable (before writing)", pEncryptedUsageTable, 144); */
 
@@ -5427,22 +5425,6 @@ static DrmRC DRM_WvOemCrypto_P_OverwriteUsageTable(uint8_t *pEncryptedUsageTable
             goto ErrorExit;
         }
 
-        /* close file descriptor */
-        if(fptr != NULL)
-        {
-            fclose(fptr);
-            fptr = NULL;
-        }
-
-        /* append SHA256 to file */
-        fptr = fopen(pActiveUsageTableFilePath, "ab");
-        if(fptr == NULL)
-        {
-            BDBG_ERR(("%s - Error opening Usage Table file (%s) in 'ab' mode.  '%s'", __FUNCTION__, pActiveUsageTableFilePath, strerror(errno)));
-            rc = Drm_FileErr;
-            goto ErrorExit;
-        }
-
         write_size = fwrite(digest, 1, SHA256_DIGEST_SIZE, fptr);
         if(write_size != SHA256_DIGEST_SIZE)
         {
@@ -5450,6 +5432,9 @@ static DrmRC DRM_WvOemCrypto_P_OverwriteUsageTable(uint8_t *pEncryptedUsageTable
             rc = Drm_FileErr;
             goto ErrorExit;
         }
+
+        fd = fileno(fptr);
+        fsync(fd);
 
         /* close file descriptor */
         if(fptr != NULL)
